@@ -39,6 +39,9 @@ in
         borderColor = "#337aff";
         ghafAudio.enable = lib.mkDefault true;
         vtpm.enable = lib.mkDefault true;
+        xdgitems.enable = true;
+        xdghandlers.url = true;
+        desktopShare.enable = true;
         applications = [
           {
             name = "electron";
@@ -92,14 +95,19 @@ in
 
             ghaf = {
               reference.programs.google-chrome.enable = lib.mkDefault true;
-              # Open external URLs locally in comms-vm's browser instead of forwarding to a dedicated URL-handling VM
-              xdghandlers.url = true;
-              xdgitems.enable = lib.mkDefault true;
               # Disable serial debug console on comms-vm as it makes the serial device owned by
               # 'tty' group. gpsd runs hardcoded with effective gid of 'dialout' group, and thus
               # can't access the device if this is enabled.
               development.usb-serial.enable = lib.mkForce false;
               storagevm.maximumSize = 100 * 1024; # 100 GB space for comms-vm
+              # ClamAV malware scanning for user files
+              security.clamav = {
+                enable = true;
+                scan.on-modify = {
+                  enable = true;
+                  directories = [ "/home" ];
+                };
+              };
             };
 
             # GPSD collects data from GPS and makes it available on TCP port 2947

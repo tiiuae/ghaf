@@ -17,8 +17,8 @@
     ./locale.nix
     ./performance
     ./power.nix
-    ./storewatcher.nix
     ./sssd.nix
+    ./storewatcher.nix
     ./timezone.nix
     ./user-provision.nix
     ./wifi.nix

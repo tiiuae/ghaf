@@ -16,7 +16,6 @@
 #
 # Feature modules auto-include based on:
 #   - boot-ui.nix: globalConfig.graphics.boot.enable
-#   - shared-folders.nix: config.ghaf.storagevm.shared-folders.enable (VM-local)
 #   - shared-mem.nix: globalConfig.shm.enable
 #   - ghaf-intro.nix: hostConfig.reference.desktop.ghaf-intro.enable
 #
@@ -32,7 +31,6 @@
     # All feature modules use mkIf internally to conditionally enable
     # based on their respective globalConfig flags
     ./boot-ui.nix
-    ./shared-folders.nix
     ./shared-mem.nix
     ./ghaf-intro.nix
   ];

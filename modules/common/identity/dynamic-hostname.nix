@@ -17,9 +17,7 @@ let
 
   cfg = config.ghaf.identity.dynamicHostName;
 
-  # Get list of active microvm names (empty if microvms not configured)
-  activeMicrovms =
-    if config ? microvm && config.microvm ? vms then builtins.attrNames config.microvm.vms else [ ];
+  hasChannel = config.ghaf.storage.channels.ghafIdentity.enable;
 
   computeScript = pkgs.writeShellApplication {
     name = "ghaf-compute-hostname";
@@ -166,15 +164,6 @@ let
         uuid_hash=$(echo -n "$key" | sha256sum | cut -d' ' -f1)
         uuid="''${uuid_hash:0:8}-''${uuid_hash:8:4}-5''${uuid_hash:13:3}-a''${uuid_hash:17:3}-''${uuid_hash:20:12}"
         printf "%s" "$uuid" > "$shareDir/uuid"
-
-        # Generate unique machine-ids for all VMs based on hardware ID
-        # Each VM gets a deterministic ID derived from hardware + VM name
-        ${lib.concatMapStringsSep "\n" (vm: ''
-          mkdir -p /persist/storagevm/${vm}/etc
-          vm_key="$key-${vm}"
-          vm_hash=$(echo -n "$vm_key" | sha256sum | cut -d' ' -f1)
-          echo -n "$vm_hash" > /persist/storagevm/${vm}/etc/machine-id
-        '') activeMicrovms}
       }
 
       # Get hardware key based on configured source
@@ -268,8 +257,8 @@ in
 
     shareDir = mkOption {
       type = types.path;
-      default = "/persist/common/ghaf";
-      description = "Shared dir exposed to VMs (is available under /etc/common in VMs)";
+      default = "/etc/ghaf-identity/ghaf";
+      description = "Shared dir exposed to VMs (is available under /etc/ghaf-identity in VMs)";
     };
 
     outputDir = mkOption {
@@ -280,11 +269,13 @@ in
   };
 
   config = mkIf cfg.enable {
+
     systemd = {
       tmpfiles.rules = [
         "d ${toString cfg.outputDir} 0755 root root - -"
+      ]
+      ++ lib.optionals (!hasChannel) [
         "d ${toString cfg.shareDir} 0755 root root - -"
-        "d /persist/common 0755 root root - -"
       ];
 
       services.ghaf-dynamic-hostname = {
@@ -298,6 +289,7 @@ in
           "multi-user.target"
           "network-online.target"
         ];
+        unitConfig.RequiresMountsFor = lib.optionalString hasChannel "/etc/ghaf-identity";
         serviceConfig = {
           Type = "oneshot";
           ExecStart = "${computeScript}/bin/ghaf-compute-hostname";

@@ -209,22 +209,8 @@ in
     mem = lib.mkDefault 1024;
     hypervisor = "qemu";
 
-    shares = [
-      {
-        tag = "ghaf-common";
-        source = "/persist/common";
-        mountPoint = "/etc/common";
-        proto = "virtiofs";
-      }
-      {
-        tag = "sysupdate";
-        source = "/persist/sysupdate";
-        mountPoint = "/persist/sysupdate";
-        proto = "virtiofs";
-      }
-    ]
     # Shared store (when not using storeOnDisk)
-    ++ lib.optionals (!(globalConfig.storage.storeOnDisk or false)) [
+    shares = lib.optionals (!(globalConfig.storage.storeOnDisk or false)) [
       {
         tag = "ro-store";
         source = "/nix/store";

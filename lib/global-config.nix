@@ -68,17 +68,36 @@ rec {
         };
       };
 
-      security.audit.enable = mkEnableOption "security auditing globally";
+      security = {
+        audit.enable = mkEnableOption "security auditing globally";
+        clamav.enable = mkEnableOption "ClamAV malware scanning globally";
+      };
 
       givc = {
         enable = mkEnableOption "GIVC (Ghaf Inter-VM Communication) globally";
-
         debug = mkEnableOption "GIVC debug mode";
       };
 
       storage = {
         encryption.enable = mkEnableOption "storage encryption globally";
         storeOnDisk = mkEnableOption "storing VM nix stores on disk rather than virtiofs";
+        channels = {
+          enable = mkEnableOption "shared directory channels for cross-VM file sharing";
+          debug = mkEnableOption "debug logging for shared directory channels";
+
+          # Built-in channel types
+          xdg.enable = mkEnableOption "XDG shares (auto-generated from appvm xdgitems/xdghandlers config)";
+          ghafIdentity.enable = mkEnableOption "host identity data shared to VMs";
+          ghafPublicKeys.enable = mkEnableOption "public key channel (admin-vm rw, others wo)";
+          desktopShares.enable = mkEnableOption "GUI-VM <-> App-VM desktop shares";
+
+          # Custom channel definitions
+          extraChannels = mkOption {
+            type = types.attrs;
+            default = { };
+            description = "Additional custom shared channel definitions";
+          };
+        };
       };
 
       # Shared memory configuration
@@ -326,7 +345,10 @@ rec {
         server.endpoint = defaultLoggingEndpoint;
       };
 
-      security.audit.enable = false;
+      security = {
+        audit.enable = false;
+        clamav.enable = true;
+      };
 
       givc = {
         enable = true;
@@ -337,6 +359,14 @@ rec {
       storage = {
         encryption.enable = false;
         storeOnDisk = false;
+        channels = {
+          enable = true;
+          debug = true;
+          xdg.enable = true;
+          ghafIdentity.enable = true;
+          ghafPublicKeys.enable = true;
+          desktopShares.enable = true;
+        };
       };
 
       graphics.boot.enable = true;
@@ -418,7 +448,11 @@ rec {
         enable = true;
         server.endpoint = defaultLoggingEndpoint;
       };
-      security.audit.enable = true;
+
+      security = {
+        audit.enable = true;
+        clamav.enable = true;
+      };
 
       givc = {
         enable = true;
@@ -428,6 +462,13 @@ rec {
       storage = {
         encryption.enable = true;
         storeOnDisk = false;
+        channels = {
+          enable = true;
+          xdg.enable = true;
+          ghafIdentity.enable = true;
+          ghafPublicKeys.enable = false;
+          desktopShares.enable = true;
+        };
       };
 
       graphics.boot.enable = true;
@@ -506,7 +547,10 @@ rec {
       };
 
       logging.enable = false;
-      security.audit.enable = false;
+      security = {
+        audit.enable = false;
+        clamav.enable = false;
+      };
 
       givc = {
         enable = false;
@@ -516,6 +560,13 @@ rec {
       storage = {
         encryption.enable = false;
         storeOnDisk = false;
+        channels = {
+          enable = false;
+          xdg.enable = false;
+          ghafIdentity.enable = false;
+          ghafPublicKeys.enable = false;
+          desktopShares.enable = false;
+        };
       };
 
       shm.enable = false;
@@ -658,8 +709,6 @@ rec {
             if rules == [ ] then "" else lib.concatStringsSep "\n" rules;
         };
 
-        # Host filesystem paths
-        sharedVmDirectory = config.ghaf.virtualization.microvm-host.sharedVmDirectory or null;
         # Boot configuration
         microvmBoot = {
           enable = config.ghaf.microvm-boot.enable or false;

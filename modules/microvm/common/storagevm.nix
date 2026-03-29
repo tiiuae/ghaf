@@ -30,7 +30,7 @@ in
 {
   _file = ./storagevm.nix;
 
-  # Option declarations for ghaf.storagevm are in modules/common/storage-persistence.nix
+  # Option declarations for ghaf.storagevm are in modules/common/storage/persistence.nix
   # so they are available in the common bundle without requiring the microvm bundle.
 
   options.virtualisation.fileSystems = mkOption { };

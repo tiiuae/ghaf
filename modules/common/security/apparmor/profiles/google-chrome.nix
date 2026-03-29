@@ -56,13 +56,16 @@
         ${pkgs.givc-cli}/bin/givc-cli                                   ixr,
         ${pkgs.chrome-extensions.open-normal}/*                         ixr,
         ${config.ghaf.xdgitems.handlerPath}/bin/*                       ixr,
-        /run/xdg/pdf/*                                                  rw,
-        /run/xdg/image/*                                                rw,
         ${pkgs.systemd}/bin/*                                           ixr,
         ${pkgs.bashInteractive}/bin/*                                   ixr,
         ${pkgs.libressl.nc}/bin/*                                       ixr,
         ${pkgs.openssh}/bin/*                                           ixr,
         ${pkgs.perlPackages.FileMimeInfo}/bin/mimetype                  ixr,
+
+        @{HOME}/Desktop\ Share/                                         rw,
+        @{HOME}/Desktop\ Share/**                                       rw,
+        /run/xdg/pdf/*                                                  rw,
+        /run/xdg/image/*                                                rw,
 
         @{sys}/kernel/mm/transparent_hugepage/hpage_pmd_size            r,
         @{sys}/module/                                                  r,
@@ -170,9 +173,6 @@
         owner @{HOME}/.pki/**                                           rwkm,
         owner @{HOME}/Downloads/                                        rw,
         owner @{HOME}/Downloads/**                                      rw,
-
-        owner @{HOME}/Unsafe\ share/                                    rw,
-        owner @{HOME}/Unsafe\ share/**                                  rw,
         owner @{HOME}/tmp/**                                            rwkl,
         owner @{HOME}/tmp/                                              rw,
 

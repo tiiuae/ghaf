@@ -68,6 +68,14 @@ let
         runInVM = vmDef.vtpm.runInVM or false;
         basePort = vmDef.vtpm.basePort or null;
       };
+      # Feature flags - derived from vmDef (set in mkAppVm call)
+      xdgitems.enable = vmDef.xdgitems.enable or false;
+      xdghandlers = {
+        pdf = vmDef.xdghandlers.pdf or false;
+        image = vmDef.xdghandlers.image or false;
+        url = vmDef.xdghandlers.url or false;
+      };
+      desktopShare.enable = vmDef.desktopShare.enable or false;
     }
   ) (lib.filterAttrs (_: vm: vm.enable) cfg.vms);
 

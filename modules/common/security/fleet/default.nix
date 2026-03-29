@@ -150,6 +150,12 @@ in
       }
     ];
 
+    # Persistent storage for orbit state (node key, osquery db, identifier)
+    # Required to avoid re-enrollment after reboot
+    ghaf.storagevm.directories = lib.mkIf (config.ghaf.storagevm.enable or false) [
+      cfg.rootDir
+    ];
+
     systemd = {
       services.orbit = {
         description = "Orbit OSQuery";

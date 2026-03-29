@@ -13,5 +13,6 @@
     ./fleet
     ./tpm2-packages.nix
     ../../secureboot/secureboot.nix
+    ./clamav
   ];
 }

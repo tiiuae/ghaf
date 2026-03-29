@@ -228,6 +228,173 @@ in
     };
   };
 
+  # Data channel for virtiofs file sharing
+  dataChannel = lib.types.submodule {
+    options = {
+      mode = lib.mkOption {
+        type = lib.types.enum [
+          "fallback"
+          "untrusted"
+          "trusted"
+        ];
+        description = ''
+          Channel operation mode:
+          - `fallback`: Plain virtiofs share - all VMs access the same directory directly (no isolation, not recommended)
+          - `untrusted`: Per-writer isolation with scanning enabled by default
+          - `trusted`: Per-writer isolation with scanning disabled by default
+        '';
+      };
+
+      readWrite = lib.mkOption {
+        type = lib.types.attrsOf (
+          lib.types.submodule {
+            options = {
+              mountPoint = lib.mkOption {
+                type = lib.types.path;
+                description = "Mount path inside VM";
+              };
+              user = lib.mkOption {
+                type = lib.types.str;
+                default = "root";
+                description = "Owner user for the mount point directory";
+              };
+              group = lib.mkOption {
+                type = lib.types.str;
+                default = "root";
+                description = "Owner group for the mount point directory";
+              };
+              mode = lib.mkOption {
+                type = lib.types.str;
+                default = "0755";
+                description = "Permissions mode for the mount point directory";
+              };
+              notify = lib.mkEnableOption "vsock notifications when files change in this channel";
+            };
+          }
+        );
+        default = { };
+        description = "Read-write participants. Content is synced bi-directionally between all readWrite participants.";
+      };
+
+      readOnly = lib.mkOption {
+        type = lib.types.attrsOf (
+          lib.types.submodule {
+            options = {
+              mountPoint = lib.mkOption {
+                type = lib.types.path;
+                description = "Mount path inside VM or host bind mount target";
+              };
+              notify = lib.mkEnableOption "vsock notifications when files change in this channel";
+            };
+          }
+        );
+        default = { };
+        description = "Read-only participants. Can only read the aggregated export from all writers.";
+      };
+
+      writeOnly = lib.mkOption {
+        type = lib.types.attrsOf (
+          lib.types.submodule {
+            options = {
+              mountPoint = lib.mkOption {
+                type = lib.types.path;
+                description = "Mount path inside VM";
+              };
+              user = lib.mkOption {
+                type = lib.types.str;
+                default = "root";
+                description = "Owner user for the mount point directory";
+              };
+              group = lib.mkOption {
+                type = lib.types.str;
+                default = "root";
+                description = "Owner group for the mount point directory";
+              };
+              mode = lib.mkOption {
+                type = lib.types.str;
+                default = "0755";
+                description = "Permissions mode for the mount point directory";
+              };
+            };
+          }
+        );
+        default = { };
+        description = ''
+          Write-only participants (diode mode). Can write files but content from other
+          participants is not propagated back to them. Can read/write own data, but
+          cannot modify existing propagated files.
+
+          Use cases:
+          - Public keys shared during secure initialization that should not be changed
+          - Less trusted VMs that need write access but should not see other content
+        '';
+      };
+
+      scanning = {
+        enable = lib.mkEnableOption "scanning for this channel" // {
+          default = true;
+        };
+        permissive = lib.mkEnableOption "permissive mode - this will treat scanning errors as clean files";
+        infectedAction = lib.mkOption {
+          type = lib.types.enum [
+            "log"
+            "quarantine"
+            "delete"
+          ];
+          default = "quarantine";
+          description = ''
+            Action to take when an infected file is detected:
+            - `log`: Log the infection but leave the file in place
+            - `quarantine`: Move the file to quarantine directory
+            - `delete`: Delete the infected file
+          '';
+        };
+        ignoreFilePatterns = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [
+            ".crdownload"
+            ".part"
+            ".tmp"
+            "~$"
+          ];
+          description = "File name suffix patterns to ignore. Matching files are not scanned or propagated, and remain only in the original location.";
+        };
+        ignorePathPatterns = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [
+            ".Trash-"
+          ];
+          description = "Path substring patterns to ignore. Matching files are not scanned or propagated, and remain only in the original location.";
+        };
+      };
+
+      debounceMs = lib.mkOption {
+        type = lib.types.int;
+        default = 300;
+        description = "Debounce time in milliseconds for file `close-write` events to avoid multiple scans for rapid changes.";
+      };
+
+      userNotify = {
+        enable = lib.mkEnableOption "desktop notifications for scan events" // {
+          default = true;
+        };
+        socket = lib.mkOption {
+          type = lib.types.str;
+          default = "/run/clamav/notify.sock";
+          description = "Unix socket path for sending user notifications";
+        };
+      };
+
+      guestNotify = {
+        port = lib.mkOption {
+          type = lib.types.port;
+          default = 3401;
+          description = "Vsock port for notifications (must match virtiofs-notify service on guests)";
+        };
+      };
+    };
+  };
+
   # Launcher utilities (remove desktop entries from packages)
   inherit (launcherLib) rmDesktopEntry rmDesktopEntries;
 

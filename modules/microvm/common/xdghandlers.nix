@@ -8,7 +8,7 @@
 }:
 let
   cfg = config.ghaf.xdghandlers;
-  inherit (config.ghaf.xdgitems) xdgHostRoot;
+  xdgMountPoint = config.ghaf.storage.channels.xdg.mountPoint;
 
   # A script for opening PDF files launched by GIVC from AppVMs
   xdgOpenPdf = pkgs.writeShellApplication {
@@ -107,13 +107,13 @@ in
         name = "xdg-pdf";
         command = "${xdgOpenPdf}/bin/xdgopenpdf";
         args = [ "file" ];
-        directories = [ "/run/xdg/pdf" ];
+        directories = [ "${xdgMountPoint}/pdf" ];
       })
       ++ (lib.optional cfg.image {
         name = "xdg-image";
         command = "${xdgOpenImage}/bin/xdgopenimage";
         args = [ "file" ];
-        directories = [ "/run/xdg/image" ];
+        directories = [ "${xdgMountPoint}/image" ];
       })
       ++ (lib.optional cfg.url {
         name = "xdg-url";
@@ -124,42 +124,6 @@ in
         name = "xdg-element-desktop";
         command = "${xdgOpenElement}/bin/xdgopenelement";
         args = [ "url" ];
-      });
-
-    # Set up MicroVM shares for each MIME type and mount them to /run/xdg
-    # These shares are also passed to the AppVMs where XDG items are enabled
-    microvm.shares =
-      (lib.optional cfg.pdf {
-        tag = "xdgshare-pdf";
-        proto = "virtiofs";
-        securityModel = "passthrough";
-        source = "${xdgHostRoot}/pdf";
-        mountPoint = "/run/xdg/pdf";
-      })
-      ++ (lib.optional cfg.image {
-        tag = "xdgshare-image";
-        proto = "virtiofs";
-        securityModel = "passthrough";
-        source = "${xdgHostRoot}/image";
-        mountPoint = "/run/xdg/image";
-      });
-
-    fileSystems =
-      (lib.optionalAttrs cfg.pdf {
-        "/run/xdg/pdf".options = [
-          "rw"
-          "nodev"
-          "nosuid"
-          "noexec"
-        ];
-      })
-      // (lib.optionalAttrs cfg.image {
-        "/run/xdg/image".options = [
-          "rw"
-          "nodev"
-          "nosuid"
-          "noexec"
-        ];
       });
   };
 }

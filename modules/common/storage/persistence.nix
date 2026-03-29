@@ -20,7 +20,7 @@ let
     ;
 in
 {
-  _file = ./storage-persistence.nix;
+  _file = ./persistence.nix;
 
   options.ghaf.storagevm = {
     enable = mkEnableOption "StorageVM support";

@@ -9,6 +9,7 @@
 let
   cfg = config.ghaf.xdgitems;
   vmName = config.ghaf.storagevm.name;
+  xdgMountPoint = config.ghaf.storage.channels.xdg.mountPoint;
   inherit (cfg) xdgHostRoot;
   inherit (config.ghaf.networking) hosts;
   inherit (lib)
@@ -181,10 +182,10 @@ let
             case "$type" in
               pdf|image)
                 echo "Opening $filePath as $type"
-                mkdir -p "/run/xdg/$type"
-                cp -f "$filePath" "/run/xdg/$type/$fileName"
+                mkdir -p "${xdgMountPoint}/$type/${vmName}"
+                cp -f "$filePath" "${xdgMountPoint}/$type/${vmName}/$fileName"
 
-                local dst="/run/xdg/$type/${config.ghaf.storagevm.name}/$fileName"
+                local dst="${xdgMountPoint}/$type/${vmName}/$fileName"
                 ${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} \
                   start app --vm zathura-vm "xdg-$type" -- "$dst"
                 ;;
@@ -217,7 +218,7 @@ in
     xdgHostRoot = mkOption {
       description = "Path of the XDG root folder used for file sharing between VMs";
       type = types.str;
-      default = "/persist/storagevm/xdg";
+      default = "/persist/shared/xdg";
     };
 
     xdgHostPaths = mkOption {
@@ -269,40 +270,5 @@ in
         # Optional: Element also sometimes uses the plain 'element' scheme
         "x-scheme-handler/element" = "ghaf-element-xdg.desktop";
       };
-
-    # Set up MicroVM shares for each MIME type and mount them to /run/xdg
-    # These shares are also passed to the VMs that handle XDG requests
-    # Currently, only zathura-vm is used for PDF and JPG types
-    microvm.shares = [
-      {
-        tag = "xdgshare-pdf-${vmName}";
-        proto = "virtiofs";
-        securityModel = "passthrough";
-        source = "${xdgHostRoot}/pdf/${vmName}";
-        mountPoint = "/run/xdg/pdf";
-      }
-      {
-        tag = "xdgshare-image-${vmName}";
-        proto = "virtiofs";
-        securityModel = "passthrough";
-        source = "${xdgHostRoot}/image/${vmName}";
-        mountPoint = "/run/xdg/image";
-      }
-    ];
-
-    fileSystems = {
-      "/run/xdg/pdf".options = [
-        "rw"
-        "nodev"
-        "nosuid"
-        "noexec"
-      ];
-      "/run/xdg/image".options = [
-        "rw"
-        "nodev"
-        "nosuid"
-        "noexec"
-      ];
-    };
   };
 }

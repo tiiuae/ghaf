@@ -26,6 +26,7 @@ in
           pkgs.ydotool
           pkgs.evtest
           #pkgs.nvtopPackages.full
+          pkgs.ghaf-virtiofs-tests
         ]);
   };
 }

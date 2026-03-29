@@ -17,32 +17,25 @@ in
 
   config = lib.mkIf cfg.enable {
     ghaf = {
-      virtualization = {
-        # Enable shared directories for the selected VMs
-        microvm-host.sharedVmDirectory.vms = [
-          "net-vm"
-        ];
-
-        microvm.appvm = {
-          enable = true;
-          vms = {
-          };
+      virtualization.microvm.appvm = {
+        enable = true;
+        vms = {
         };
-
-        # Net VM profile-specific modules - use vmConfig for resource allocation and profile services
-        # Hardware-specific modules should go in hardware.definition.netvm.extraModules
-        vmConfig.sysvms.netvm.extraModules = [
-          ../services
-          ../personalize
-          { ghaf.reference.personalize.keys.enable = true; }
-          # Forward host reference services config to netvm
-          {
-            ghaf.reference.services = {
-              inherit (config.ghaf.reference.services) enable dendrite;
-            };
-          }
-        ];
       };
+
+      # Net VM profile-specific modules - use vmConfig for resource allocation and profile services
+      # Hardware-specific modules should go in hardware.definition.netvm.extraModules
+      vmConfig.sysvms.netvm.extraModules = [
+        ../services
+        ../personalize
+        { ghaf.reference.personalize.keys.enable = true; }
+        # Forward host reference services config to netvm
+        {
+          ghaf.reference.services = {
+            inherit (config.ghaf.reference.services) enable dendrite;
+          };
+        }
+      ];
 
       reference = {
         appvms.enable = true;

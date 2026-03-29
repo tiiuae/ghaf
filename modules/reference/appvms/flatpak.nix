@@ -291,6 +291,8 @@ in
         borderColor = "#FFA500";
         ghafAudio.enable = lib.mkDefault true;
         vtpm.enable = lib.mkDefault true;
+        xdgitems.enable = true;
+        desktopShare.enable = true;
         applications =
           let
             flatpakManagerApp = action: {
@@ -352,8 +354,6 @@ in
               };
             };
             ghaf = {
-              xdgitems.enable = lib.mkDefault true;
-
               users.appUser.extraGroups = [
                 "flatpak"
               ];

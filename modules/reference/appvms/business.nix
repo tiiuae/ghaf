@@ -156,6 +156,9 @@ in
         ghafAudio.enable = lib.mkDefault true;
         vtpm.enable = lib.mkDefault true;
         yubiProxy = true;
+        xdgitems.enable = true;
+        xdghandlers.url = true;
+        desktopShare.enable = true;
         applications = [
           {
             name = "google-chrome-business";
@@ -197,10 +200,6 @@ in
                   };
 
                   storagevm.maximumSize = 100 * 1024; # 100 GB space for business-vm
-
-                  xdgitems.enable = lib.mkDefault true;
-                  # Open external URLs locally in business-vm's browser instead of forwarding to a dedicated URL-handling VM
-                  xdghandlers.url = true;
                   security.apparmor.enable = lib.mkDefault true;
                 };
               }
@@ -277,6 +276,15 @@ in
             ];
 
             ghaf = {
+              # ClamAV malware scanning for user files
+              security.clamav = {
+                enable = true;
+                scan.on-modify = {
+                  enable = true;
+                  directories = [ "/home" ];
+                };
+              };
+
               firewall.extra =
                 let
                   # WARN: if all the traffic including VPN flowing through proxy is intended,
