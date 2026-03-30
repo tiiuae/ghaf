@@ -36,13 +36,21 @@ in
         idProvider = "ad";
         dnsProvider = {
           name = "vm-ghaf-dev-dc.ghaf-test.com";
-          ipAddress = "10.52.33.4";
+          ipAddress = "74.162.70.140";
         };
         ad = {
           domain = "ghaf-test.com";
           controllers = [ "vm-ghaf-dev-dc.ghaf-test.com" ];
-          gpoAccessControl = "permissive";
+          gpoAccessControl = "enforcing";
           dyndnsUpdate = false;
+          extraConfig = ''
+            # AD site for GPO discovery
+            ad_site = Default-First-Site-Name
+            # Deny access if no GPO is found (default: false)
+            ad_gpo_implicit_deny = true
+            # Map greetd/cosmic-greeter to interactive logon rights
+            ad_gpo_map_interactive = +greetd, +cosmic-greeter
+          '';
         };
         krb5 = {
           realm = "GHAF-TEST.COM";
