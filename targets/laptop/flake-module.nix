@@ -51,6 +51,61 @@ let
     )
   ];
 
+  # Shared VM source configurations: evaluated once per variant, shared across
+  # all laptop targets with the same profile. This avoids re-evaluating the same
+  # AppVMs and non-hardware-dependent sysVMs in every target's host fixpoint.
+  #
+  # Each VM source is a full host evaluation with a no-op hardware module.
+  # We extract the VM evaluatedConfigs from it and pass them to real targets.
+  mkVmSource =
+    variant:
+    ghaf-configuration {
+      name = "vm-source-laptop";
+      inherit system;
+      profile = "laptop-x86";
+      # Use a real hardware module for the VM source: VMs don't depend on the
+      # hardware choice, but some host modules (chromecast-config.nix) fail without
+      # hardware definitions. Any laptop hardware module works; the extracted VMs
+      # will be identical regardless of which one is used.
+      hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen11;
+      inherit variant;
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        # partitioning.disko is not enabled: the VM source only needs to
+        # evaluate VMs, not compute host disk layout
+      };
+    };
+
+  # Extract shared VMs from the source config for each variant
+  mkSharedVms =
+    variant:
+    let
+      src = mkVmSource variant;
+      hostCfg = src.hostConfiguration.config;
+      sysvmReg = hostCfg.ghaf.virtualization.microvm.sysvm.vms;
+      appvmReg = hostCfg.ghaf.virtualization.microvm.appvm.vms;
+    in
+    {
+      sysvm = {
+        adminvm = sysvmReg.adminvm.evaluatedConfig;
+        audiovm = sysvmReg.audiovm.evaluatedConfig;
+        # Note: netvm is NOT shared: its evaluation depends on hardware-specific
+        # inputs beyond NIC naming: netvm.extraModules (e.g., Alienware's rtl8126
+        # driver), hostConfig.hardware.devices, kernel/qemu config, and passthrough
+        # rules. A safe sharing predicate would need to cover all of these, but
+        # netvm.extraModules are NixOS modules (functions) that cannot be compared
+        # with == in Nix, making automatic equivalence checking infeasible.
+        # Note: guivm is NOT shared: it needs per-target hardware modules
+      };
+      appvm = lib.filterAttrs (_: v: v != null) (
+        lib.mapAttrs (_name: vm: vm.evaluatedConfig or null) appvmReg
+      );
+    };
+
+  sharedDebugVms = mkSharedVms "debug";
+  sharedReleaseVms = mkSharedVms "release";
+
   # All laptop configurations using mkGhafConfiguration
   target-configs = [
     # ============================================================
@@ -65,6 +120,7 @@ let
       hardwareModule = self.nixosModules.hardware-alienware-m18-r2;
       variant = "debug";
       extraModules = commonModules;
+      sharedVms = sharedDebugVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -79,6 +135,7 @@ let
       hardwareModule = self.nixosModules.hardware-dell-latitude-7230;
       variant = "debug";
       extraModules = commonModules;
+      sharedVms = sharedDebugVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -92,6 +149,7 @@ let
       hardwareModule = self.nixosModules.hardware-dell-latitude-7330;
       variant = "debug";
       extraModules = commonModules;
+      sharedVms = sharedDebugVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -115,6 +173,7 @@ let
       hardwareModule = self.nixosModules.hardware-demo-tower-mk1;
       variant = "debug";
       extraModules = commonModules;
+      sharedVms = sharedDebugVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -129,6 +188,7 @@ let
       hardwareModule = self.nixosModules.hardware-intel-laptop;
       variant = "debug";
       extraModules = commonModules;
+      sharedVms = sharedDebugVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -142,6 +202,7 @@ let
       hardwareModule = self.nixosModules.hardware-intel-laptop;
       variant = "debug";
       extraModules = commonModules;
+      sharedVms = sharedDebugVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -159,6 +220,7 @@ let
       hardwareModule = self.nixosModules.hardware-lenovo-t14-amd-gen5;
       variant = "debug";
       extraModules = commonModules;
+      sharedVms = sharedDebugVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -173,6 +235,7 @@ let
       hardwareModule = self.nixosModules.hardware-lenovo-x1-2-in-1-gen9;
       variant = "debug";
       extraModules = commonModules;
+      sharedVms = sharedDebugVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -189,6 +252,7 @@ let
       hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen10;
       variant = "debug";
       extraModules = commonModules;
+      sharedVms = sharedDebugVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -202,6 +266,7 @@ let
       hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen11;
       variant = "debug";
       extraModules = commonModules;
+      sharedVms = sharedDebugVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -216,6 +281,7 @@ let
       hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen12;
       variant = "debug";
       extraModules = commonModules;
+      sharedVms = sharedDebugVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -229,6 +295,7 @@ let
       hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen13;
       variant = "debug";
       extraModules = commonModules;
+      sharedVms = sharedDebugVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -260,6 +327,7 @@ let
           hardware.system76.kernel-modules.enable = true;
         }
       ];
+      sharedVms = sharedDebugVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -294,6 +362,7 @@ let
           hardware.system76.kernel-modules.enable = true;
         }
       ];
+      sharedVms = sharedDebugVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -322,6 +391,7 @@ let
       hardwareModule = self.nixosModules.hardware-tower-5080;
       variant = "debug";
       extraModules = commonModules;
+      sharedVms = sharedDebugVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -341,6 +411,7 @@ let
       hardwareModule = self.nixosModules.hardware-alienware-m18-r2;
       variant = "release";
       extraModules = commonModules;
+      sharedVms = sharedReleaseVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -354,6 +425,7 @@ let
       hardwareModule = self.nixosModules.hardware-dell-latitude-7230;
       variant = "release";
       extraModules = commonModules;
+      sharedVms = sharedReleaseVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -367,6 +439,7 @@ let
       hardwareModule = self.nixosModules.hardware-dell-latitude-7330;
       variant = "release";
       extraModules = commonModules;
+      sharedVms = sharedReleaseVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -388,6 +461,7 @@ let
       hardwareModule = self.nixosModules.hardware-intel-laptop;
       variant = "release";
       extraModules = commonModules;
+      sharedVms = sharedReleaseVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -401,6 +475,7 @@ let
       hardwareModule = self.nixosModules.hardware-intel-laptop;
       variant = "release";
       extraModules = commonModules;
+      sharedVms = sharedReleaseVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -418,6 +493,7 @@ let
       hardwareModule = self.nixosModules.hardware-lenovo-t14-amd-gen5;
       variant = "release";
       extraModules = commonModules;
+      sharedVms = sharedReleaseVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -432,6 +508,7 @@ let
       hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen10;
       variant = "release";
       extraModules = commonModules;
+      sharedVms = sharedReleaseVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -445,6 +522,7 @@ let
       hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen11;
       variant = "release";
       extraModules = commonModules;
+      sharedVms = sharedReleaseVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -459,6 +537,7 @@ let
       hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen12;
       variant = "release";
       extraModules = commonModules;
+      sharedVms = sharedReleaseVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -472,6 +551,7 @@ let
       hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen13;
       variant = "release";
       extraModules = commonModules;
+      sharedVms = sharedReleaseVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -502,6 +582,7 @@ let
           hardware.system76.kernel-modules.enable = true;
         }
       ];
+      sharedVms = sharedReleaseVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
@@ -533,6 +614,7 @@ let
           hardware.system76.kernel-modules.enable = true;
         }
       ];
+      sharedVms = sharedReleaseVms;
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;

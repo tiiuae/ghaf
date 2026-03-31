@@ -65,6 +65,12 @@ let
       extraConfig ? { },
       vmConfig ? { },
       buildSysupdateImage ? false,
+      # Pre-evaluated shared VMs (optional).
+      # When provided, these VM evaluatedConfigs are injected into the host config
+      # instead of creating new VM evaluations per target. This allows sharing VM
+      # fixpoints across targets with the same profile and variant.
+      # Shape: { sysvm = { adminvm, audiovm, netvm, ... }; appvm = { business, chrome, ... }; }
+      sharedVms ? null,
     }:
     let
       # Select the profile module based on target type
@@ -82,6 +88,8 @@ let
       };
       # Module for extraConfig (wrapped properly)
       extraConfigModule = lib.optionalAttrs (extraConfig != { }) { ghaf = extraConfig; };
+
+      # Dummy module (sharedVms passed via specialArgs instead)
 
       # Common nixpkgs configuration
       nixpkgsModule = {
@@ -129,6 +137,7 @@ let
       hostConfiguration = lib.nixosSystem {
         specialArgs = inputs // {
           inherit lib inputs;
+          inherit sharedVms;
         };
         modules = [
           profileModule
@@ -161,6 +170,7 @@ let
             variant
             extraConfig
             vmConfig
+            sharedVms
             ;
           extraModules = extraModules ++ modules;
         };
@@ -202,6 +212,7 @@ let
             variant
             extraModules
             extraConfig
+            sharedVms
             ;
           vmConfig = updatedVmConfig;
         };
