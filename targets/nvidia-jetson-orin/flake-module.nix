@@ -189,7 +189,7 @@ in
           map (
             t:
             lib.nameValuePair "${t.name}-flash-script" (
-              lazyPackage "${t.name}-flash-script" t.hostConfiguration.pkgs.nvidia-jetpack.legacyFlashScript
+              lazyPackage "${t.name}-flash-script" t.hostConfiguration.pkgs.nvidia-jetpack.flashScript
             )
           ) crossTargets
         )
