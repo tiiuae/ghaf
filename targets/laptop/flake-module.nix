@@ -662,13 +662,15 @@ let
     }
   ) (builtins.filter (x: x.buildSysupdateImage) target-configs);
 
-  targets = target-configs ++ target-installers ++ target-sysupdates;
+  # All targets produce packages; only host configs need nixosConfigurations
+  # (installers and sysupdates are build artifacts, not deployable NixOS systems)
+  allTargets = target-configs ++ target-installers ++ target-sysupdates;
 in
 {
   flake = {
     nixosConfigurations = builtins.listToAttrs (
-      map (t: lib.nameValuePair t.name t.hostConfiguration) targets
+      map (t: lib.nameValuePair t.name t.hostConfiguration) target-configs
     );
-    packages.${system} = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+    packages.${system} = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) allTargets);
   };
 }

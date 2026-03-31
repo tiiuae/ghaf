@@ -101,8 +101,9 @@ let
 in
 {
   flake = {
+    # Cross-compile variants are build artifacts, not deployable NixOS systems.
     nixosConfigurations = builtins.listToAttrs (
-      map (t: lib.nameValuePair t.name t.hostConfiguration) (targets ++ crossTargets)
+      map (t: lib.nameValuePair t.name t.hostConfiguration) targets
     );
     packages = {
       aarch64-linux = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);

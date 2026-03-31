@@ -169,8 +169,11 @@ let
 in
 {
   flake = {
+    # Nodemoapps (single flag change from base) are excluded: they don't add
+    # validation coverage. Cross-compile variants are build artifacts, not
+    # deployable NixOS systems.
     nixosConfigurations = builtins.listToAttrs (
-      map (t: lib.nameValuePair t.name t.hostConfiguration) (targets ++ crossTargets)
+      map (t: lib.nameValuePair t.name t.hostConfiguration) target-configs
     );
 
     packages = {

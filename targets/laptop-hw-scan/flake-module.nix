@@ -63,9 +63,7 @@ let
 in
 {
   flake = {
-    nixosConfigurations = builtins.listToAttrs (
-      map (t: lib.nameValuePair t.name t.hostConfiguration) targets
-    );
+    # hw-scan is a live ISO for hardware detection, not a deployable NixOS system
     packages.${system} = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
   };
 }
