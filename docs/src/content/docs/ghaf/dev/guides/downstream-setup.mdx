@@ -98,9 +98,15 @@ my-ghaf-product/
 # targets/my-product/flake-module.nix
 { inputs, lib, ... }:
 let
-  # Access Ghaf's builders
-  mkGhafConfiguration = inputs.ghaf.lib.ghaf.builders.mkGhafConfiguration;
-  mkGhafInstaller = inputs.ghaf.lib.ghaf.builders.mkGhafInstaller;
+  # Initialize Ghaf builders
+  mkGhafConfiguration = inputs.ghaf.builders.mkGhafConfiguration {
+    self = inputs.ghaf;
+    inherit (inputs.ghaf) inputs;
+  };
+  mkGhafInstaller = inputs.ghaf.builders.mkGhafInstaller {
+    self = inputs.ghaf;
+    system = "x86_64-linux";
+  };
 in
 {
   flake.nixosConfigurations = {
@@ -141,10 +147,10 @@ in
     };
   };
 
-  # Installer
+  # Installer (reuses the single base NixOS evaluation from mkGhafInstaller)
   flake.packages.x86_64-linux.my-product-installer = mkGhafInstaller {
     name = "my-product";
-    configuration = inputs.self.nixosConfigurations.my-product-release;
+    imagePath = inputs.self.packages.x86_64-linux.my-product-release;
   };
 }
 ```
