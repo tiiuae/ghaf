@@ -18,10 +18,11 @@ let
     inherit (self) lib;
   };
 
-  # Unified Ghaf installer builder
+  # Unified Ghaf installer builder: evaluates one NixOS system shared by all installers
   ghaf-installer = self.builders.mkGhafInstaller {
     inherit self system;
     inherit (self) lib;
+    extraModules = installerModules;
   };
 
   # Common modules shared across all laptop configurations
@@ -639,12 +640,13 @@ let
   ];
 
   # Map all of the defined configurations to an installer image
+  # Each installer reuses the single base NixOS evaluation: only the
+  # embedded ghaf image differs (injected via derivation override).
   target-installers = map (
     t:
     ghaf-installer {
       inherit (t) name;
       imagePath = self.packages.x86_64-linux.${t.name};
-      extraModules = installerModules;
     }
   ) target-configs;
 
