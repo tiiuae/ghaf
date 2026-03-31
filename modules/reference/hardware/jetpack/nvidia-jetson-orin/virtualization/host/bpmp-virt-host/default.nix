@@ -25,8 +25,14 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # TODO: another stray overlay that should be centralized.
-    nixpkgs.overlays = [ (import ./overlays/qemu) ];
+    # Extend the shared Ghaf QEMU package with Orin bpmp-virt patch.
+    # Use pkgs.ghaf-qemu (the overlay package) instead of
+    # config.ghaf.virtualization.qemu.package to avoid infinite recursion.
+    ghaf.virtualization.qemu.package = pkgs.ghaf-qemu.overrideAttrs (
+      _final: prev: {
+        patches = prev.patches ++ [ ./patches/qemu/0001-qemu-v8.1.3_bpmp-virt.patch ];
+      }
+    );
 
     boot.kernelPatches = [
       {
@@ -48,9 +54,9 @@ in
     ];
 
     # TODO: Consider are these really needed, maybe add only in debug builds?
-    environment.systemPackages = with pkgs; [
-      qemu_kvm
-      dtc
+    environment.systemPackages = [
+      config.ghaf.virtualization.qemu.package
+      pkgs.dtc
     ];
   };
 }

@@ -64,8 +64,8 @@ SPDX-FileCopyrightText = [
   "Copyright (C) 2013 Red Hat Inc"
 ]
 path = [
-  "overlays/custom-packages/qemu/*.patch",
-  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/host/bpmp-virt-host/overlays/qemu/patches/0001-qemu-v8.1.3_bpmp-virt.patch"
+  "packages/pkgs-by-name/ghaf-qemu/patches/*.patch",
+  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/host/bpmp-virt-host/patches/qemu/0001-qemu-v8.1.3_bpmp-virt.patch"
 ]
 
 [[annotations]]

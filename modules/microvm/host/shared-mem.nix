@@ -135,7 +135,7 @@ in
                   echo Erasing ${cfg.hostSocketPath} ${pidFilePath}
                   rm -f ${cfg.hostSocketPath}
                 fi
-                ${pkgs.qemu_kvm}/bin/ivshmem-server -p ${pidFilePath} -n ${vectors} -m /dev/hugepages/ -l ${(toString cfg.memSize) + "M"}
+                ${config.ghaf.virtualization.qemu.package}/bin/ivshmem-server -p ${pidFilePath} -n ${vectors} -m /dev/hugepages/ -l ${(toString cfg.memSize) + "M"}
               '';
           in
           {

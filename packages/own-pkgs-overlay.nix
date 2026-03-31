@@ -17,6 +17,7 @@
     ghaf-intro = final.callPackage ./pkgs-by-name/ghaf-intro/package.nix { };
     ghaf-open = final.callPackage ./pkgs-by-name/ghaf-open/package.nix { };
     ghaf-powercontrol = final.callPackage ./ghaf-powercontrol/package.nix { };
+    ghaf-qemu = final.callPackage ./pkgs-by-name/ghaf-qemu/package.nix { };
     ghaf-vms = final.callPackage ./pkgs-by-name/ghaf-vms/package.nix { };
     hardware-scan = final.callPackage ./pkgs-by-name/hardware-scan/package.nix { };
     make-checks = final.callPackage ./pkgs-by-name/make-checks/package.nix { };

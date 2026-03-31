@@ -8,7 +8,10 @@
 }:
 let
   cfg = config.ghaf.reference.programs.windows-launcher;
-  windows-launcher = pkgs.windows-launcher.override { enableSpice = cfg.spice; };
+  windows-launcher = pkgs.windows-launcher.override {
+    enableSpice = cfg.spice;
+    qemu_kvm = config.ghaf.virtualization.qemu.package;
+  };
 in
 {
   _file = ./windows-launcher.nix;
