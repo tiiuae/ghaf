@@ -149,12 +149,6 @@ path = [
   "targets/nvidia-jetson-orin/0001-Remove-nvidia-display-config.patch"
 ]
 
-[[annotations]]
-SPDX-License-Identifier = "GPL-3.0-only"
-SPDX-FileCopyrightText = "Copyright (C) 2007 Free Software Foundation, Inc."
-path = [
-  "overlays/custom-packages/gtklock/*.patch"
-]
 
 [[annotations]]
 SPDX-License-Identifier = "MIT"
