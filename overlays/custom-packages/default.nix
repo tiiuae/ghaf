@@ -14,7 +14,6 @@
   cosmic-settings = import ./cosmic/cosmic-settings { inherit prev; };
   cosmic-settings-daemon = import ./cosmic/cosmic-settings-daemon { inherit prev; };
   element-desktop = import ./element-desktop { inherit prev; };
-  gtklock = import ./gtklock { inherit prev; };
   intel-gpu-tools = import ./intel-gpu-tools { inherit prev; };
   osquery-with-hostname = import ./osquery-with-hostname { inherit prev; };
   papirus-icon-theme = import ./papirus-icon-theme { inherit prev; };
