@@ -330,5 +330,11 @@ in
       # Service startup optimization
       services.systemd-networkd-wait-online.enable = mkForce false;
     };
+
+    # Suppress systemd-tmp.conf to avoid %b specifier errors
+    # (ProtectProc=noaccess prevents reading /proc/sys/kernel/random/boot_id)
+    environment.etc."tmpfiles.d/systemd-tmp.conf".text = mkForce ''
+      # Overridden: original uses %b (boot ID) which fails under ProtectProc=noaccess
+    '';
   };
 }
