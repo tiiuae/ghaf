@@ -128,6 +128,8 @@ let
       mdev -s
 
       ttyGS=/dev/ttyGS$(cat $gadget/functions/acm.usb0/port_num)
+      # Disable local echo on gadget serial so host does not see its own writes
+      stty -F $ttyGS 115200 raw -echo -echoe -echok 2>/dev/null || true
     else
       echo "ERROR: USB gadget configfs not available"
       echo "Cannot establish serial communication with host."
@@ -200,6 +202,9 @@ let
 
           # Re-read serial device path after gadget reconnect
           ttyGS=/dev/ttyGS$(cat $gadget/functions/acm.usb0/port_num)
+
+          # Disable local echo on gadget serial so host does not see its own writes
+          stty -F $ttyGS 115200 raw -echo -echoe -echok 2>/dev/null || true
 
           echo "EMMC_READY"
           [ -e "$ttyGS" ] && echo "EMMC_READY" > $ttyGS
@@ -498,10 +503,25 @@ let
       }
 
       # Wait for device serial port to appear
-      wait_for_device "$SERIAL_PORT" 240
+      wait_for_device "$SERIAL_PORT" 360
 
-      # Configure serial port for raw I/O
-      stty -F "$SERIAL_PORT" 115200 raw -echo -echoe -echok
+      # Configure serial port for raw I/O (retry — device node may exist
+      # before the USB ACM driver is fully ready to accept tty ioctls)
+      configure_serial() {
+        local port="$1"
+        local retries=10
+        while [ $retries -gt 0 ]; do
+          if stty -F "$port" 115200 raw -echo -echoe -echok 2>/dev/null; then
+            return 0
+          fi
+          echo "Waiting for $port to accept tty configuration..."
+          sleep 2
+          retries=$((retries - 1))
+        done
+        echo "ERROR: $port never became a usable tty" >&2
+        return 1
+      }
+      configure_serial "$SERIAL_PORT"
 
       # Monitor firmware flash progress
       wait_for_message "$SERIAL_PORT" "FIRMWARE_DONE" 900
@@ -532,7 +552,7 @@ let
             wait_for_device "$SERIAL_PORT" 60
 
             # Reconfigure serial after reconnect
-            stty -F "$SERIAL_PORT" 115200 raw -echo -echoe -echok
+            configure_serial "$SERIAL_PORT"
 
             wait_for_message "$SERIAL_PORT" "EMMC_READY" 60
 

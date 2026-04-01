@@ -16,6 +16,44 @@
 let
   cfg = config.ghaf.hardware.nvidia.orin;
 
+  # First-boot service: load Nix store registration and create system profile.
+  # make-ext4-fs.nix ships raw store paths + /nix-path-registration but does not
+  # populate the Nix DB or set up /nix/var/nix/profiles/system.
+  ensureSystemProfile = pkgs.writeShellApplication {
+    name = "ghaf-ensure-system-profile";
+    runtimeInputs = with pkgs; [
+      coreutils
+      nix
+    ];
+    text = ''
+      set -euo pipefail
+
+      profile=/nix/var/nix/profiles/system
+      registration=/nix-path-registration
+      current_system=$(readlink -f /run/current-system)
+      generation_link=/nix/var/nix/profiles/system-1-link
+
+      if [ -z "$current_system" ] || [ ! -e "$current_system" ]; then
+        echo "Current system closure is unavailable" >&2
+        exit 1
+      fi
+
+      if [ ! -f "$registration" ] && [ -L "$profile" ] && [ "$(readlink -f "$profile")" = "$current_system" ]; then
+        exit 0
+      fi
+
+      if [ -f "$registration" ]; then
+        nix-store --load-db < "$registration"
+        rm -f "$registration"
+        touch /etc/NIXOS
+      fi
+
+      mkdir -p /nix/var/nix/profiles
+      ln -sfn "$current_system" "$generation_link"
+      ln -sfn system-1-link "$profile"
+    '';
+  };
+
   mkESPContentSource = pkgs.replaceVars ./mk-esp-contents.py {
     inherit (pkgs.buildPackages) python3;
   };
@@ -74,6 +112,7 @@ let
     volumeLabel = "NIXOS_ROOT";
     populateImageCommands = ''
       mkdir -p ./files/etc
+      touch ./files/etc/NIXOS
       echo "${config.system.build.toplevel}" > ./files/etc/.nixos-toplevel
       cp ${config.system.build.toplevel}/etc/os-release ./files/etc/os-release
     '';
@@ -92,6 +131,17 @@ in
     fileSystems."/boot" = {
       device = "/dev/disk/by-label/FIRMWARE";
       fsType = "vfat";
+    };
+
+    systemd.services.ghaf-ensure-system-profile = {
+      description = "Ensure persistent NixOS system profile exists";
+      wantedBy = [ "multi-user.target" ];
+      before = [ "nix-gc.service" ];
+      after = [ "local-fs.target" ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${ensureSystemProfile}/bin/ghaf-ensure-system-profile";
+      };
     };
 
     system.build.ghafFlashImages =
