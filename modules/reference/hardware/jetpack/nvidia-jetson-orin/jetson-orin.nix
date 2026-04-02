@@ -257,6 +257,119 @@ let
     mkIf
     types
     ;
+  resizepartitionsScript = pkgs.writeShellApplication {
+    name = "resize-partitions-cmds";
+    runtimeInputs = with pkgs; [
+      gptfdisk
+      parted
+      cryptsetup
+      util-linux
+      e2fsprogs
+      coreutils
+      systemd
+    ];
+    text = ''
+      set -x
+      DISK="/dev/mmcblk0"
+      PART_NUM=1
+      PART_DEV="/dev/mmcblk0p1"
+      RESIZE_MARKER=".ghaf-resize-done"
+      ESP_MOUNT="/mnt-esp"
+
+      RESIZE_TARGET="$PART_DEV"
+      ${lib.optionalString cfg.diskEncryption.enable ''
+        MAPPER_NAME="${cfg.diskEncryption.mapperName}"
+        RESIZE_TARGET="/dev/mapper/$MAPPER_NAME"
+      ''}
+
+      find_esp_device() {
+        for _ in {1..30}; do
+          ESP_DEVICE=""
+          while IFS=' ' read -r path partlabel; do
+            case "''${partlabel,,}" in
+              *esp*)
+                ESP_DEVICE="$path"
+                break
+                ;;
+            esac
+          done < <(${pkgs.util-linux}/bin/lsblk -pn -o PATH,PARTLABEL)
+          [ -n "$ESP_DEVICE" ] && return 0
+          sleep 1
+        done
+        return 1
+      }
+
+      mkdir -p "$ESP_MOUNT"
+      if find_esp_device; then
+        if mount "$ESP_DEVICE" "$ESP_MOUNT"; then
+          if [ -f "$ESP_MOUNT/$RESIZE_MARKER" ]; then
+            echo "Resize already performed, skipping."
+            umount "$ESP_MOUNT"
+            exit 0
+          fi
+          umount "$ESP_MOUNT"
+        else
+          echo "Failed to mount ESP $ESP_DEVICE, continuing without marker check."
+        fi
+      else
+        echo "ESP partition not found, continuing without marker check."
+      fi
+
+      # Wait for the device to be available
+      for _ in {1..30}; do
+        [ -b "$RESIZE_TARGET" ] && break
+        sleep 1
+      done
+
+      if [ ! -b "$RESIZE_TARGET" ]; then
+        echo "Target device $RESIZE_TARGET not found, skipping."
+        exit 0
+      fi
+
+      echo "Fixing GPT..."
+      sgdisk -e "$DISK" || true
+
+      echo "Resizing partition $PART_NUM to 100%..."
+      # Use resizepart which works on busy partitions by using the BLKPG_RESIZE_PARTITION ioctl
+      parted -s "$DISK" resizepart "$PART_NUM" 100%
+
+      # Re-read partition table and wait for udev
+      partprobe "$DISK" || true
+      udevadm settle || true
+
+      ${lib.optionalString cfg.diskEncryption.enable ''
+        echo "Resizing LUKS container $MAPPER_NAME..."
+        # Try resizing without passphrase first
+        if ! cryptsetup resize -v "$MAPPER_NAME"; then
+          echo "LUKS resize needs authentication..."
+          # Use systemd-ask-password to handle prompts in a non-interactive environment
+          PASSPHRASE=$(systemd-ask-password --timeout=60 "Enter passphrase for resizing LUKS container:")
+          if [ -n "$PASSPHRASE" ]; then
+            echo "$PASSPHRASE" | cryptsetup resize -v "$MAPPER_NAME" --key-file=-
+          else
+             echo "No passphrase entered, LUKS resize might have failed."
+          fi
+        fi
+        echo "LUKS status for $MAPPER_NAME after resize:"
+        cryptsetup status "$MAPPER_NAME"
+      ''}
+
+      echo "Resizing filesystem on $RESIZE_TARGET..."
+      # resize2fs may require a filesystem check before resizing
+      e2fsck -fy "$RESIZE_TARGET" || true
+      resize2fs "$RESIZE_TARGET"
+
+      # Persist completion on the ESP so later initrd boots can skip the
+      # service without mounting the root filesystem and racing fsck.
+      if find_esp_device && mount "$ESP_DEVICE" "$ESP_MOUNT"; then
+        touch "$ESP_MOUNT/$RESIZE_MARKER"
+        umount "$ESP_MOUNT"
+      else
+        echo "Failed to persist resize marker on ESP."
+      fi
+    '';
+  };
+
 in
 {
   _file = ./jetson-orin.nix;
@@ -297,12 +410,35 @@ in
       default = true;
     };
 
+    diskEncryption = {
+      enable = mkEnableOption "generic LUKS root filesystem encryption for eMMC APP partition";
+
+      mode = mkOption {
+        description = "Disk encryption mode for Jetson root filesystem";
+        type = types.enum [ "generic-luks-passphrase" ];
+        default = "generic-luks-passphrase";
+      };
+
+      mapperName = mkOption {
+        description = "Mapped device name used by initrd after LUKS unlock";
+        type = types.str;
+        default = "cryptroot";
+      };
+    };
   };
 
   config = mkIf cfg.enable {
     hardware.nvidia-jetpack.firmware.eksFile = "${firmwareEkbImage}/eks_t234.img";
     hardware.nvidia-jetpack.kernel.version = "${cfg.kernelVersion}";
     nixpkgs.hostPlatform.system = "aarch64-linux";
+
+    environment.systemPackages = with pkgs; [
+      gptfdisk
+      parted
+      cryptsetup
+      util-linux
+      e2fsprogs
+    ];
 
     ghaf.hardware = {
       aarch64.systemd-boot-dtb.enable = true;
@@ -357,7 +493,114 @@ in
             HW_RANDOM_TPM = no;
           };
         }
+      ]
+      ++ lib.optionals (cfg.diskEncryption.enable && cfg.kernelVersion == "upstream-6-6") [
+        {
+          name = "dm-crypt-config";
+          patch = null;
+          structuredExtraConfig = with lib.kernel; {
+            BLK_DEV_DM = yes;
+            DM_BUFIO = yes;
+            DM_BIO_PRISON = yes;
+            DM_CRYPT = yes;
+            CRYPTO_USER_API = yes;
+            CRYPTO_USER_API_HASH = yes;
+            CRYPTO_USER_API_SKCIPHER = yes;
+            CRYPTO_XTS = yes;
+          };
+        }
       ];
+
+    };
+
+    boot.initrd = {
+      # Keep module selection aligned with the Orin JetPack baseline and avoid
+      # requesting dm-crypt as a loadable module for upstream-6-6.
+      availableKernelModules = [
+        "xhci-tegra"
+        "ucsi_ccg"
+        "typec_ucsi"
+        "typec"
+        "nvme"
+        "tegra_mce"
+        "phy-tegra-xusb"
+        "i2c-tegra"
+        "fusb301"
+        "phy_tegra194_p2u"
+        "pcie_tegra194"
+        "nvpps"
+        "nvethernet"
+      ]
+      ++ lib.optionals cfg.diskEncryption.enable [
+        "dm-crypt"
+        "dm-mod"
+      ];
+      kernelModules = [ ];
+      # algif_skcipher is not available with the upstream-6-6 kernel variant
+      # used by current Orin reference targets.
+      luks.cryptoModules = lib.mkIf cfg.diskEncryption.enable (
+        lib.mkForce [
+          "aes"
+          "aes_generic"
+          "cbc"
+          "xts"
+          "sha1"
+          "sha256"
+          "sha512"
+          "af_alg"
+        ]
+      );
+      luks.devices = lib.mkIf cfg.diskEncryption.enable {
+        ${cfg.diskEncryption.mapperName} = {
+          device = "/dev/mmcblk0p1";
+          allowDiscards = true;
+        };
+      };
+
+      systemd.storePaths = with pkgs; [
+        gptfdisk
+        parted
+        cryptsetup
+        util-linux
+        e2fsprogs
+        coreutils
+        systemd
+        resizepartitionsScript
+      ];
+
+      systemd.services.resize-partitions = {
+        description = "Resize partitions to fill the disk on first boot";
+        wantedBy = [ "initrd.target" ];
+        before = [
+          "systemd-fsck-root.service"
+          "sysroot.mount"
+          "initrd-root-fs.target"
+        ];
+        after = [ "systemd-cryptsetup@${cfg.diskEncryption.mapperName}.service" ];
+        unitConfig = {
+          DefaultDependencies = false;
+        };
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStart = "${resizepartitionsScript}/bin/resize-partitions-cmds";
+          StandardInput = "tty";
+          StandardOutput = "journal+console";
+          StandardError = "journal+console";
+        };
+      };
+
+      supportedFilesystems = [
+        "ext4"
+        "vfat"
+      ];
+    };
+
+    fileSystems = mkIf cfg.diskEncryption.enable {
+      "/" = lib.mkForce {
+        device = "/dev/mapper/${cfg.diskEncryption.mapperName}";
+        fsType = "ext4";
+      };
     };
 
     services.udev.extraRules = ''
