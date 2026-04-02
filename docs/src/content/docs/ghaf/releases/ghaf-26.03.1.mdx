@@ -1,0 +1,120 @@
+---
+title: Release ghaf-26.03.1
+sidebar:
+  order: 9970
+  badge:
+    text: Latest
+    variant: success
+
+---
+
+This is monthly Ghaf release which has been fully tested on Nvidia Orin NX, Nvidia Orin AGX, Lenovo X1 Carbon Gen11 and System76 Darter Pro platforms
+
+## Release Tag
+
+https://github.com/tiiuae/ghaf/releases/tag/ghaf-26.03.1
+
+## Supported Hardware
+
+The following target hardware is supported by this release:
+
+- NVIDIA Jetson Orin AGX
+- NVIDIA Jetson Orin NX
+- Lenovo ThinkPad X1 Carbon Gen 10/11/12/13, Gen9 2-in-1
+- Lenovo T14 AMD
+- Dell Latitude 7230, 7330
+- Alienware M18
+- System76 Darter Pro
+- NXP i.MX 8M Plus
+
+## What's Changed
+* build(deps): bump step-security/harden-runner from 2.14.2 to 2.15.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1795
+* build(deps): bump github/codeql-action from 4.32.4 to 4.32.5 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1794
+* build(deps): bump astral-sh/setup-uv from 7.3.0 to 7.3.1 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1793
+* build(deps): bump actions/upload-artifact from 6.0.0 to 7.0.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1792
+* version: bump for the next release by @clayhill66 in https://github.com/tiiuae/ghaf/pull/1801
+* docs: add 26.02.1 release note by @clayhill66 in https://github.com/tiiuae/ghaf/pull/1805
+* feature(timezone/locale): enable runtime adjustment, move to features by @kajusnau in https://github.com/tiiuae/ghaf/pull/1772
+* net-vm and nw-packet-forwarder fixes by @vunnyso in https://github.com/tiiuae/ghaf/pull/1788
+* Bump vhotplug to fix NIC reattachment on resume by @nesteroff in https://github.com/tiiuae/ghaf/pull/1786
+* Nvidia Orin: Refactoring optee.nix by @TanelDettenborn in https://github.com/tiiuae/ghaf/pull/1798
+* feat(flatpak): flatpak dynamic desktop entries, waypipe overhaul by @kajusnau in https://github.com/tiiuae/ghaf/pull/1800
+* Enable logging for release profile by @vunnyso in https://github.com/tiiuae/ghaf/pull/1802
+* fix(faillock): update maxTries logic following upstream cosmic-greeter fix by @gngram in https://github.com/tiiuae/ghaf/pull/1803
+* fix(wireguard-gui): populate vmconfig enabledVmNames across host/vm e… by @enesoztrk in https://github.com/tiiuae/ghaf/pull/1804
+* audit: fix syscall rules for aarch64 and FSS audit path by @everton-dematos in https://github.com/tiiuae/ghaf/pull/1806
+* docs: bump to the latest versions by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1808
+* build(deps): bump tj-actions/changed-files from 47.0.4 to 47.0.5 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1816
+* build(deps): bump github/codeql-action from 4.32.5 to 4.32.6 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1815
+* build(deps): bump actions/dependency-review-action from 4.8.3 to 4.9.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1814
+* build(deps): bump step-security/harden-runner from 2.15.0 to 2.15.1 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1813
+* build(deps): bump cachix/install-nix-action from 31.9.1 to 31.10.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1812
+* feat(yubikey): lock on unplug only if FIDO2 enrolled by @vunnyso in https://github.com/tiiuae/ghaf/pull/1810
+* Enable Dynamic Policy Management via ghaf-givc by @gngram in https://github.com/tiiuae/ghaf/pull/1758
+* virtiofs: enable cache, inode file handles by @kajusnau in https://github.com/tiiuae/ghaf/pull/1817
+* appvm: label virtual apps explicitly by @kajusnau in https://github.com/tiiuae/ghaf/pull/1784
+* jetson: prevent invalid RTC from rewinding host clock by @vadika in https://github.com/tiiuae/ghaf/pull/1807
+* flash-script: fix runtime issues by @henrirosten in https://github.com/tiiuae/ghaf/pull/1823
+* fix(suspend): resolve suspend failures and correct lid switch handling by @vunnyso in https://github.com/tiiuae/ghaf/pull/1818
+* jetson: fTPM and EK provisioning by @vadika in https://github.com/tiiuae/ghaf/pull/1809
+* build(deps): bump step-security/harden-runner from 2.15.1 to 2.16.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1829
+* build(deps): bump webfactory/ssh-agent from 0.9.1 to 0.10.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1828
+* build(deps): bump github/codeql-action from 4.32.6 to 4.33.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1827
+* build(deps): bump cachix/install-nix-action from 31.10.0 to 31.10.1 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1826
+* build(deps): bump astral-sh/setup-uv from 7.3.1 to 7.6.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1825
+* virtiofs: disable global cache policy by @kajusnau in https://github.com/tiiuae/ghaf/pull/1834
+* devshell: flash script and rebuild helper improvements by @kajusnau in https://github.com/tiiuae/ghaf/pull/1836
+* bump: march bump and adjustments by @kajusnau in https://github.com/tiiuae/ghaf/pull/1822
+* A/B updates -- volume based by @avnik in https://github.com/tiiuae/ghaf/pull/1678
+* update the docs dependencies by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1839
+* chore(flake): update nixpkgs lock input by @vadika in https://github.com/tiiuae/ghaf/pull/1841
+* overlay hunt: Remove systemd overlay: upstream patch merged by @vadika in https://github.com/tiiuae/ghaf/pull/1843
+* verity: enable lz4hc compression on erofs root filesystem by @Mic92 in https://github.com/tiiuae/ghaf/pull/1847
+* build(deps): bump github/codeql-action from 4.33.0 to 4.34.1 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1851
+* cross: drop gfortran from fftw in cross-compilation overlay by @vadika in https://github.com/tiiuae/ghaf/pull/1850
+* overlay hunt: refactor tpm2-tools and tpm2-pkcs11 out of global overlay by @vadika in https://github.com/tiiuae/ghaf/pull/1846
+* overlay hunt: remove unused libfm overlay by @vadika in https://github.com/tiiuae/ghaf/pull/1845
+* Jetpack-nixos: bump by @TanelDettenborn in https://github.com/tiiuae/ghaf/pull/1824
+* fix(chrome-extensions): fix bot check failure during extension build by @kajusnau in https://github.com/tiiuae/ghaf/pull/1840
+* Optimize flash-script with bmaptool support by @vunnyso in https://github.com/tiiuae/ghaf/pull/1848
+* cleanup: disable lang switching, reduce log spam by @kajusnau in https://github.com/tiiuae/ghaf/pull/1854
+* flash-script: avoid cleanup trap exit on iso/img runs by @henrirosten in https://github.com/tiiuae/ghaf/pull/1855
+* fix(wireguard-gui): polkit regex to match wayland-ghaf display name by @enesoztrk in https://github.com/tiiuae/ghaf/pull/1860
+* fix(gala): update URL to gala-atrc.azure-atrc.androidinthecloud.net by @rodrigopinotii in https://github.com/tiiuae/ghaf/pull/1856
+* build(deps): bump cachix/install-nix-action from 31.10.1 to 31.10.3 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1867
+* build(deps): bump github/codeql-action from 4.34.1 to 4.35.1 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1866
+* build(deps): bump astral-sh/setup-uv from 7.6.0 to 8.0.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1865
+
+## New Contributors
+* @rodrigopinotii made their first contribution in https://github.com/tiiuae/ghaf/pull/1856
+
+**Full Changelog**: https://github.com/tiiuae/ghaf/compare/ghaf-26.02.1...ghaf-26.03.1
+
+## Bug fixes
+
+Fixed bugs that were present in the previous release
+
+* WireGuard option missing from chrome-vm and business-vm
+
+## Known Issues and Limitations
+
+| Issue                                                                                                     | Status      | Comments                                                                   |
+| --------------------------------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------- |
+| **x86**                                                                                             |             |                                                                            |
+| Display stays black when re-opening the lid | In Progress | First aid is to try short press on power button |
+| MultiFactor Authentication doesn't work | In Progress | Will be fixed in next release |
+| Yubikey login doesn't work | In Progress | Will be fixed in next release |
+| (X1) Unlock with fingerprint doesn't work                            | In Progress                                                       | Issue is under investigation
+| Screenshot is not saved to Pictures | In Progress | Workaround: Creating Pictures folder manually and saving then |
+| **NVIDIA Jetson AGX Orin / Orin NX**                                                                      |             |                                                                            |
+| GUI login does not work | In Progress | Issue is under investigation |
+| Device boots to black screen with only cursor blinking | In Progress | Workaround: Boot with display connected or launch login screen manually by ctrl+C |
+| If suspended, device doesn't wake-up                                            | In Progress | Issue is under investigation                       |
+| Locking the device from power menu doesn't work | On Hold |  |
+| Unlocking from lock screen does not work | On Hold |  |
+
+## Installation Instructions
+
+Released images are available at https://archive.vedenemo.dev/
+
+Download the required image and use the following instructions: [Build and Run](https://ghaf.tii.ae/ghaf/dev/ref/build_and_run).
