@@ -31,14 +31,18 @@ Creates a Ghaf configuration for any supported target type (laptop-x86, orin).
 
 Creates a bootable ISO installer for any Ghaf configuration.
 
-**Parameters (named):**
-- `name`: String - Base name for the installer (e.g., "lenovo-x1-carbon-gen11-debug")
+**First-level parameters (named):**
+- `self`: Flake self reference
+- `lib`: Nixpkgs lib (default: `self.lib`)
+- `system`: String - Target architecture (default: `"x86_64-linux"`)
+- `extraModules`: List - Additional NixOS modules for the shared installer system (default: `[]`)
+
+**Second-level parameters (named):**
+- `name`: String - Base name for the installer (e.g., `"lenovo-x1-carbon-gen11-debug"`)
 - `imagePath`: Path - Path to the built Ghaf image package
-- `extraModules`: List - Additional NixOS modules for the installer (default: [])
 
 **Returns:**
 - `name`: Full installer name (e.g., "lenovo-x1-carbon-gen11-debug-installer")
-- `hostConfiguration`: The NixOS configuration for the installer
 - `package`: The built ISO image
 
 ## Usage in Downstream Projects
@@ -52,18 +56,26 @@ Creates a bootable ISO installer for any Ghaf configuration.
     nixpkgs.follows = "ghaf/nixpkgs";
   };
 
-  outputs = { self, ghaf, nixpkgs, ... }:
+  outputs = { ghaf, nixpkgs, ... }:
   let
     system = "x86_64-linux";
 
     # Initialize builders from ghaf
     mkGhafConfiguration = ghaf.builders.mkGhafConfiguration {
-      inherit (ghaf) self inputs lib;
+      self = ghaf;
+      inputs = { inherit ghaf nixpkgs; };
+      lib = ghaf.lib;
     };
 
     mkGhafInstaller = ghaf.builders.mkGhafInstaller {
-      inherit (ghaf) self lib;
+      self = ghaf;
+      lib = ghaf.lib;
       inherit system;
+      extraModules = [
+        {
+          networking.wireless.networks."MyWiFi".psk = "password";
+        }
+      ];
     };
 
     # Create laptop configuration
@@ -92,12 +104,7 @@ Creates a bootable ISO installer for any Ghaf configuration.
     # Create installer
     myInstaller = mkGhafInstaller {
       name = myLaptop.name;
-      imagePath = self.packages.${system}.${myLaptop.name};
-      extraModules = [
-        {
-          networking.wireless.networks."MyWiFi".psk = "password";
-        }
-      ];
+      imagePath = myLaptop.package;
     };
 
   in {
@@ -185,6 +192,7 @@ let
   ghaf-installer = self.builders.mkGhafInstaller {
     inherit self system;
     inherit (self) lib;
+    extraModules = installerModules;
   };
 
   target-configs = [
@@ -205,12 +213,11 @@ let
   target-installers = map (t: ghaf-installer {
     name = t.name;
     imagePath = self.packages.${system}.${t.name};
-    extraModules = installerModules;
   }) target-configs;
 
 in {
   flake.nixosConfigurations = builtins.listToAttrs (
-    map (t: lib.nameValuePair t.name t.hostConfiguration) (target-configs ++ target-installers)
+    map (t: lib.nameValuePair t.name t.hostConfiguration) target-configs
   );
   flake.packages.${system} = builtins.listToAttrs (
     map (t: lib.nameValuePair t.name t.package) (target-configs ++ target-installers)

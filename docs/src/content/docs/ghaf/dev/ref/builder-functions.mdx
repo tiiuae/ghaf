@@ -13,18 +13,26 @@ Ghaf now exports builder functions via `flake.builders` that can be imported and
 
 ## Available Builders
 
-### mkLaptopConfiguration
+### mkGhafConfiguration
 
-Creates a laptop configuration with Ghaf modules and profiles.
+Creates a Ghaf configuration for supported target profiles such as `laptop-x86` and `orin`.
 
 ```nix
 # Function signature
-mkLaptopConfiguration :: {
+mkGhafConfiguration :: {
   self: flake,
   inputs: attrSet,
   lib: lib,
-  system?: string = "x86_64-linux"
-} -> (machineType: string -> variant: string -> extraModules: [module] -> {
+} -> ({
+  name: string,
+  system: string,
+  profile: string,
+  hardwareModule: module,
+  variant?: string,
+  extraModules?: [module],
+  extraConfig?: attrSet,
+  vmConfig?: attrSet
+} -> {
   hostConfiguration: nixosSystem,
   variant: string,
   name: string,
@@ -32,18 +40,21 @@ mkLaptopConfiguration :: {
 })
 ```
 
-### mkLaptopInstaller
+### mkGhafInstaller
 
-Creates a laptop installer ISO image.
+Creates a bootable ISO installer for a Ghaf image package. The outer builder application evaluates the shared installer NixOS system once, and per-target calls only override the ISO contents with the target-specific Ghaf image.
 
 ```nix
 # Function signature
-mkLaptopInstaller :: {
+mkGhafInstaller :: {
   self: flake,
   lib: lib,
   system?: string = "x86_64-linux"
-} -> (name: string -> imagePath: string -> extraModules: [module] -> {
-  hostConfiguration: nixosSystem,
+  extraModules?: [module]
+} -> ({
+  name: string,
+  imagePath: path
+} -> {
   name: string,
   package: derivation
 })
@@ -60,22 +71,28 @@ mkLaptopInstaller :: {
     nixpkgs.follows = "ghaf/nixpkgs";
   };
 
-  outputs = { self, ghaf, ... }:
+  outputs = { ghaf, nixpkgs, ... }:
   let
-    # Import the builder function
-    mkLaptopConfiguration = ghaf.builders.mkLaptopConfiguration {
+    mkGhafConfiguration = ghaf.builders.mkGhafConfiguration {
       self = ghaf;
-      inputs = { inherit ghaf; };
+      inputs = { inherit ghaf nixpkgs; };
       lib = ghaf.lib;
     };
 
-    # Create your laptop configuration
-    myLaptop = mkLaptopConfiguration "my-laptop" "debug" [
-      ./hardware-configuration.nix
-      {
-        ghaf.profiles.graphics.enable = true;
-      }
-    ];
+    myLaptop = mkGhafConfiguration {
+      name = "my-laptop";
+      system = "x86_64-linux";
+      profile = "laptop-x86";
+      hardwareModule = ./hardware-configuration.nix;
+      variant = "debug";
+      extraModules = [
+        ghaf.nixosModules.reference-profiles
+        ghaf.nixosModules.profiles
+      ];
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+      };
+    };
 
   in {
     nixosConfigurations.${myLaptop.name} = myLaptop.hostConfiguration;
@@ -88,31 +105,42 @@ mkLaptopInstaller :: {
 
 ```nix
 {
-  outputs = { self, ghaf, ... }:
+  outputs = { ghaf, nixpkgs, ... }:
   let
-    mkLaptopConfiguration = ghaf.builders.mkLaptopConfiguration {
+    system = "x86_64-linux";
+
+    mkGhafConfiguration = ghaf.builders.mkGhafConfiguration {
       self = ghaf;
-      inputs = { inherit ghaf; };
+      inputs = { inherit ghaf nixpkgs; };
       lib = ghaf.lib;
     };
 
-    mkLaptopInstaller = ghaf.builders.mkLaptopInstaller {
+    mkGhafInstaller = ghaf.builders.mkGhafInstaller {
       self = ghaf;
       lib = ghaf.lib;
+      inherit system;
+      extraModules = [
+        {
+          networking.wireless.networks."MyWiFi".psk = "password";
+        }
+      ];
     };
 
-    laptop = mkLaptopConfiguration "my-laptop" "debug" [
-      ./hardware-configuration.nix
-    ];
+    laptop = mkGhafConfiguration {
+      name = "my-laptop";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = ./hardware-configuration.nix;
+      variant = "debug";
+    };
 
-    installer = mkLaptopInstaller "my-laptop" laptop.package [
-      {
-        networking.wireless.networks."MyWiFi".psk = "password";
-      }
-    ];
+    installer = mkGhafInstaller {
+      name = laptop.name;
+      imagePath = laptop.package;
+    };
 
   in {
-    packages.x86_64-linux = {
+    packages.${system} = {
       ${laptop.name} = laptop.package;
       ${installer.name} = installer.package;
     };
@@ -140,25 +168,40 @@ let
   system = "x86_64-linux";
 
   # Call builders with parameters to get the builder functions
-  laptop-configuration = self.builders.mkLaptopConfiguration {
+  ghaf-configuration = self.builders.mkGhafConfiguration {
     inherit self inputs;
     inherit (self) lib;
   };
 
-  laptop-installer = self.builders.mkLaptopInstaller {
-    inherit self;
+  ghaf-installer = self.builders.mkGhafInstaller {
+    inherit self system;
     inherit (self) lib;
+    extraModules = installerModules;
   };
 
   # Then use the builder functions with machine-specific parameters
   target-configs = [
-    (laptop-configuration "lenovo-x1-carbon-gen11" "debug" [
-      self.nixosModules.hardware-lenovo-x1-carbon-gen11
-      { ghaf.reference.profiles.mvp-user-trial.enable = true; }
-    ])
+    (ghaf-configuration {
+      name = "lenovo-x1-carbon-gen11";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen11;
+      variant = "debug";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+      };
+    })
   ];
+
+  target-installers = map (t: ghaf-installer {
+    name = t.name;
+    imagePath = self.packages.${system}.${t.name};
+  }) target-configs;
 in {
-  # Export configurations...
+  flake.packages.${system} = builtins.listToAttrs (
+    map (t: lib.nameValuePair t.name t.package) (target-configs ++ target-installers)
+  );
 }
 ```
 
@@ -170,10 +213,10 @@ External projects access builders via the flake output:
 {
   inputs.ghaf.url = "github:tiiuae/ghaf";
 
-  outputs = { ghaf, ... }: let
-    mkLaptopConfiguration = ghaf.builders.mkLaptopConfiguration {
+  outputs = { ghaf, nixpkgs, ... }: let
+    mkGhafConfiguration = ghaf.builders.mkGhafConfiguration {
       self = ghaf;
-      inputs = { inherit ghaf; };
+      inputs = { inherit ghaf nixpkgs; };
       lib = ghaf.lib;
     };
   in {
