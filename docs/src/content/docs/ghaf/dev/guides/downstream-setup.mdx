@@ -96,18 +96,38 @@ my-ghaf-product/
 
 ```nix
 # targets/my-product/flake-module.nix
-{ inputs, lib, ... }:
+{ inputs, ... }:
 let
   # Access Ghaf's builders
-  mkGhafConfiguration = inputs.ghaf.lib.ghaf.builders.mkGhafConfiguration;
-  mkGhafInstaller = inputs.ghaf.lib.ghaf.builders.mkGhafInstaller;
+  ghaf = inputs.ghaf;
+  mkGhafConfiguration = ghaf.builders.mkGhafConfiguration {
+    self = ghaf;
+    inputs = {
+      inherit ghaf;
+      nixpkgs = inputs.nixpkgs;
+    };
+    lib = ghaf.lib;
+  };
+  mkGhafInstaller = ghaf.builders.mkGhafInstaller;
 in
 {
-  flake.nixosConfigurations = {
-    # Debug variant
+  flake = let
+    system = "x86_64-linux";
+
+    ghaf-installer = mkGhafInstaller {
+      self = ghaf;
+      lib = ghaf.lib;
+      inherit system;
+      extraModules = [
+        {
+          networking.wireless.networks."ExampleWiFi".psk = "password";
+        }
+      ];
+    };
+
     my-product-debug = mkGhafConfiguration {
       name = "my-product";
-      system = "x86_64-linux";
+      inherit system;
       profile = "laptop-x86";
 
       # Use Ghaf's hardware definition or your own
@@ -134,17 +154,21 @@ in
     # Release variant
     my-product-release = mkGhafConfiguration {
       name = "my-product";
-      system = "x86_64-linux";
+      inherit system;
       profile = "laptop-x86";
       hardwareModule = inputs.ghaf.nixosModules.hardware-lenovo-x1-carbon-gen11;
       variant = "release";
     };
-  };
+  in {
+    nixosConfigurations = {
+      ${my-product-debug.name} = my-product-debug.hostConfiguration;
+      ${my-product-release.name} = my-product-release.hostConfiguration;
+    };
 
-  # Installer
-  flake.packages.x86_64-linux.my-product-installer = mkGhafInstaller {
-    name = "my-product";
-    configuration = inputs.self.nixosConfigurations.my-product-release;
+    packages.${system}.my-product-installer = (ghaf-installer {
+      name = my-product-release.name;
+      imagePath = my-product-release.package;
+    }).package;
   };
 }
 ```
