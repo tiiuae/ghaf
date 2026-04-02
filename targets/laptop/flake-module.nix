@@ -18,10 +18,11 @@ let
     inherit (self) lib;
   };
 
-  # Unified Ghaf installer builder
+  # Unified Ghaf installer builder: evaluate one installer system shared by all installers
   ghaf-installer = self.builders.mkGhafInstaller {
     inherit self system;
     inherit (self) lib;
+    extraModules = installerModules;
   };
 
   # Common modules shared across all laptop configurations
@@ -556,13 +557,13 @@ let
     # keep-sorted end
   ];
 
-  # Map all of the defined configurations to an installer image
+  # Map all of the defined configurations to an installer image. Each installer
+  # reuses the shared base NixOS evaluation and only overrides ISO contents.
   target-installers = map (
     t:
     ghaf-installer {
       inherit (t) name;
       imagePath = self.packages.x86_64-linux.${t.name};
-      extraModules = installerModules;
     }
   ) target-configs;
 
@@ -578,13 +579,16 @@ let
     }
   ) (builtins.filter (x: x.buildSysupdateImage) target-configs);
 
-  targets = target-configs ++ target-installers ++ target-sysupdates;
+  config-targets = target-configs ++ target-sysupdates;
+  package-targets = target-configs ++ target-installers ++ target-sysupdates;
 in
 {
   flake = {
     nixosConfigurations = builtins.listToAttrs (
-      map (t: lib.nameValuePair t.name t.hostConfiguration) targets
+      map (t: lib.nameValuePair t.name t.hostConfiguration) config-targets
     );
-    packages.${system} = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+    packages.${system} = builtins.listToAttrs (
+      map (t: lib.nameValuePair t.name t.package) package-targets
+    );
   };
 }
