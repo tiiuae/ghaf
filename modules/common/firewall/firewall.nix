@@ -388,8 +388,8 @@ in
           iptables -t filter -A ghaf-fw-ban -j DROP
 
           ### PREROUTING rules ###
-          # marking blacklisted ip packets
-          iptables -t raw -A PREROUTING -m set --match-set ${blackListName} src -j MARK --set-mark ${blacklistMarkNum}
+          # Mark blacklisted IPs so the current packet is also banned immediately
+          iptables -t raw -A PREROUTING -m set --match-set ${blackListName} src -j MARK --set-xmark ${blacklistMarkNum}/${blacklistMarkNum}
           ${addIptablesRules {
             table = "raw";
             chain = "PREROUTING";
@@ -415,7 +415,7 @@ in
 
           ### INPUT rules ###
           iptables -A ghaf-fw-in-filter -i lo -j ACCEPT
-          iptables -A ghaf-fw-in-filter -m mark --mark ${blacklistMarkNum} -j ghaf-fw-ban
+          iptables -A ghaf-fw-in-filter -m mark --mark ${blacklistMarkNum}/${blacklistMarkNum} -j ghaf-fw-ban
 
           iptables -A ghaf-fw-in-filter -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 
@@ -485,10 +485,39 @@ in
             ebtables -A INPUT -p arp -j DROP -i tap-+
             ebtables -A FORWARD -p arp -j DROP -i tap-+
           ''}
+
         '';
       }
       cfg.extraOptions
     ];
+
+    networking.nat =
+      let
+        natCfg = config.networking.nat;
+        ifaceFlag = lib.optionalString (natCfg.externalInterface != null) "-o ${natCfg.externalInterface}";
+        destFlag =
+          if natCfg.externalIP != null then "-j SNAT --to-source ${natCfg.externalIP}" else "-j MASQUERADE";
+        natErr = msg: ''{ echo "ERROR: firewall.nix: ${msg} — review networking.nat patch" >&2; exit 1; }'';
+      in
+      mkMerge [
+        {
+          extraCommands = mkBefore ''
+            # Replace NixOS nat MARK set (overwrite) with --set-xmark (OR) so that
+            # marks set in raw PREROUTING are preserved through nat PREROUTING.
+            # Use bitmask match so it still applies when other mark bits are set.
+            ${lib.concatMapStringsSep "\n" (iface: ''
+              iptables -w -t nat -D nixos-nat-pre -i ${iface} -j MARK --set-mark 1 \
+                || ${natErr "nixos-nat-pre mark rule not found for ${iface}"}
+              iptables -w -t nat -A nixos-nat-pre -i ${iface} -j MARK --set-xmark 0x1/0x1
+            '') natCfg.internalInterfaces}
+            ${lib.optionalString (natCfg.internalInterfaces != [ ]) ''
+              iptables -w -t nat -D nixos-nat-post -m mark --mark 1 ${ifaceFlag} ${destFlag} \
+                || ${natErr "nixos-nat-post mark rule not found"}
+              iptables -w -t nat -A nixos-nat-post -m mark --mark 0x1/0x1 ${ifaceFlag} ${destFlag}
+            ''}
+          '';
+        }
+      ];
 
     ghaf.givc.policyClient.policies = mkIf cfg.updater.enable {
       firewall-rules =
