@@ -340,7 +340,7 @@ rec {
       };
 
       spire = {
-        enable = false;
+        enable = true;
         debug = true;
       };
 

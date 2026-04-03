@@ -143,6 +143,9 @@ in
         security.spire.agent = {
           inherit (config.ghaf.global-config.spire) enable;
           logLevel = if config.ghaf.global-config.spire.debug then "DEBUG" else "INFO";
+          nodeAttestationMode = "join_token";
+          trustBundlePath = "/persist/common/spire/bundle.pem";
+          settings.join_token.token = "/persist/common/spire/tokens/${config.networking.hostName}.token";
         };
       };
 
