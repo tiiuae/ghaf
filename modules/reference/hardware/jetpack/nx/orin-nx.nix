@@ -61,6 +61,20 @@
     };
   };
 
+  boot.initrd.systemd.repart.enable = true;
+  systemd.repart.enable = true;
+  systemd.repart.partitions.root = {
+    # Make sure this Type matches your APP/root GPT TYPE.
+    # If you stamped APP with the systemd “root” GUID, use:
+    Type = "root";
+    # If your APP is stamped with the generic Linux FS GUID, use this instead:
+    # Type = "0fc63daf-8483-4772-8e79-3d69d8477de4";
+
+    # Do not set SizeMaxBytes → no upper bound; repart will grow it to the device end.
+    # Ask growfs-aware tools to grow the FS on first mount:
+    GrowFileSystem = "yes";
+  };
+
   hardware = {
     # Sake of clarity: Jetson 35.4 and IO BASE B carrier board
     # uses "tegra234-p3767-0000-p3509-a02.dtb"-device tree.
