@@ -24,6 +24,7 @@ let
   blackListName = "BLACKLIST";
   blacklistMarkNum = "8";
   cfg = config.ghaf.firewall;
+  rulePath = "/etc/firewall/rules/iptables.rules";
 
   blacklistRuleType = types.listOf (
     types.submodule {
@@ -520,21 +521,37 @@ in
       ];
 
     ghaf.givc.policyClient.policies = mkIf cfg.updater.enable {
-      firewall-rules =
-        let
-          rulePath = "/etc/firewall/rules/fw.nft";
-        in
-        {
-          dest = rulePath;
-          updater = {
-            url = "https://raw.githubusercontent.com/tiiuae/ghaf-policies/deploy/vm-policies/firewall-rules/fw.nft";
-            poll_interval_secs = 300;
-          };
-
-          script = pkgs.writeShellScript "apply-nftables" ''
-            ${pkgs.nftables}/bin/nft -f ${rulePath}
-          '';
+      firewall-rules = {
+        dest = rulePath;
+        updater = {
+          url = "https://raw.githubusercontent.com/tiiuae/ghaf-policies/deploy/vm-policies/firewall-rules/iptables.rules";
+          poll_interval_secs = 300;
         };
+      };
+    };
+    systemd = mkIf cfg.updater.enable {
+      paths.apply-dynamic-firewall-rules = {
+        description = "Watch dynamic firewall rules file for changes";
+        wantedBy = [ "multi-user.target" ];
+        pathConfig = {
+          PathModified = rulePath;
+        };
+      };
+
+      services.apply-dynamic-firewall-rules = {
+        description = "Apply dynamic firewall rules";
+        wantedBy = [ "multi-user.target" ];
+        after = [ "firewall.service" ];
+        serviceConfig.Type = "oneshot";
+        script = ''
+          if [ -f "${rulePath}" ]; then
+            echo "Dynamic firewall rules found at ${rulePath}, applying..."
+            ${pkgs.iptables}/bin/iptables-restore --noflush < "${rulePath}" || echo "ERROR: Failed to apply dynamic firewall rules."
+          else
+            echo "No dynamic firewall rules found at ${rulePath}, skipping."
+          fi
+        '';
+      };
     };
   };
 }
