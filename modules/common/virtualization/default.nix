@@ -6,6 +6,7 @@
   imports = [
     ./nvidia-docker.nix
     ./nvidia-podman.nix
+    ./qemu.nix
     ./storagevm-encryption.nix
   ];
 }

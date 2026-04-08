@@ -17,7 +17,7 @@
     "page-default-apps"
     "page-display"
     "page-input"
-    "page-region"
+    # "page-region"
     "page-power"
     "page-sound"
     # "page-users"

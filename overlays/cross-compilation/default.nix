@@ -148,4 +148,17 @@
       runHook postInstall
     '';
   });
+
+  # grafana-alloy 1.14.x installs the collector binary as "otel_engine", while
+  # the nixpkgs package fixup expects the main program to be named "alloy".
+  # Normalize the installed binary name for cross builds and keep a compatibility
+  # symlink for callers that still reference "otel_engine".
+  grafana-alloy = prev.grafana-alloy.overrideAttrs (oldAttrs: {
+    postInstall = (oldAttrs.postInstall or "") + ''
+      if [ -e "$out/bin/otel_engine" ] && [ ! -e "$out/bin/alloy" ]; then
+        mv "$out/bin/otel_engine" "$out/bin/alloy"
+        ln -s alloy "$out/bin/otel_engine"
+      fi
+    '';
+  });
 })

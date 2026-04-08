@@ -119,7 +119,8 @@ let
       fi
 
       block_devices() {
-        case "$device" in
+        local target_device="$1"
+        case "$target_device" in
           net)
             echo "Blocking net device ..."
             ${mkPciCommands {
@@ -152,7 +153,8 @@ let
       }
 
       unblock_devices() {
-        case "$device" in
+        local target_device="$1"
+        case "$target_device" in
           net)
             echo "Unblocking net device ..."
             ${mkPciCommands {
@@ -219,6 +221,94 @@ let
         [ "$bt_blocked" = true ] && echo "bluetooth: blocked" || echo "bluetooth: unblocked"
       }
 
+      get_status_from_vhotplug() {
+        local bus="$1"
+        local tag="$2"
+
+        if [ -z "$(vhotplugcli "$bus" list --tag "$tag" --connected | tr -d '[:space:]')" ]; then
+          echo "blocked"
+        else
+          echo "unblocked"
+        fi
+      }
+
+      get_device_status() {
+        case "$1" in
+          mic)
+            get_status_from_vhotplug pci audio
+            ;;
+          net)
+            get_status_from_vhotplug pci net
+            ;;
+          cam)
+            get_status_from_vhotplug usb cam
+            ;;
+          bluetooth)
+            get_status_from_vhotplug usb bt
+            ;;
+          *)
+            echo "unknown"
+            return 1
+            ;;
+        esac
+      }
+
+      run_all_in_parallel() {
+        local action="$1"
+        local target_status action_label
+        local -a pids devices
+        local failed status
+
+        case "$action" in
+          block)
+            target_status="blocked"
+            action_label="block"
+            ;;
+          unblock)
+            target_status="unblocked"
+            action_label="unblock"
+            ;;
+          *)
+            echo "Unsupported action: $action" >&2
+            return 1
+            ;;
+        esac
+
+        failed=0
+
+        for d in "''${supportedDevices[@]}"; do
+          devices+=("$d")
+          (
+            status="$(get_device_status "$d")"
+
+            if [[ -z "$status" || "$status" == "unknown" ]]; then
+              echo "Warning: couldn't find status for '$d'" >&2
+              exit 1
+            fi
+
+            if [[ "$status" == "$target_status" ]]; then
+              echo "Skipping $d - already $target_status"
+              exit 0
+            fi
+
+            if [[ "$action" == "block" ]]; then
+              block_devices "$d"
+            else
+              unblock_devices "$d"
+            fi
+          ) &
+          pids+=("$!")
+        done
+
+        for i in "''${!pids[@]}"; do
+          if ! wait "''${pids[$i]}"; then
+            failed=1
+            echo "Error: Failed to $action_label ''${devices[$i]}" >&2
+          fi
+        done
+        return "$failed"
+      }
+
       supportedDevices=(${builtins.concatStringsSep " " supportedDevices})
 
       if [ -n "''${2:-}" ]; then
@@ -238,39 +328,16 @@ let
           ;;
         block)
           if [[ "$device" == "--all" ]]; then
-            for d in "''${supportedDevices[@]}"; do
-              device=$d
-              # Get status and extract device state
-              show_output="$(show_status)"
-               status=$(awk -F': ' -v dev="$device" '
-                  tolower($1) == tolower(dev) {
-                      print tolower($2);
-                      exit
-                  }
-              ' <<< "$show_output")
-
-              # Check status and block if needed
-              if [[ -z "$status" ]]; then
-                echo "warning: couldn't find status for '$device'" >&2
-              elif [[ "$status" == "blocked" ]]; then
-                echo "Skipping $device - already blocked"
-                continue
-              fi
-
-              block_devices
-            done
+            run_all_in_parallel block
           else
-            block_devices
+            block_devices "$device"
           fi
           ;;
         unblock)
           if [[ "$device" == "--all" ]]; then
-            for d in "''${supportedDevices[@]}"; do
-              device=$d
-              unblock_devices
-            done
+            run_all_in_parallel unblock
           else
-            unblock_devices
+            unblock_devices "$device"
           fi
           ;;
         status)

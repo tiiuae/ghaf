@@ -27,7 +27,7 @@ jobs:
               with:
                   persist-credentials: false
             - name: Install nix
-              uses: cachix/install-nix-action@1ca7d21a94afc7c957383a2d217460d980de4934 # v31.10.1
+              uses: cachix/install-nix-action@96951a368ba55167b55f1c916f7d416bac6505fe # v31.10.3
             - name: Check nix flake show runs successfully
               run: nix flake show --all-systems --accept-flake-config
             - name: Check templates
