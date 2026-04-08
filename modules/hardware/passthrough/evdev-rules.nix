@@ -46,11 +46,11 @@ let
         }
         {
           description = "Intel HID events";
-          pathTag = "platform-INT33D5:00";
+          pathTag = "platform-INT33D5_00";
         }
         {
           description = "Dell WMI hotkeys";
-          pathTag = "platform-PNP0C14:02";
+          pathTag = "platform-PNP0C14_02";
         }
       ];
     }

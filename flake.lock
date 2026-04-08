@@ -743,11 +743,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1774019607,
-        "narHash": "sha256-5AkdB2J//eF8yYXelwmFPWCS2E8AjUqYhOnrfkYsc7Q=",
+        "lastModified": 1775055530,
+        "narHash": "sha256-DhnBTuGn8g7cAlEoesnyoFnS6MFfzpfhUteLgy1rFpo=",
         "owner": "tiiuae",
         "repo": "vhotplug",
-        "rev": "143c99ec79febcaa79c49217df9587606c17bc9a",
+        "rev": "206a228d7804a2e9175ad15854d4d2c9ff69c213",
         "type": "github"
       },
       "original": {
