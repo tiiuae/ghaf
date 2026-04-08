@@ -15,7 +15,13 @@
         "iommu=pt"
         "acpi_backlight=vendor"
         "acpi_osi=linux"
-        "module_blacklist=i915,xe,iwlwifi,snd_hda_intel,snd_sof_pci_intel_tgl,bluetooth,btusb,snd_pcm,mei_me,xesnd_hda_intel,snd_sof_pci_intel_lnl,spi_intel_pci,i801_smbus,nouveau,nvidia,nvidiafb,i2c_nvidia_gpu"
+        "module_blacklist=iwlwifi,snd_hda_intel,snd_sof_pci_intel_tgl,bluetooth,btusb,snd_pcm,mei_me,xesnd_hda_intel,snd_sof_pci_intel_lnl,spi_intel_pci,i801_smbus,nouveau,nvidia,nvidiafb,i2c_nvidia_gpu"
+      ];
+      stage1.kernelModules = [
+        # Load i915 in the host initrd as a hardware workaround: some laptop models
+        # need the host to initialize the display pipeline early, otherwise the GUI VM
+        # may boot with a broken or non-functional screen.
+        "i915"
       ];
     };
 

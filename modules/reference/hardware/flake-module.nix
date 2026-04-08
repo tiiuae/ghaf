@@ -37,6 +37,7 @@
     hardware-intel-laptop.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
       { ghaf.hardware.definition = import ./intel-laptop/intel-laptop.nix; }
+      (import ./intel-laptop/extra-config-host.nix)
       {
         ghaf.hardware = {
           passthrough = {
@@ -54,7 +55,7 @@
             };
           };
           definition.guivm.extraModules = [
-            (import ./intel-laptop/extra-config.nix)
+            (import ./intel-laptop/extra-config-guivm.nix)
           ];
         };
       }

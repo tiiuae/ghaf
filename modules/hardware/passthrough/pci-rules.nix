@@ -41,6 +41,8 @@ let
         targetVm = "gui-vm";
         skipOnSuspend = true;
         pciIommuAddAll = true;
+        autoOvmf = true;
+        qemuUseRootBus = true;
         allow = [
           {
             deviceClass = 3;
