@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   writeShellApplication,
+  brightnessctl,
   lib,
   systemd,
   wlopm,
@@ -28,6 +29,7 @@ writeShellApplication {
     libnotify
     toybox
     jq
+    brightnessctl
   ]
   ++ (lib.optional useGivc givc-cli);
 
@@ -77,12 +79,21 @@ writeShellApplication {
         return 1
       fi
 
-      if [ "$action" != "on" ] && [ "$action" != "off" ]; then
-        echo "Error: First argument must be 'on' or 'off'"
-        return 1
-      fi
-
-      local cmd="wlopm --$action '$display_name'"
+      case "$action" in
+        on|off)
+          local cmd="wlopm --$action '$display_name'"
+          ;;
+        fake-off)
+          local cmd="brightnessctl -c backlight -s s 0"
+          ;;
+        fake-on)
+          local cmd="brightnessctl -c backlight -r || brightnessctl -c backlight s 100%"
+          ;;
+        *)
+          echo "Error: First argument must be one of 'on, off, fake-on, fake-off'"
+          exit 1
+          ;;
+      esac
 
       echo "Attempting to turn displays '$display_name' $action..."
 
@@ -147,6 +158,12 @@ writeShellApplication {
         ;;
       turn-on-displays)
         try_toggle_displays on "$2"
+        ;;
+      fake-turn-off-displays)
+        try_toggle_displays fake-off "$2"
+        ;;
+      fake-turn-on-displays)
+        try_toggle_displays fake-on "$2"
         ;;
       help|--help)
         help_msg

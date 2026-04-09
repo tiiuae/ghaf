@@ -131,7 +131,7 @@ let
               ${givc-cli} start service --vm "$vm_name" suspend.target &
               # Wait until suspend is active
               ${getExe pkgs.wait-for-unit} ${config.ghaf.networking.hosts.admin-vm.ipv4} 9001 \
-              "$vm_name" systemd-suspend.service 5 \
+              "$vm_name" systemd-suspend.service 10 \
               activating start
               ;;
             resume)
@@ -492,8 +492,7 @@ in
       # Shutdown displays early before suspend
       powerManagement = {
         powerDownCommands = lib.mkBefore ''
-          ${getExe ghaf-powercontrol} turn-on-displays '*'
-          ${getExe ghaf-powercontrol} turn-off-displays '*'
+          ${getExe ghaf-powercontrol} fake-turn-off-displays '*'
         '';
       };
 
@@ -536,11 +535,12 @@ in
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = true;
-            ExecStop = "${getExe ghaf-powercontrol} turn-on-displays '*'";
+            ExecStop = "${getExe ghaf-powercontrol} fake-turn-on-displays '*'";
           };
         };
       };
 
+      services.upower.ignoreLid = true;
       # Logind configuration for desktop
       services.logind.settings.Login =
         let
@@ -549,7 +549,6 @@ in
         mkDefault {
           HandleLidSwitch = lidEvent;
           HandleLidSwitchDocked = "ignore";
-          HandleLidSwitchExternalPower = lidEvent;
           # Below keys are usually handled by host anyway
           HandleSuspendKey = "ignore";
           HandleHibernateKey = "ignore";
@@ -562,6 +561,7 @@ in
 
     # Host power management
     (mkIf cfg.host.enable {
+      services.upower.ignoreLid = true;
       # Host still handles power buttons in most situations
       services.logind.settings.Login = {
         HandleLidSwitch = mkDefault "ignore";
