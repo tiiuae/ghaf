@@ -492,8 +492,7 @@ in
       # Shutdown displays early before suspend
       powerManagement = {
         powerDownCommands = lib.mkBefore ''
-          ${getExe ghaf-powercontrol} turn-on-displays '*'
-          ${getExe ghaf-powercontrol} turn-off-displays '*'
+          ${getExe ghaf-powercontrol} fake-turn-off-displays '*'
         '';
       };
 
@@ -536,7 +535,7 @@ in
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = true;
-            ExecStop = "${getExe ghaf-powercontrol} turn-on-displays '*'";
+            ExecStop = "${getExe ghaf-powercontrol} fake-turn-on-displays '*'";
           };
         };
       };
