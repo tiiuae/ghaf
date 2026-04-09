@@ -350,6 +350,7 @@ in
             source = "/nix/store";
             mountPoint = "/nix/.ro-store";
             proto = "virtiofs";
+            cache = "always";
           }
         ];
 
