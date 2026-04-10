@@ -93,6 +93,7 @@ in
     storagevm = {
       enable = true;
       name = vmName;
+      maximumSize = 20 * 1024;
       files = [
         "/etc/locale-givc.conf"
         "/etc/timezone.conf"
