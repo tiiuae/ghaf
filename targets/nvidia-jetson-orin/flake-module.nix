@@ -12,6 +12,14 @@
 let
   inherit (inputs) jetpack-nixos;
   system = "aarch64-linux";
+  lazyPackage =
+    name: drv:
+    (lib.lazyDerivation {
+      derivation = drv;
+    })
+    // {
+      inherit name;
+    };
 
   # Unified Ghaf configuration builder
   ghaf-configuration = self.builders.mkGhafConfiguration {
@@ -160,7 +168,7 @@ let
       hostConfiguration = tgt.hostConfiguration.extendModules {
         modules = [ self.nixosModules.cross-compilation-from-x86_64 ];
       };
-      package = hostConfiguration.config.system.build.ghafImage;
+      package = lazyPackage name hostConfiguration.config.system.build.ghafImage;
     };
 
   # Add nodemoapps targets
@@ -180,16 +188,20 @@ in
         // builtins.listToAttrs (
           map (
             t:
-            lib.nameValuePair "${t.name}-flash-script" t.hostConfiguration.pkgs.nvidia-jetpack.legacyFlashScript
+            lib.nameValuePair "${t.name}-flash-script" (
+              lazyPackage "${t.name}-flash-script" t.hostConfiguration.pkgs.nvidia-jetpack.legacyFlashScript
+            )
           ) crossTargets
         )
         // builtins.listToAttrs (
           map (
             t:
-            lib.nameValuePair "${t.name}-flash-qspi"
-              (t.hostConfiguration.extendModules {
-                modules = [ { ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = true; } ];
-              }).pkgs.nvidia-jetpack.flashScript
+            lib.nameValuePair "${t.name}-flash-qspi" (
+              lazyPackage "${t.name}-flash-qspi"
+                (t.hostConfiguration.extendModules {
+                  modules = [ { ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = true; } ];
+                }).pkgs.nvidia-jetpack.flashScript
+            )
           ) crossTargets
         );
     };

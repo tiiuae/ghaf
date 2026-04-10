@@ -11,6 +11,14 @@
 let
   inherit (inputs) nixos-hardware;
   name = "nxp-imx8mp-evk";
+  lazyPackage =
+    name: drv:
+    (lib.lazyDerivation {
+      derivation = drv;
+    })
+    // {
+      inherit name;
+    };
   nxp-imx8mp-evk =
     variant: extraModules:
     let
@@ -94,7 +102,7 @@ let
       hostConfiguration = tgt.hostConfiguration.extendModules {
         modules = [ self.nixosModules.cross-compilation-from-x86_64 ];
       };
-      package = hostConfiguration.config.system.build.sdImage;
+      package = lazyPackage name hostConfiguration.config.system.build.sdImage;
     };
 
   crossTargets = map generate-cross-from-x86_64 targets;
