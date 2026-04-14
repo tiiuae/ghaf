@@ -6,22 +6,15 @@
   pkgs,
   ...
 }:
+with lib;
 let
   cfg = config.ghaf.security.spire.server;
-  inherit (lib)
-    filterAttrs
-    getExe
-    mkIf
-    mkOption
-    mkEnableOption
-    types
-    optionalString
-    concatMapStringsSep
-    ;
-  runtimeDataDir = "/run/spire/server";
+  runtimeDataDir = "/run/spire-server";
   tokenDir = "/etc/common/spire/tokens";
-  socketPath = "${runtimeDataDir}/public/api.sock";
-  dataDir = "/var/lib/spire/server";
+  credSourceDir = "/etc/givc";
+  socketPath = "${runtimeDataDir}/api.sock";
+  dataDir = "${runtimeDataDir}";
+
   spire-package = config.ghaf.common.spire.package;
   spireAgents = config.ghaf.common.spire.agents;
   inherit (config.ghaf.common.spire.server) healthCheckPort;
@@ -31,9 +24,18 @@ let
     mode: builtins.attrNames (filterAttrs (_vm: cfg: (cfg.nodeAttestationMode == mode)) spireAgents);
 
   joinTokenVMs = getVMsByAttestation "join_token";
+  x509popVMs = getVMsByAttestation "x509pop";
+
   joinTokenPlugin = optionalString (builtins.length joinTokenVMs > 0) ''
     NodeAttestor "join_token" {
       plugin_data {}
+    }
+  '';
+  x509popPlugin = optionalString (builtins.length x509popVMs > 0) ''
+    NodeAttestor "x509pop" {
+      plugin_data {
+        ca_bundle_path = "$CREDENTIALS_DIRECTORY/ca-cert.pem"
+      }
     }
   '';
 
@@ -60,12 +62,11 @@ let
           connection_string = "${dataDir}/datastore.sqlite3"
         }
       }
-      KeyManager "disk" {
-        plugin_data {
-          keys_path = "${dataDir}/keys.json"
-        }
+      KeyManager "memory" {
+        plugin_data {}
       }
       ${joinTokenPlugin}
+      ${x509popPlugin}
     }
   '';
 
@@ -192,27 +193,54 @@ in
 
     systemd = {
       tmpfiles.rules = [
-        "d /run/spire 0755 root root - -"
         "d ${runtimeDataDir} 0755 root root - -"
-        "d ${runtimeDataDir}/public 0755 root root - -"
-        "d ${runtimeDataDir}/private 0755 root root - -"
         "d ${tokenDir} 0755 root root - -"
       ];
 
       services = {
+        spire-server-setup =
+          let
+            setupScript = pkgs.writeShellScript "spire-agent-setup" ''
+              ${pkgs.coreutils}/bin/rm -f ${cfg.trustBundlePath}
+            '';
+          in
+          {
+            description = "SPIRE server setup";
+            wantedBy = [ "spire-server.service" ];
+            before = [ "spire-server.service" ];
+            serviceConfig = {
+              Type = "oneshot";
+              ExecStart = "${setupScript}";
+              RemainAfterExit = true;
+            };
+          };
         spire-server = {
-          after = [ "network-online.target" ];
-          wants = [ "network-online.target" ];
+          requires = [
+            "network-online.target"
+            "local-fs.target"
+            "spire-server-setup.service"
+          ];
+          after = [
+            "network-online.target"
+            "local-fs.target"
+            "spire-server-setup.service"
+          ];
+
           serviceConfig = {
-            NoNewPrivileges = true;
-            ProtectSystem = "strict";
-            ProtectHome = true;
+            RuntimeDirectory = mkForce "spire-server";
+            StateDirectory = mkForce "spire-server";
             ReadWritePaths = [
               "${dataDir}"
               "${runtimeDataDir}"
             ];
+          }
+          // optionalAttrs (builtins.length x509popVMs > 0) {
+            LoadCredential = [
+              "ca-cert.pem:${credSourceDir}/ca-cert.pem"
+            ];
           };
         };
+
         spire-generate-join-tokens = mkIf (builtins.length joinTokenVMs > 0) {
           description = "Generate SPIRE join tokens for Ghaf VMs (PoC)";
           wantedBy = [ "multi-user.target" ];
@@ -246,8 +274,8 @@ in
           wantedBy = [ "multi-user.target" ];
           after = [
             "spire-server.service"
-            "spire-generate-join-tokens.service"
-          ];
+          ]
+          ++ optionals (builtins.length joinTokenVMs > 0) [ "spire-generate-join-tokens.service" ];
           wants = [ "spire-server.service" ];
 
           serviceConfig = {
