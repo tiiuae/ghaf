@@ -6,18 +6,13 @@
   pkgs,
   ...
 }:
+with lib;
 let
   cfg = config.ghaf.security.spire.agent;
-  dataDir = "/var/lib/spire/agent";
-  runtimeDataDir = "/run/spire/agent";
-  inherit (lib)
-    getExe
-    mkIf
-    mkOption
-    mkEnableOption
-    optionalString
-    types
-    ;
+  runtimeDataDir = "/run/spire-agent";
+  dataDir = "${runtimeDataDir}";
+  credSourceDir = "/etc/givc";
+
   spire-package = config.ghaf.common.spire.package;
   healthCheckPort = toString config.ghaf.common.spire.server.healthCheckPort;
 
@@ -27,6 +22,14 @@ let
   joinTokenPlugin = optionalString (cfg.nodeAttestationMode == "join_token") ''
     NodeAttestor "join_token" {
       plugin_data {}
+    }
+  '';
+  x509popPlugin = optionalString (cfg.nodeAttestationMode == "x509pop") ''
+    NodeAttestor "x509pop" {
+      plugin_data {
+        private_key_path = "$CREDENTIALS_DIRECTORY/key.pem"
+        certificate_path = "$CREDENTIALS_DIRECTORY/cert.pem"
+      }
     }
   '';
   agentConf = ''
@@ -43,14 +46,13 @@ let
 
     plugins {
       ${joinTokenPlugin}
+      ${x509popPlugin}
 
       WorkloadAttestor "unix" {
         plugin_data {}
       }
-      KeyManager "disk" {
-        plugin_data {
-          directory = "${dataDir}/keys"
-        }
+      KeyManager "memory" {
+        plugin_data {}
       }
     }
   '';
@@ -73,13 +75,20 @@ let
         sleep 3
       done
 
+      echo "SPIRE Server is ready! Starting SPIRE Agent..."
+
+      while [ ! -e "${cfg.trustBundlePath}" ]; do
+        echo "Waiting for trust bundle..."
+        sleep 1
+      done
+
       if [ "$MODE" == "join_token" ]; then
         while [ ! -e "${cfg.settings.join_token.token}" ]; do
           echo "Waiting for server token..."
           sleep 1
         done
       fi
-      echo "SPIRE Server is ready! Starting SPIRE Agent..."
+
     '';
   };
 in
@@ -90,7 +99,7 @@ in
     enable = mkEnableOption "SPIRE agent";
     nodeAttestationMode = mkOption {
       type = types.spireNodeAttestationMode;
-      default = "join_token";
+      default = "x509pop";
       description = "Node attestation mode";
     };
     workloads = mkOption {
@@ -131,9 +140,13 @@ in
     systemd = {
       services = {
         spire-agent = {
-          requires = [ "network-online.target" ];
+          requires = [
+            "network-online.target"
+            "local-fs.target"
+          ];
           after = [
             "network-online.target"
+            "local-fs.target"
           ];
 
           unitConfig = {
@@ -141,6 +154,8 @@ in
           };
 
           serviceConfig = {
+            RuntimeDirectory = mkForce "spire-agent";
+            StateDirectory = mkForce "spire-agent";
             ExecStartPre = getExe server-health;
             NoNewPrivileges = true;
             PrivateTmp = true;
@@ -150,12 +165,17 @@ in
               "${dataDir}"
               "${runtimeDataDir}"
             ];
+          }
+          // optionalAttrs (cfg.nodeAttestationMode == "x509pop") {
+            LoadCredential = [
+              "key.pem:${credSourceDir}/key.pem"
+              "cert.pem:${credSourceDir}/cert.pem"
+            ];
           };
         };
       };
       tmpfiles.rules = [
-        "d /run/spire 0755 root root - -"
-        "d ${runtimeDataDir} 2750 spire-agent spire-agent - -"
+        "d ${runtimeDataDir} 0755 spire-agent spire-agent - -"
       ];
     };
   };

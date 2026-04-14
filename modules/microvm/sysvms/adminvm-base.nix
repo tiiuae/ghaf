@@ -174,7 +174,7 @@ in
         agent = {
           enable = globalConfig.spire.enable or false;
           logLevel = if globalConfig.spire.debug then "DEBUG" else "INFO";
-          nodeAttestationMode = "join_token";
+          nodeAttestationMode = if globalConfig.givc.enable then "x509pop" else "join_token";
         };
       };
     };
