@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+
+name: Conventional Commits
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  check-commits:
+    name: Validate Commit Messages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: webiny/action-conventional-commits@faccb24fc2550dd15c0390d944379d2d8ed9690e # v1.3.1
+        with:
+          allowed-commit-types: "feat,fix,docs,refactor,test,chore,ci,revert,build,bump"
+
+  check-pr-title:
+    name: Validate PR Title
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "ℹ️ Checking if PR title is following the Conventional Commits specification..."
+          pattern='^(feat|fix|docs|refactor|test|chore|ci|revert|build|bump)(\([a-z0-9/_-]+\))?: .{1,72}$'
+          if [[ ! "$PR_TITLE" =~ $pattern ]]; then
+            printf '🚫 According to the conventional-commits specification, the PR title is not valid.\n\nFormat:  <type>(<optional scope>): <description>\nExample: fix(wireguard-gui): polkit regex to match wayland-ghaf display name\nExample: feat(netvm): add wireguard support\nExample: docs: update hardware target list\n\nAllowed types: feat, fix, docs, refactor, test, chore, ci, revert, build, bump\nRules:\n  - scope is optional, lowercase, no spaces (e.g. power, netvm, audiovm)\n  - description: imperative mood, no capital first letter, no trailing period\n  - total title length must not exceed 72 characters\n\nCurrent title: "%s"\n' "$PR_TITLE"
+            exit 1
+          fi
+          printf '🎉 All commit messages are following the Conventional Commits specification.'
