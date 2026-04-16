@@ -67,6 +67,13 @@ in
             PULSE_SERVER = "${cfg.client.remotePulseServerAddress}";
           };
         };
+        services.pipewire.wireplumber.extraConfig."10-disable-bluez" = {
+          "wireplumber.profiles" = {
+            main = {
+              "monitor.bluez" = "disabled";
+            };
+          };
+        };
       }
       # givc socket proxy is declared in modules/givc/guivm.nix
       (lib.mkIf (cfg.client.pipewireControl.enable && useGivc) {

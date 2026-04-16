@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# This patch should be removed once the fix is merged upstream. See 
+# https://github.com/blueman-project/blueman/pull/3213/commits
+#
+From a063be21a67068eb09e6f5b14df2344eef2c756b Mon Sep 17 00:00:00 2001
+From: jkuro-tii <jaroslaw.kurowski@tii.ae>
+Date: Wed, 15 Apr 2026 10:44:36 +0400
+Subject: [PATCH] blueman: fix agent registering
+
+Signed-off-by: jkuro-tii <jaroslaw.kurowski@tii.ae>
+---
+ blueman/bluez/AgentManager.py | 2 +-
+ blueman/bluez/Base.py         | 3 +++
+ 2 files changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/blueman/bluez/AgentManager.py b/blueman/bluez/AgentManager.py
+index 9f266e1b..1fe249f1 100644
+--- a/blueman/bluez/AgentManager.py
++++ b/blueman/bluez/AgentManager.py
+@@ -13,7 +13,7 @@ class AgentManager(Base):
+ 
+     def register_agent(self, agent_path: str, capability: str = "", default: bool = False) -> None:
+         param = GLib.Variant('(os)', (agent_path, capability))
+-        self._call('RegisterAgent', param)
++        self._call_sync('RegisterAgent', param)
+         if default:
+             default_param = GLib.Variant('(o)', (agent_path,))
+             self._call('RequestDefaultAgent', default_param)
+diff --git a/blueman/bluez/Base.py b/blueman/bluez/Base.py
+index af645889..ab4ec9f6 100644
+--- a/blueman/bluez/Base.py
++++ b/blueman/bluez/Base.py
+@@ -94,6 +94,9 @@ class Base(GObject.Object, metaclass=BaseMeta):
+ 
+         self.__proxy.call(method, param, Gio.DBusCallFlags.NONE, GLib.MAXINT, None,
+                           callback, reply_handler, error_handler)
++        
++    def _call_sync(self, method: str, param: GLib.Variant | None = None) -> GLib.Variant | None:
++        return self.__proxy.call_sync(method, param, Gio.DBusCallFlags.NONE, -1, None)
+ 
+     def get(self, name: str) -> Any:
+         try:
+-- 
+2.53.0
+
