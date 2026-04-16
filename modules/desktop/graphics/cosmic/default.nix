@@ -426,7 +426,6 @@ in
           Type = "simple";
           Restart = "on-failure";
           RestartSec = "5";
-          Environment = mkIf graphicsProfileCfg.bluetooth.applet.useDbusProxy "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_snd.sock";
         };
         partOf = [ "cosmic-session.target" ];
         wantedBy = [ "cosmic-session.target" ];
@@ -434,9 +433,6 @@ in
 
       blueman-manager = {
         inherit (graphicsProfileCfg.bluetooth.applet) enable;
-        serviceConfig = {
-          Environment = mkIf graphicsProfileCfg.bluetooth.applet.useDbusProxy "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_snd.sock";
-        };
       };
     };
 
