@@ -103,12 +103,7 @@
 <p>Signed, image‑based system updates for Trusted VMs</p>
 <ul>
 <li>Rather than pulling ad‑hoc packages from a package manager inside the VM, Trusted VMs update via system images published by the project.</li>
-<li>Evidence in code: modules/partitioning/verity-sysupdate.nix configures systemd.sysupdate with Source.Type = “url-file” pointed at:
-<ul>
-<li>url = “<a href="https://github.com/tiiuae/ghaf/releases/latest/download">https://github.com/tiiuae/ghaf/releases/latest/download</a>”</li>
-<li>MatchPattern for boot entries and root/verity partitions like <code dir="auto">"${id}_@v_@u.root"</code> and <code dir="auto">"${id}_@v_@u.verity"</code></li>
-</ul>
-</li>
+<li>Evidence in code: modules/partitioning/verity-volume.nix builds versioned root/verity/kernel artifacts and manifest metadata for image-based updates.</li>
 <li>This narrows the update plane to a single, curated distribution channel (GitHub Releases of the Ghaf project), effectively an allowlist for Trusted VM updates.</li>
 </ul>
 </li>
