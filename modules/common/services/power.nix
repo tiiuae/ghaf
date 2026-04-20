@@ -303,8 +303,8 @@ in
         description = ''
           Whether to enable system suspension.
 
-            If disabled, the system will not respond to suspend requests, and all VMs with a
-            power management profile enabled are prohibited to perform any suspend action.
+          If disabled, the system will not respond to suspend requests, and all VMs with a
+          power management profile enabled are prohibited to perform any suspend action.
         '';
       };
 
@@ -323,6 +323,22 @@ in
           To check which modes are supported, run `cat /sys/power/mem_sleep`.
 
           More info: https://docs.kernel.org/admin-guide/pm/sleep-states.html
+        '';
+      };
+
+      extraSuspendCommands = mkOption {
+        type = types.str;
+        default = "";
+        description = ''
+          Additional shell commands to execute before the system suspends.
+        '';
+      };
+
+      extraResumeCommands = mkOption {
+        type = types.str;
+        default = "";
+        description = ''
+          Additional shell commands to execute after the system resumes from suspension.
         '';
       };
     };
@@ -451,18 +467,28 @@ in
       systemd.sleep.settings.Sleep = genericSleepConf;
 
       powerManagement = optionalAttrs cfg.vm.enable {
-        powerDownCommands = optionalString cfg.vm.pciSuspend (
-          concatMapStringsSep "\n" (service: ''
-            echo "Stopping service ${service}..."
-            systemctl stop ${service}
-          '') cfg.vm.pciSuspendServices
-        );
-        resumeCommands = optionalString cfg.vm.pciSuspend (
-          concatMapStringsSep "\n" (service: ''
-            echo "Starting service ${service}..."
-            systemctl start ${service}
-          '') cfg.vm.pciSuspendServices
-        );
+        powerDownCommands =
+          optionalString cfg.vm.pciSuspend (
+            concatMapStringsSep "\n" (service: ''
+              echo "Stopping service ${service}..."
+              systemctl stop ${service}
+            '') cfg.vm.pciSuspendServices
+          )
+          + optionalString (cfg.suspend.extraSuspendCommands != "") ''
+            # config.ghaf.services.power-manager.suspend.extraSuspendCommands
+            ${cfg.suspend.extraSuspendCommands}
+          '';
+        resumeCommands =
+          optionalString cfg.vm.pciSuspend (
+            concatMapStringsSep "\n" (service: ''
+              echo "Starting service ${service}..."
+              systemctl start ${service}
+            '') cfg.vm.pciSuspendServices
+          )
+          + optionalString (cfg.suspend.extraResumeCommands != "") ''
+            # config.ghaf.services.power-manager.suspend.extraResumeCommands
+            ${cfg.suspend.extraResumeCommands}
+          '';
       };
 
       systemd.services.systemd-suspend.serviceConfig = {
@@ -493,6 +519,9 @@ in
       powerManagement = {
         powerDownCommands = lib.mkBefore ''
           ${getExe ghaf-powercontrol} fake-turn-off-displays '*'
+
+          # config.ghaf.services.power-manager.suspend.extraSuspendCommands
+          ${cfg.suspend.extraSuspendCommands}
         '';
       };
 
@@ -535,12 +564,20 @@ in
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = true;
-            ExecStop = "${getExe ghaf-powercontrol} fake-turn-on-displays '*'";
+            ExecStop =
+              let
+                resumeActions = pkgs.writeShellScriptBin "resume-actions" ''
+                  ${getExe ghaf-powercontrol} fake-turn-on-displays '*'
+
+                  # config.ghaf.services.power-manager.suspend.extraResumeCommands
+                  ${cfg.suspend.extraResumeCommands}
+                '';
+              in
+              getExe resumeActions;
           };
         };
       };
 
-      services.upower.ignoreLid = true;
       # Logind configuration for desktop
       services.logind.settings.Login =
         let
@@ -561,7 +598,6 @@ in
 
     # Host power management
     (mkIf cfg.host.enable {
-      services.upower.ignoreLid = true;
       # Host still handles power buttons in most situations
       services.logind.settings.Login = {
         HandleLidSwitch = mkDefault "ignore";

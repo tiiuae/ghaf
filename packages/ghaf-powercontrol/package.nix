@@ -70,15 +70,6 @@ writeShellApplication {
       local display_name=''${2:-'*'}
       local uid
 
-      # Determine the UID of the user session to operate on
-      uid=$(loginctl list-sessions --json=short | jq -e '.[] | select(.seat != null) | .uid')
-      if [ -n "$uid" ]; then
-        echo "Using session UID: $uid"
-      else
-        echo "Error: Could not determine user session UID"
-        return 1
-      fi
-
       case "$action" in
         on|off)
           local cmd="wlopm --$action '$display_name'"
@@ -97,13 +88,19 @@ writeShellApplication {
 
       echo "Attempting to turn displays '$display_name' $action..."
 
-      # Try without setting WAYLAND_DISPLAY
-      if [ -n "$WAYLAND_DISPLAY" ]; then
-        # Try without setting WAYLAND_DISPLAY
-        if eval "$cmd"; then
-          echo "Displays turned $action successfully on wayland socket $WAYLAND_DISPLAY"
-          return 0
-        fi
+      # Optimistically try without setting WAYLAND_DISPLAY first
+      if eval "$cmd"; then
+        echo "Displays turned $action successfully"
+        return 0
+      fi
+
+      # Determine the UID of the user session to operate on
+      uid=$(loginctl list-sessions --json=short | jq -e '.[] | select(.seat != null) | .uid')
+      if [ -n "$uid" ]; then
+        echo "Using session UID: $uid"
+      else
+        echo "ERROR: Could not determine user session UID"
+        return 1
       fi
 
       echo "Searching for a valid Wayland socket..."
