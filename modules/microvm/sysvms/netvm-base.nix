@@ -170,8 +170,17 @@ in
         listenAddress = hostConfig.networking.thisVm.ipv4 or "192.168.100.1";
       };
 
-      # Audit - from globalConfig
-      audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
+      # Audit is force-disabled on net-vm. fss.nix enables audit via
+      # lib.mkForce true because FSS rules depend on it, but on Orin NX the
+      # audit syscall-path overhead stacks with alloy/givc/stunnel/spire
+      # and starves QEMU USB emulation — the xhci_hcd guest driver desyncs
+      # with the event ring and NETDEV WATCHDOG fires on the ethernet
+      # dongle (see vcpu=4 comment below). Bumping vCPUs helps but isn't
+      # enough; disabling audit on this one VM is. mkOverride 10 beats
+      # mkForce's priority 50. Net-vm is the gateway, not the privileged
+      # VM, so the audit-trail loss is modest; admin-vm and guivm keep
+      # full audit coverage.
+      audit.enable = lib.mkOverride 10 false;
       spire.agent = {
         enable = globalConfig.spire.enable or false;
         logLevel = if globalConfig.spire.debug then "DEBUG" else "INFO";
