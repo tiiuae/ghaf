@@ -204,6 +204,16 @@ in
       allowedUDPPorts = [ dnsPort ];
     };
 
+  # Disable mDNS publishing on net-vm. With two live interfaces (internal
+  # ethint0 + USB/Wi-Fi uplink), systemd-resolved hears its own announcements
+  # echo between them and enters an unbounded conflict-resolution loop. The
+  # dynamic hostname `ghaf-NNNNNNNNNN` matches resolved's `<base>-<int>`
+  # pattern, so conflict resolution strips the numeric tail and republishes as
+  # `ghaf-<rand>`, producing thousands of renames per hour. Net-vm never needs
+  # to be discoverable via mDNS, so turn publishing off on both sides.
+  systemd.network.networks."10-ethint0".networkConfig.MulticastDNS = false;
+  networking.networkmanager.connectionConfig."connection.mdns" = 0;
+
   systemd.tmpfiles.rules = [ "d /persist/sysupdate 0755 ghaf root -" ]; # Set permissions for mountpoint
   microvm = {
     # Optimize is disabled because when it is enabled, qemu is built without libusb
