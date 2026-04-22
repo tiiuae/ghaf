@@ -4,6 +4,6 @@
 prev.cosmic-comp.overrideAttrs (oldAttrs: {
   patches = oldAttrs.patches ++ [
     ./0001-Add-security-context-indicator.patch
-    ./0001-Disable-VRR-by-default.patch
+    ./0002-Disable-VRR-by-default.patch
   ];
 })

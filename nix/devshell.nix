@@ -22,7 +22,6 @@
             meta.description = "Ghaf development environment";
             packages = [
               pkgs.jq
-              pkgs.nodejs
               pkgs.nix-eval-jobs
               pkgs.nix-fast-build
               pkgs.nix-output-monitor

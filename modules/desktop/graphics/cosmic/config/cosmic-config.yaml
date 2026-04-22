@@ -212,6 +212,7 @@ com.system76.CosmicSettings.Shortcuts:
         (modifiers: [Super, Ctrl], key: "Escape"): Debug,
         (modifiers: [Super], key: "Escape"): System(LockScreen),
         (modifiers: [Super], key: "q"): Close,
+        (modifiers: [Alt], key: "F4"): Close,
 
         (modifiers: [Super], key: "Left"): Focus(Left),
         (modifiers: [Super], key: "Right"): Focus(Right),
@@ -298,6 +299,7 @@ com.system76.CosmicSettings.Shortcuts:
         (modifiers: [Super], key: "r"): Resizing(Outwards),
         (modifiers: [Super, Shift], key: "r"): Resizing(Inwards),
 
+        (modifiers: [Super, Alt], key: "s"): System(ScreenReader),
         (modifiers: [Super], key: "equal"): ZoomIn,
         (modifiers: [Super], key: "minus"): ZoomOut,
         (modifiers: [Super], key: "period"): ZoomIn,
@@ -329,6 +331,8 @@ com.system76.CosmicSettings.Shortcuts:
         (modifiers: [], key: "XF86AudioNext"): System(PlayNext),
         (modifiers: [], key: "XF86PowerOff"): System(PowerOff),
         (modifiers: [], key: "XF86TouchpadToggle"): System(TouchpadToggle),
+        (modifiers: [Super, Ctrl], key: "XF86TouchpadToggle"): System(TouchpadToggle),
+        (modifiers: [], key: "XF86LaunchA"): System(WorkspaceOverview),
     }
   system_actions: |
     {
