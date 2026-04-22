@@ -1,22 +1,22 @@
---- a/src/electron-main.ts
-+++ b/src/electron-main.ts
-@@ -448,11 +448,10 @@
+--- a/apps/desktop/src/electron-main.ts
++++ b/apps/desktop/src/electron-main.ts
+@@ -400,11 +400,10 @@
          // https://www.electronjs.org/docs/faq#the-font-looks-blurry-what-is-this-and-what-can-i-do
          backgroundColor: "#fff",
- 
+
 -        titleBarStyle: process.platform === "darwin" ? "hidden" : "default",
          trafficLightPosition: { x: 9, y: 8 },
- 
-         icon: global.trayConfig.icon_path,
+
+         icon: await getIconPath(),
 -        show: false,
 +        show: true,
          autoHideMenuBar: store.get("autoHideMenuBar"),
- 
+
          x: mainWindowState.x,
-@@ -478,100 +477,42 @@
+@@ -430,100 +429,42 @@
          app.exit(1);
      }
- 
+
 -    void global.mainWindow.loadURL("vector://vector/webapp/");
 -
 -    if (process.platform === "darwin") {
@@ -26,16 +26,16 @@
      // Handle spellchecker
      // For some reason spellCheckerEnabled isn't persisted, so we have to use the store here
      global.mainWindow.webContents.session.setSpellCheckerEnabled(store.get("spellCheckerEnabled", true));
- 
+
      // Create trayIcon icon
--    if (store.get("minimizeToTray")) tray.create(global.trayConfig);
-+    tray.create(global.trayConfig);
- 
+-    if (store.get("minimizeToTray")) await tray.create();
++    tray.create();
+
 -    global.mainWindow.once("ready-to-show", () => {
 +    global.mainWindow.webContents.once('did-finish-load',function() {
          if (!global.mainWindow) return;
          mainWindowState.manage(global.mainWindow);
- 
+
          if (!argv["hidden"]) {
              global.mainWindow.show();
 +            global.mainWindow.restore();
@@ -45,7 +45,7 @@
              global.mainWindow.hide();
          }
      });
- 
+
 -    global.mainWindow.webContents.on("before-input-event", (event: Event, input: Input): void => {
 -        const exitShortcutPressed =
 -            input.type === "keyDown" && exitShortcuts.some((shortcutFn) => shortcutFn(input, process.platform));
@@ -79,7 +79,7 @@
 -        app.exit();
 -    });
 +    void global.mainWindow.loadURL("vector://vector/webapp/");
- 
+
      global.mainWindow.on("closed", () => {
          global.mainWindow = null;
      });
@@ -105,7 +105,7 @@
 +            global.mainWindow?.hide();
          }
      });
- 
+
 -    if (process.platform === "win32") {
 -        // Handle forward/backward mouse buttons in Windows
 -        global.mainWindow.on("app-command", (e, cmd) => {
@@ -118,7 +118,7 @@
 -    }
 -
      webContentsHandler(global.mainWindow.webContents);
- 
+
 +
      session.defaultSession.setDisplayMediaRequestHandler(
          (_, callback) => {

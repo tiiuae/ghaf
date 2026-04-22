@@ -1,16 +1,16 @@
-From 6cd886a1936f7c7ba51b692f87d401cc9010ab34 Mon Sep 17 00:00:00 2001
+From a28afbf2a91f6b0c84fc8b94376b785684029e94 Mon Sep 17 00:00:00 2001
 From: Yuri Nesterov <yuriy.nesterov@unikie.com>
-Date: Fri, 13 Mar 2026 15:10:45 +0200
+Date: Thu, 16 Apr 2026 13:22:52 +0300
 Subject: [PATCH] Add security context indicator
 
 Signed-off-by: Kajus Naujokaitis <kajusn@gmail.com>
 ---
  cosmic-comp-config/src/lib.rs         | 24 +++++++++
  src/backend/render/mod.rs             |  7 +++
- src/shell/grabs/moving.rs             | 75 +++++++++++++++++++++------
+ src/shell/grabs/moving.rs             | 74 +++++++++++++++++++++------
  src/shell/layout/floating/mod.rs      | 36 +++++++++++--
  src/wayland/handlers/xdg_shell/mod.rs | 59 ++++++++++++++++++++-
- 5 files changed, 180 insertions(+), 21 deletions(-)
+ 5 files changed, 179 insertions(+), 21 deletions(-)
 
 diff --git a/cosmic-comp-config/src/lib.rs b/cosmic-comp-config/src/lib.rs
 index 6063d476..43c5bccf 100644
@@ -59,10 +59,10 @@ index 6063d476..43c5bccf 100644
 +    }
 +}
 diff --git a/src/backend/render/mod.rs b/src/backend/render/mod.rs
-index 0e22c8ea..525c8464 100644
+index bfbb21a3..4402266e 100644
 --- a/src/backend/render/mod.rs
 +++ b/src/backend/render/mod.rs
-@@ -137,6 +137,13 @@ pub enum Usage {
+@@ -136,6 +136,13 @@ pub enum Usage {
      PotentialGroupIndicator,
      SnappingIndicator,
      Border,
@@ -77,7 +77,7 @@ index 0e22c8ea..525c8464 100644
 
  #[derive(Clone)]
 diff --git a/src/shell/grabs/moving.rs b/src/shell/grabs/moving.rs
-index 8b01d086..52280697 100644
+index b49bdd84..41f54294 100644
 --- a/src/shell/grabs/moving.rs
 +++ b/src/shell/grabs/moving.rs
 @@ -2,7 +2,7 @@
@@ -170,19 +170,18 @@ index 8b01d086..52280697 100644
                      self.indicator_thickness,
                      radius,
                      alpha,
-@@ -137,8 +178,9 @@ impl MoveGrabState {
+@@ -137,8 +178,8 @@ impl MoveGrabState {
                          active_window_hint.green,
                          active_window_hint.blue,
                      ],
 -                ),
 -            ))
-+                ))
-+                .into(),
++                )),
 +            )
          } else {
              None
          };
-@@ -229,6 +271,7 @@ impl MoveGrabState {
+@@ -229,6 +270,7 @@ impl MoveGrabState {
              })
              .chain(p_elements)
              .chain(focus_element)
@@ -191,10 +190,10 @@ index 8b01d086..52280697 100644
                  w_elements
                      .into_iter()
 diff --git a/src/shell/layout/floating/mod.rs b/src/shell/layout/floating/mod.rs
-index 582ec1b4..0b767520 100644
+index 882df294..cae72dc7 100644
 --- a/src/shell/layout/floating/mod.rs
 +++ b/src/shell/layout/floating/mod.rs
-@@ -25,7 +25,7 @@ use smithay::{
+@@ -22,7 +22,7 @@ use smithay::{
  };
 
  use crate::{
@@ -203,7 +202,7 @@ index 582ec1b4..0b767520 100644
      shell::{
          CosmicSurface, Direction, ManagedLayer, MoveResult, ResizeMode,
          element::{
-@@ -1590,6 +1590,27 @@ impl FloatingLayout {
+@@ -1588,6 +1588,27 @@ impl FloatingLayout {
                      .collect();
              }
 
@@ -231,7 +230,7 @@ index 582ec1b4..0b767520 100644
              if focused == Some(elem) && !elem.is_maximized(false) {
                  if let Some((mode, resize)) = resize_indicator.as_mut() {
                      let mut resize_geometry = geometry;
-@@ -1615,12 +1636,21 @@ impl FloatingLayout {
+@@ -1613,12 +1634,21 @@ impl FloatingLayout {
                  }
 
                  let active_window_hint = crate::theme::active_window_hint(theme);
@@ -256,7 +255,7 @@ index 582ec1b4..0b767520 100644
                          radius,
                          alpha,
 diff --git a/src/wayland/handlers/xdg_shell/mod.rs b/src/wayland/handlers/xdg_shell/mod.rs
-index 0826db76..a3be931e 100644
+index 55828af8..fcd8f9e4 100644
 --- a/src/wayland/handlers/xdg_shell/mod.rs
 +++ b/src/wayland/handlers/xdg_shell/mod.rs
 @@ -3,6 +3,8 @@
@@ -276,9 +275,9 @@ index 0826db76..a3be931e 100644
      },
      utils::{Logical, Point, Serial},
      wayland::{
-@@ -52,14 +55,66 @@ impl XdgShellHandler for State {
-             .is_none()
-         {
+@@ -47,14 +50,66 @@ impl XdgShellHandler for State {
+
+         if !shell.pending_windows.iter().any(|w| w.surface == surface) {
              let surface = CosmicSurface::from(surface);
 +
 +            // Get security context data

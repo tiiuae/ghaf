@@ -149,7 +149,8 @@
     nixd = {
       url = "github:nix-community/nixd";
       inputs = {
-        nixpkgs.follows = "nixpkgs";
+        # TODO: Uncomment when nixd upstream bug (nixComponents_2_33 removed) is fixed
+        # nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
         treefmt-nix.follows = "treefmt-nix";
       };

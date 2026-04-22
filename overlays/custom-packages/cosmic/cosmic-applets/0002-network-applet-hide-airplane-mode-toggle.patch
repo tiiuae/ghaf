@@ -12,21 +12,16 @@ diff --git a/cosmic-applet-network/src/app.rs b/cosmic-applet-network/src/app.rs
 index 0c15d2bd..6bafb16a 100644
 --- a/cosmic-applet-network/src/app.rs
 +++ b/cosmic-applet-network/src/app.rs
-@@ -1603,20 +1603,6 @@ impl cosmic::Application for CosmicNetworkApplet {
+@@ -1579,15 +1579,6 @@ impl cosmic::Application for CosmicNetworkApplet {
                  Element::from(
                      column![
                          vpn_ethernet_col,
 -                        padded_control(
--                            anim!(
--                                //toggler
--                                AIRPLANE_MODE,
--                                &self.timeline,
--                                fl!("airplane-mode"),
--                                self.nm_state.nm_state.airplane_mode,
--                                |_chain, enable| { Message::ToggleAirplaneMode(enable) },
--                            )
--                            .text_size(14)
--                            .width(Length::Fill)
+-                            toggler(self.nm_state.nm_state.airplane_mode,)
+-                                .label(fl!("airplane-mode"))
+-                                .on_toggle(Message::ToggleAirplaneMode)
+-                                .text_size(14)
+-                                .width(Length::Fill)
 -                        ),
 -                        padded_control(divider::horizontal::default())
 -                            .padding([space_xxs, space_s]),

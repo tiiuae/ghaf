@@ -13,7 +13,6 @@ let
     mkOption
     types
     getExe
-    getExe'
     literalExpression
     ;
 
@@ -335,18 +334,6 @@ in
     fonts.packages = [
       pkgs.inter
     ];
-
-    ghaf.services.power-manager.suspend = {
-      # Stop and restart cosmic-idle to prevent double suspend after resume
-      # We stop the process first, then kill it after resuming from suspension
-      # This way we avoid race conditions
-      extraSuspendCommands = ''
-        kill -STOP $(${getExe' pkgs.procps "pidof"} cosmic-idle) || true
-      '';
-      extraResumeCommands = ''
-        kill $(${getExe' pkgs.procps "pidof"} cosmic-idle) || true
-      '';
-    };
 
     systemd.user.services = {
       autostart = {
