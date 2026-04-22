@@ -8,16 +8,28 @@
 # all necessary artifacts for Forward Secure Sealing.
 #
 _: ''
+  machine.wait_until_succeeds("""
+    bash -lc '
+      systemctl is-active --quiet journal-fss-setup.service ||
+      systemctl is-failed --quiet journal-fss-setup.service ||
+      [ "$(systemctl show journal-fss-setup.service --property=ConditionResult --value)" = "no" ]
+    '
+  """)
+  setup_status = machine.succeed("systemctl show journal-fss-setup --property=ActiveState,Result,ConditionResult")
+  setup_succeeded = "Result=success" in setup_status
+  setup_condition_skipped = "ConditionResult=no" in setup_status
+
   with subtest("FSS setup service exists"):
       # Check service exists and examine its state
       machine.succeed("systemctl list-unit-files journal-fss-setup.service")
-      status = machine.succeed("systemctl show journal-fss-setup --property=ActiveState,Result,ConditionResult")
-      print(f"FSS setup service status: {status}")
+      print(f"FSS setup service status: {setup_status}")
       # Service may not have run if conditions weren't met (expected in minimal test VM)
-      if "ConditionResult=no" in status:
+      if setup_condition_skipped:
           print("Service conditions not met - this is expected in test environment")
-      elif "Result=success" in status:
+      elif setup_succeeded:
           print("FSS setup service completed successfully")
+      else:
+          raise Exception(f"FSS setup service did not complete successfully: {setup_status}")
 
   with subtest("FSS sealing key check"):
       mid = machine.succeed("cat /etc/machine-id").strip()
@@ -32,18 +44,26 @@ _: ''
               print("FSS sealing key not found - service conditions may not have been met")
 
   with subtest("Verification key extracted"):
-      exit_code, _ = machine.execute("test -s /persist/common/journal-fss/test-host/verification-key")
-      if exit_code == 0:
+      if setup_succeeded:
+          machine.succeed("test -s /persist/common/journal-fss/test-host/verification-key")
           print("Verification key exists and is non-empty")
       else:
-          print("WARNING: Verification key not found (may be expected in test environment)")
+          exit_code, _ = machine.execute("test -s /persist/common/journal-fss/test-host/verification-key")
+          if exit_code == 0:
+              print("Verification key exists and is non-empty")
+          else:
+              print("Skipping verification key assertion because setup did not complete successfully")
 
   with subtest("Initialized sentinel exists"):
-      exit_code, _ = machine.execute("test -f /persist/common/journal-fss/test-host/initialized")
-      if exit_code == 0:
+      if setup_succeeded:
+          machine.succeed("test -f /persist/common/journal-fss/test-host/initialized")
           print("Initialization sentinel exists")
       else:
-          print("WARNING: Initialization sentinel not found (may be expected in test environment)")
+          exit_code, _ = machine.execute("test -f /persist/common/journal-fss/test-host/initialized")
+          if exit_code == 0:
+              print("Initialization sentinel exists")
+          else:
+              print("Skipping initialized sentinel assertion because setup did not complete successfully")
 
   with subtest("Verification timer is configured"):
       machine.succeed("systemctl list-unit-files journal-fss-verify.timer")
