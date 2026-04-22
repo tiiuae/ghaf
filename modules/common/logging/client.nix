@@ -122,6 +122,15 @@ in
         loki.write "adminvm" {
           endpoint {
             url = "${cfg.endpoint}"
+            // Keep retrying through the admin-vm cold-boot window: when the
+            // producer VM comes up before admin-vm's listener is ready, the
+            // default retry budget expires silently and the first few
+            // minutes of logs are dropped. Pair with WAL below for
+            // durability across alloy restarts.
+            min_backoff_period  = "500ms"
+            max_backoff_period  = "30s"
+            max_backoff_retries = 20
+            retry_on_http_429   = true
             tls_config {
               ${optionalString (
                 cfg.tls.caFile != null
@@ -131,6 +140,19 @@ in
               min_version = "${cfg.tls.minVersion}"
               ${optionalString (cfg.tls.serverName != null) ''server_name = "${cfg.tls.serverName}"''}
             }
+          }
+          // Write-ahead log so batches survive the period before admin-vm's
+          // log listener is reachable (cold boot, network-up races). Without
+          // this, in-flight pushes that fail are held in memory only and
+          // dropped once the retry budget expires, which is why the first
+          // ~100s of logs after boot never reached Grafana.
+          // Segments older than max_segment_age are truncated, so disk use
+          // is bounded. /var/lib/private/alloy is already preserved by
+          // storagevm, so the WAL persists across reboots.
+          wal {
+            enabled         = true
+            max_segment_age = "2h"
+            drain_timeout   = "15s"
           }
         }
       '';
