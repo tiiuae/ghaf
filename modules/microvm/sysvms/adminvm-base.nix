@@ -197,7 +197,7 @@ in
     optimize.enable = false;
     # Sensible defaults - can be overridden via vmConfig
     vcpu = lib.mkDefault 2;
-    mem = lib.mkDefault 512;
+    mem = lib.mkDefault 1024;
     #TODO: Add back support cloud-hypervisor
     #the system fails to switch root to the stage2 with cloud-hypervisor
     hypervisor = "qemu";
