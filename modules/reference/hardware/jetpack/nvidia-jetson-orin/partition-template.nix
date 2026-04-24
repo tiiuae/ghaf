@@ -142,14 +142,79 @@ let
       mkdir -pv "$WORKDIR/bootloader"
       rm -fv "$WORKDIR/bootloader/esp.img"
 
-      ${lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
-        # Read partition offsets and sizes from sdImage metadata
-        ESP_OFFSET=$(cat "${images}/esp.offset")
-        ESP_SIZE=$(cat "${images}/esp.size")
-        ROOT_OFFSET=$(cat "${images}/root.offset")
-        ROOT_SIZE=$(cat "${images}/root.size")
+      ${lib.optionalString (cfg.flashScriptOverrides.signedArtifactsPath != null) ''
+        if [ -z "''${SIGNED_ARTIFACTS_DIR:-}" ]; then
+          SIGNED_ARTIFACTS_DIR=${lib.escapeShellArg cfg.flashScriptOverrides.signedArtifactsPath}
+        fi
+      ''}
 
-        img="${images}/sd-image/${config.image.fileName}"
+      if [ -n "''${SIGNED_ARTIFACTS_DIR:-}" ]; then
+        echo "Using signed artifacts from $SIGNED_ARTIFACTS_DIR"
+
+        for artifact in BOOTAA64.EFI Image; do
+          if [ ! -f "$SIGNED_ARTIFACTS_DIR/$artifact" ]; then
+            echo "ERROR: Missing $artifact in $SIGNED_ARTIFACTS_DIR" >&2
+            exit 1
+          fi
+        done
+
+        export BOOTAA64_EFI="$SIGNED_ARTIFACTS_DIR/BOOTAA64.EFI"
+        export KERNEL_IMAGE="$SIGNED_ARTIFACTS_DIR/Image"
+
+        if [ -f "$SIGNED_ARTIFACTS_DIR/initrd" ]; then
+          export INITRD_IMAGE="$SIGNED_ARTIFACTS_DIR/initrd"
+        fi
+
+        if [ -f "$SIGNED_ARTIFACTS_DIR/dtb" ]; then
+          export DTB_IMAGE="$SIGNED_ARTIFACTS_DIR/dtb"
+        fi
+      fi
+
+      if [ -n "''${BOOTAA64_EFI:-}" ]; then
+        if [ ! -f "$BOOTAA64_EFI" ]; then
+          echo "ERROR: BOOTAA64_EFI not found: $BOOTAA64_EFI" >&2
+          exit 1
+        fi
+        echo "Using external BOOTAA64.EFI: $BOOTAA64_EFI"
+        cp -f "$BOOTAA64_EFI" "$WORKDIR/bootloader/BOOTAA64.efi"
+      fi
+
+      if [ -n "''${KERNEL_IMAGE:-}" ]; then
+        if [ ! -f "$KERNEL_IMAGE" ]; then
+          echo "ERROR: KERNEL_IMAGE not found: $KERNEL_IMAGE" >&2
+          exit 1
+        fi
+        echo "Using external kernel Image: $KERNEL_IMAGE"
+        mkdir -pv "$WORKDIR/kernel"
+        cp -f "$KERNEL_IMAGE" "$WORKDIR/kernel/Image"
+      fi
+
+      ${lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
+        image_source_root=${lib.escapeShellArg (toString images)}
+
+        if [ -n "''${SIGNED_SD_IMAGE_DIR:-}" ]; then
+          if [ ! -d "$SIGNED_SD_IMAGE_DIR" ]; then
+            echo "ERROR: SIGNED_SD_IMAGE_DIR not found: $SIGNED_SD_IMAGE_DIR" >&2
+            exit 1
+          fi
+          image_source_root="$SIGNED_SD_IMAGE_DIR"
+        fi
+
+        # Read partition offsets and sizes from sdImage metadata
+        ESP_OFFSET=$(cat "$image_source_root/esp.offset")
+        ESP_SIZE=$(cat "$image_source_root/esp.size")
+        ROOT_OFFSET=$(cat "$image_source_root/root.offset")
+        ROOT_SIZE=$(cat "$image_source_root/root.size")
+
+        img=$(find "$image_source_root" -maxdepth 1 -name '*.img.zst' -print -quit)
+        if [ -z "$img" ]; then
+          img=$(find "$image_source_root/sd-image" -maxdepth 1 -name '*.img.zst' -print -quit 2>/dev/null || true)
+        fi
+        if [ -z "$img" ]; then
+          echo "ERROR: No .img.zst found in $image_source_root/sd-image or $image_source_root" >&2
+          exit 1
+        fi
+
         echo "Source image: $img"
         echo "ESP: offset=$ESP_OFFSET sectors, size=$ESP_SIZE sectors"
         echo "Root: offset=$ROOT_OFFSET sectors, size=$ROOT_SIZE sectors"
