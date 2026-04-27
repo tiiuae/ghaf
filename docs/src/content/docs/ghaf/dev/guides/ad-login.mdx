@@ -1,0 +1,291 @@
+---
+title: "Active Directory Login with GPO Access Control"
+---
+{/*
+SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+*/}
+
+# Active Directory Login with GPO Access Control
+
+This guide covers configuring Ghaf devices for Active Directory (AD) authentication with Group Policy Object (GPO) based access control, so that only authorized AD users can log in.
+
+## Overview
+
+Ghaf uses SSSD (System Security Services Daemon) to integrate with Active Directory. SSSD handles user authentication via Kerberos, identity lookups via LDAP, and access control via GPO evaluation.
+
+### GPO Access Control
+
+SSSD's `ad_gpo_access_control` setting determines how the client handles Windows GPO "logon rights" policies:
+
+| Setting | Behavior |
+|---------|----------|
+| `disabled` | Ignores GPO entirely — any domain user can log in |
+| `permissive` | Evaluates GPO but only logs results, does not block |
+| `enforcing` | Strictly enforces GPO — denies login if user lacks rights |
+
+When set to `enforcing`, SSSD:
+
+1. Queries AD for GPOs linked to the computer object
+2. Parses the "User Rights Assignment" section
+3. Checks for "Allow log on locally" (`SeInteractiveLogonRight`)
+4. Denies login if the user is not allowed (or is explicitly denied)
+
+## Prerequisites
+
+- An Active Directory domain controller with DNS configured
+- Domain Admin or delegated GPO management permissions
+- Test users created in AD (at least one allowed, one denied)
+- Network connectivity from the Ghaf device to the domain controller
+
+## Client-Side Configuration
+
+### Enabling the AD Users Profile
+
+In your target profile configuration, enable the `ad-users` profile:
+
+```nix
+users.profile = {
+  homed-user.enable = false;
+  ad-users.enable = true;
+  mutable-users.enable = false;
+};
+```
+
+**File:** `modules/reference/profiles/mvp-user-trial.nix` (or your target profile)
+
+### SSSD GPO Settings
+
+The AD users module (`modules/common/users/ad-users.nix`) configures the SSSD domain with GPO enforcement. The key settings are:
+
+```nix
+ad = {
+  domain = "example.com";
+  controllers = [ "dc.example.com" ];
+  gpoAccessControl = "enforcing";
+  dyndnsUpdate = false;
+  extraConfig = ''
+    # AD site for GPO discovery
+    ad_site = Default-First-Site-Name
+    # Deny access if no GPO is found (default: false)
+    ad_gpo_implicit_deny = true
+    # Map display manager PAM services to interactive logon rights
+    ad_gpo_map_interactive = +greetd, +cosmic-greeter
+  '';
+};
+```
+
+| Option | Purpose |
+|--------|---------|
+| `gpoAccessControl = "enforcing"` | Enable strict GPO evaluation |
+| `ad_gpo_implicit_deny = true` | Deny login when no applicable GPO is found |
+| `ad_gpo_map_interactive` | Map Ghaf display manager services to the Windows "interactive logon" right |
+
+### PAM Strict Access
+
+The SSSD service module (`modules/common/services/sssd.nix`) enables `sssdStrictAccess` on the display manager PAM service. This ensures that SSSD account-phase deny decisions (from GPO evaluation) are enforced at login time through greetd or cosmic-greeter.
+
+### Additional SSSD GPO Options
+
+These can be added to `extraConfig` if needed:
+
+```nix
+extraConfig = ''
+  # Continue if GPO can't be read (default: false)
+  ad_gpo_ignore_unreadable = true
+  # GPO cache timeout in seconds (default: 5)
+  ad_gpo_cache_timeout = 5
+'';
+```
+
+### Build and Flash
+
+1. Ensure the `ad-users` profile is enabled in your target configuration
+2. Build the image for your target device
+3. Flash the image to the device
+
+## AD Server-Side Setup
+
+### Step 1: Open Group Policy Management
+
+On the domain controller, open Group Policy Management:
+
+```
+Server Manager → Tools → Group Policy Management
+```
+
+Or run: `gpmc.msc`
+
+### Step 2: Create a New GPO
+
+1. In the left pane, expand `Forest: example.com` → `Domains` → `example.com`
+2. Right-click on the domain (or a specific OU containing the target computer)
+3. Select **"Create a GPO in this domain, and Link it here..."**
+4. Name it descriptively, e.g. `Ghaf Device Login Restriction`
+5. Click OK
+
+### Step 3: Edit the GPO
+
+1. Right-click the new GPO → **Edit**
+2. Navigate to:
+   ```
+   Computer Configuration
+   └── Policies
+       └── Windows Settings
+           └── Security Settings
+               └── Local Policies
+                   └── User Rights Assignment
+   ```
+
+### Step 4: Configure "Allow log on locally"
+
+1. Double-click **"Allow log on locally"**
+2. Check **"Define these policy settings"**
+3. Click **"Add User or Group..."**
+4. Add the specific user(s) who should be allowed:
+   - Click "Browse..."
+   - Enter the username
+   - Click "Check Names" to verify
+   - Click OK
+5. Consider also adding:
+   - `BUILTIN\Administrators` (if admins should retain access)
+   - `Domain Admins` (for emergency access)
+6. Click OK to save
+
+### Step 5: Link GPO to Target
+
+If targeting specific computers rather than the entire domain:
+
+**Option A: Dedicated OU**
+1. Create a new OU (e.g. `Ghaf Devices`)
+2. Move the computer object to this OU
+3. Link the GPO to this OU only
+
+**Option B: WMI Filter**
+1. Right-click "WMI Filters" → New
+2. Create a filter matching the computer name:
+   ```sql
+   SELECT * FROM Win32_ComputerSystem WHERE Name = '<device-hostname>'
+   ```
+3. Apply the filter to the GPO
+
+**Option C: Security Filtering**
+1. Select the GPO
+2. In "Security Filtering", remove "Authenticated Users"
+3. Add only the specific computer object
+
+### Step 6: Force GPO Update
+
+On the AD server:
+```powershell
+gpupdate /force
+```
+
+### Computer Object OU Placement
+
+GPOs **cannot** be linked to the default `Computers` container in AD. If the Ghaf device's computer object is in the default container, the GPO will not apply. Move the computer object to a proper OU before linking the GPO.
+
+To check:
+1. Open Active Directory Users and Computers (`dsa.msc`)
+2. Right-click the domain → Find → change dropdown to "Computers"
+3. Search for the device hostname
+4. Right-click the computer → Properties → Object tab
+5. Check the Canonical name (OU path)
+
+## Verification and Testing
+
+### On the Device
+
+1. Boot the device — the provisioning TUI appears
+2. Join the domain using admin credentials
+3. Reboot, or restart SSSD:
+   ```bash
+   systemctl restart sssd
+   ```
+
+### Test Cases
+
+| Test | User | Expected Result |
+|------|------|-----------------|
+| 1 | Allowed user (listed in GPO) | Login succeeds |
+| 2 | Denied user (not in GPO) | Login denied |
+| 3 | Domain Admin (if added to GPO) | Login succeeds |
+
+### Expected Behavior
+
+**Allowed user:** Normal login flow, user session starts.
+
+**Denied user:** Login attempt fails with access denied. SSSD logs show GPO denial:
+```
+ad_gpo_access_check: User [denieduser] is not allowed by GPO to log in
+pam_sss: Access denied for user denieduser
+```
+
+## Troubleshooting
+
+### Check SSSD Logs
+
+```bash
+# Follow SSSD logs in real-time
+journalctl -u sssd -f
+
+# Check for GPO-specific messages
+journalctl -u sssd | grep -i gpo
+
+# Check PAM/greeter related messages
+journalctl -b | grep -iE 'pam|sss|greetd|cosmic'
+```
+
+### Clear SSSD Cache
+
+If GPO changes are not reflected:
+```bash
+sss_cache -E
+systemctl restart sssd
+```
+
+### Verify GPO Cache
+
+```bash
+# Check if GPOs are being downloaded
+ls -la /var/lib/sss/gpo_cache/
+
+# View cached GPO files
+find /var/lib/sss/gpo_cache/ -type f -exec cat {} \;
+```
+
+### AD Server Diagnostics
+
+```powershell
+# Check GPO application status
+gpresult /r /scope:computer
+
+# Force GPO update
+gpupdate /force /target:computer
+
+# List all GPOs in domain
+Get-GPO -All | Select-Object DisplayName, GpoStatus
+
+# Generate GPO report
+Get-GPOReport -Name "Ghaf Device Login Restriction" -ReportType HTML -Path "C:\gpo_report.html"
+```
+
+### Common Issues
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| GPO not applied | Computer in default "Computers" container | Move computer to a proper OU, link GPO there |
+| All users denied | "Allow log on locally" empty or misconfigured | Verify GPO settings, add required users |
+| GPO ignored | `gpoAccessControl` still set to `permissive` | Verify configuration, rebuild image |
+| Denied user can still log in | `sssdStrictAccess` not enabled in PAM | Verify SSSD module PAM configuration |
+| Cache stale | Old GPO data cached locally | Run `sss_cache -E && systemctl restart sssd` |
+| DNS issues | Device cannot reach domain controller | Check network and DNS settings |
+| GPO link disabled | Link exists but is not enabled | Right-click GPO link → Link Enabled |
+| Inheritance blocked | Parent OU blocks GPO inheritance | Set GPO to "Enforced" |
+| Security filtering empty | No computers in GPO scope | Add "Authenticated Users" to Security Filtering |
+
+## References
+
+- [SSSD AD GPO Integration](https://sssd.io/docs/ad/ad-gpo-integration.html)
+- [Microsoft GPO User Rights Assignment](https://docs.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/user-rights-assignment)
+- [SSSD man page: sssd-ad](https://man.archlinux.org/man/sssd-ad.5)

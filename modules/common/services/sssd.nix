@@ -322,6 +322,8 @@ in
     security.pam.services = optionalAttrs (cfg.pam.displayManagerService != null) {
       "${cfg.pam.displayManagerService}" = {
         makeHomeDir = true;
+        # Enforce SSSD account decisions (e.g. AD GPO deny) in PAM account phase.
+        sssdStrictAccess = lib.mkDefault true;
         rules = {
           auth = {
             # Disable ccreds pam modules to avoid conflicts with SSSD
