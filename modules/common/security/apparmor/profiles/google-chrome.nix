@@ -58,6 +58,7 @@
         ${config.ghaf.xdgitems.handlerPath}/bin/*                       ixr,
         /run/xdg/pdf/*                                                  rw,
         /run/xdg/image/*                                                rw,
+        /run/xdg/video/*                                                rw,
         ${pkgs.systemd}/bin/*                                           ixr,
         ${pkgs.bashInteractive}/bin/*                                   ixr,
         ${pkgs.libressl.nc}/bin/*                                       ixr,

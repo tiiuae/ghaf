@@ -54,6 +54,92 @@ let
     "image/x-qoi"
   ];
 
+  # Taken from supported MIME types by COSMIC Player
+  # Ref.: https://github.com/pop-os/cosmic-player/blob/master/res/com.system76.CosmicPlayer.desktop
+  supportedVideoMimeTypes = [
+    "application/mxf"
+    "application/ram"
+    "application/sdp"
+    "application/vnd.apple.mpegurl"
+    "application/vnd.ms-asf"
+    "application/vnd.ms-wpl"
+    "application/vnd.rn-realmedia"
+    "application/vnd.rn-realmedia-vbr"
+    "application/x-extension-m4a"
+    "application/x-extension-mp4"
+    "application/x-flash-video"
+    "application/x-matroska"
+    "application/x-netshow-channel"
+    "application/x-quicktimeplayer"
+    "application/x-shorten"
+    "image/vnd.rn-realpix"
+    "image/x-pict"
+    "misc/ultravox"
+    "text/x-google-video-pointer"
+    "video/3gp"
+    "video/3gpp"
+    "video/3gpp2"
+    "video/dv"
+    "video/divx"
+    "video/fli"
+    "video/flv"
+    "video/mp2t"
+    "video/mp4"
+    "video/mp4v-es"
+    "video/mpeg"
+    "video/mpeg-system"
+    "video/msvideo"
+    "video/ogg"
+    "video/quicktime"
+    "video/vivo"
+    "video/vnd.divx"
+    "video/vnd.mpegurl"
+    "video/vnd.rn-realvideo"
+    "video/vnd.vivo"
+    "video/webm"
+    "video/x-anim"
+    "video/x-avi"
+    "video/x-flc"
+    "video/x-fli"
+    "video/x-flic"
+    "video/x-flv"
+    "video/x-m4v"
+    "video/x-matroska"
+    "video/x-mjpeg"
+    "video/x-mpeg"
+    "video/x-mpeg2"
+    "video/x-ms-asf"
+    "video/x-ms-asf-plugin"
+    "video/x-ms-asx"
+    "video/x-msvideo"
+    "video/x-ms-wm"
+    "video/x-ms-wmv"
+    "video/x-ms-wmx"
+    "video/x-ms-wvx"
+    "video/x-nsv"
+    "video/x-ogm+ogg"
+    "video/x-theora"
+    "video/x-theora+ogg"
+    "video/x-totem-stream"
+    "audio/x-pn-realaudio"
+    "application/smil"
+    "application/smil+xml"
+    "application/x-quicktime-media-link"
+    "application/x-smil"
+    "text/google-video-pointer"
+    "x-content/video-dvd"
+    "x-scheme-handler/pnm"
+    "x-scheme-handler/mms"
+    "x-scheme-handler/net"
+    "x-scheme-handler/rtp"
+    "x-scheme-handler/rtmp"
+    "x-scheme-handler/rtsp"
+    "x-scheme-handler/mmsh"
+    "x-scheme-handler/uvox"
+    "x-scheme-handler/icy"
+    "x-scheme-handler/icyx"
+  ];
+
   # Maps a list of MIME types to a default application as an attribute set.
   # Example:
   #   setDefaultAppForTypes ["text/plain", "image/png"] "my-app.desktop"
@@ -71,55 +157,65 @@ let
       }) mimeTypes
     );
 
-  # XDG item for PDF
+  # XDG item for documents
   xdgPdfItem = pkgs.makeDesktopItem {
     name = "ghaf-pdf-xdg";
-    desktopName = "Ghaf PDF Viewer";
-    icon = "document-viewer";
-    exec = "${xdgOpen}/bin/xdg-open-ghaf pdf %f";
+    desktopName = "Ghaf Isolated Document Viewer";
+    icon = "com.system76.CosmicReader";
+    exec = "${lib.getExe xdgOpen} pdf %u";
     mimeTypes = [ "application/pdf" ];
-    noDisplay = true;
+    onlyShowIn = [ "X-Ghaf-Internal" ];
   };
 
-  # XDG item for JPG and PNG
+  # XDG item for images
   xdgImageItem = pkgs.makeDesktopItem {
     name = "ghaf-image-xdg";
-    desktopName = "Ghaf Image Viewer";
+    desktopName = "Ghaf Isolated Image Viewer";
     icon = "multimedia-photo-viewer";
-    exec = "${xdgOpen}/bin/xdg-open-ghaf image %f";
+    exec = "${lib.getExe xdgOpen} image %u";
     mimeTypes = supportedImageMimeTypes;
-    noDisplay = true;
+    onlyShowIn = [ "X-Ghaf-Internal" ];
+  };
+
+  # XDG item for video files
+  xdgVideoItem = pkgs.makeDesktopItem {
+    name = "ghaf-video-xdg";
+    desktopName = "Ghaf Isolated Media Player";
+    icon = "com.system76.CosmicPlayer";
+    exec = "${lib.getExe xdgOpen} video %u";
+    mimeTypes = supportedVideoMimeTypes;
+    onlyShowIn = [ "X-Ghaf-Internal" ];
   };
 
   # XDG item for URL
   xdgUrlItem = pkgs.makeDesktopItem {
     name = "ghaf-url-xdg";
     desktopName = "Ghaf URL Opener";
-    exec = "${xdgOpen}/bin/xdg-open-ghaf url %u";
+    exec = "${lib.getExe xdgOpen} url %u";
     mimeTypes = [
       "text/html"
       "x-scheme-handler/http"
       "x-scheme-handler/https"
     ];
-    noDisplay = true;
+    onlyShowIn = [ "X-Ghaf-Internal" ];
   };
 
   # XDG item for element-desktop
   xdgElementDesktopItem = pkgs.makeDesktopItem {
     name = "ghaf-element-xdg";
     desktopName = "Ghaf Element Desktop";
-    exec = "${xdgOpen}/bin/xdg-open-ghaf element %u";
+    exec = "${lib.getExe xdgOpen} element %u";
     mimeTypes = [
       "x-scheme-handler/io.element.desktop"
       "x-scheme-handler/element"
     ];
-    noDisplay = true;
+    onlyShowIn = [ "X-Ghaf-Internal" ];
   };
 
   # The XDG open script is used by XDG items to copy the file
   # to the shared location (e.g., /run/xdg/pdf/chrome-vm) and
   # start the application in the VM responsible for that file type
-  # (currently only zathura-vm) using GIVC
+  # (currently only media-vm) using GIVC
   xdgOpen = pkgs.writeShellApplication {
     name = "xdg-open-ghaf";
 
@@ -130,7 +226,7 @@ let
     text =
       let
         urlVmName =
-          if config.ghaf.xdghandlers.url then
+          if config.ghaf.xdghandlers.url.enable then
             "${config.networking.hostName}"
           else if lib.hasAttr "chrome-vm" hosts then
             "chrome-vm"
@@ -179,14 +275,14 @@ let
             fi
 
             case "$type" in
-              pdf|image)
+              pdf|image|video)
                 echo "Opening $filePath as $type"
                 mkdir -p "/run/xdg/$type"
                 cp -f "$filePath" "/run/xdg/$type/$fileName"
 
                 local dst="/run/xdg/$type/${config.ghaf.storagevm.name}/$fileName"
                 ${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} \
-                  start app --vm zathura-vm "xdg-$type" -- "$dst"
+                  start app --vm media-vm "xdg-$type" -- "$dst"
                 ;;
               *)
                 echo "Error: unsupported file type '$type'"
@@ -227,7 +323,7 @@ in
       visible = false;
     };
 
-    elementDesktop = mkEnableOption "XDG Element Desktop Item";
+    elementDesktop.enable = mkEnableOption "XDG Element Desktop Item";
   };
 
   config = mkIf (cfg.enable && config.ghaf.givc.enable) {
@@ -244,27 +340,30 @@ in
     ghaf.xdgitems.xdgHostPaths = [
       "${xdgHostRoot}/pdf/${vmName}"
       "${xdgHostRoot}/image/${vmName}"
+      "${xdgHostRoot}/video/${vmName}"
     ];
 
     environment.systemPackages = [
       pkgs.xdg-utils
       xdgPdfItem
       xdgImageItem
+      xdgVideoItem
       xdgOpen
       xdgUrlItem
     ]
-    ++ optionals cfg.elementDesktop [ xdgElementDesktopItem ];
+    ++ optionals cfg.elementDesktop.enable [ xdgElementDesktopItem ];
 
     # Set up XDG items for each supported MIME type
     xdg.mime.defaultApplications =
       setDefaultAppForTypes supportedImageMimeTypes "ghaf-image-xdg.desktop"
+      // setDefaultAppForTypes supportedVideoMimeTypes "ghaf-video-xdg.desktop"
       // {
         "application/pdf" = "ghaf-pdf-xdg.desktop";
         "text/html" = "ghaf-url-xdg.desktop";
         "x-scheme-handler/http" = "ghaf-url-xdg.desktop";
         "x-scheme-handler/https" = "ghaf-url-xdg.desktop";
       }
-      // optionalAttrs cfg.elementDesktop {
+      // optionalAttrs cfg.elementDesktop.enable {
         "x-scheme-handler/io.element.desktop" = "ghaf-element-xdg.desktop";
         # Optional: Element also sometimes uses the plain 'element' scheme
         "x-scheme-handler/element" = "ghaf-element-xdg.desktop";
@@ -272,7 +371,7 @@ in
 
     # Set up MicroVM shares for each MIME type and mount them to /run/xdg
     # These shares are also passed to the VMs that handle XDG requests
-    # Currently, only zathura-vm is used for PDF and JPG types
+    # Currently, only media-vm is used for PDF and JPG types
     microvm.shares = [
       {
         tag = "xdgshare-pdf-${vmName}";
@@ -288,6 +387,13 @@ in
         source = "${xdgHostRoot}/image/${vmName}";
         mountPoint = "/run/xdg/image";
       }
+      {
+        tag = "xdgshare-video-${vmName}";
+        proto = "virtiofs";
+        securityModel = "passthrough";
+        source = "${xdgHostRoot}/video/${vmName}";
+        mountPoint = "/run/xdg/video";
+      }
     ];
 
     fileSystems = {
@@ -298,6 +404,12 @@ in
         "noexec"
       ];
       "/run/xdg/image".options = [
+        "rw"
+        "nodev"
+        "nosuid"
+        "noexec"
+      ];
+      "/run/xdg/video".options = [
         "rw"
         "nodev"
         "nosuid"

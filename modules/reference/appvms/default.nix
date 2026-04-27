@@ -28,7 +28,7 @@ in
     ./flatpak.nix
     ./gala.nix
     ./google-chrome.nix
-    ./zathura.nix
+    ./media.nix
   ];
 
   options.ghaf.reference.appvms.enable = lib.mkEnableOption "Enable the Ghaf reference appvms module";
@@ -45,7 +45,7 @@ in
       flatpak.enable = lib.mkDefault false;
       gala.enable = lib.mkDefault false;
       chrome.enable = lib.mkDefault false;
-      zathura.enable = lib.mkDefault false;
+      media.enable = lib.mkDefault false;
     };
   };
 }

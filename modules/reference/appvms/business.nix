@@ -200,7 +200,7 @@ in
 
                   xdgitems.enable = lib.mkDefault true;
                   # Open external URLs locally in business-vm's browser instead of forwarding to a dedicated URL-handling VM
-                  xdghandlers.url = true;
+                  xdghandlers.url.enable = true;
                   security.apparmor.enable = lib.mkDefault true;
                 };
               }

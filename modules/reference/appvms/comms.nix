@@ -58,8 +58,8 @@ in
                 ];
                 ghaf = {
                   reference.programs.element-desktop.enable = lib.mkDefault true;
-                  xdghandlers.elementDesktop = true;
-                  xdgitems.elementDesktop = true;
+                  xdghandlers.elementDesktop.enable = true;
+                  xdgitems.elementDesktop.enable = true;
                 };
               }
             ];
@@ -93,7 +93,7 @@ in
             ghaf = {
               reference.programs.google-chrome.enable = lib.mkDefault true;
               # Open external URLs locally in comms-vm's browser instead of forwarding to a dedicated URL-handling VM
-              xdghandlers.url = true;
+              xdghandlers.url.enable = true;
               xdgitems.enable = lib.mkDefault true;
               givc.sni.enable = true;
               # Disable serial debug console on comms-vm as it makes the serial device owned by

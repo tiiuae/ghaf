@@ -33,7 +33,7 @@ in
     firefox = mkProgramOption "Firefox browser" false; # config.ghaf.graphics.enableDemoApplications;
     gala = mkProgramOption "Gala App" false;
     element-desktop = mkProgramOption "Element desktop" false; # config.ghaf.reference.host-demo-apps.demo-apps.enableDemoApplications;
-    zathura = mkProgramOption "zathura" config.ghaf.reference.host-demo-apps.demo-apps.enableDemoApplications;
+    media = mkProgramOption "media" config.ghaf.reference.host-demo-apps.demo-apps.enableDemoApplications;
   };
 
   config = lib.mkIf config.ghaf.profiles.graphics.enable {
@@ -80,16 +80,17 @@ in
         exec = "${pkgs.gala}/bin/gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
         icon = "distributor-logo-android";
       }
-      ++ lib.optional cfg.zathura {
-        name = "org.pwmt.zathura";
-        desktopName = "PDF Viewer";
+      ++ lib.optional cfg.media {
+        name = "com.system76.CosmicReader";
+        desktopName = "COSMIC Document Reader";
         categories = [
+          "COSMIC"
           "Office"
           "Viewer"
         ];
-        description = "PDF Viewer Application";
-        exec = "${pkgs.zathura}/bin/zathura";
-        icon = "document-viewer";
+        packages = [ pkgs.cosmic-reader ];
+        icon = "com.system76.CosmicReader";
+        exec = "cosmic-reader";
       };
   };
 }

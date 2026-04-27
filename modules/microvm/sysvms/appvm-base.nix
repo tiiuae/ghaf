@@ -356,25 +356,36 @@ in
 
         writableStoreOverlay = lib.mkIf (!(globalConfig.storage.storeOnDisk or false)) "/nix/.rw-store";
 
-        qemu = {
-          extraArgs = [
-            "-M"
-            "accel=kvm:tcg,mem-merge=on,sata=off"
-            "-device"
-            "vhost-vsock-pci,guest-cid=${toString (hostConfig.networking.thisVm.cid or 100)}"
-            "-device"
-            "qemu-xhci"
-          ]
-          ++ (hostConfig.passthrough.qemuExtraArgs or [ ]);
+        qemu =
+          let
+            hostSystem = globalConfig.platform.hostSystem or "x86_64-linux";
+            effectiveMachine =
+              if vm.machineType or null != null then
+                vm.machineType
+              else
+                {
+                  x86_64-linux = "q35";
+                  aarch64-linux = "virt";
+                }
+                .${hostSystem};
+            isMicrovm = effectiveMachine == "microvm";
+          in
+          {
+            extraArgs = [
+              "-M"
+              "accel=kvm:tcg,mem-merge=on${lib.optionalString (!isMicrovm) ",sata=off"}"
+              "-device"
+              "vhost-vsock-pci,guest-cid=${toString (hostConfig.networking.thisVm.cid or 100)}"
+            ]
+            # qemu-xhci is a PCI device; not available on the microvm machine type
+            ++ lib.optionals (!isMicrovm) [
+              "-device"
+              "qemu-xhci"
+            ]
+            ++ (hostConfig.passthrough.qemuExtraArgs or [ ]);
 
-          machine =
-            {
-              # Use the same machine type as the host
-              x86_64-linux = "q35";
-              aarch64-linux = "virt";
-            }
-            .${globalConfig.platform.hostSystem or "x86_64-linux"};
-        };
+            machine = effectiveMachine;
+          };
       }
       // lib.optionalAttrs (globalConfig.storage.storeOnDisk or false) {
         storeOnDisk = true;
