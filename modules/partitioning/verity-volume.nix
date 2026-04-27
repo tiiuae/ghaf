@@ -14,9 +14,26 @@ in
 {
   options.ghaf.partitioning.verity = {
     enable = lib.mkEnableOption "the verity (image-based) partitioning scheme";
+
+    uki-signing-key-dir = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = ''
+        Directory containing db.key and db.crt for signing the UKI in
+        the OTA update image. When set, the UKI is signed at build time
+        so devices with Secure Boot enabled can boot from OTA-installed
+        slots. In production, the OTA server signs images instead.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = cfg.uki-signing-key-dir == null || debugEnable;
+        message = "uki-signing-key-dir puts private keys in the Nix store and must only be used in debug builds. In production, the OTA server signs images before distribution.";
+      }
+    ];
     system.build.ghafImage =
       let
         inherit (config.ghaf) version;
@@ -92,6 +109,13 @@ in
             --output="kernel.efi"
           # ${kernelImage} don't work for some reasons, so move kernel in place
           mv kernel.efi ${kernelImage}
+          ${lib.optionalString (cfg.uki-signing-key-dir != null) ''
+            echo "Signing UKI with Secure Boot key..."
+            ${pkgs.buildPackages.sbsigntool}/bin/sbsign \
+              --key ${cfg.uki-signing-key-dir}/db.key \
+              --cert ${cfg.uki-signing-key-dir}/db.crt \
+              --output ${kernelImage} ${kernelImage}
+          ''}
 
           # FIXME: move compression into mk-manifest.py and compute unpacked sizes there.
           rootUnpackedSize=$(stat -c%s ${fsImage})
