@@ -61,7 +61,7 @@ in
                   xdgitems = {
                     enable = lib.mkDefault true;
                   };
-                  xdghandlers.url = true;
+                  xdghandlers.url.enable = true;
 
                   storagevm.maximumSize = 100 * 1024; # 100 GB space for chrome-vm
 

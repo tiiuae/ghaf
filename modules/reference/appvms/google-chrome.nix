@@ -114,7 +114,7 @@ in
                   xdgitems = {
                     enable = lib.mkDefault true;
                   };
-                  xdghandlers.url = true;
+                  xdghandlers.url.enable = true;
                   firewall = {
                     updater.enable = true;
                     allowedUDPPorts = config.ghaf.reference.services.chromecast.udpPorts;

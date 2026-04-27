@@ -4,7 +4,7 @@
 # VM Target - QEMU VM for development and testing
 #
 # This target runs GUI on the HOST (not in a gui-vm microvm).
-# VMs: netvm, audiovm, adminvm, appvms (zathura)
+# VMs: netvm, audiovm, adminvm, appvms (media)
 #
 {
   inputs,
@@ -145,22 +145,27 @@ let
                     appvm = {
                       enable = true;
                       vms = {
-                        zathura = {
+                        media = {
                           enable = true;
                           # Create evaluatedConfig with waypipe disabled (no guivm)
                           evaluatedConfig = vmProfile.mkAppVm {
-                            name = "zathura";
+                            name = "media";
                             mem = 512;
                             vcpu = 1;
                             borderColor = "#122263"; # Dark blue — security context indicator
                             waypipe.enable = false; # No guivm, so no waypipe
                             applications = [
                               {
-                                name = "PDF Viewer";
-                                description = "Isolated PDF Viewer";
-                                packages = [ pkgs.zathura ];
-                                icon = "document-viewer";
-                                command = "zathura";
+                                name = "com.system76.CosmicReader";
+                                desktopName = "COSMIC Document Reader";
+                                categories = [
+                                  "COSMIC"
+                                  "Office"
+                                  "Viewer"
+                                ];
+                                packages = [ pkgs.cosmic-reader ];
+                                icon = "com.system76.CosmicReader";
+                                exec = "cosmic-reader";
                               }
                             ];
                           };
