@@ -83,9 +83,21 @@ let
     ;
   cfg = config.ghaf.logging.fss;
   loggingEnabled = config.ghaf.logging.enable;
+  hasPersistentJournalStorage = config.ghaf.type == "host" || config.ghaf.storagevm.enable;
+  hostPersistentJournalPath = "/persist/var/log/journal";
   fssBasePath =
     if config.ghaf.type == "host" then "/persist/common/journal-fss" else "/etc/common/journal-fss";
   verifyClassifierLib = builtins.readFile ./fss-verify-classifier.sh;
+
+  preparePersistentJournalScript = pkgs.writeShellApplication {
+    name = "journal-fss-prepare-persistent-journal";
+    runtimeInputs = with pkgs; [ coreutils ];
+    text = ''
+      install -d -m 0755 /persist /persist/var /persist/var/log
+      install -d -m 2755 -o root -g systemd-journal ${hostPersistentJournalPath}
+      install -d -m 2755 -o root -g systemd-journal /var/log/journal
+    '';
+  };
 
   # Script to setup FSS keys on first boot
   setupScript = pkgs.writeShellApplication {
@@ -469,10 +481,11 @@ in
   options.ghaf.logging.fss = {
     enable = mkOption {
       type = types.bool;
-      default = loggingEnabled;
+      default = loggingEnabled && hasPersistentJournalStorage;
       description = ''
         Enable Forward Secure Sealing for systemd journal logs.
-        Automatically enabled when ghaf.logging.enable is true.
+        Automatically enabled when ghaf.logging.enable is true and the
+        component has persistent journal storage.
 
         FSS provides cryptographic tamper-evidence for audit logs
         using HMAC-based sealing chains. Any tampering will break
@@ -590,11 +603,27 @@ in
   };
 
   config = mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = hasPersistentJournalStorage;
+        message = "FSS on VMs requires ghaf.storagevm.enable so /var/log/journal and the journald sealing key are persisted.";
+      }
+    ];
+
     # Enable audit subsystem for FSS monitoring
     # This provides auditctl and enables the audit rules defined below
     # FSS requires audit to be enabled, so we use mkForce to ensure it's on
     # regardless of profile settings (audit is fundamental to FSS functionality)
     ghaf.security.audit.enable = lib.mkForce true;
+
+    # FSS is only meaningful for persistent journals. The journald sealing key
+    # lives beside the journal files and is advanced by journald over time.
+    services.journald.extraConfig = lib.mkAfter ''
+      Storage=persistent
+      Seal=yes
+    '';
+
+    ghaf.storagevm.preserveLogs = mkIf (config.ghaf.type != "host") true;
 
     # Create key directory and journal directory via tmpfiles
     # Note: In VMs, ${cfg.keyPath} is a virtiofs mount point, so we only create it on host
@@ -603,60 +632,127 @@ in
         lib.optionals (config.ghaf.type == "host") [
           "d /persist/common/journal-fss 0755 root root - -"
           "d ${cfg.keyPath} 0700 root root - -"
+          "d /persist/var 0755 root root - -"
+          "d /persist/var/log 0755 root root - -"
+          "d ${hostPersistentJournalPath} 2755 root systemd-journal - -"
         ]
         ++ [
-          "d /var/log/journal 0755 root systemd-journal - -"
+          "d /var/log/journal 2755 root systemd-journal - -"
         ];
 
-      # One-shot service to generate FSS keys on first boot
-      # Runs after journald is ready, then restarts journald to enable sealing
-      services.journal-fss-setup = {
-        description = "Setup Forward Secure Sealing keys for systemd journal";
-        documentation = [ "man:journalctl(1)" ];
-
-        wantedBy = [ "multi-user.target" ];
-        after = [ "systemd-journald.service" ];
-        wants = [ "systemd-journald.service" ];
-
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          ExecStart = getExe setupScript;
-        };
-      };
-
-      # Service to verify journal integrity
-      services.journal-fss-verify = {
-        description = "Verify systemd journal integrity using Forward Secure Sealing";
-        documentation = [ "man:journalctl(1)" ];
-
-        after = [
-          "systemd-journald.service"
-          "journal-fss-setup.service"
-        ];
-        wants = [
-          "systemd-journald.service"
-          "journal-fss-setup.service"
-        ];
-
-        unitConfig = {
-          # Only run if FSS setup has completed successfully
-          ConditionPathExists = "${cfg.keyPath}/initialized";
-        };
-
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = getExe verifyScript;
-          WorkingDirectory = "/";
-
-          # File system access required for journal verification
-          # journalctl --verify needs write access to create verification metadata
-          # Also needs read access to verification key for sealed journal validation
-          ReadWritePaths = [
-            "/var/log/journal"
-            "/run/log/journal"
-            cfg.keyPath
+      mounts = lib.optionals (config.ghaf.type == "host") [
+        {
+          what = hostPersistentJournalPath;
+          where = "/var/log/journal";
+          type = "none";
+          options = "bind";
+          wantedBy = [ "local-fs.target" ];
+          requiredBy = [ "journal-fss-setup.service" ];
+          requires = [ "journal-fss-prepare-persistent-journal.service" ];
+          after = [
+            "journal-fss-prepare-persistent-journal.service"
+            "persist.mount"
           ];
+          before = [
+            "systemd-journal-flush.service"
+            "journal-fss-setup.service"
+          ];
+          unitConfig.DefaultDependencies = false;
+        }
+      ];
+
+      services = {
+        journal-fss-prepare-persistent-journal = mkIf (config.ghaf.type == "host") {
+          description = "Prepare persistent journal storage for FSS";
+
+          after = [
+            "local-fs-pre.target"
+            "persist.mount"
+          ];
+          before = [
+            "var-log-journal.mount"
+            "systemd-journal-flush.service"
+            "journal-fss-setup.service"
+          ];
+
+          unitConfig = {
+            DefaultDependencies = false;
+            RequiresMountsFor = [ "/persist" ];
+          };
+
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            ExecStart = getExe preparePersistentJournalScript;
+          };
+        };
+
+        # One-shot service to generate FSS keys on first boot
+        # Runs after journald is ready, then restarts journald to enable sealing
+        journal-fss-setup = {
+          description = "Setup Forward Secure Sealing keys for systemd journal";
+          documentation = [ "man:journalctl(1)" ];
+
+          wantedBy = [ "multi-user.target" ];
+          after = [
+            "systemd-journald.service"
+            "systemd-journal-flush.service"
+          ]
+          ++ lib.optionals (config.ghaf.type == "host") [
+            "var-log-journal.mount"
+          ];
+          wants = [
+            "systemd-journald.service"
+            "systemd-journal-flush.service"
+          ];
+
+          unitConfig = {
+            RequiresMountsFor = [
+              cfg.keyPath
+              "/var/log/journal"
+            ];
+          };
+
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            ExecStart = getExe setupScript;
+          };
+        };
+
+        # Service to verify journal integrity
+        journal-fss-verify = {
+          description = "Verify systemd journal integrity using Forward Secure Sealing";
+          documentation = [ "man:journalctl(1)" ];
+
+          after = [
+            "systemd-journald.service"
+            "journal-fss-setup.service"
+          ];
+          wants = [
+            "systemd-journald.service"
+            "journal-fss-setup.service"
+          ];
+
+          unitConfig = {
+            # Only run if FSS setup has completed successfully
+            ConditionPathExists = "${cfg.keyPath}/initialized";
+          };
+
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = getExe verifyScript;
+            WorkingDirectory = "/";
+
+            # File system access required for journal verification
+            # journalctl --verify needs write access to create verification metadata
+            # Also needs read access to verification key for sealed journal validation
+            ReadWritePaths = [
+              "/var/log/journal"
+              "/run/log/journal"
+              cfg.keyPath
+            ];
+          };
         };
       };
 

@@ -29,13 +29,14 @@ in
 pkgs.testers.nixosTest {
   name = "logging-fss";
 
-  nodes.machine =
+  nodes.fss =
     { ... }:
     {
       imports = [
         # Only import the modules needed for FSS testing
         ../../modules/common/logging/common.nix
         ../../modules/common/logging/fss.nix
+        ../../modules/common/storage-persistence.nix
       ];
 
       # Mock ghaf options (used by fss.nix for keyPath and audit)
@@ -68,12 +69,6 @@ pkgs.testers.nixosTest {
 
         networking.hostName = "test-host";
 
-        # Ensure persistent journal storage
-        services.journald.extraConfig = ''
-          Storage=persistent
-          Seal=yes
-        '';
-
         environment.etc."fss-verify-classifier.sh".text =
           builtins.readFile ../../modules/common/logging/fss-verify-classifier.sh;
 
@@ -92,9 +87,51 @@ pkgs.testers.nixosTest {
       };
     };
 
+  nodes.statelessVm =
+    { ... }:
+    {
+      imports = [
+        ../../modules/common/logging/common.nix
+        ../../modules/common/logging/fss.nix
+        ../../modules/common/storage-persistence.nix
+      ];
+
+      options.ghaf = {
+        type = lib.mkOption {
+          type = lib.types.str;
+          default = "app-vm";
+        };
+
+        security.audit = {
+          enable = lib.mkOption {
+            type = lib.types.bool;
+            default = false;
+          };
+          extraRules = lib.mkOption {
+            type = lib.types.listOf lib.types.str;
+            default = [ ];
+          };
+        };
+      };
+
+      config = {
+        ghaf.logging.enable = true;
+        ghaf.storagevm.enable = lib.mkForce false;
+        networking.hostName = "stateless-vm";
+      };
+    };
+
   testScript = _: ''
+    machine = fss
+    stateless_vm = statelessVm
     machine.start()
+    stateless_vm.start()
     machine.wait_for_unit("multi-user.target")
+    stateless_vm.wait_for_unit("multi-user.target")
+
+    with subtest("FSS stays disabled for stateless VMs"):
+        stateless_vm.succeed("test ! -e /etc/systemd/system/journal-fss-setup.service")
+        stateless_vm.succeed("test ! -e /etc/systemd/system/journal-fss-verify.service")
 
     ${fssSetupTest { }}
     ${fssVerificationTest { }}

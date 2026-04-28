@@ -43,6 +43,16 @@ _: ''
           else:
               print("FSS sealing key not found - service conditions may not have been met")
 
+  with subtest("Persistent journal storage is mounted"):
+      if setup_succeeded:
+          machine.succeed("findmnt --mountpoint /var/log/journal")
+          machine.succeed("test -d /persist/var/log/journal")
+          source = machine.succeed("findmnt --noheadings --output SOURCE --mountpoint /var/log/journal").strip()
+          if "/persist/var/log/journal" not in source:
+              raise Exception(f"/var/log/journal is not backed by /persist/var/log/journal: {source}")
+      else:
+          print("Skipping persistent journal mount assertion because setup did not complete successfully")
+
   with subtest("Verification key extracted"):
       if setup_succeeded:
           machine.succeed("test -s /persist/common/journal-fss/test-host/verification-key")
