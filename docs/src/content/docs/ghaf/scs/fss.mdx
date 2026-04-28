@@ -42,6 +42,11 @@ ghaf.logging.fss = {
 | Host      | `/var/log/journal/<id>/fss` | `/persist/common/journal-fss/ghaf-host/verification-key` |
 | VMs       | `/var/log/journal/<id>/fss` | `/etc/common/journal-fss/<vm-name>/verification-key`     |
 
+On the host, `/var/log/journal` is bind-mounted from `/persist/var/log/journal`
+when FSS is enabled. In VMs, FSS is enabled only when StorageVM-backed journal
+preservation is available so the journal directory and journald sealing key
+survive reboot.
+
 ### Verification Key Backup
 
 **Critical**: Back up verification keys to secure offline storage immediately after first boot.
