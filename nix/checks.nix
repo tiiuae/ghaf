@@ -27,6 +27,18 @@
       pre-commit = {
         settings = {
           hooks = {
+            convco = {
+              # Disable to ease dev workflow, conventional commits are enforced via GitHub actions
+              enable = false;
+              # Add bump type
+              settings.configPath = pkgs.writeText "convco.yaml" ''
+                types:
+                  - type: bump
+                    increment: None
+                    section: Other
+                    hidden: true
+              '';
+            };
             treefmt = {
               enable = true;
               package = config.treefmt.build.wrapper;

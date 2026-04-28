@@ -8,11 +8,11 @@
 }:
 
 let
-  cfg = config.ghaf.partitioning.verity-volume;
+  cfg = config.ghaf.partitioning.verity;
   debugEnable = config.ghaf.profiles.debug.enable;
 in
 {
-  options.ghaf.partitioning.verity-volume = {
+  options.ghaf.partitioning.verity = {
     enable = lib.mkEnableOption "the verity (image-based) partitioning scheme";
   };
 

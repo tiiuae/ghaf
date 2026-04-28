@@ -253,10 +253,18 @@ in
       default = cfg.withFido2 || cfg.withHomed || cfg.withSysupdate;
     };
 
+    # UKI tooling is a build-time concern, not a runtime requirement.
+    # Runtime systems do not need ukify in the final image to boot or operate.
+    # When UKI artifacts must be produced, callers can always use
+    # `pkgs.buildPackages.systemdUkify` explicitly during the build.
+    # Keeping this disabled by default avoids pulling unnecessary runtime
+    # dependencies (notably binutils) into the resulting system image.
+    # This comment is intentionally explicit to prevent accidental re-enabling
+    # without a clear, justified runtime need.
     withUkify = mkOption {
       description = "Enable systemd UKI functionality.";
       type = types.bool;
-      default = pkgs.stdenv.hostPlatform.isEfi;
+      default = false;
     };
 
     withApparmor = mkEnableOption "systemd apparmor functionality";

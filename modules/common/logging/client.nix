@@ -16,6 +16,9 @@ let
   cfg = config.ghaf.logging.client;
   inherit (config.ghaf.logging) listener;
   dynHostEnabled = config.ghaf.identity.vmHostNameSetter.enable or false;
+  givcEnabled = config.ghaf.givc.enable;
+  givcHostEnabled = config.ghaf.givc.host.enable;
+  needsGivcMount = givcEnabled && !givcHostEnabled;
 in
 {
   _file = ./client.nix;
@@ -131,31 +134,40 @@ in
 
     services.alloy.enable = true;
 
-    systemd.services.alloy.serviceConfig = {
+    systemd.services.alloy = {
       after = [
         "systemd-journald.service"
       ]
-      ++ lib.optionals dynHostEnabled [ "set-dynamic-hostname.service" ];
+      ++ lib.optionals dynHostEnabled [ "set-dynamic-hostname.service" ]
+      ++ lib.optionals givcHostEnabled [ "givc-key-setup.service" ];
       requires = [ "systemd-journald.service" ];
+      wants = lib.optionals givcHostEnabled [ "givc-key-setup.service" ];
 
-      SupplementaryGroups = [
-        "systemd-journal"
-        "adm"
-      ];
+      unitConfig = lib.optionalAttrs needsGivcMount {
+        RequiresMountsFor = [ "/etc/givc" ];
+      };
 
-      # Once alloy.service in admin-vm stopped this service will
-      # still keep on retrying to send logs batch, so we need to
-      # stop it forcefully.
-      TimeoutStopSec = 4;
+      serviceConfig = {
 
-      # Copy certs/keys (and optional CA) into /run/credentials/alloy.service/…
-      LoadCredential = [
-        "client_cert:${cfg.tls.certFile}"
-        "client_key:${cfg.tls.keyFile}"
-      ]
-      ++ lib.optionals (cfg.tls.caFile != null) [
-        "client_ca:${cfg.tls.caFile}"
-      ];
+        SupplementaryGroups = [
+          "systemd-journal"
+          "adm"
+        ];
+
+        # Once alloy.service in admin-vm stopped this service will
+        # still keep on retrying to send logs batch, so we need to
+        # stop it forcefully.
+        TimeoutStopSec = 4;
+
+        # Copy certs/keys (and optional CA) into /run/credentials/alloy.service/…
+        LoadCredential = [
+          "client_cert:${cfg.tls.certFile}"
+          "client_key:${cfg.tls.keyFile}"
+        ]
+        ++ lib.optionals (cfg.tls.caFile != null) [
+          "client_ca:${cfg.tls.caFile}"
+        ];
+      };
     };
 
     ghaf.security.audit.extraRules = [

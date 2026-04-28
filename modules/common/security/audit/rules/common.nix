@@ -26,8 +26,9 @@ let
     if isAarch64 then "openat,openat2,open_by_handle_at" else "open,openat,openat2,open_by_handle_at";
   osppPermChangeSyscalls = "${chmodSyscalls},setxattr,lsetxattr,fsetxattr,removexattr,lremovexattr,fremovexattr";
 in
-[
+lib.optionals config.nix.enable [
   ## === Common :: Nix/NixOS-specific ===
+  # Enable Nix tools/state auditing only when Nix is enabled in the target system.
   "-a always,exit -F arch=b64 -S execve -F exe=${pkgs.nix}/bin/nix-daemon -k nix-daemon-exec"
   "-a always,exit -F arch=b64 -S execve -S execveat -F exe=${pkgs.nix}/bin/nix -F auid>=1000 -F auid!=unset -k nix-tools"
   "-w ${pkgs.nix}/bin/nix -p x -k nix-exec"
@@ -44,6 +45,12 @@ in
   "-w /etc/systemd/system/nix-daemon.service -p wa -k nix_daemon_unit"
   "-w /etc/systemd/system/nix-daemon.socket -p war -k nix_daemon_unit"
   "-w /etc/systemd/system/sockets.target.wants/nix-daemon.socket -p wa -k nix_daemon_unit"
+]
+++ [
+  # System generation switch symlink is critical on both hosts and guests.
+  "-w /run/current-system -p wa -k nix_system"
+  "-w /bin/sh -p wa -k nix_system"
+  "-w /usr/bin/env -p wa -k nix_system"
 
   ## === Common :: STIG-derived ===
   # Rules borrowed from https://stigviewer.com/stigs/anduril_nixos
@@ -78,10 +85,6 @@ in
   "-a always,exit -F arch=b64 -S ${deleteSyscalls} -F auid>=1000 -F auid!=unset -k delete"
   # V-268100
   "-a always,exit -F arch=b64 -S ${chmodSyscalls} -F auid>=1000 -F auid!=unset -F key=perm_mod"
-
-  ## === Common :: OSPP-derived ===
-  # 11-loginuid.rules && V-268119
-  "--loginuid-immutable"
 
   ## === Common :: Other ===
   "-a always,exit -F arch=b64 -F path=/etc/machine-id -F perm=wa -F key=identity"
@@ -243,194 +246,195 @@ in
   ##
   ## Site action. Can be assisted by a cron job
 ]
-++ lib.optionals config.ghaf.security.audit.enableOspp [
+++ lib.optionals config.ghaf.security.audit.enableOspp (
+  [
+    ## Operating System Protection Profile (OSPP)v4.2 ##
 
-  ## Operating System Protection Profile (OSPP)v4.2 ##
+    ## The purpose of these rules is to meet the requirements for Operating
+    ## System Protection Profile (OSPP)v4.2. These rules depends on having
+    ## the following rule files copied to /etc/audit/rules.d:
+    ##
+    ## 10-base-config.rules, 11-loginuid.rules,
+    ## 30-ospp-v42-1-create-failed.rules, 30-ospp-v42-1-create-success.rules,
+    ## 30-ospp-v42-2-modify-failed.rules, 30-ospp-v42-2-modify-success.rules,
+    ## 30-ospp-v42-3-access-failed.rules, 30-ospp-v42-3-access-success.rules,
+    ## 30-ospp-v42-4-delete-failed.rules, 30-ospp-v42-4-delete-success.rules,
+    ## 30-ospp-v42-5-perm-change-failed.rules,
+    ## 30-ospp-v42-5-perm-change-success.rules,
+    ## 30-ospp-v42-6-owner-change-failed.rules,
+    ## 30-ospp-v42-6-owner-change-success.rules
+    ##
+    ## original copies may be found in /usr/share/audit-rules
 
-  ## The purpose of these rules is to meet the requirements for Operating
-  ## System Protection Profile (OSPP)v4.2. These rules depends on having
-  ## the following rule files copied to /etc/audit/rules.d:
-  ##
-  ## 10-base-config.rules, 11-loginuid.rules,
-  ## 30-ospp-v42-1-create-failed.rules, 30-ospp-v42-1-create-success.rules,
-  ## 30-ospp-v42-2-modify-failed.rules, 30-ospp-v42-2-modify-success.rules,
-  ## 30-ospp-v42-3-access-failed.rules, 30-ospp-v42-3-access-success.rules,
-  ## 30-ospp-v42-4-delete-failed.rules, 30-ospp-v42-4-delete-success.rules,
-  ## 30-ospp-v42-5-perm-change-failed.rules,
-  ## 30-ospp-v42-5-perm-change-success.rules,
-  ## 30-ospp-v42-6-owner-change-failed.rules,
-  ## 30-ospp-v42-6-owner-change-success.rules
-  ##
-  ## original copies may be found in /usr/share/audit-rules
+    ## 10-base-config.rules:
+    # handled by nixos module
 
-  ## 10-base-config.rules:
-  # handled by nixos module
+    ## 11-loginuid.rules && V-268119
+    "--loginuid-immutable"
 
-  ## 11-loginuid.rules
-  # Handled in common rules - V-268119
+    ## 30-ospp-v42-1-create-failed.rules
+    ## Unsuccessful file creation (open with O_CREAT)
+    "-a always,exit -F arch=b64 -S openat,openat2,open_by_handle_at -F a2&0100 -F exit=-EACCES -F auid!=unset -F key=unsuccessful-create"
+  ]
+  ++ lib.optionals (!isAarch64) [
+    "-a always,exit -F arch=b64 -S open -F a1&0100 -F exit=-EACCES -F auid!=unset -F key=unsuccessful-create"
+    "-a always,exit -F arch=b64 -S creat -F exit=-EACCES -F auid!=unset -F key=unsuccessful-create"
+  ]
+  ++ [
+    "-a always,exit -F arch=b64 -S openat,openat2,open_by_handle_at -F a2&0100 -F exit=-EPERM -F auid!=unset -F key=unsuccessful-create"
+  ]
+  ++ lib.optionals (!isAarch64) [
+    "-a always,exit -F arch=b64 -S open -F a1&0100 -F exit=-EPERM -F auid!=unset -F key=unsuccessful-create"
+    "-a always,exit -F arch=b64 -S creat -F exit=-EPERM -F auid!=unset -F key=unsuccessful-create"
+  ]
+  ++ [
+    ## 30-ospp-v42-2-modify-failed.rules
+    ## Unsuccessful file modifications (open for write or truncate)
+    "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&01003 -F exit=-EACCES -F auid!=unset -F key=unsuccessful-modification"
+    "-a always,exit -F arch=b64 -S truncate,ftruncate -F exit=-EACCES -F auid!=unset -F key=unsuccessful-modification"
+    "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&01003 -F exit=-EPERM -F auid!=unset -F key=unsuccessful-modification"
+    "-a always,exit -F arch=b64 -S truncate,ftruncate -F exit=-EPERM -F auid!=unset -F key=unsuccessful-modification"
+  ]
+  ++ lib.optionals (!isAarch64) [
+    "-a always,exit -F arch=b64 -S open -F a1&01003 -F exit=-EACCES -F auid!=unset -F key=unsuccessful-modification"
+    "-a always,exit -F arch=b64 -S open -F a1&01003 -F exit=-EPERM -F auid!=unset -F key=unsuccessful-modification"
+  ]
+  ++ [
+    ## 30-ospp-v42-2-modify-success.rules
+    ## Successful file modifications (open for write or truncate)
+    "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&01003 -F success=1 -F auid!=unset -F key=successful-modification"
+    "-a always,exit -F arch=b64 -S truncate,ftruncate -F success=1 -F auid!=unset -F key=successful-modification"
+  ]
+  ++ lib.optionals (!isAarch64) [
+    "-a always,exit -F arch=b64 -S open -F a1&01003 -F success=1 -F auid!=unset -F key=successful-modification"
+  ]
+  ++ [
 
-  ## 30-ospp-v42-1-create-failed.rules
-  ## Unsuccessful file creation (open with O_CREAT)
-  "-a always,exit -F arch=b64 -S openat,openat2,open_by_handle_at -F a2&0100 -F exit=-EACCES -F auid!=unset -F key=unsuccessful-create"
-]
-++ lib.optionals (!isAarch64) [
-  "-a always,exit -F arch=b64 -S open -F a1&0100 -F exit=-EACCES -F auid!=unset -F key=unsuccessful-create"
-  "-a always,exit -F arch=b64 -S creat -F exit=-EACCES -F auid!=unset -F key=unsuccessful-create"
-]
-++ [
-  "-a always,exit -F arch=b64 -S openat,openat2,open_by_handle_at -F a2&0100 -F exit=-EPERM -F auid!=unset -F key=unsuccessful-create"
-]
-++ lib.optionals (!isAarch64) [
-  "-a always,exit -F arch=b64 -S open -F a1&0100 -F exit=-EPERM -F auid!=unset -F key=unsuccessful-create"
-  "-a always,exit -F arch=b64 -S creat -F exit=-EPERM -F auid!=unset -F key=unsuccessful-create"
-]
-++ [
-  ## 30-ospp-v42-1-create-success.rules
-  ## Successful file creation (open with O_CREAT)
-  "-a always,exit -F arch=b64 -S openat,openat2,open_by_handle_at -F a2&0100 -F success=1 -F auid!=unset -F key=successful-create"
-]
-++ lib.optionals (!isAarch64) [
-  "-a always,exit -F arch=b64 -S open -F a1&0100 -F success=1 -F auid!=unset -F key=successful-create"
-  "-a always,exit -F arch=b64 -S creat -F success=1 -F auid!=unset -F key=successful-create"
-]
-++ [
+    ## 30-ospp-v42-3-access-failed.rules
+    ## Unsuccessful file access
+    "-a always,exit -F arch=b64 -S ${osppAccessSyscalls} -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=unsuccessful-access"
+    "-a always,exit -F arch=b64 -S ${osppAccessSyscalls} -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=unsuccessful-access"
 
-  ## 30-ospp-v42-2-modify-failed.rules
-  ## Unsuccessful file modifications (open for write or truncate)
-  "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&01003 -F exit=-EACCES -F auid!=unset -F key=unsuccessful-modification"
-  "-a always,exit -F arch=b64 -S truncate,ftruncate -F exit=-EACCES -F auid!=unset -F key=unsuccessful-modification"
-  "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&01003 -F exit=-EPERM -F auid!=unset -F key=unsuccessful-modification"
-  "-a always,exit -F arch=b64 -S truncate,ftruncate -F exit=-EPERM -F auid!=unset -F key=unsuccessful-modification"
-]
-++ lib.optionals (!isAarch64) [
-  "-a always,exit -F arch=b64 -S open -F a1&01003 -F exit=-EACCES -F auid!=unset -F key=unsuccessful-modification"
-  "-a always,exit -F arch=b64 -S open -F a1&01003 -F exit=-EPERM -F auid!=unset -F key=unsuccessful-modification"
-]
-++ [
-  ## 30-ospp-v42-2-modify-success.rules
-  ## Successful file modifications (open for write or truncate)
-  "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&01003 -F success=1 -F auid!=unset -F key=successful-modification"
-  "-a always,exit -F arch=b64 -S truncate,ftruncate -F success=1 -F auid!=unset -F key=successful-modification"
-]
-++ lib.optionals (!isAarch64) [
-  "-a always,exit -F arch=b64 -S open -F a1&01003 -F success=1 -F auid!=unset -F key=successful-modification"
-]
-++ [
+    ## 30-ospp-v42-4-delete-failed.rules
+    ## Unsuccessful file delete
+    "-a always,exit -F arch=b64 -S ${osppDeleteSyscalls} -F exit=-EACCES -F auid!=unset -F key=unsuccessful-delete"
+    "-a always,exit -F arch=b64 -S ${osppDeleteSyscalls} -F exit=-EPERM -F auid!=unset -F key=unsuccessful-delete"
 
-  ## 30-ospp-v42-3-access-failed.rules
-  ## Unsuccessful file access
-  "-a always,exit -F arch=b64 -S ${osppAccessSyscalls} -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=unsuccessful-access"
-  "-a always,exit -F arch=b64 -S ${osppAccessSyscalls} -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=unsuccessful-access"
+    ## 30-ospp-v42-4-delete-success.rules
+    ## Successful file delete
+    "-a always,exit -F arch=b64 -S ${osppDeleteSyscalls} -F success=1 -F auid!=unset -F key=successful-delete"
 
-  ## 30-ospp-v42-4-delete-failed.rules
-  ## Unsuccessful file delete
-  "-a always,exit -F arch=b64 -S ${osppDeleteSyscalls} -F exit=-EACCES -F auid!=unset -F key=unsuccessful-delete"
-  "-a always,exit -F arch=b64 -S ${osppDeleteSyscalls} -F exit=-EPERM -F auid!=unset -F key=unsuccessful-delete"
+    ## 30-ospp-v42-5-perm-change-failed.rules
+    ## Unsuccessful permission change
+    "-a always,exit -F arch=b64 -S ${osppPermChangeSyscalls} -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=unsuccessful-perm-change"
+    "-a always,exit -F arch=b64 -S ${osppPermChangeSyscalls} -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=unsuccessful-perm-change"
 
-  ## 30-ospp-v42-4-delete-success.rules
-  ## Successful file delete
-  "-a always,exit -F arch=b64 -S ${osppDeleteSyscalls} -F success=1 -F auid!=unset -F key=successful-delete"
+    ## 30-ospp-v42-5-perm-change-success.rules
+    ## Successful permission change
+    "-a always,exit -F arch=b64 -S ${osppPermChangeSyscalls} -F success=1 -F auid>=1000 -F auid!=unset -F key=successful-perm-change"
 
-  ## 30-ospp-v42-5-perm-change-failed.rules
-  ## Unsuccessful permission change
-  "-a always,exit -F arch=b64 -S ${osppPermChangeSyscalls} -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=unsuccessful-perm-change"
-  "-a always,exit -F arch=b64 -S ${osppPermChangeSyscalls} -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=unsuccessful-perm-change"
+    ## 30-ospp-v42-6-owner-change-failed.rules
+    ## Unsuccessful ownership change
+    "-a always,exit -F arch=b64 -S ${chownSyscalls} -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=unsuccessful-owner-change"
+    "-a always,exit -F arch=b64 -S ${chownSyscalls} -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=unsuccessful-owner-change"
 
-  ## 30-ospp-v42-5-perm-change-success.rules
-  ## Successful permission change
-  "-a always,exit -F arch=b64 -S ${osppPermChangeSyscalls} -F success=1 -F auid>=1000 -F auid!=unset -F key=successful-perm-change"
+    ## 30-ospp-v42-6-owner-change-success.rules
+    ## Successful ownership change
+    "-a always,exit -F arch=b64 -S ${chownSyscalls} -F success=1 -F auid>=1000 -F auid!=unset -F key=successful-owner-change"
 
-  ## 30-ospp-v42-6-owner-change-failed.rules
-  ## Unsuccessful ownership change
-  "-a always,exit -F arch=b64 -S ${chownSyscalls} -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=unsuccessful-owner-change"
-  "-a always,exit -F arch=b64 -S ${chownSyscalls} -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=unsuccessful-owner-change"
+    ## User add delete modify. This is covered by pam. However, someone could
+    ## open a file and directly create or modify a user, so we'll watch passwd and
+    ## shadow for writes
+    "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&03 -F path=/etc/passwd -F auid>=1000 -F auid!=unset -F key=user-modify"
+    "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&03 -F path=/etc/shadow -F auid>=1000 -F auid!=unset -F key=user-modify"
+  ]
+  ++ lib.optionals (!isAarch64) [
+    "-a always,exit -F arch=b64 -S open -F a1&03 -F path=/etc/passwd -F auid>=1000 -F auid!=unset -F key=user-modify"
+    "-a always,exit -F arch=b64 -S open -F a1&03 -F path=/etc/shadow -F auid>=1000 -F auid!=unset -F key=user-modify"
+  ]
+  ++ [
 
-  ## 30-ospp-v42-6-owner-change-success.rules
-  ## Successful ownership change
-  "-a always,exit -F arch=b64 -S ${chownSyscalls} -F success=1 -F auid>=1000 -F auid!=unset -F key=successful-owner-change"
+    ## User enable and disable. This is entirely handled by pam.
+    ## Group add delete modify. This is covered by pam. However, someone could
+    ## open a file and directly create or modify a user, so we'll watch group and
+    ## gshadow for writes
+    "-a always,exit -F arch=b64 -F path=${
+      if config.services.userborn.enable then config.services.userborn.passwordFilesLocation else "/etc"
+    }/passwd -F perm=wa -F auid>=1000 -F auid!=unset -F key=user-modify"
+    "-a always,exit -F arch=b64 -F path=${
+      if config.services.userborn.enable then config.services.userborn.passwordFilesLocation else "/etc"
+    }/shadow -F perm=wa -F auid>=1000 -F auid!=unset -F key=user-modify"
+    "-a always,exit -F arch=b64 -F path=${
+      if config.services.userborn.enable then config.services.userborn.passwordFilesLocation else "/etc"
+    }/group -F perm=wa -F auid>=1000 -F auid!=unset -F key=group-modify"
+    # "-a always,exit -F arch=b64 -F path=${if config.services.userborn.enable then config.services.userborn.passwordFilesLocation else "/etc"}/gshadow -F perm=wa -F auid>=1000 -F auid!=unset -F key=group-modify"
 
-  ## User add delete modify. This is covered by pam. However, someone could
-  ## open a file and directly create or modify a user, so we'll watch passwd and
-  ## shadow for writes
-  "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&03 -F path=/etc/passwd -F auid>=1000 -F auid!=unset -F key=user-modify"
-  "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&03 -F path=/etc/shadow -F auid>=1000 -F auid!=unset -F key=user-modify"
-]
-++ lib.optionals (!isAarch64) [
-  "-a always,exit -F arch=b64 -S open -F a1&03 -F path=/etc/passwd -F auid>=1000 -F auid!=unset -F key=user-modify"
-  "-a always,exit -F arch=b64 -S open -F a1&03 -F path=/etc/shadow -F auid>=1000 -F auid!=unset -F key=user-modify"
-]
-++ [
+    ## Use of special rights for config changes. This would be use of setuid
+    ## programs that relate to user accts. This is not all setuid apps because
+    ## requirements are only for ones that affect system configuration.
+    ## TODO Handle wrappers / setuid binaries
+    # "-a always,exit -F arch=b64 -F path=/usr/sbin/unix_chkpwd -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
+    # "-a always,exit -F arch=b64 -F path=/usr/sbin/usernetctl -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
+    # "-a always,exit -F arch=b64 -F path=/usr/sbin/userhelper -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
+    # "-a always,exit -F arch=b64 -F path=/usr/sbin/seunshare -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
+    # "-a always,exit -F arch=b64 -F path=/usr/bin/mount -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
+    # "-a always,exit -F arch=b64 -F path=/usr/bin/newgrp -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
+    # "-a always,exit -F arch=b64 -F path=/usr/bin/newuidmap -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
+    # "-a always,exit -F arch=b64 -F path=/usr/bin/gpasswd -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
+    # "-a always,exit -F arch=b64 -F path=/usr/bin/newgidmap -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
+    # "-a always,exit -F arch=b64 -F path=/usr/bin/umount -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
+    # "-a always,exit -F arch=b64 -F path=/usr/bin/passwd -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
+    # "-a always,exit -F arch=b64 -F path=/usr/bin/crontab -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
+    # "-a always,exit -F arch=b64 -F path=/usr/bin/at -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
+    # "-a always,exit -F arch=b64 -F path=/usr/sbin/grub2-set-bootflag -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
 
-  ## User enable and disable. This is entirely handled by pam.
-  ## Group add delete modify. This is covered by pam. However, someone could
-  ## open a file and directly create or modify a user, so we'll watch group and
-  ## gshadow for writes
-  "-a always,exit -F arch=b64 -F path=${
-    if config.services.userborn.enable then config.services.userborn.passwordFilesLocation else "/etc"
-  }/passwd -F perm=wa -F auid>=1000 -F auid!=unset -F key=user-modify"
-  "-a always,exit -F arch=b64 -F path=${
-    if config.services.userborn.enable then config.services.userborn.passwordFilesLocation else "/etc"
-  }/shadow -F perm=wa -F auid>=1000 -F auid!=unset -F key=user-modify"
-  "-a always,exit -F arch=b64 -F path=${
-    if config.services.userborn.enable then config.services.userborn.passwordFilesLocation else "/etc"
-  }/group -F perm=wa -F auid>=1000 -F auid!=unset -F key=group-modify"
-  # "-a always,exit -F arch=b64 -F path=${if config.services.userborn.enable then config.services.userborn.passwordFilesLocation else "/etc"}/gshadow -F perm=wa -F auid>=1000 -F auid!=unset -F key=group-modify"
+    ## Privilege escalation via su or sudo. This is entirely handled by pam.
+    ## Special case for systemd-run. It is not audit aware, specifically watch it
+    "-a always,exit -F arch=b64 -F path=${pkgs.systemd}/bin/systemd-run -F perm=x -F auid!=unset -F key=maybe-escalation"
 
-  ## Use of special rights for config changes. This would be use of setuid
-  ## programs that relate to user accts. This is not all setuid apps because
-  ## requirements are only for ones that affect system configuration.
-  ## TODO Handle wrappers / setuid binaries
-  # "-a always,exit -F arch=b64 -F path=/usr/sbin/unix_chkpwd -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
-  # "-a always,exit -F arch=b64 -F path=/usr/sbin/usernetctl -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
-  # "-a always,exit -F arch=b64 -F path=/usr/sbin/userhelper -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
-  # "-a always,exit -F arch=b64 -F path=/usr/sbin/seunshare -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
-  # "-a always,exit -F arch=b64 -F path=/usr/bin/mount -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
-  # "-a always,exit -F arch=b64 -F path=/usr/bin/newgrp -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
-  # "-a always,exit -F arch=b64 -F path=/usr/bin/newuidmap -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
-  # "-a always,exit -F arch=b64 -F path=/usr/bin/gpasswd -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
-  # "-a always,exit -F arch=b64 -F path=/usr/bin/newgidmap -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
-  # "-a always,exit -F arch=b64 -F path=/usr/bin/umount -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
-  # "-a always,exit -F arch=b64 -F path=/usr/bin/passwd -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
-  # "-a always,exit -F arch=b64 -F path=/usr/bin/crontab -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
-  # "-a always,exit -F arch=b64 -F path=/usr/bin/at -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
-  # "-a always,exit -F arch=b64 -F path=/usr/sbin/grub2-set-bootflag -F perm=x -F auid>=1000 -F auid!=unset -F key=special-config-changes"
+    ## Special case for pkexec. It is not audit aware, specifically watch it
+    # TODO Handle kexec
+    # "-a always,exit -F arch=b64 -F path=/usr/bin/pkexec -F perm=x -F key=maybe-escalation"
 
-  ## Privilege escalation via su or sudo. This is entirely handled by pam.
-  ## Special case for systemd-run. It is not audit aware, specifically watch it
-  "-a always,exit -F arch=b64 -F path=${pkgs.systemd}/bin/systemd-run -F perm=x -F auid!=unset -F key=maybe-escalation"
+    ## Watch for configuration changes to privilege escalation.
+    # COMMENT: No writes possible
+    # "-a always,exit -F arch=b64 -F path=/etc/sudoers -F perm=wa -F key=special-config-changes"
+    # "-a always,exit -F arch=b64 -F dir=/etc/sudoers.d/ -F perm=wa -F key=special-config-changes"
 
-  ## Special case for pkexec. It is not audit aware, specifically watch it
-  # TODO Handle kexec
-  # "-a always,exit -F arch=b64 -F path=/usr/bin/pkexec -F perm=x -F key=maybe-escalation"
+    ## Audit log access
+    "-a always,exit -F arch=b64 -F dir=/var/log/audit/ -F perm=r -F auid>=1000 -F auid!=unset -F key=access-audit-trail"
 
-  ## Watch for configuration changes to privilege escalation.
-  # COMMENT: No writes possible
-  # "-a always,exit -F arch=b64 -F path=/etc/sudoers -F perm=wa -F key=special-config-changes"
-  # "-a always,exit -F arch=b64 -F dir=/etc/sudoers.d/ -F perm=wa -F key=special-config-changes"
+    ## Attempts to Alter Process and Session Initiation Information
+    # "-a always,exit -F arch=b64 -F path=/var/run/utmp -F perm=wa -F auid>=1000 -F auid!=unset -F key=session"
+    # "-a always,exit -F arch=b64 -F path=/var/log/btmp -F perm=wa -F auid>=1000 -F auid!=unset -F key=session"
+    "-a always,exit -F arch=b64 -F path=/var/log/wtmp -F perm=wa -F auid>=1000 -F auid!=unset -F key=session"
 
-  ## Audit log access
-  "-a always,exit -F arch=b64 -F dir=/var/log/audit/ -F perm=r -F auid>=1000 -F auid!=unset -F key=access-audit-trail"
+    ## Attempts to modify MAC controls
+    ## COMMENT: N/A
+    # "-a always,exit -F arch=b64 -F dir=/etc/selinux/ -F perm=wa -F auid>=1000 -F auid!=unset -F key=MAC-policy"
 
-  ## Attempts to Alter Process and Session Initiation Information
-  # "-a always,exit -F arch=b64 -F path=/var/run/utmp -F perm=wa -F auid>=1000 -F auid!=unset -F key=session"
-  # "-a always,exit -F arch=b64 -F path=/var/log/btmp -F perm=wa -F auid>=1000 -F auid!=unset -F key=session"
-  "-a always,exit -F arch=b64 -F path=/var/log/wtmp -F perm=wa -F auid>=1000 -F auid!=unset -F key=session"
+    ## Software updates. This is entirely handled by rpm.
+    ## System start and shutdown. This is entirely handled by systemd
+    ## Kernel Module loading. This is handled in 43-module-load.rules
+    ## Application invocation. The requirements list an optional requirement
+    ## FPT_SRP_EXT.1 Software Restriction Policies. This event is intended to
+    ## state results from that policy. This would be handled entirely by
+    ## that daemon.
+  ]
+)
+++ lib.optionals config.ghaf.security.audit.enableVerboseOspp (
+  [
+    ## 30-ospp-v42-1-create-success.rules
+    ## Successful file creation (open with O_CREAT)
+    "-a always,exit -F arch=b64 -S openat,openat2,open_by_handle_at -F a2&0100 -F success=1 -F auid!=unset -F key=successful-create"
 
-  ## Attempts to modify MAC controls
-  ## COMMENT: N/A
-  # "-a always,exit -F arch=b64 -F dir=/etc/selinux/ -F perm=wa -F auid>=1000 -F auid!=unset -F key=MAC-policy"
-
-  ## Software updates. This is entirely handled by rpm.
-  ## System start and shutdown. This is entirely handled by systemd
-  ## Kernel Module loading. This is handled in 43-module-load.rules
-  ## Application invocation. The requirements list an optional requirement
-  ## FPT_SRP_EXT.1 Software Restriction Policies. This event is intended to
-  ## state results from that policy. This would be handled entirely by
-  ## that daemon.
-]
-++ lib.optionals config.ghaf.security.audit.enableVerboseOspp [
-  ## 30-ospp-v42-3-access-success.rules
-  ## Successful file access (any other opens) This has to go last.
-  ## This are likely to result in a whole lot of events
-  "-a always,exit -F arch=b64 -S ${osppAccessSyscalls} -F success=1 -F auid>=1000 -F auid!=unset -F key=successful-access"
-]
+    ## 30-ospp-v42-3-access-success.rules
+    ## Successful file access (any other opens) This has to go last.
+    ## This are likely to result in a whole lot of events
+    "-a always,exit -F arch=b64 -S ${osppAccessSyscalls} -F success=1 -F auid>=1000 -F auid!=unset -F key=successful-access"
+  ]
+  ++ lib.optionals (!isAarch64) [
+    "-a always,exit -F arch=b64 -S open -F a1&0100 -F success=1 -F auid!=unset -F key=successful-create"
+    "-a always,exit -F arch=b64 -S creat -F success=1 -F auid!=unset -F key=successful-create"
+  ]
+)

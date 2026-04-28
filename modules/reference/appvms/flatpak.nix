@@ -37,6 +37,13 @@ let
 
       case "$action" in
         run)
+          # Ensure session D-Bus is available so apps can detect the SNI tray
+          # watcher (org.kde.StatusNotifierWatcher) and show tray-related settings.
+          # GIVC services run without a user session environment, so we derive
+          # the bus address from XDG_RUNTIME_DIR or fall back to UID 1000.
+          _uid=$(id -u)
+          export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/''${_uid}/bus"
+          export XDG_RUNTIME_DIR="/run/user/''${_uid}"
           FLATPAK_APPS="/var/lib/flatpak/exports/share/applications"
           desktop_file=$(find "$FLATPAK_APPS" -name "$app.desktop" 2>/dev/null | head -n 1)
 

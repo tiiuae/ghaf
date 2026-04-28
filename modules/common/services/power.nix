@@ -250,6 +250,34 @@ let
     '';
   };
 
+  host-set-mem-sleep = pkgs.writeShellApplication {
+    name = "host-set-mem-sleep";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.gnugrep
+    ];
+    text = ''
+      board_vendor="$(cat /sys/class/dmi/id/board_vendor)"
+      board_name="$(cat /sys/class/dmi/id/board_name)"
+      current_model="$board_vendor $board_name"
+      echo "Checking s2idle for model: $current_model"
+
+      if ! grep -qxF "$current_model" <<'EOF'; then
+      ${lib.concatStringsSep "\n" cfg.suspend.s2idleModels}
+      EOF
+        exit 0
+      fi
+
+      if ! grep -qw "s2idle" /sys/power/mem_sleep; then
+        echo "s2idle is not supported on this model: $current_model"
+        exit 1
+      fi
+
+      echo "Enabling s2idle mode"
+      printf '%s' "s2idle" > /sys/power/mem_sleep
+    '';
+  };
+
   genericSleepConf = {
     AllowHibernation = "no";
     AllowHybridSleep = "no";
@@ -303,14 +331,15 @@ in
         description = ''
           Whether to enable system suspension.
 
-            If disabled, the system will not respond to suspend requests, and all VMs with a
-            power management profile enabled are prohibited to perform any suspend action.
+          If disabled, the system will not respond to suspend requests, and all VMs with a
+          power management profile enabled are prohibited to perform any suspend action.
         '';
       };
 
       mode = mkOption {
         type = types.nullOr (
           types.enum [
+            "auto"
             "s2idle"
             "shallow"
             "deep"
@@ -320,9 +349,45 @@ in
         description = ''
           The memory suspend mode to use.
 
+          When set to `auto`, Ghaf does not add the `mem_sleep_default` kernel
+          parameter. Instead, a boot-time script enables `s2idle` only for
+          models listed in `ghaf.services.power-manager.suspend.s2idleModels`.
+
           To check which modes are supported, run `cat /sys/power/mem_sleep`.
 
           More info: https://docs.kernel.org/admin-guide/pm/sleep-states.html
+        '';
+      };
+
+      extraSuspendCommands = mkOption {
+        type = types.str;
+        default = "";
+        description = ''
+          Additional shell commands to execute before the system suspends.
+        '';
+      };
+
+      extraResumeCommands = mkOption {
+        type = types.str;
+        default = "";
+        description = ''
+          Additional shell commands to execute after the system resumes from suspension.
+        '';
+      };
+
+      s2idleModels = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+        example = literalExpression ''
+          [
+            "System76 Darter Pro"
+          ]
+        '';
+        description = ''
+          List of DMI model identifiers in the format `"<board_vendor> <board_name>"`.
+
+          These are used only when `ghaf.services.power-manager.suspend.mode = "auto"`.
+          For matching models, a boot-time script enables `s2idle`.
         '';
       };
     };
@@ -451,18 +516,28 @@ in
       systemd.sleep.settings.Sleep = genericSleepConf;
 
       powerManagement = optionalAttrs cfg.vm.enable {
-        powerDownCommands = optionalString cfg.vm.pciSuspend (
-          concatMapStringsSep "\n" (service: ''
-            echo "Stopping service ${service}..."
-            systemctl stop ${service}
-          '') cfg.vm.pciSuspendServices
-        );
-        resumeCommands = optionalString cfg.vm.pciSuspend (
-          concatMapStringsSep "\n" (service: ''
-            echo "Starting service ${service}..."
-            systemctl start ${service}
-          '') cfg.vm.pciSuspendServices
-        );
+        powerDownCommands =
+          optionalString cfg.vm.pciSuspend (
+            concatMapStringsSep "\n" (service: ''
+              echo "Stopping service ${service}..."
+              systemctl stop ${service}
+            '') cfg.vm.pciSuspendServices
+          )
+          + optionalString (cfg.suspend.extraSuspendCommands != "") ''
+            # config.ghaf.services.power-manager.suspend.extraSuspendCommands
+            ${cfg.suspend.extraSuspendCommands}
+          '';
+        resumeCommands =
+          optionalString cfg.vm.pciSuspend (
+            concatMapStringsSep "\n" (service: ''
+              echo "Starting service ${service}..."
+              systemctl start ${service}
+            '') cfg.vm.pciSuspendServices
+          )
+          + optionalString (cfg.suspend.extraResumeCommands != "") ''
+            # config.ghaf.services.power-manager.suspend.extraResumeCommands
+            ${cfg.suspend.extraResumeCommands}
+          '';
       };
 
       systemd.services.systemd-suspend.serviceConfig = {
@@ -493,6 +568,9 @@ in
       powerManagement = {
         powerDownCommands = lib.mkBefore ''
           ${getExe ghaf-powercontrol} fake-turn-off-displays '*'
+
+          # config.ghaf.services.power-manager.suspend.extraSuspendCommands
+          ${cfg.suspend.extraSuspendCommands}
         '';
       };
 
@@ -535,12 +613,20 @@ in
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = true;
-            ExecStop = "${getExe ghaf-powercontrol} fake-turn-on-displays '*'";
+            ExecStop =
+              let
+                resumeActions = pkgs.writeShellScriptBin "resume-actions" ''
+                  ${getExe ghaf-powercontrol} fake-turn-on-displays '*'
+
+                  # config.ghaf.services.power-manager.suspend.extraResumeCommands
+                  ${cfg.suspend.extraResumeCommands}
+                '';
+              in
+              getExe resumeActions;
           };
         };
       };
 
-      services.upower.ignoreLid = true;
       # Logind configuration for desktop
       services.logind.settings.Login =
         let
@@ -561,7 +647,6 @@ in
 
     # Host power management
     (mkIf cfg.host.enable {
-      services.upower.ignoreLid = true;
       # Host still handles power buttons in most situations
       services.logind.settings.Login = {
         HandleLidSwitch = mkDefault "ignore";
@@ -571,7 +656,7 @@ in
 
       # We can accomplish the same via systemd.sleep.settings.Sleep MemorySleepMode
       # but it seems keyboard wakeup stops functioning with that approach
-      boot.kernelParams = optionals (cfg.suspend.mode != null) [
+      boot.kernelParams = optionals (cfg.suspend.mode != null && cfg.suspend.mode != "auto") [
         "mem_sleep_default=${cfg.suspend.mode}"
       ];
 
@@ -601,6 +686,25 @@ in
         };
 
         services = mkMerge [
+          (optionalAttrs (cfg.suspend.mode == "auto" && cfg.suspend.s2idleModels != [ ]) {
+            set-mem-sleep = {
+              description = "Automatic s2idle mem_sleep Mode Selection";
+              wantedBy = [ "sysinit.target" ];
+              before = [ "sysinit.target" ];
+              unitConfig = {
+                DefaultDependencies = false;
+                ConditionPathExists = [
+                  "/sys/power/mem_sleep"
+                  "/sys/class/dmi/id/board_vendor"
+                  "/sys/class/dmi/id/board_name"
+                ];
+              };
+              serviceConfig = {
+                Type = "oneshot";
+                ExecStart = "+''${getExe host-set-mem-sleep}";
+              };
+            };
+          })
           # suspend/resume action units
           (optionalAttrs cfg.suspend.enable (
             lib.listToAttrs (

@@ -17,6 +17,9 @@ let
   inherit (lib.strings) hasPrefix;
   cfg = config.ghaf.logging.server;
   dynHostEnabled = config.ghaf.identity.vmHostNameSetter.enable or false;
+  givcEnabled = config.ghaf.givc.enable;
+  givcHostEnabled = config.ghaf.givc.host.enable;
+  needsGivcMount = givcEnabled && !givcHostEnabled;
 in
 {
   _file = ./server.nix;
@@ -269,34 +272,43 @@ in
       };
     };
 
-    systemd.services.alloy.serviceConfig = {
+    systemd.services.alloy = {
       after = [
         "systemd-journald.service"
       ]
-      ++ lib.optionals dynHostEnabled [ "set-dynamic-hostname.service" ];
+      ++ lib.optionals dynHostEnabled [ "set-dynamic-hostname.service" ]
+      ++ lib.optionals givcHostEnabled [ "givc-key-setup.service" ];
       requires = [ "systemd-journald.service" ];
+      wants = lib.optionals givcHostEnabled [ "givc-key-setup.service" ];
 
-      SupplementaryGroups = [
-        "systemd-journal"
-        "adm"
-      ];
+      unitConfig = lib.optionalAttrs needsGivcMount {
+        RequiresMountsFor = [ "/etc/givc" ];
+      };
 
-      # If there is no internet connection , shutdown/reboot will take around 100sec
-      # So, to fix that problem we need to add stop timeout
-      # https://github.com/grafana/loki/issues/6533
-      TimeoutStopSec = 4;
+      serviceConfig = {
 
-      # Copy certs/keys (and optional CA) into /run/credentials/alloy.service/…
-      LoadCredential = [
-        "loki_cert:${cfg.tls.certFile}"
-        "loki_key:${cfg.tls.keyFile}"
-      ]
-      ++ optionals (cfg.tls.remoteCAFile != null) [
-        "remote_ca:${cfg.tls.remoteCAFile}"
-      ]
-      ++ optionals (cfg.tls.caFile != null) [
-        "loki_ca:${cfg.tls.caFile}"
-      ];
+        SupplementaryGroups = [
+          "systemd-journal"
+          "adm"
+        ];
+
+        # If there is no internet connection , shutdown/reboot will take around 100sec
+        # So, to fix that problem we need to add stop timeout
+        # https://github.com/grafana/loki/issues/6533
+        TimeoutStopSec = 4;
+
+        # Copy certs/keys (and optional CA) into /run/credentials/alloy.service/…
+        LoadCredential = [
+          "loki_cert:${cfg.tls.certFile}"
+          "loki_key:${cfg.tls.keyFile}"
+        ]
+        ++ optionals (cfg.tls.remoteCAFile != null) [
+          "remote_ca:${cfg.tls.remoteCAFile}"
+        ]
+        ++ optionals (cfg.tls.caFile != null) [
+          "loki_ca:${cfg.tls.caFile}"
+        ];
+      };
     };
 
     ghaf.firewall = {

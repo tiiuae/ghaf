@@ -12,21 +12,20 @@ We like commits as they keep the project going. If you have ideas you want to ex
   - [Contributing Code](#contributing-code)
     - [Development Process](#development-process)
     - [Commit Message Guidelines](#commit-message-guidelines)
+    - [Pull Request Title Guidelines](#pull-request-title-guidelines)
   - [Contributing Documentation](#contributing-documentation)
     - [Working with Documentation Source Files](#working-with-documentation-source-files)
     - [Submitting Changes](#submitting-changes)
     - [Manual of Style](#manual-of-style)
   - [Communication](#communication)
 
-
 ## Our Philosophy
 
-* Update docs with the code.
-* Content is King, consistency is Queen.
-* Do not assume that readers know everything you currently know.
-* Avoid jargon and acronyms, if you can.
-* Do not reference future development or features that do not yet exist.
-
+- Update docs with the code.
+- Content is King, consistency is Queen.
+- Do not assume that readers know everything you currently know.
+- Avoid jargon and acronyms, if you can.
+- Do not reference future development or features that do not yet exist.
 
 ## Contributing Code
 
@@ -52,26 +51,25 @@ Documentation is the story of your code. Update Ghaf documentation with the code
 
 > Make sure to run spelling checking tools to catch common miss spellings before making a pull request. For example, you can use [aspell](https://www.manuel-strehl.de/check_markdown_spelling_with_aspell) in Linux/UNIX.
 
-
 ### Commit Message Guidelines
 
-We use the Linux kernel compatible commit message format.
+We follow the [Conventional Commits](https://www.conventionalcommits.org/) format for commit messages. Use the same `type(scope): description` format for the subject line.
 
-The seven rules of a great Git commit message:
+Rules for the full commit message:
 
 1. Separate subject from body with a blank line.
 2. Limit the subject line to 50 characters.
-3. Capitalize the subject line. If you start subject with a filename, capitalize after colon: “approve.sh: Fix whitespaces”.
-4. Do not end the subject line with a period. For example:
-5. Use the imperative (commanding) mood in the subject line.
-    * ”Fix a bug causing reboots on nuc” rather than “Fixed a bug causing reboots on nuc”.
-    * ”Update weston to version 10.5.1” rather than ”New weston version 10.5.1”.
-6. Wrap the body at 72 characters.
-7. Use the body to explain **what** and **why** vs. how.
+3. Use the imperative (commanding) mood in the subject line.
+   - “Fix a bug causing reboots on nuc” rather than “Fixed a bug causing reboots on nuc”.
+   - “Update weston to version 10.5.1” rather than “New weston version 10.5.1”.
+4. Do not end the subject line with a period.
+5. Wrap the body at 72 characters.
+6. Use the body to explain **what** and **why** vs. how.
 
 Example:
+
 ```
-Subject line: explain the commit in one line
+subject line: explain the commit in one line
 
 Body of commit message is a few lines of text, explaining things
 in more detail, possibly giving some background about the issue
@@ -85,7 +83,46 @@ nicely even when it's indented.
 Signed-off-by: Your Name <youremail@yourhost.com>
 ```
 
-The seven rules of a great Git commit message are originally from Google. Original commit message example is from Linus Torvalds. Both have been modified. Comments and suggestions are welcome.
+### Pull Request Title Guidelines
+
+PR titles are automatically validated by CI. They must follow the [Conventional Commits](https://www.conventionalcommits.org/) format:
+
+```
+<type>(<optional scope>): <description>
+```
+
+**Allowed types:**
+
+| Type       | Use for                                  |
+| ---------- | ---------------------------------------- |
+| `feat`     | New feature or capability                |
+| `fix`      | Bug fix                                  |
+| `docs`     | Documentation only changes               |
+| `refactor` | Code change that is not a fix or feature |
+| `test`     | Adding or updating tests                 |
+| `chore`    | Maintenance tasks                        |
+| `ci`       | CI/CD configuration changes              |
+| `revert`   | Reverting a previous commit              |
+| `build`    | Build system or tooling changes          |
+| `bump`     | Version or dependency updates            |
+
+**Rules:**
+
+- `scope` is optional, lowercase, no spaces (e.g. `power`, `netvm`, `audiovm`)
+- `description`: imperative mood, no capital first letter, no trailing period
+- Total title length must not exceed 72 characters
+
+**Examples:**
+
+```
+fix(power): keep display on during suspension
+feat(orin/kernel): introduce hardened kernel config
+docs: update hardware target list
+refactor(audiovm): simplify pipewire config
+bump(microvm): update microvm input
+```
+
+For real-world examples of well-named pull requests, see the [conventionalcommits.org pull requests](https://github.com/conventional-commits/conventionalcommits.org/pulls).
 
 ---
 
@@ -101,7 +138,6 @@ See the following instructions:
 - [Naming](https://github.com/tiiuae/ghaf/blob/main/docs/README-docs.md#naming) for information on file/image naming rules.
 - [Managing Content](https://github.com/tiiuae/ghaf/blob/main/docs/README-docs.md#managing-content) for information on how to organize information in chapters, sections, and subsections.
 
-
 ### Submitting Changes
 
 Create a pull request to propose and collaborate on changes to a repository. Please follow the steps below:
@@ -113,15 +149,14 @@ Create a pull request to propose and collaborate on changes to a repository. Ple
 5. :sunglasses: Check what you wrote with a spellchecker to make sure you did not miss anything.
 6. Test your changes before submitting a pull request using the `nix build .#doc` command.
 7. Commit your changes: `git commit --signoff`
-    - Use "Docs:" in the subject line to indicate the documentation changes. For example: **Docs: rename "Research" to "Research Notes"**.
-    - Keep text hard-wrapped at 50 characters.
-    - For more inspiration, see [How to Write a Git Commit Message](https://cbea.ms/git-commit/).
+   - Use the `docs:` type in the subject line. For example: **docs: rename "Research" to "Research Notes"**.
+   - Keep text hard-wrapped at 72 characters.
+   - For more inspiration, see [How to Write a Git Commit Message](https://cbea.ms/git-commit/).
 8. Push changes to the main branch: `git push origin doc_my_changes`
 9. Submit your changes for review using the GitHub UI.
 10. After publishing keep your ear to the ground for any feedback and comments in [Pull requests](https://github.com/tiiuae/ghaf/pulls).
 
 When a merge to main occurs it will automatically build and deploy to <https://ghaf.tii.ae>.
-
 
 ### Manual of Style
 
