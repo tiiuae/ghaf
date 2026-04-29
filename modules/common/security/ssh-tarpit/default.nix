@@ -78,7 +78,7 @@ in
         };
         input = {
           filter = [
-            "-p tcp -d ${cfg.listenAddress} --dport ${toString tarpitListenPort}  -m connlimit --connlimit-upto 20 --connlimit-mask 0 -j ghaf-fw-conncheck-accept"
+            "-p tcp -d ${cfg.listenAddress} --dport ${toString tarpitListenPort}  -m connlimit --connlimit-upto 20 --connlimit-mask 0 -j ${config.ghaf.firewall.chainNamePrefix}conncheck-accept"
             "-m mark --mark ${cfg.fwMarkNum} -j DROP"
           ];
         };
