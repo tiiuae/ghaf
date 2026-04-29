@@ -198,9 +198,37 @@ in
               source_labels = ["__journal__hostname"]
               target_label  = "host"
             }
+            // Populate service_name before Loki falls back to the journal source job.
+            // Later rules are more specific and override earlier fallback values.
+            rule {
+              source_labels = ["__journal__comm"]
+              target_label  = "service_name"
+              regex         = "(.+)"
+            }
+            rule {
+              source_labels = ["__journal_syslog_identifier"]
+              target_label  = "service_name"
+              regex         = "(.+)"
+            }
+            rule {
+              source_labels = ["__journal__systemd_user_unit"]
+              target_label  = "service_name"
+              regex         = "(.+)"
+            }
             rule {
               source_labels = ["__journal__systemd_unit"]
               target_label  = "service_name"
+              regex         = "(.+)"
+            }
+            rule {
+              source_labels = ["__journal_user_unit"]
+              target_label  = "service_name"
+              regex         = "(.+)"
+            }
+            rule {
+              source_labels = ["__journal_unit"]
+              target_label  = "service_name"
+              regex         = "(.+)"
             }
             rule {
               source_labels = ["__journal__transport"]
