@@ -2,28 +2,28 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   coreutils,
-  util-linux,
+  e2fsprogs,
+  efitools,
   hwinfo,
+  lvm2,
   ncurses,
+  parted,
+  util-linux,
   writeShellApplication,
   zstd,
-  lvm2,
-  parted,
-  efitools,
-  e2fsprogs,
 }:
 writeShellApplication {
   name = "ghaf-installer";
   runtimeInputs = [
     coreutils
+    e2fsprogs # Needed for chattr in efivar cleanup
+    efitools # Needed for Secure Boot key enrollment
+    hwinfo
+    lvm2 # Needed for vgchange, pvremove
+    ncurses # Needed for `clear` command
+    parted # Needed for partprobe
     util-linux
     zstd
-    hwinfo
-    ncurses # Needed for `clear` command
-    lvm2 # Needed for vgchange, pvremove
-    parted # Needed for partprobe
-    efitools # Needed for Secure Boot key enrollment
-    e2fsprogs # Needed for chattr in efivar cleanup
   ];
   text = builtins.readFile ./ghaf-installer.sh;
   meta = {
