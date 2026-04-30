@@ -525,7 +525,9 @@ in
           )
           + optionalString (cfg.suspend.extraSuspendCommands != "") ''
             # config.ghaf.services.power-manager.suspend.extraSuspendCommands
-            ${cfg.suspend.extraSuspendCommands}
+            if ! ${getExe' pkgs.systemd "systemctl"} list-jobs | grep -qE 'poweroff.target.*start|reboot.target.*start'; then
+              ${cfg.suspend.extraSuspendCommands}
+            fi
           '';
         resumeCommands =
           optionalString cfg.vm.pciSuspend (
@@ -566,12 +568,22 @@ in
 
       # Shutdown displays early before suspend
       powerManagement = {
-        powerDownCommands = lib.mkBefore ''
-          ${getExe ghaf-powercontrol} fake-turn-off-displays '*'
-
-          # config.ghaf.services.power-manager.suspend.extraSuspendCommands
-          ${cfg.suspend.extraSuspendCommands}
-        '';
+        powerDownCommands = lib.mkBefore (
+          ''
+            if ${getExe' pkgs.systemd "systemctl"} list-jobs | grep -qE 'poweroff.target.*start|reboot.target.*start'; then
+              _is_shutdown=0
+            else
+              _is_shutdown=1
+              ${getExe ghaf-powercontrol} fake-turn-off-displays '*'
+            fi
+          ''
+          + optionalString (cfg.suspend.extraSuspendCommands != "") ''
+            # config.ghaf.services.power-manager.suspend.extraSuspendCommands
+            if [ $_is_shutdown -ne 0 ]; then
+              ${cfg.suspend.extraSuspendCommands}
+            fi
+          ''
+        );
       };
 
       # Override systemd actions for suspend, poweroff, and reboot
