@@ -25,6 +25,45 @@ let
   blacklistMarkNum = "8";
   cfg = config.ghaf.firewall;
   rulePath = "/etc/firewall/rules/iptables.rules";
+  nixosFwPrefix = "nixos-";
+  ghafFwChainPrefix = cfg.chainNamePrefix;
+  dynPrefix = "${ghafFwChainPrefix}dyn-";
+  ipt = cfg.cmd;
+
+  # Remove, (re)create, and optionally hook a chain. flag is "-I" or "-A".
+  setupChain = hook: table: name: flag: ''
+    ${removeIptablesChain hook table name}
+    ${ipt} -t ${table} -N ${name} 2>/dev/null || true
+    ${lib.optionalString (
+      hook != null
+    ) "${ipt} -t ${table} ${flag} ${hook} -j ${name} 2>/dev/null || true"}
+  '';
+
+  setupDynChain =
+    table: parent: suffix:
+    setupChain parent table "${dynPrefix}${table}-${suffix}" "-A";
+
+  bogusFlags =
+    concatMapStringsSep "\n"
+      (
+        flags:
+        "${ipt} -t mangle -A ${ghafFwChainPrefix}pre-mangle -p tcp --tcp-flags ${flags} -j ${ghafFwChainPrefix}mangle-drop"
+      )
+      [
+        "FIN,SYN,RST,PSH,ACK,URG NONE"
+        "FIN,SYN FIN,SYN"
+        "SYN,RST SYN,RST"
+        "FIN,RST FIN,RST"
+        "FIN,ACK FIN"
+        "ACK,URG URG"
+        "ACK,FIN FIN"
+        "ACK,PSH PSH"
+        "ALL ALL"
+        "ALL NONE"
+        "ALL FIN,PSH,URG"
+        "ALL SYN,FIN,PSH,URG"
+        "ALL SYN,RST,ACK,FIN,URG"
+      ];
 
   blacklistRuleType = types.listOf (
     types.submodule {
@@ -87,7 +126,7 @@ let
       validate =
         rule:
         if isSafe rule then
-          "iptables -t ${table} -A ${chain} ${rule}"
+          "${ipt} -t ${table} -A ${chain} ${rule}"
         else
           throw "Unsafe iptables rule fragment: '${rule}' — must not contain:  ${lib.concatStringsSep ", " disallowed},
            Expected: ${lib.concatStringsSep ", " expected}";
@@ -102,16 +141,16 @@ let
         if chainHook == null || chainHook == "" then
           ""
         else
-          "iptables -t ${table} -D ${chainHook} -j ${chainName} 2> /dev/null || true\n";
+          "${ipt} -t ${table} -D ${chainHook} -j ${chainName} 2> /dev/null || true\n";
     in
     ''
       ${deleteJumpCmd}
-      iptables  -t ${table} -F ${chainName} 2> /dev/null || true
-      iptables  -t ${table} -X ${chainName} 2> /dev/null || true
+      ${ipt} -t ${table} -F ${chainName} 2> /dev/null || true
+      ${ipt} -t ${table} -X ${chainName} 2> /dev/null || true
     '';
 
   appendBlacklistRule = proto: rule: chainName: ''
-    iptables -t filter -A ${chainName} \
+    ${ipt} -t filter -A ${chainName} \
       -p ${proto} --dport ${toString rule.port} \
       -m hashlimit \
       --hashlimit-above ${rule.maxPacketFreq} \
@@ -119,14 +158,88 @@ let
       --hashlimit-mode srcip \
       --hashlimit-name ghaf_conn_limit_${toString rule.port} \
       --hashlimit-htable-max ${toString rule.trackingSize} \
-      -j ghaf-fw-blacklist-add
+      -j ${ghafFwChainPrefix}blacklist-add
 
      ${optionalString (rule.fwMarkNum != blacklistMarkNum) ''
-       iptables -t raw -A PREROUTING \
+       ${ipt} -t raw -A PREROUTING \
          -m set --match-set ${blackListName} src \
          -j MARK --set-mark ${rule.fwMarkNum}
      ''}
   '';
+
+  applyDynamicFirewallRules = pkgs.writeShellApplication {
+    name = "apply-dynamic-firewall-rules";
+    runtimeInputs = with pkgs; [
+      iptables
+      gawk
+      coreutils
+      util-linux
+    ];
+    text = ''
+      TAG="ghaf-dynamic-firewall"
+      log_info() { logger -t "$TAG" -p daemon.info "$*"; }
+      log_err()  { logger -t "$TAG" -p daemon.err  "$*"; }
+
+      # Nothing to do if the rules file doesn't exist yet
+      if [ ! -f "${rulePath}" ]; then
+        log_info "No rules file at ${rulePath}, skipping."
+        exit 0
+      fi
+
+      # Reject any rule that references reserved chain prefixes to prevent
+      # tampering with ghaf or NixOS internal chains
+      RESERVED=$(grep -E '(${ghafFwChainPrefix}|${nixosFwPrefix})' "${rulePath}" || true)
+      if [ -n "$RESERVED" ]; then
+        log_err "Rules must not reference reserved chain prefixes: $RESERVED"
+        exit 1
+      fi
+
+      # Transform rules into a temp file; cleaned up on exit regardless of outcome
+      TRANSFORM=$(mktemp)
+      trap 'rm -f "$TRANSFORM"' EXIT
+
+      # Rewrite built-in chain targets (INPUT, OUTPUT, ...) to their ghaf-fw-dyn-*
+      # counterparts so rules land in sub-chains instead of the base firewall chains.
+      # Built-in chain policy lines (:INPUT ...) and flush commands (-F INPUT) are
+      # dropped — the base firewall manages those.
+      awk '
+        /^\*(filter|nat|mangle|raw)/ { table = substr($0, 2); print; next }
+        /^COMMIT/ { print; next }
+        /^-F (INPUT|OUTPUT|FORWARD|PREROUTING|POSTROUTING)( |$)/ { next }
+        /^:(INPUT|OUTPUT|FORWARD|PREROUTING|POSTROUTING)( |$)/ { next }
+        /^-A / {
+          if ($2 ~ /^(INPUT|OUTPUT|FORWARD|PREROUTING|POSTROUTING)$/) {
+            dyn = "${dynPrefix}" table "-" tolower($2)
+            if (!(dyn in ok)) {
+              ok[dyn] = (system("${ipt} -t " table " -L " dyn " >/dev/null 2>&1") == 0)
+              if (!ok[dyn]) {
+                print "ERROR: " dyn " not found in *" table > "/dev/stderr"
+                exit 1
+              }
+            }
+            $2 = dyn
+          }
+          print; next
+        }
+        { print }
+      ' "${rulePath}" > "$TRANSFORM"
+
+      # Flush all ghaf-fw-dyn-* chains before applying the new rules so stale
+      # entries from the previous run don't accumulate
+      for tbl in filter nat mangle raw; do
+        ${ipt} -t "$tbl" -S 2>/dev/null | awk '/^-N ${dynPrefix}/ { print $2 }' | while IFS= read -r chn; do
+          log_info "Flushing chain $chn (table $tbl)"
+          ${ipt} -t "$tbl" -F "$chn" 2>/dev/null || true
+        done
+      done
+
+      # Apply transformed rules without touching base firewall chains
+      RULE_COUNT=$(grep -c '^-A' "$TRANSFORM" || true)
+      log_info "Applying $RULE_COUNT dynamic firewall rules from ${rulePath}"
+      iptables-restore --noflush < "$TRANSFORM"
+      log_info "Dynamic firewall rules applied successfully."
+    '';
+  };
 
 in
 {
@@ -138,6 +251,18 @@ in
       type = types.bool;
       default = true;
       description = "Ghaf firewall for virtual machines";
+    };
+    chainNamePrefix = mkOption {
+      type = types.str;
+      default = "ghaf-fw-";
+      readOnly = true;
+      description = "Prefix for all ghaf firewall chain names";
+    };
+    cmd = mkOption {
+      type = types.str;
+      readOnly = true;
+      default = "iptables -w";
+      description = "iptables command used for all firewall rules (e.g. 'iptables -w' to wait for xtables lock).";
     };
     blacklistSize = mkOption {
       type = types.int;
@@ -193,12 +318,12 @@ in
                 mangle = mkOption {
                   type = types.listOf types.str;
                   default = [ ];
-                  description = "Extra firewall rules for ghaf-fw-pre-mangle";
+                  description = "Extra firewall rules for ${ghafFwChainPrefix}pre-mangle";
                 };
                 nat = mkOption {
                   type = types.listOf types.str;
                   default = [ ];
-                  description = "Extra firewall rules for ghaf-fw-pre-nat";
+                  description = "Extra firewall rules for ${ghafFwChainPrefix}pre-nat";
                 };
 
               };
@@ -212,7 +337,7 @@ in
                 filter = mkOption {
                   type = types.listOf types.str;
                   default = [ ];
-                  description = "Extra firewall rules for ghaf-fw-in-filter";
+                  description = "Extra firewall rules for ${ghafFwChainPrefix}in-filter";
                 };
 
               };
@@ -227,7 +352,7 @@ in
                 filter = mkOption {
                   type = types.listOf types.str;
                   default = [ ];
-                  description = "Extra firewall rules for ghaf-fw-fwd-filter";
+                  description = "Extra firewall rules for ${ghafFwChainPrefix}fwd-filter";
                 };
               };
             };
@@ -240,7 +365,7 @@ in
                 filter = mkOption {
                   type = types.listOf types.str;
                   default = [ ];
-                  description = "Extra firewall rules for ghaf-fw-out-filter";
+                  description = "Extra firewall rules for ${ghafFwChainPrefix}out-filter";
                 };
               };
             };
@@ -253,7 +378,7 @@ in
                 nat = mkOption {
                   type = types.listOf types.str;
                   default = [ ];
-                  description = "Extra iptables rules for ghaf-fw-post-nat";
+                  description = "Extra iptables rules for ${ghafFwChainPrefix}post-nat";
                 };
               };
             };
@@ -310,87 +435,48 @@ in
           )}
 
           # Set the default policies
-          iptables  -P INPUT DROP
-          iptables  -P FORWARD DROP
-          iptables  -P OUTPUT ACCEPT
+          ${ipt} -P INPUT DROP
+          ${ipt} -P FORWARD DROP
+          ${ipt} -P OUTPUT ACCEPT
 
           # delete ctstate RELATED,ESTABLISHED and lo rules
-          iptables  -D nixos-fw -i lo -j nixos-fw-accept
-          iptables  -D nixos-fw -m conntrack --ctstate ESTABLISHED,RELATED -j nixos-fw-accept
+          ${ipt} -D ${nixosFwPrefix}fw -i lo -j ${nixosFwPrefix}fw-accept
+          ${ipt} -D ${nixosFwPrefix}fw -m conntrack --ctstate ESTABLISHED,RELATED -j ${nixosFwPrefix}fw-accept
 
-          # Remove existing chain hooks and chains before recreating them
-          ${removeIptablesChain "PREROUTING" "mangle" "ghaf-fw-pre-mangle"}
-          ${removeIptablesChain "PREROUTING" "nat" "ghaf-fw-pre-nat"}
-          ${removeIptablesChain "INPUT" "filter" "ghaf-fw-in-filter"}
-          ${removeIptablesChain "FORWARD" "filter" "ghaf-fw-fwd-filter"}
-          ${removeIptablesChain "OUTPUT" "filter" "ghaf-fw-out-filter"}
-          ${removeIptablesChain "POSTROUTING" "nat" "ghaf-fw-post-nat"}
-          ${removeIptablesChain null "filter" "ghaf-fw-filter-drop"}
-          ${removeIptablesChain null "mangle" "ghaf-fw-mangle-drop"}
-          ${removeIptablesChain null "filter" "ghaf-fw-conncheck-accept"}
-          ${removeIptablesChain null "filter" "ghaf-fw-blacklist-add"}
-          ${removeIptablesChain null "filter" "ghaf-fw-ban"}
+          ${setupChain "PREROUTING" "mangle" "${ghafFwChainPrefix}pre-mangle" "-I"}
+          ${setupChain "PREROUTING" "nat" "${ghafFwChainPrefix}pre-nat" "-I"}
+          ${setupChain "INPUT" "filter" "${ghafFwChainPrefix}in-filter" "-I"}
+          ${setupChain "FORWARD" "filter" "${ghafFwChainPrefix}fwd-filter" "-I"}
+          ${setupChain "OUTPUT" "filter" "${ghafFwChainPrefix}out-filter" "-I"}
+          ${setupChain "POSTROUTING" "nat" "${ghafFwChainPrefix}post-nat" "-I"}
+          ${setupChain null "mangle" "${ghafFwChainPrefix}mangle-drop" "-I"}
+          ${setupChain null "filter" "${ghafFwChainPrefix}filter-drop" "-I"}
+          ${setupChain null "filter" "${ghafFwChainPrefix}conncheck-accept" "-I"}
+          ${setupChain null "filter" "${ghafFwChainPrefix}blacklist-add" "-I"}
+          ${setupChain null "filter" "${ghafFwChainPrefix}ban" "-I"}
 
-          #Create custom chain for PREROUTING
-          iptables -t mangle -N ghaf-fw-pre-mangle 2> /dev/null || true
-          iptables -t mangle -I PREROUTING -j ghaf-fw-pre-mangle 2> /dev/null || true
-          iptables -t nat -N ghaf-fw-pre-nat 2> /dev/null || true
-          iptables -t nat -I PREROUTING -j ghaf-fw-pre-nat 2> /dev/null || true
+          ${ipt} -t mangle -A ${ghafFwChainPrefix}mangle-drop -j DROP
+          ${ipt} -t filter -A ${ghafFwChainPrefix}filter-drop -j DROP
 
-          #Create custom chain for INPUT
-          iptables -t filter -N ghaf-fw-in-filter  2> /dev/null || true
-          iptables -t filter -I INPUT -j ghaf-fw-in-filter  2> /dev/null || true
-
-          # Create custom chain for FORWARD
-          iptables -N ghaf-fw-fwd-filter 2> /dev/null || true
-          iptables -I FORWARD -j ghaf-fw-fwd-filter 2> /dev/null || true
-
-
-          # Create custom chain for OUTPUT
-          iptables -t filter -N ghaf-fw-out-filter 2> /dev/null || true
-          iptables -t filter -I OUTPUT -j ghaf-fw-out-filter 2> /dev/null || true
-
-          # Create custom chain for POSTROUTING
-          iptables -t nat -N ghaf-fw-post-nat 2> /dev/null || true
-          iptables -t nat -I POSTROUTING -j ghaf-fw-post-nat 2> /dev/null || true
-
-          # Create custom chain to add debug features for mangle tables
-          iptables -t mangle -N ghaf-fw-mangle-drop 2> /dev/null || true
-          iptables -t mangle -A ghaf-fw-mangle-drop -j DROP
-
-          # Create custom chain to add debug features for filter tables
-          iptables -t filter -N ghaf-fw-filter-drop 2> /dev/null || true
-          iptables -t filter -A ghaf-fw-filter-drop -j DROP
-
-          # Creating custom chain to check connections for filter table
-          iptables -t filter -N ghaf-fw-conncheck-accept 2> /dev/null || true
-
-
-          # Creating ban list add chain
-          iptables -t filter -N ghaf-fw-blacklist-add 2> /dev/null || true
-
-          # Creating ban chain
-          iptables -t filter -N ghaf-fw-ban 2> /dev/null || true
-
-          # ghaf-fw-blacklist-add rules
+          # ${ghafFwChainPrefix}blacklist-add rules
           # Log only if not already in blacklist
-          iptables -t filter -A ghaf-fw-blacklist-add -m set ! --match-set ${blackListName} src -m limit --limit 100/min -j LOG --log-prefix "Blacklist [add]: " --log-level 4
+          ${ipt} -t filter -A ${ghafFwChainPrefix}blacklist-add -m set ! --match-set ${blackListName} src -m limit --limit 100/min -j LOG --log-prefix "Blacklist [add]: " --log-level 4
 
-          iptables -t filter -A ghaf-fw-blacklist-add -j SET --add-set ${blackListName} src --exist
+          ${ipt} -t filter -A ${ghafFwChainPrefix}blacklist-add -j SET --add-set ${blackListName} src --exist
 
           # protection if ${blackListName} is full
-          iptables -t filter -A ghaf-fw-blacklist-add -j DROP
+          ${ipt} -t filter -A ${ghafFwChainPrefix}blacklist-add -j DROP
 
-          # ghaf-fw-ban rules
-          iptables -t filter -A ghaf-fw-ban -m hashlimit --hashlimit 2/min --hashlimit-burst 1 --hashlimit-mode srcip \
+          # ${ghafFwChainPrefix}ban rules
+          ${ipt} -t filter -A ${ghafFwChainPrefix}ban -m hashlimit --hashlimit 2/min --hashlimit-burst 1 --hashlimit-mode srcip \
           --hashlimit-name log_ban_per_ip -j LOG --log-prefix "Packet [ban]: " --log-level 4
 
           # Everything else is dropped.
-          iptables -t filter -A ghaf-fw-ban -j DROP
+          ${ipt} -t filter -A ${ghafFwChainPrefix}ban -j DROP
 
           ### PREROUTING rules ###
           # Mark blacklisted IPs so the current packet is also banned immediately
-          iptables -t raw -A PREROUTING -m set --match-set ${blackListName} src -j MARK --set-xmark ${blacklistMarkNum}/${blacklistMarkNum}
+          ${ipt} -t raw -A PREROUTING -m set --match-set ${blackListName} src -j MARK --set-xmark ${blacklistMarkNum}/${blacklistMarkNum}
           ${addIptablesRules {
             table = "raw";
             chain = "PREROUTING";
@@ -398,48 +484,36 @@ in
           }}
 
           # Drop invalid packets
-          iptables -t mangle -A ghaf-fw-pre-mangle -m conntrack --ctstate INVALID -j ghaf-fw-mangle-drop
+          ${ipt} -t mangle -A ${ghafFwChainPrefix}pre-mangle -m conntrack --ctstate INVALID -j ${ghafFwChainPrefix}mangle-drop
           # Block packets with bogus TCP flags
-          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG NONE -j ghaf-fw-mangle-drop
-          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags FIN,SYN FIN,SYN -j ghaf-fw-mangle-drop
-          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags SYN,RST SYN,RST -j ghaf-fw-mangle-drop
-          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags FIN,RST FIN,RST -j ghaf-fw-mangle-drop
-          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags FIN,ACK FIN -j ghaf-fw-mangle-drop
-          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ACK,URG URG -j ghaf-fw-mangle-drop
-          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ACK,FIN FIN -j ghaf-fw-mangle-drop
-          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ACK,PSH PSH -j ghaf-fw-mangle-drop
-          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ALL ALL -j ghaf-fw-mangle-drop
-          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ALL NONE -j ghaf-fw-mangle-drop
-          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ALL FIN,PSH,URG -j ghaf-fw-mangle-drop
-          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ALL SYN,FIN,PSH,URG -j ghaf-fw-mangle-drop
-          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ALL SYN,RST,ACK,FIN,URG -j ghaf-fw-mangle-drop
+          ${bogusFlags}
 
           ### INPUT rules ###
-          iptables -A ghaf-fw-in-filter -i lo -j ACCEPT
-          iptables -A ghaf-fw-in-filter -m mark --mark ${blacklistMarkNum}/${blacklistMarkNum} -j ghaf-fw-ban
+          ${ipt} -A ${ghafFwChainPrefix}in-filter -i lo -j ACCEPT
+          ${ipt} -A ${ghafFwChainPrefix}in-filter -m mark --mark ${blacklistMarkNum}/${blacklistMarkNum} -j ${ghafFwChainPrefix}ban
 
-          iptables -A ghaf-fw-in-filter -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+          ${ipt} -A ${ghafFwChainPrefix}in-filter -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 
-          # nixos-fw-accept should be flushed to inject our rules
-          iptables -w -F nixos-fw-accept 2> /dev/null || true
+          # ${nixosFwPrefix}fw-accept should be flushed to inject our rules
+          ${ipt} -F ${nixosFwPrefix}fw-accept 2> /dev/null || true
 
-          iptables -w -A nixos-fw-accept -p tcp --syn -m conntrack --ctstate NEW -j ghaf-fw-conncheck-accept
-          iptables -w -A nixos-fw-accept -p udp -m conntrack --ctstate NEW  -j ghaf-fw-conncheck-accept
+          ${ipt} -A ${nixosFwPrefix}fw-accept -p tcp --syn -m conntrack --ctstate NEW -j ${ghafFwChainPrefix}conncheck-accept
+          ${ipt} -A ${nixosFwPrefix}fw-accept -p udp -m conntrack --ctstate NEW  -j ${ghafFwChainPrefix}conncheck-accept
           ${optionalString config.networking.firewall.allowPing ''
-            iptables -w -A nixos-fw-accept -p icmp -m conntrack --ctstate NEW -j ACCEPT
+            ${ipt} -A ${nixosFwPrefix}fw-accept -p icmp -m conntrack --ctstate NEW -j ACCEPT
           ''}
-          iptables -w -A nixos-fw-accept -j nixos-fw-log-refuse
+          ${ipt} -A ${nixosFwPrefix}fw-accept -j ${nixosFwPrefix}fw-log-refuse
           ${concatMapStringsSep "\n" (
-            rule: appendBlacklistRule "tcp" rule "ghaf-fw-conncheck-accept"
+            rule: appendBlacklistRule "tcp" rule "${ghafFwChainPrefix}conncheck-accept"
           ) cfg.tcpBlacklistRules}
           ${concatMapStringsSep "\n" (
-            rule: appendBlacklistRule "udp" rule "ghaf-fw-conncheck-accept"
+            rule: appendBlacklistRule "udp" rule "${ghafFwChainPrefix}conncheck-accept"
           ) cfg.udpBlacklistRules}
 
           # accept the other packets
-          iptables -t filter -A ghaf-fw-conncheck-accept -j ACCEPT
+          ${ipt} -t filter -A ${ghafFwChainPrefix}conncheck-accept -j ACCEPT
           ### FORWARD rules ###
-          iptables -t filter -A ghaf-fw-fwd-filter -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+          ${ipt} -t filter -A ${ghafFwChainPrefix}fwd-filter -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 
           ### OUTPUT rules ###
 
@@ -448,36 +522,36 @@ in
           ### Inject the other rules ###
           ${addIptablesRules {
             table = "mangle";
-            chain = "ghaf-fw-pre-mangle";
+            chain = "${ghafFwChainPrefix}pre-mangle";
             rules = cfg.extra.prerouting.mangle;
           }}
           ${addIptablesRules {
             table = "nat";
-            chain = "ghaf-fw-pre-nat";
+            chain = "${ghafFwChainPrefix}pre-nat";
             rules = cfg.extra.prerouting.nat;
           }}
           ${addIptablesRules {
             table = "filter";
-            chain = "ghaf-fw-in-filter";
+            chain = "${ghafFwChainPrefix}in-filter";
             rules = cfg.extra.input.filter;
             extraForbidden = [ "ACCEPT" ];
             expected = [
-              "ghaf-fw-conncheck-accept"
+              "${ghafFwChainPrefix}conncheck-accept"
             ];
           }}
           ${addIptablesRules {
             table = "filter";
-            chain = "ghaf-fw-fwd-filter";
+            chain = "${ghafFwChainPrefix}fwd-filter";
             rules = cfg.extra.forward.filter;
           }}
           ${addIptablesRules {
             table = "filter";
-            chain = "ghaf-fw-out-filter";
+            chain = "${ghafFwChainPrefix}out-filter";
             rules = cfg.extra.output.filter;
           }}
           ${addIptablesRules {
             table = "nat";
-            chain = "ghaf-fw-post-nat";
+            chain = "${ghafFwChainPrefix}post-nat";
             rules = cfg.extra.postrouting.nat;
           }}
 
@@ -489,6 +563,19 @@ in
 
         '';
       }
+      (mkIf cfg.updater.enable {
+        # Create dedicated dynamic chains jumped from the extension chains.
+        # Only these ${dynPrefix}* chains are flushed and reloaded on live updates,
+        # keeping all core chains (${ghafFwChainPrefix}ban, ${ghafFwChainPrefix}conncheck-accept, etc.) intact.
+        extraCommands = ''
+          ${setupDynChain "filter" "${ghafFwChainPrefix}in-filter" "input"}
+          ${setupDynChain "filter" "${ghafFwChainPrefix}fwd-filter" "forward"}
+          ${setupDynChain "filter" "${ghafFwChainPrefix}out-filter" "output"}
+          ${setupDynChain "mangle" "${ghafFwChainPrefix}pre-mangle" "prerouting"}
+          ${setupDynChain "nat" "${ghafFwChainPrefix}pre-nat" "prerouting"}
+          ${setupDynChain "nat" "${ghafFwChainPrefix}post-nat" "postrouting"}
+        '';
+      })
       cfg.extraOptions
     ];
 
@@ -507,14 +594,14 @@ in
             # marks set in raw PREROUTING are preserved through nat PREROUTING.
             # Use bitmask match so it still applies when other mark bits are set.
             ${lib.concatMapStringsSep "\n" (iface: ''
-              iptables -w -t nat -D nixos-nat-pre -i ${iface} -j MARK --set-mark 1 \
-                || ${natErr "nixos-nat-pre mark rule not found for ${iface}"}
-              iptables -w -t nat -A nixos-nat-pre -i ${iface} -j MARK --set-xmark 0x1/0x1
+              ${ipt} -t nat -D ${nixosFwPrefix}nat-pre -i ${iface} -j MARK --set-mark 1 \
+                || ${natErr "${nixosFwPrefix}nat-pre mark rule not found for ${iface}"}
+              ${ipt} -t nat -A ${nixosFwPrefix}nat-pre -i ${iface} -j MARK --set-xmark 0x1/0x1
             '') natCfg.internalInterfaces}
             ${lib.optionalString (natCfg.internalInterfaces != [ ]) ''
-              iptables -w -t nat -D nixos-nat-post -m mark --mark 1 ${ifaceFlag} ${destFlag} \
-                || ${natErr "nixos-nat-post mark rule not found"}
-              iptables -w -t nat -A nixos-nat-post -m mark --mark 0x1/0x1 ${ifaceFlag} ${destFlag}
+              ${ipt} -t nat -D ${nixosFwPrefix}nat-post -m mark --mark 1 ${ifaceFlag} ${destFlag} \
+                || ${natErr "${nixosFwPrefix}nat-post mark rule not found"}
+              ${ipt} -t nat -A ${nixosFwPrefix}nat-post -m mark --mark 0x1/0x1 ${ifaceFlag} ${destFlag}
             ''}
           '';
         }
@@ -533,24 +620,20 @@ in
       paths.apply-dynamic-firewall-rules = {
         description = "Watch dynamic firewall rules file for changes";
         wantedBy = [ "multi-user.target" ];
-        pathConfig = {
-          PathModified = rulePath;
-        };
+        pathConfig.PathModified = rulePath;
       };
 
       services.apply-dynamic-firewall-rules = {
         description = "Apply dynamic firewall rules";
-        wantedBy = [ "multi-user.target" ];
+        wantedBy = [
+          "multi-user.target"
+          "firewall.service"
+        ];
         after = [ "firewall.service" ];
-        serviceConfig.Type = "oneshot";
-        script = ''
-          if [ -f "${rulePath}" ]; then
-            echo "Dynamic firewall rules found at ${rulePath}, applying..."
-            ${pkgs.iptables}/bin/iptables-restore --noflush < "${rulePath}" || echo "ERROR: Failed to apply dynamic firewall rules."
-          else
-            echo "No dynamic firewall rules found at ${rulePath}, skipping."
-          fi
-        '';
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = lib.getExe applyDynamicFirewallRules;
+        };
       };
     };
   };
