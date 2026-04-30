@@ -204,13 +204,12 @@ dd_with_progress() {
 flash_zst_with_bmap() {
   wipe_device
   TEMP_DIR="$(mktemp -d -t ghaf-flash.XXXXXX)"
-  sparse_name="$(basename "$FILENAME")"
-  sparse_name="${sparse_name%.zst}.raw"
-  SPARSE_IMAGE="$TEMP_DIR/$sparse_name"
+  SPARSE_IMAGE="$(basename "$FILENAME")"
+  SPARSE_IMAGE="$TEMP_DIR/${SPARSE_IMAGE%%.*}.raw"
 
   echo "Preparing sparse image for faster flashing..."
   zstdcat "$FILENAME" | dd_with_progress of="$SPARSE_IMAGE" bs=32M conv=sparse,fsync iflag=fullblock status=none
-  PREBUILT_BMAP="${FILENAME%.zst}.bmap"
+  PREBUILT_BMAP="${FILENAME%%.*}.bmap"
   if [ -f "$PREBUILT_BMAP" ]; then
     SPARSE_BMAP="$PREBUILT_BMAP"
     echo "Using prebuilt block map: $SPARSE_BMAP"
