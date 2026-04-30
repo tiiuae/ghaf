@@ -453,6 +453,14 @@ in
         after = [ "systemd-journald.service" ];
         wants = [ "systemd-journald.service" ];
 
+        unitConfig = {
+          RequiresMountsFor = [
+            cfg.keyPath
+            "/var/log/journal"
+            "/run/log/journal"
+          ];
+        };
+
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
@@ -477,6 +485,11 @@ in
         unitConfig = {
           # Only run if FSS setup has completed successfully
           ConditionPathExists = "${cfg.keyPath}/initialized";
+          RequiresMountsFor = [
+            cfg.keyPath
+            "/var/log/journal"
+            "/run/log/journal"
+          ];
         };
 
         serviceConfig = {

@@ -170,8 +170,17 @@ in
         listenAddress = hostConfig.networking.thisVm.ipv4 or "192.168.100.1";
       };
 
-      # Audit - from globalConfig
-      audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
+      # Audit is force-disabled on net-vm. fss.nix enables audit via
+      # lib.mkForce true because FSS rules depend on it, but on Orin NX the
+      # audit syscall-path overhead stacks with alloy/givc/stunnel/spire
+      # and starves QEMU USB emulation — the xhci_hcd guest driver desyncs
+      # with the event ring and NETDEV WATCHDOG fires on the ethernet
+      # dongle (see vcpu=4 comment below). Bumping vCPUs helps but isn't
+      # enough; disabling audit on this one VM is. mkOverride 10 beats
+      # mkForce's priority 50. Net-vm is the gateway, not the privileged
+      # VM, so the audit-trail loss is modest; admin-vm and guivm keep
+      # full audit coverage.
+      audit.enable = lib.mkOverride 10 false;
       spire.agent = {
         enable = globalConfig.spire.enable or false;
         logLevel = if globalConfig.spire.debug then "DEBUG" else "INFO";
@@ -204,12 +213,27 @@ in
       allowedUDPPorts = [ dnsPort ];
     };
 
+  # Disable mDNS publishing on net-vm. With two live interfaces (internal
+  # ethint0 + USB/Wi-Fi uplink), systemd-resolved hears its own announcements
+  # echo between them and enters an unbounded conflict-resolution loop. The
+  # dynamic hostname `ghaf-NNNNNNNNNN` matches resolved's `<base>-<int>`
+  # pattern, so conflict resolution strips the numeric tail and republishes as
+  # `ghaf-<rand>`, producing thousands of renames per hour. Net-vm never needs
+  # to be discoverable via mDNS, so turn publishing off on both sides.
+  systemd.network.networks."10-ethint0".networkConfig.MulticastDNS = false;
+  networking.networkmanager.connectionConfig."connection.mdns" = 0;
+
   systemd.tmpfiles.rules = [ "d /persist/sysupdate 0755 ghaf root -" ]; # Set permissions for mountpoint
   microvm = {
     # Optimize is disabled because when it is enabled, qemu is built without libusb
     optimize.enable = false;
-    # Sensible defaults - can be overridden via vmConfig
-    vcpu = lib.mkDefault 2;
+    # 4 vCPUs is the minimum that keeps QEMU USB emulation (libusb
+    # redirection of the ethernet dongle) from starving when alloy, givc
+    # node + stunnel, and spire-agent are all active on Orin NX. At 2 vCPUs
+    # the xhci_hcd guest driver desyncs with the QEMU event ring under load
+    # ("Transfer event TRB DMA ptr not part of current TD" + NETDEV WATCHDOG
+    # TX timeouts). AGX is unaffected because it has more cores per slice.
+    vcpu = lib.mkDefault 4;
     # Memory default is set to 1GB as some WiFi drivers require at least that much memory to function properly. This can be overridden via vmConfig.
     mem = lib.mkDefault 1024;
     hypervisor = "qemu";
