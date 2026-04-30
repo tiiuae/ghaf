@@ -59,7 +59,7 @@
 # 4. Monitoring:
 #    - Audit rules monitor FSS key directory and journal access
 #    - AUDIT_LOG_VERIFY_COMPLETED: Successful verification
-#    - AUDIT_LOG_INTEGRITY_FAIL: Failed verification (potential tampering)
+#    - AUDIT_LOG_INTEGRITY_FAIL: Failed verification (integrity or corruption issue)
 #
 # 5. Troubleshooting:
 #    - Manual verification: journalctl --verify
@@ -83,8 +83,21 @@ let
     ;
   cfg = config.ghaf.logging.fss;
   loggingEnabled = config.ghaf.logging.enable;
+  hasPersistentJournalStorage = config.ghaf.type == "host" || config.ghaf.storagevm.enable;
+  hostPersistentJournalPath = "/persist/var/log/journal";
   fssBasePath =
     if config.ghaf.type == "host" then "/persist/common/journal-fss" else "/etc/common/journal-fss";
+  verifyClassifierLib = builtins.readFile ./fss-verify-classifier.sh;
+
+  preparePersistentJournalScript = pkgs.writeShellApplication {
+    name = "journal-fss-prepare-persistent-journal";
+    runtimeInputs = with pkgs; [ coreutils ];
+    text = ''
+      install -d -m 0755 /persist /persist/var /persist/var/log
+      install -d -m 2755 -o root -g systemd-journal ${hostPersistentJournalPath}
+      install -d -m 2755 -o root -g systemd-journal /var/log/journal
+    '';
+  };
 
   # Script to setup FSS keys on first boot
   setupScript = pkgs.writeShellApplication {
@@ -93,53 +106,235 @@ let
       systemd
       coreutils
       gawk
+      findutils
     ];
     text = ''
       export LC_ALL=C
 
+      ${verifyClassifierLib}
+
       KEY_DIR="${cfg.keyPath}"
       INIT_FILE="$KEY_DIR/initialized"
+      VERIFY_KEY_FILE="$KEY_DIR/verification-key"
       MACHINE_ID=$(cat /etc/machine-id)
+      STATE_DIR="/var/log/journal/$MACHINE_ID"
+      PRE_FSS_ARCHIVE_FILE="$STATE_DIR/fss-pre-fss-archive"
+
+      clear_initialized_state() {
+        rm -f "$INIT_FILE"
+      }
+
+      publish_setup_state() {
+        touch "$INIT_FILE"
+        chmod 0644 "$INIT_FILE"
+        # Write config pointer so test scripts can discover KEY_DIR without hostname
+        printf '%s\n' "$KEY_DIR" > "$STATE_DIR/fss-config"
+        chmod 0644 "$STATE_DIR/fss-config"
+      }
+
+      write_pre_fss_archive_record() {
+        local archive_path="$1"
+
+        rm -f "$PRE_FSS_ARCHIVE_FILE"
+        if [ -n "$archive_path" ]; then
+          printf '%s\n' "$archive_path" > "$PRE_FSS_ARCHIVE_FILE"
+          chmod 0644 "$PRE_FSS_ARCHIVE_FILE"
+        fi
+      }
+
+      list_archived_system_journals() {
+        local journal_dir="$1"
+
+        find "$journal_dir" -maxdepth 1 -type f -name 'system@*.journal' -print 2>/dev/null | sort
+      }
+
+      record_rotated_pre_fss_archive() {
+        local before_file="$1"
+        local journal_dir="$2"
+        local archive_path=""
+        local candidate=""
+        local after_file
+
+        after_file=$(mktemp)
+        list_archived_system_journals "$journal_dir" > "$after_file"
+
+        while IFS= read -r archive_path || [ -n "$archive_path" ]; do
+          if [ -z "$archive_path" ]; then
+            continue
+          fi
+
+          if ! grep -Fxq "$archive_path" "$before_file"; then
+            if [ -n "$candidate" ]; then
+              fss_log warn "Multiple new archived system journals detected after rotation; not recording pre-FSS archive."
+              candidate=""
+              break
+            fi
+
+            candidate="$archive_path"
+          fi
+        done < "$after_file"
+
+        rm -f "$after_file"
+        write_pre_fss_archive_record "$candidate"
+      }
+
+      backfill_pre_fss_archive_if_missing() {
+        local journal_dir="$1"
+        local archive_path=""
+        local candidate=""
+        local matching_count=0
+        local marker_mtime=""
+        local archive_mtime=""
+        local delta=0
+        local mtime_tolerance_sec=2
+
+        if [ -s "$PRE_FSS_ARCHIVE_FILE" ]; then
+          return 0
+        fi
+
+        marker_mtime=$(stat -c %Y "$STATE_DIR/fss-rotated" 2>/dev/null || true)
+        if [ -z "$marker_mtime" ]; then
+          fss_log warn "Unable to read fss-rotated timestamp; not backfilling pre-FSS archive metadata."
+          return 0
+        fi
+
+        while IFS= read -r archive_path || [ -n "$archive_path" ]; do
+          if [ -z "$archive_path" ]; then
+            continue
+          fi
+
+          archive_mtime=$(stat -c %Y "$archive_path" 2>/dev/null || true)
+          if [ -z "$archive_mtime" ]; then
+            continue
+          fi
+
+          delta=$((archive_mtime - marker_mtime))
+          if [ "$delta" -lt 0 ]; then
+            delta=$((0 - delta))
+          fi
+
+          if [ "$delta" -le "$mtime_tolerance_sec" ]; then
+            matching_count=$((matching_count + 1))
+            if [ "$matching_count" -gt 1 ]; then
+              fss_log warn "Multiple archived system journals match the FSS rotation timestamp; not backfilling pre-FSS archive metadata."
+              return 0
+            fi
+
+            candidate="$archive_path"
+          fi
+        done < <(list_archived_system_journals "$journal_dir")
+
+        if [ "$matching_count" -eq 1 ] && [ -n "$candidate" ]; then
+          fss_log info "Backfilling recorded pre-FSS archive metadata for $candidate"
+          write_pre_fss_archive_record "$candidate"
+          return 0
+        fi
+
+        fss_log warn "No archived system journal matches the FSS rotation timestamp; not backfilling pre-FSS archive metadata."
+      }
+
+      rotate_to_clean_fss_state() {
+        local journal_dir="$1"
+        local sealing_key_file="$2"
+        local rotated_marker="$STATE_DIR/fss-rotated"
+        local before_file
+        local marker_mtime=""
+        local key_mtime=""
+
+        marker_mtime=$(stat -c %Y "$rotated_marker" 2>/dev/null || true)
+        key_mtime=$(stat -c %Y "$sealing_key_file" 2>/dev/null || true)
+
+        if [ -n "$marker_mtime" ] && [ -n "$key_mtime" ] && [ "$marker_mtime" -ge "$key_mtime" ]; then
+          backfill_pre_fss_archive_if_missing "$journal_dir"
+          return 0
+        fi
+
+        before_file=$(mktemp)
+        list_archived_system_journals "$journal_dir" > "$before_file"
+        fss_log info "Rotating journal to ensure clean FSS state..."
+        journalctl --rotate 2>/dev/null || true
+        record_rotated_pre_fss_archive "$before_file" "$journal_dir"
+        rm -f "$before_file"
+        touch "$rotated_marker"
+        chmod 0644 "$rotated_marker"
+      }
+
+      restart_journald_for_fss_activation() {
+        # Journald only loads the FSS sealing key at startup. If setup previously
+        # failed before this restart, later retries must still reload journald.
+        fss_log info "Restarting journald to enable sealing..."
+        if ! systemctl restart systemd-journald; then
+          fss_log warn "Journald restart failed - sealing may not be active"
+        fi
+      }
+
+      ensure_verification_key_ready() {
+        local verify_key
+
+        if [ ! -s "$VERIFY_KEY_FILE" ]; then
+          fss_log fail "FSS verification key is missing or empty at $VERIFY_KEY_FILE"
+          return 1
+        fi
+
+        if [ ! -r "$VERIFY_KEY_FILE" ]; then
+          fss_log fail "FSS verification key is unreadable at $VERIFY_KEY_FILE"
+          return 1
+        fi
+
+        verify_key=$(tr -d '[:space:]' < "$VERIFY_KEY_FILE")
+        case "$verify_key" in
+          */*) ;;
+          *)
+            fss_log fail "FSS verification key is malformed at $VERIFY_KEY_FILE"
+            return 1
+            ;;
+        esac
+
+        chmod 0400 "$VERIFY_KEY_FILE"
+      }
 
       # Support both persistent and volatile storage
       FSS_KEY_FILE="/var/log/journal/$MACHINE_ID/fss"
       if [ ! -f "$FSS_KEY_FILE" ] && [ -f "/run/log/journal/$MACHINE_ID/fss" ]; then
         FSS_KEY_FILE="/run/log/journal/$MACHINE_ID/fss"
-        echo "Note: Using volatile storage location for FSS keys"
+        fss_log info "Using volatile storage location for FSS keys"
       fi
+      JOURNAL_DIR=$(dirname "$FSS_KEY_FILE")
 
       # Create key directory if it doesn't exist
       mkdir -p "$KEY_DIR"
       chmod 0700 "$KEY_DIR"
 
       # Ensure journal directory exists (for persistent storage)
-      mkdir -p "/var/log/journal/$MACHINE_ID"
+      mkdir -p "$STATE_DIR"
       # Set permissions if possible (may fail in restricted environments like MicroVMs)
       chmod 0755 "/var/log/journal" 2>/dev/null || true
-      chmod 2755 "/var/log/journal/$MACHINE_ID" 2>/dev/null || true
+      chmod 2755 "$STATE_DIR" 2>/dev/null || true
 
       # Check if FSS keys already exist
       if [ -f "$FSS_KEY_FILE" ]; then
-        echo "FSS sealing key already exists at $FSS_KEY_FILE"
-        echo "Setup already complete, creating sentinel file"
-        touch "$INIT_FILE"
-        chmod 0644 "$INIT_FILE"
-        # Write config pointer so test scripts can discover KEY_DIR without hostname
-        echo "$KEY_DIR" > "/var/log/journal/$MACHINE_ID/fss-config"
-        chmod 0644 "/var/log/journal/$MACHINE_ID/fss-config"
-        # One-time rotation to move pre-FSS entries to archive (fixes "Bad message")
-        if [ ! -f "/var/log/journal/$MACHINE_ID/fss-rotated" ]; then
-          echo "Rotating journal to ensure clean FSS state..."
-          journalctl --rotate 2>/dev/null || true
-          touch "/var/log/journal/$MACHINE_ID/fss-rotated"
+        fss_log info "FSS sealing key already exists at $FSS_KEY_FILE"
+        if ! ensure_verification_key_ready; then
+          # Keep sentinel so verify service can detect and alert on KEY_MISSING periodically
+          fss_log warn "Verification key missing but sealing key present. Verify service will alert."
+          publish_setup_state
+          exit 1
         fi
+        fss_log info "Setup already complete, verification key present, creating sentinel file"
+        publish_setup_state
+        if [ ! -f "$STATE_DIR/fss-rotated" ]; then
+          restart_journald_for_fss_activation
+        fi
+        # One-time rotation to move pre-FSS entries to archive (fixes "Bad message")
+        rotate_to_clean_fss_state "$JOURNAL_DIR" "$FSS_KEY_FILE"
         exit 0
       fi
 
       # Generate new FSS keys
-      echo "Setting up Forward Secure Sealing keys..."
+      fss_log info "Setting up Forward Secure Sealing keys..."
+      clear_initialized_state
       if ! journalctl --setup-keys --interval="${cfg.sealInterval}" > "$KEY_DIR/setup-output.txt" 2>&1; then
-        echo "Error: journalctl --setup-keys failed"
+        fss_log fail "journalctl --setup-keys failed"
         cat "$KEY_DIR/setup-output.txt"
         exit 1
       fi
@@ -151,13 +346,13 @@ let
       if tail -1 "$KEY_DIR/setup-output.txt" | tr -d '[:space:]' > "$KEY_DIR/verification-key"; then
         if [ -s "$KEY_DIR/verification-key" ]; then
           chmod 0400 "$KEY_DIR/verification-key"
-          echo "FSS verification key extracted successfully"
-          echo "IMPORTANT: Store verification key off-host in a secure vault"
+          fss_log pass "FSS verification key extracted successfully"
+          fss_log info "IMPORTANT: Store verification key off-host in a secure vault"
         else
-          echo "Warning: Verification key file is empty"
+          fss_log warn "Verification key file is empty"
         fi
       else
-        echo "Warning: Could not extract verification key from output"
+        fss_log warn "Could not extract verification key from output"
       fi
 
       # Securely remove setup output (contains sensitive key material)
@@ -165,33 +360,34 @@ let
 
       # Verify sealing key was created
       if [ ! -f "$FSS_KEY_FILE" ]; then
-        echo "Error: FSS key generation failed - key file not found at $FSS_KEY_FILE"
+        clear_initialized_state
+        fss_log fail "FSS key generation failed - key file not found at $FSS_KEY_FILE"
+        exit 1
+      fi
+
+      if ! ensure_verification_key_ready; then
+        # The sealing key exists now, so keep verify enabled to emit KEY_MISSING
+        # even when verification key export failed during initial setup.
+        fss_log warn "Verification key missing after key generation. Verify service will alert."
+        restart_journald_for_fss_activation
+        rotate_to_clean_fss_state "$JOURNAL_DIR" "$FSS_KEY_FILE"
+        publish_setup_state
         exit 1
       fi
 
       # Restart journald to pick up the new FSS key
       # Journald only checks for FSS keys at startup, so rotation alone is insufficient
-      echo "Restarting journald to enable sealing..."
-      if ! systemctl restart systemd-journald; then
-        echo "Warning: Journald restart failed - sealing may not be active"
-      fi
+      restart_journald_for_fss_activation
 
       # Rotate so active journal starts clean with FSS (pre-FSS entries become archive)
-      journalctl --rotate 2>/dev/null || true
+      rotate_to_clean_fss_state "$JOURNAL_DIR" "$FSS_KEY_FILE"
 
       # Create sentinel file to prevent re-initialization
-      touch "$INIT_FILE"
-      chmod 0644 "$INIT_FILE"
+      publish_setup_state
 
-      # Write config pointer so test scripts can discover KEY_DIR without hostname
-      echo "$KEY_DIR" > "/var/log/journal/$MACHINE_ID/fss-config"
-      chmod 0644 "/var/log/journal/$MACHINE_ID/fss-config"
-
-      touch "/var/log/journal/$MACHINE_ID/fss-rotated"
-
-      echo "Forward Secure Sealing initialization complete"
-      echo "Sealing key: $FSS_KEY_FILE"
-      echo "Verification key: $KEY_DIR/verification-key (if extracted)"
+      fss_log pass "Forward Secure Sealing initialization complete"
+      fss_log info "Sealing key: $FSS_KEY_FILE"
+      fss_log info "Verification key: $VERIFY_KEY_FILE"
     '';
   };
 
@@ -204,97 +400,78 @@ let
       gnugrep
     ];
     text = ''
-      echo "Verifying journal integrity with Forward Secure Sealing..."
+            ${verifyClassifierLib}
 
-      # Check if any journals exist to verify
-      if ! journalctl --list-boots >/dev/null 2>&1; then
-        echo "No journals found to verify, skipping verification"
-        echo "This is normal on fresh boot before journals are created"
-        exit 0
-      fi
+            audit_log() {
+              printf '%s\n' "$2" | systemd-cat -t journal-fss -p "$1"
+            }
 
-      # Check if verification key exists and use it
-      VERIFY_KEY_FILE="${cfg.keyPath}/verification-key"
-      VERIFY_CMD="journalctl --verify"
-      if [ -f "$VERIFY_KEY_FILE" ] && [ -s "$VERIFY_KEY_FILE" ]; then
-        VERIFY_KEY=$(cat "$VERIFY_KEY_FILE")
-        VERIFY_CMD="journalctl --verify --verify-key=$VERIFY_KEY"
-        echo "Using verification key from $VERIFY_KEY_FILE"
-        # Diagnostic: Show key length for troubleshooting
-        KEY_LENGTH=$(echo -n "$VERIFY_KEY" | wc -c)
-        echo "Verification key length: $KEY_LENGTH bytes (expected: 30-40 bytes)"
-      else
-        echo "WARNING: No verification key found at $VERIFY_KEY_FILE"
-        echo "Running verification without key - sealed journals will fail verification"
-      fi
+            fss_log info "Verifying journal integrity with Forward Secure Sealing..."
 
-      # Capture output and exit code
-      VERIFY_OUTPUT=$($VERIFY_CMD 2>&1) || VERIFY_EXIT=$?
-      VERIFY_EXIT=''${VERIFY_EXIT:-0}
+            if ! journalctl --list-boots >/dev/null 2>&1; then
+              fss_log info "No journals found to verify (normal on fresh boot)"
+              exit 0
+            fi
 
-      # Check for actual integrity failures (FAIL/Failed in output)
-      # Catches: "FAIL", "Failed to parse seed", "verification failed", etc.
-      if echo "$VERIFY_OUTPUT" | grep -qi "FAIL"; then
-        # Provide specific guidance for seed parsing failures
-        if echo "$VERIFY_OUTPUT" | grep -qi "parse.*seed"; then
-          echo "AUDIT_LOG_INTEGRITY_FAIL: FSS seed parsing failed - verification key is malformed or incomplete" | systemd-cat -t journal-fss -p crit
-          echo "Journal integrity verification: FAILED (seed parsing error)"
-          echo "Output: $VERIFY_OUTPUT"
-          echo ""
-          echo "This error indicates the verification key is incomplete or corrupted."
-          echo "The verification key should be 30-40 bytes and contain '/' separator."
-          echo ""
-          echo "To fix:"
-          echo "1. Reset FSS: rm ${cfg.keyPath}/initialized && rm /var/log/journal/*/fss"
-          echo "2. Reboot to regenerate keys with correct extraction"
-          echo "3. Backup the new verification key from ${cfg.keyPath}/verification-key"
-          exit 1
-        # Check if only user journals failed (not system journal)
-        # User journals may fail due to entries written before FSS initialization
-        elif echo "$VERIFY_OUTPUT" | grep -qi "FAIL:.*user-.*\.journal\|user-.*\.journal.*FAIL"; then
-          if ! echo "$VERIFY_OUTPUT" | grep -qi "FAIL:.*system\.journal\|system\.journal.*FAIL"; then
-            echo "WARNING: User journal verification failed but system journal OK" | systemd-cat -t journal-fss -p warning
-            echo "Journal integrity verification: PARTIAL (user journals failed, system journal OK)"
-            echo "Output: $VERIFY_OUTPUT"
-            echo ""
-            echo "User journal failures are typically caused by entries written before FSS initialization."
-            echo "This is expected during initial setup and does not indicate tampering."
-            # Continue without failing - system journal integrity is what matters
-          else
-            echo "AUDIT_LOG_INTEGRITY_FAIL: Journal integrity verification FAILED - potential tampering detected" | systemd-cat -t journal-fss -p crit
-            echo "Journal integrity verification: FAILED"
-            echo "Output: $VERIFY_OUTPUT"
-            echo "WARNING: Audit log integrity compromised - alert sent to central logging"
-            exit 1
-          fi
-        else
-          echo "AUDIT_LOG_INTEGRITY_FAIL: Journal integrity verification FAILED - potential tampering detected" | systemd-cat -t journal-fss -p crit
-          echo "Journal integrity verification: FAILED"
-          echo "Output: $VERIFY_OUTPUT"
-          echo "WARNING: Audit log integrity compromised - alert sent to central logging"
-          exit 1
-        fi
-      fi
+            VERIFY_KEY_FILE="${cfg.keyPath}/verification-key"
+            if [ ! -s "$VERIFY_KEY_FILE" ] || [ ! -r "$VERIFY_KEY_FILE" ]; then
+              audit_log crit "AUDIT_LOG_INTEGRITY_FAIL: Journal verification key missing, empty, or unreadable [KEY_MISSING]"
+              fss_log fail "Journal integrity verification: FAILED (verification key missing, empty, or unreadable at $VERIFY_KEY_FILE)"
+              exit 1
+            fi
 
-      # Check for permission/filesystem errors that don't indicate tampering
-      if echo "$VERIFY_OUTPUT" | grep -qi "read-only file system\|permission denied\|cannot create"; then
-        echo "WARNING: Journal verification encountered filesystem errors (not an integrity failure)" | systemd-cat -t journal-fss -p warning
-        echo "Journal integrity verification: SKIPPED (filesystem errors)"
-        echo "Output: $VERIFY_OUTPUT"
-        echo "Note: This may be due to security hardening restrictions, not actual tampering"
-        exit 0
-      fi
+            MACHINE_ID=$(cat /etc/machine-id)
+            PRE_FSS_ARCHIVE_FILE="/var/log/journal/$MACHINE_ID/fss-pre-fss-archive"
+            RECOVERY_ARCHIVES_FILE="/var/log/journal/$MACHINE_ID/fss-recovery-archives"
+            VERIFY_KEY=$(cat "$VERIFY_KEY_FILE")
 
-      # If we got here with non-zero exit but no specific errors, treat as success with warning
-      if [ "$VERIFY_EXIT" -ne 0 ]; then
-        echo "Journal verification returned non-zero exit but no critical errors detected" | systemd-cat -t journal-fss -p warning
-        echo "Output: $VERIFY_OUTPUT"
-      fi
+            VERIFY_EXIT=0
+            VERIFY_OUTPUT=$(journalctl --verify --verify-key="$VERIFY_KEY" 2>&1) || VERIFY_EXIT=$?
 
-      # Success case
-      echo "AUDIT_LOG_VERIFY_COMPLETED: Journal integrity verification passed" | systemd-cat -t journal-fss -p info
-      echo "Journal integrity verification: PASSED"
-      exit 0
+            fss_classify_verify_output "$VERIFY_OUTPUT"
+            fss_verify_policy_decision \
+              "$(fss_read_recorded_pre_fss_archive "$PRE_FSS_ARCHIVE_FILE")" \
+              "$(fss_read_recorded_archive_list "$RECOVERY_ARCHIVES_FILE")"
+
+            case "$FSS_VERDICT" in
+            fail)
+              audit_log crit "AUDIT_LOG_INTEGRITY_FAIL: Journal integrity verification FAILED [$FSS_VERDICT_TAGS]"
+              fss_log fail "Journal integrity verification: FAILED ($FSS_VERDICT_REASON)"
+              fss_log_block <<EOF
+      Output: $VERIFY_OUTPUT
+      EOF
+              if [ "$FSS_KEY_PARSE_ERROR" = 1 ] || [ "$FSS_KEY_REQUIRED_ERROR" = 1 ]; then
+                fss_log_block <<EOF
+      The verification key is missing, malformed, or unreadable by journalctl.
+      To recover:
+        1. rm ${cfg.keyPath}/initialized && rm /var/log/journal/*/fss
+        2. Reboot to regenerate keys
+        3. Back up the new ${cfg.keyPath}/verification-key
+      EOF
+              fi
+              exit 1
+              ;;
+            partial)
+              audit_log warning "WARNING: Journal integrity verification PARTIAL [$FSS_VERDICT_TAGS]"
+              fss_log warn "Journal integrity verification: PARTIAL ($FSS_VERDICT_REASON)"
+              fss_log_block <<EOF
+      Output: $VERIFY_OUTPUT
+      EOF
+              exit 0
+              ;;
+            pass)
+              audit_log info "AUDIT_LOG_VERIFY_COMPLETED: Journal integrity verification passed"
+              if [ -n "$FSS_VERDICT_REASON" ]; then
+                fss_log pass "Journal integrity verification: PASSED ($FSS_VERDICT_REASON)"
+              else
+                fss_log pass "Journal integrity verification: PASSED"
+              fi
+              if [ "$VERIFY_EXIT" -ne 0 ]; then
+                fss_log info "Note: journalctl --verify returned exit $VERIFY_EXIT without critical errors [$FSS_VERDICT_TAGS]"
+              fi
+              exit 0
+              ;;
+            esac
     '';
   };
 in
@@ -304,10 +481,11 @@ in
   options.ghaf.logging.fss = {
     enable = mkOption {
       type = types.bool;
-      default = loggingEnabled;
+      default = loggingEnabled && hasPersistentJournalStorage;
       description = ''
         Enable Forward Secure Sealing for systemd journal logs.
-        Automatically enabled when ghaf.logging.enable is true.
+        Automatically enabled when ghaf.logging.enable is true and the
+        component has persistent journal storage.
 
         FSS provides cryptographic tamper-evidence for audit logs
         using HMAC-based sealing chains. Any tampering will break
@@ -425,11 +603,27 @@ in
   };
 
   config = mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = hasPersistentJournalStorage;
+        message = "FSS on VMs requires ghaf.storagevm.enable so /var/log/journal and the journald sealing key are persisted.";
+      }
+    ];
+
     # Enable audit subsystem for FSS monitoring
     # This provides auditctl and enables the audit rules defined below
     # FSS requires audit to be enabled, so we use mkForce to ensure it's on
     # regardless of profile settings (audit is fundamental to FSS functionality)
     ghaf.security.audit.enable = lib.mkForce true;
+
+    # FSS is only meaningful for persistent journals. The journald sealing key
+    # lives beside the journal files and is advanced by journald over time.
+    services.journald.extraConfig = lib.mkAfter ''
+      Storage=persistent
+      Seal=yes
+    '';
+
+    ghaf.storagevm.preserveLogs = mkIf (config.ghaf.type != "host") true;
 
     # Create key directory and journal directory via tmpfiles
     # Note: In VMs, ${cfg.keyPath} is a virtiofs mount point, so we only create it on host
@@ -438,60 +632,127 @@ in
         lib.optionals (config.ghaf.type == "host") [
           "d /persist/common/journal-fss 0755 root root - -"
           "d ${cfg.keyPath} 0700 root root - -"
+          "d /persist/var 0755 root root - -"
+          "d /persist/var/log 0755 root root - -"
+          "d ${hostPersistentJournalPath} 2755 root systemd-journal - -"
         ]
         ++ [
-          "d /var/log/journal 0755 root systemd-journal - -"
+          "d /var/log/journal 2755 root systemd-journal - -"
         ];
 
-      # One-shot service to generate FSS keys on first boot
-      # Runs after journald is ready, then restarts journald to enable sealing
-      services.journal-fss-setup = {
-        description = "Setup Forward Secure Sealing keys for systemd journal";
-        documentation = [ "man:journalctl(1)" ];
-
-        wantedBy = [ "multi-user.target" ];
-        after = [ "systemd-journald.service" ];
-        wants = [ "systemd-journald.service" ];
-
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          ExecStart = getExe setupScript;
-        };
-      };
-
-      # Service to verify journal integrity
-      services.journal-fss-verify = {
-        description = "Verify systemd journal integrity using Forward Secure Sealing";
-        documentation = [ "man:journalctl(1)" ];
-
-        after = [
-          "systemd-journald.service"
-          "journal-fss-setup.service"
-        ];
-        wants = [
-          "systemd-journald.service"
-          "journal-fss-setup.service"
-        ];
-
-        unitConfig = {
-          # Only run if FSS setup has completed successfully
-          ConditionPathExists = "${cfg.keyPath}/initialized";
-        };
-
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = getExe verifyScript;
-          WorkingDirectory = "/";
-
-          # File system access required for journal verification
-          # journalctl --verify needs write access to create verification metadata
-          # Also needs read access to verification key for sealed journal validation
-          ReadWritePaths = [
-            "/var/log/journal"
-            "/run/log/journal"
-            cfg.keyPath
+      mounts = lib.optionals (config.ghaf.type == "host") [
+        {
+          what = hostPersistentJournalPath;
+          where = "/var/log/journal";
+          type = "none";
+          options = "bind";
+          wantedBy = [ "local-fs.target" ];
+          requiredBy = [ "journal-fss-setup.service" ];
+          requires = [ "journal-fss-prepare-persistent-journal.service" ];
+          after = [
+            "journal-fss-prepare-persistent-journal.service"
+            "persist.mount"
           ];
+          before = [
+            "systemd-journal-flush.service"
+            "journal-fss-setup.service"
+          ];
+          unitConfig.DefaultDependencies = false;
+        }
+      ];
+
+      services = {
+        journal-fss-prepare-persistent-journal = mkIf (config.ghaf.type == "host") {
+          description = "Prepare persistent journal storage for FSS";
+
+          after = [
+            "local-fs-pre.target"
+            "persist.mount"
+          ];
+          before = [
+            "var-log-journal.mount"
+            "systemd-journal-flush.service"
+            "journal-fss-setup.service"
+          ];
+
+          unitConfig = {
+            DefaultDependencies = false;
+            RequiresMountsFor = [ "/persist" ];
+          };
+
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            ExecStart = getExe preparePersistentJournalScript;
+          };
+        };
+
+        # One-shot service to generate FSS keys on first boot
+        # Runs after journald is ready, then restarts journald to enable sealing
+        journal-fss-setup = {
+          description = "Setup Forward Secure Sealing keys for systemd journal";
+          documentation = [ "man:journalctl(1)" ];
+
+          wantedBy = [ "multi-user.target" ];
+          after = [
+            "systemd-journald.service"
+            "systemd-journal-flush.service"
+          ]
+          ++ lib.optionals (config.ghaf.type == "host") [
+            "var-log-journal.mount"
+          ];
+          wants = [
+            "systemd-journald.service"
+            "systemd-journal-flush.service"
+          ];
+
+          unitConfig = {
+            RequiresMountsFor = [
+              cfg.keyPath
+              "/var/log/journal"
+            ];
+          };
+
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            ExecStart = getExe setupScript;
+          };
+        };
+
+        # Service to verify journal integrity
+        journal-fss-verify = {
+          description = "Verify systemd journal integrity using Forward Secure Sealing";
+          documentation = [ "man:journalctl(1)" ];
+
+          after = [
+            "systemd-journald.service"
+            "journal-fss-setup.service"
+          ];
+          wants = [
+            "systemd-journald.service"
+            "journal-fss-setup.service"
+          ];
+
+          unitConfig = {
+            # Only run if FSS setup has completed successfully
+            ConditionPathExists = "${cfg.keyPath}/initialized";
+          };
+
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = getExe verifyScript;
+            WorkingDirectory = "/";
+
+            # File system access required for journal verification
+            # journalctl --verify needs write access to create verification metadata
+            # Also needs read access to verification key for sealed journal validation
+            ReadWritePaths = [
+              "/var/log/journal"
+              "/run/log/journal"
+              cfg.keyPath
+            ];
+          };
         };
       };
 

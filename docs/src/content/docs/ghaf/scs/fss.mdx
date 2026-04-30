@@ -28,7 +28,7 @@ ghaf.logging.fss = {
 ### Seal Interval Considerations
 
 | Interval | Tamper Granularity | Storage Overhead | Verification Time |
-|----------|--------------------|------------------|-------------------|
+| -------- | ------------------ | ---------------- | ----------------- |
 | 5min     | Fine               | Higher (~2%)     | Longer            |
 | 15min    | Moderate           | Moderate (~0.5%) | Moderate          |
 | 1h       | Coarse             | Lower (~0.1%)    | Faster            |
@@ -37,10 +37,15 @@ ghaf.logging.fss = {
 
 ### Key Locations
 
-| Component | Sealing Key | Verification Key |
-|-----------|-------------|------------------|
-| Host | `/var/log/journal/<id>/fss` | `/persist/common/journal-fss/ghaf-host/verification-key` |
-| VMs | `/var/log/journal/<id>/fss` | `/etc/common/journal-fss/<vm-name>/verification-key` |
+| Component | Sealing Key                 | Verification Key                                         |
+| --------- | --------------------------- | -------------------------------------------------------- |
+| Host      | `/var/log/journal/<id>/fss` | `/persist/common/journal-fss/ghaf-host/verification-key` |
+| VMs       | `/var/log/journal/<id>/fss` | `/etc/common/journal-fss/<vm-name>/verification-key`     |
+
+On the host, `/var/log/journal` is bind-mounted from `/persist/var/log/journal`
+when FSS is enabled. In VMs, FSS is enabled only when StorageVM-backed journal
+preservation is available so the journal directory and journald sealing key
+survive reboot.
 
 ### Verification Key Backup
 
@@ -55,6 +60,7 @@ cat /persist/common/journal-fss/ghaf-host/verification-key
 ```
 
 The verification key enables:
+
 - Independent verification of exported journal archives
 - Audit by external parties without access to the live system
 - Disaster recovery verification
@@ -98,6 +104,7 @@ ssh root@ghaf-host /tmp/fss-test
 ```
 
 The test verifies:
+
 1. FSS setup service completed
 2. Sealing key exists
 3. Verification key extracted
@@ -146,19 +153,21 @@ journalctl --verify --verify-key=<verification-key> --file=journal.export
 
 ### Verification Fails with "FAIL"
 
-Indicates potential tampering or corruption:
+Indicates an integrity or corruption issue:
 
 ```bash
 # Check which files failed
 journalctl --verify 2>&1 | grep FAIL
 
 # If only .journal~ files fail, these are temp files (not critical)
-# Real failures affect .journal files
+# If only user-*.journal or system@*.journal fail while system.journal passes,
+# treat this as a warning and investigate journal rotation/recovery timing.
+# Active system.journal failures remain critical.
 ```
 
 ### "Failed to parse seed" Error
 
-The verification key is malformed:
+The verification key is malformed or unavailable:
 
 ```bash
 # Check key format (should be ~35 bytes with '/' separator)
