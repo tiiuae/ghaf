@@ -481,11 +481,14 @@ in
   options.ghaf.logging.fss = {
     enable = mkOption {
       type = types.bool;
-      default = loggingEnabled && hasPersistentJournalStorage;
+      default = loggingEnabled;
       description = ''
         Enable Forward Secure Sealing for systemd journal logs.
-        Automatically enabled when ghaf.logging.enable is true and the
-        component has persistent journal storage.
+        Automatically enabled when ghaf.logging.enable is true.
+
+        VM components must also enable ghaf.storagevm.enable so /var/log/journal
+        and the journald sealing key are persisted. Set this option explicitly
+        to false only for intentionally stateless logged VMs.
 
         FSS provides cryptographic tamper-evidence for audit logs
         using HMAC-based sealing chains. Any tampering will break
