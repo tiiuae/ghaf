@@ -9,4 +9,7 @@
     mode = lib.mkDefault "auto";
     s2idleModels = [ "System76 Darter Pro" ];
   };
+
+  # Add system76 and system76-io kernel modules to host
+  hardware.system76.kernel-modules.enable = true;
 }
