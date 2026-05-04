@@ -116,6 +116,7 @@ pkgs.testers.nixosTest {
 
       config = {
         ghaf.logging.enable = true;
+        ghaf.logging.fss.enable = lib.mkForce false;
         ghaf.storagevm.enable = lib.mkForce false;
         networking.hostName = "stateless-vm";
       };

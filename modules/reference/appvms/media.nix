@@ -36,8 +36,12 @@ in
         vtpm.enable = lib.mkDefault true;
         extraModules = [
           {
-            # This vm should be stateless so nothing stored between boots
-            ghaf.storagevm.enable = lib.mkForce false;
+            # Keep application/user state ephemeral while preserving the
+            # machine-id, journals, and FSS sealing state required for logging.
+            ghaf.storagevm = {
+              directories = lib.mkForce [ ];
+              users = lib.mkForce { };
+            };
 
             # Handle document, image, and video open requests
             ghaf.xdghandlers = {
