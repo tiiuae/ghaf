@@ -45,7 +45,7 @@ in
               comms.enable = true;
               flatpak.enable = true;
               gala.enable = false;
-              zathura.enable = true;
+              media.enable = true;
             };
           };
 
@@ -167,7 +167,7 @@ in
           chrome.enable = true;
           comms.enable = true;
           flatpak.enable = true;
-          zathura.enable = true;
+          media.enable = true;
         };
 
         services = {

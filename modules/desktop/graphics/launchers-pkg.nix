@@ -37,10 +37,11 @@ let
         categories
         exec
         noDisplay
+        onlyShowIn
         ;
       inherit icon startupWMClass;
       desktopName = "${prefix}${launcherElem.desktopName}";
-      comment = "${prefix}${launcherElem.description}";
+      comment = if launcherElem.description != null then "${prefix}${launcherElem.description}" else null;
     }).overrideAttrs
       (prevAttrs: {
         checkPhase = prevAttrs.checkPhase + extraCheckPhase;

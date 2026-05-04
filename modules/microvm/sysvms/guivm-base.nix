@@ -269,7 +269,7 @@ in
       spire.agent = {
         enable = globalConfig.spire.enable or false;
         logLevel = if globalConfig.spire.debug then "DEBUG" else "INFO";
-        nodeAttestationMode = "join_token";
+        nodeAttestationMode = if globalConfig.givc.enable then "x509pop" else "join_token";
       };
     };
   };
@@ -373,7 +373,7 @@ in
     optimize.enable = false;
     # Sensible defaults - can be overridden via vmConfig
     vcpu = lib.mkDefault 6;
-    mem = lib.mkDefault 12288;
+    mem = lib.mkDefault 8192;
     hypervisor = "qemu";
 
     shares = [

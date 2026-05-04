@@ -12,20 +12,31 @@ if [ -z "$IMG_PATH" ]; then
   exit
 fi
 
-usage() {
-  echo " "
-  echo "Usage: $(basename "$0") [-w] [-e] [-s]"
-  echo "  -w  Wipe only"
-  echo "  -e  Install with disk encryption"
-  echo "  -s  Install with Secure Boot enrollment"
-  exit 1
+help_msg() {
+  cat <<EOF
+Usage: $(basename "$0") [OPTIONS]
+
+Ghaf installation script
+
+Options:
+  -w            Wipe only
+  -e            Install with disk encryption
+  -s            Install with Secure Boot enrollment
+  -h, --help    Show this help message and exit.
+Examples:
+  $(basename "$0") -w
+  $(basename "$0") -e
+  $(basename "$0") -s
+  $(basename "$0") -e -s
+
+EOF
 }
 
 WIPE_ONLY=false
 ENCRYPTED_INSTALL=false
 SECUREBOOT_INSTALL=false
 
-while getopts "wes" opt; do
+while getopts "wesh" opt; do
   case $opt in
   w)
     WIPE_ONLY=true
@@ -36,8 +47,13 @@ while getopts "wes" opt; do
   s)
     SECUREBOOT_INSTALL=true
     ;;
+  h)
+    help_msg
+    exit 0
+    ;;
   ?)
-    usage
+    help_msg
+    exit 1
     ;;
   esac
 done

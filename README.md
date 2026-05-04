@@ -16,8 +16,11 @@
 
 This repository contains the source files (code and documentation) of Ghaf Framework — an open-source project for enhancing security through compartmentalization on edge devices.
 
-For information on build instructions and supported hardware, see the [Reference Implementations](https://ghaf.tii.ae/ghaf/dev/ref/) section of Ghaf documentation.
+## Getting Started
 
+- [Installation](https://ghaf.tii.ae/ghaf/dev/ref/installer/) — how to create and use the Ghaf installer
+- [Build and run](https://ghaf.tii.ae/ghaf/dev/ref/build_and_run/) — how to build Ghaf images and run them
+- [Reference implementations](https://ghaf.tii.ae/ghaf/dev/ref/) — supported hardware and configuration reference
 
 ### Documentation
 
@@ -29,21 +32,19 @@ To build Ghaf documentation, use:
 
 See the documentation overview under [README-docs.md](./docs/README-docs.md).
 
-
 ## Other Project Repositories
 
 Other repositories that are a part of the Ghaf project:
 
-* [sbomnix](https://github.com/tiiuae/sbomnix): a utility that generates SBOMs given Nix derivations or out paths
-* [ghaf-infra](https://github.com/tiiuae/ghaf-infra), [ci-test-automation](https://github.com/tiiuae/ci-test-automation), [ghafscan](https://github.com/tiiuae/ghafscan): CI/CD related files
-* [ghafpkgs](https://github.com/tiiuae/ghafpkgs): a repository for Ghaf-specific Nix packages
-* [ghaf-installation-wizard](https://github.com/tiiuae/ghaf-installation-wizard): helps you install Ghaf for the first time
-
+- [sbomnix](https://github.com/tiiuae/sbomnix): a utility that generates SBOMs given Nix derivations or out paths
+- [ghaf-infra](https://github.com/tiiuae/ghaf-infra), [ci-test-automation](https://github.com/tiiuae/ci-test-automation), [ghafscan](https://github.com/tiiuae/ghafscan): CI/CD related files
+- [ghafpkgs](https://github.com/tiiuae/ghafpkgs): a repository for Ghaf-specific Nix packages
+- [ghaf-givc](https://github.com/tiiuae/ghaf-givc): a gRPC-based control channel for the Ghaf Framework
+- [vhotplug](https://github.com/tiiuae/vhotplug): a service for dynamically managing USB, PCI, and input device passthrough to virtual machines based on configurable rules
 
 ## Build System
 
 Ghaf images are built and tested by our continuous integration system. For more information on a general process, see [Continuous Integration and Distribution](https://ghaf.tii.ae/ghaf/scs/ci-cd-system/).
-
 
 ## Contributing
 
@@ -53,14 +54,13 @@ If you would like to contribute, please read [CONTRIBUTING.md](CONTRIBUTING.md) 
 
 In case of any bugs or errors in the content, feel free to create an [issue](https://github.com/tiiuae/ghaf/issues). You can also [create an issue from code](https://docs.github.com/en/issues/tracking-your-work-with-issues/creating-an-issue#creating-an-issue-from-code).
 
-
 ## Licensing
 
 The Ghaf team uses multiple licenses to distribute software and documentation:
 
-| License Full Name | SPDX Short Identifier | Description |
-| -------- | ----------- | ----------- |
-| Apache License 2.0 | [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html) | Ghaf source code. |
+| License Full Name                                          | SPDX Short Identifier                                       | Description         |
+| ---------------------------------------------------------- | ----------------------------------------------------------- | ------------------- |
+| Apache License 2.0                                         | [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)     | Ghaf source code.   |
 | Creative Commons Attribution Share Alike 4.0 International | [CC-BY-SA-4.0](https://spdx.org/licenses/CC-BY-SA-4.0.html) | Ghaf documentation. |
 
 See [LICENSE.Apache-2.0](./LICENSES/Apache-2.0.txt) and [LICENSE.CC-BY-SA-4.0](./LICENSES/CC-BY-SA-4.0.txt) for the full license text.

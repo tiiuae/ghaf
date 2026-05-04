@@ -20,23 +20,26 @@
           devshell = {
             name = "Ghaf devshell";
             meta.description = "Ghaf development environment";
-            packages = [
-              pkgs.jq
-              pkgs.nix-eval-jobs
-              pkgs.nix-fast-build
-              pkgs.nix-output-monitor
-              pkgs.nix-tree
-              pkgs.nixVersions.latest
-              pkgs.reuse
-              pkgs.prefetch-npm-deps
-              config.treefmt.build.wrapper
-              self'.legacyPackages.ghaf-build-helper
-              self'.legacyPackages.flash-script
-              self'.legacyPackages.update-docs-depends
-              pkgs.cachix
-            ]
-            ++ config.pre-commit.settings.enabledPackages
-            ++ lib.attrValues config.treefmt.build.programs; # make all the trefmt packages available
+            packages =
+              with pkgs;
+              [
+                bmaptool
+                cachix
+                config.treefmt.build.wrapper
+                jq
+                nix-eval-jobs
+                nix-fast-build
+                nix-output-monitor
+                nix-tree
+                nixVersions.latest
+                prefetch-npm-deps
+                reuse
+                self'.legacyPackages.flash-script
+                self'.legacyPackages.ghaf-build-helper
+                self'.legacyPackages.update-docs-depends
+              ]
+              ++ config.pre-commit.settings.enabledPackages
+              ++ lib.attrValues config.treefmt.build.programs; # make all the treefmt packages available
 
             startup.hook.text = config.pre-commit.installationScript;
           };

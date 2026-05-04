@@ -1,51 +1,91 @@
 ---
-title: Installer
+title: Installation
 ---
-
-## Configuring and Building Installer for Ghaf
-
-You can obtain the installation image for your Ghaf configuration.
-
-In addition to the live USB image that Ghaf provides it is also possible to install Ghaf. This can either be achieved by downloading the desired image or by building it as described below.
-
-Currently, only x86_64-linux systems are supported by the standalone installer.
-
-To build, for example, the debug image for the Lenovo x1, use the following command:
-
-```sh
-nix build .#lenovo-x1-carbon-gen11-debug-installer
-```
-
-## Flashing Installer
-
-Once built you must transfer it to the desired installation media. It requires at least a 4GB SSD, at the time of writing.
-
-```sh
-sudo dd if=./result/iso/ghaf-<version>-x86_64-linux.iso of=/dev/<SSD_NAME> bs=32M status=progress; sync
-```
-
-## Installing Image
 
 import { Aside } from "@astrojs/starlight/components";
 
-<Aside type="caution">
-  This operation is destructive and will overwrite your system.
+<Aside type="note">
+  To build the installer locally, you need to have Nix set up first. See the
+  [build and run guide](https://ghaf.tii.ae/ghaf/dev/ref/build_and_run/) for
+  instructions.
 </Aside>
 
-Insert the SSD into the laptop, boot, and select the option to install.
+## Obtaining the Ghaf Installer
 
-Then use the following command:
+Ghaf installer ISO images can be downloaded or built locally as described below.
 
-```sh
-sudo ghaf-install.sh
-```
+Currently, only x86_64-linux systems are supported.
 
-Check the available options shown in the prompt for the install target. Mind that the `/dev/sdX` is likely the install medium.
-
-Once entered, include `/dev` and press [Enter] on the keyboard to complete the process.
+To build, for example, the Ghaf installer for Intel laptops (debug variant), run:
 
 ```sh
-sudo reboot
+nix build .#intel-laptop-debug-installer
 ```
 
-Remove the installer drive.
+## Making the Installation Media
+
+Plug in a USB stick or external drive large enough to hold the image (16 GB recommended), then follow the instructions for your platform.
+
+### From Linux
+
+1. Identify the device with `lsblk` or `fdisk -l`. Use the device name (e.g. `sdb`) in place of `sdX` in the steps below.
+2. Unmount all partitions on the device:
+
+   ```sh
+   sudo umount /dev/sdX*
+   ```
+
+3. Write the image to the drive, replacing `path_to_ghaf.iso` with the actual path:
+   ```sh
+   sudo dd if=path_to_ghaf.iso of=/dev/sdX bs=32M status=progress; sync
+   ```
+
+### From macOS
+
+1. Identify the device with `diskutil list`. Use the device name (e.g. `disk1`) in place of `diskX` in the steps below.
+2. Unmount all partitions on the device:
+
+   ```sh
+   diskutil unmountDisk diskX
+   ```
+
+3. Write the image to the drive, replacing `path_to_ghaf.iso` with the actual path:
+
+   ```sh
+   sudo dd if=path_to_ghaf.iso of=/dev/diskX
+   ```
+
+4. Eject the disk once complete:
+   ```sh
+   diskutil eject /dev/diskX
+   ```
+
+### From Windows
+
+1. Download and open [USBwriter](http://sourceforge.net/projects/usbwriter/).
+2. Set the Ghaf ISO as **Source**.
+3. Set the USB drive as **Target**.
+4. Click **Write**.
+5. When finished, safely eject the USB drive.
+
+## Booting the Installation Media
+
+Insert the installation media into the target device and boot from it. The interactive installer starts automatically and guides you through the process.
+
+The installer supports the following actions:
+
+- **Install Ghaf** — write the image to a target device, with optional full-disk encryption and Secure Boot enrollment.
+- **Wipe disk only** — erase a target device without installing.
+- **Shutdown / Reboot** — power options available from the main menu.
+
+If the installer does not start automatically, launch it manually:
+
+```sh
+sudo ghaf-installer-tui
+```
+
+A non-interactive installer is also available for scripted use:
+
+```sh
+sudo ghaf-installer
+```

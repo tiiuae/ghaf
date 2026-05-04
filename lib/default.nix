@@ -163,8 +163,9 @@ in
           default = [ ];
         };
         description = lib.mkOption {
-          type = lib.types.str;
+          type = lib.types.nullOr lib.types.str;
           description = "The `Comment` of the desktop entry";
+          default = null;
         };
         desktopName = lib.mkOption {
           type = lib.types.str;
@@ -207,6 +208,11 @@ in
           type = lib.types.bool;
           description = "The `NoDisplay` field of the desktop entry";
           default = false;
+        };
+        onlyShowIn = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          description = "The `OnlyShowIn` of the desktop entry";
+          default = [ ];
         };
         packages = lib.mkOption {
           type = lib.types.listOf lib.types.package;

@@ -10,28 +10,57 @@ let
   cfg = config.ghaf.xdghandlers;
   inherit (config.ghaf.xdgitems) xdgHostRoot;
 
-  # A script for opening PDF files launched by GIVC from AppVMs
-  xdgOpenPdf = pkgs.writeShellApplication {
-    name = "xdgopenpdf";
-    runtimeInputs = [ pkgs.coreutils ];
-    text = ''
-      file="$1"
-      echo "XDG open PDF: $file"
-      ${config.ghaf.givc.appPrefix}/zathura "$file"
-      rm "$file"
-    '';
+  # Helper to create an XDG file-opener script launched by GIVC from AppVMs
+  mkXdgFileOpener =
+    {
+      name,
+      package,
+      execCmd ? lib.getExe package,
+      serviceType ? "simple",
+      env ? { },
+    }:
+    pkgs.writeShellApplication {
+      inherit name;
+      runtimeInputs = [
+        pkgs.coreutils
+        package
+      ];
+      text =
+        let
+          envFlags = lib.concatStringsSep " " (lib.mapAttrsToList (k: v: "--setenv=${k}=${v}") env);
+        in
+        ''
+          file="$1"
+
+          cleanup() {
+            echo "${name}: Done, cleaning up and exiting"
+            rm -f "$file"
+          }
+          trap cleanup EXIT
+
+          echo "${name}: Opening file $file using ${package.name}"
+          systemd-run --unit=${name} --wait --service-type=${serviceType} --user ${envFlags} -- ${execCmd} "$file"
+        '';
+    };
+
+  xdgOpenPdf = mkXdgFileOpener {
+    name = "xdg-open-pdf";
+    inherit (cfg.pdf) package;
+    serviceType = "forking";
+    env.RUST_LOG = "error";
   };
 
-  # A script for opening image files launched by GIVC from AppVMs
-  xdgOpenImage = pkgs.writeShellApplication {
-    name = "xdgopenimage";
-    runtimeInputs = [ pkgs.coreutils ];
-    text = ''
-      file="$1"
-      echo "XDG open image: $file"
-      ${config.ghaf.givc.appPrefix}/oculante "$file"
-      rm "$file"
-    '';
+  xdgOpenVideo = mkXdgFileOpener {
+    name = "xdg-open-video";
+    inherit (cfg.video) package;
+    serviceType = "forking";
+    env.RUST_LOG = "error";
+  };
+
+  xdgOpenImage = mkXdgFileOpener {
+    name = "xdg-open-image";
+    inherit (cfg.image) package;
+    env.RUST_LOG = "error";
   };
 
   xdgOpenUrl = pkgs.writeShellApplication {
@@ -92,60 +121,91 @@ in
   _file = ./xdghandlers.nix;
 
   options.ghaf.xdghandlers = {
-    pdf = lib.mkEnableOption "XDG PDF Handler";
-    image = lib.mkEnableOption "XDG Image Handler";
-    url = lib.mkEnableOption "XDG Url Handler";
-    elementDesktop = lib.mkEnableOption "XDG Element desktop Handler";
+    pdf = {
+      enable = lib.mkEnableOption "XDG PDF Handler";
+      package = lib.mkPackageOption pkgs "cosmic-reader" { } // {
+        readOnly = true;
+      };
+    };
+    image = {
+      enable = lib.mkEnableOption "XDG Image Handler";
+      package = lib.mkPackageOption pkgs "oculante" { } // {
+        readOnly = true;
+      };
+    };
+    video = {
+      enable = lib.mkEnableOption "XDG Video Handler";
+      package = lib.mkPackageOption pkgs "cosmic-player" { } // {
+        readOnly = true;
+      };
+    };
+    url.enable = lib.mkEnableOption "XDG URL Handler";
+    elementDesktop.enable = lib.mkEnableOption "XDG Element Desktop Handler";
   };
 
   config = lib.mkIf config.ghaf.givc.enable {
     environment.systemPackages =
-      (lib.optional cfg.pdf pkgs.zathura) ++ (lib.optional cfg.image pkgs.oculante);
+      (lib.optional cfg.pdf.enable cfg.pdf.package)
+      ++ (lib.optional cfg.image.enable cfg.image.package)
+      ++ (lib.optional cfg.video.enable cfg.video.package);
 
     ghaf.givc.appvm.applications =
-      (lib.optional cfg.pdf {
+      (lib.optional cfg.pdf.enable {
         name = "xdg-pdf";
-        command = "${xdgOpenPdf}/bin/xdgopenpdf";
+        command = lib.getExe xdgOpenPdf;
         args = [ "file" ];
         directories = [ "/run/xdg/pdf" ];
       })
-      ++ (lib.optional cfg.image {
+      ++ (lib.optional cfg.image.enable {
         name = "xdg-image";
-        command = "${xdgOpenImage}/bin/xdgopenimage";
+        command = lib.getExe xdgOpenImage;
         args = [ "file" ];
         directories = [ "/run/xdg/image" ];
       })
-      ++ (lib.optional cfg.url {
+      ++ (lib.optional cfg.video.enable {
+        name = "xdg-video";
+        command = lib.getExe xdgOpenVideo;
+        args = [ "file" ];
+        directories = [ "/run/xdg/video" ];
+      })
+      ++ (lib.optional cfg.url.enable {
         name = "xdg-url";
-        command = "${xdgOpenUrl}/bin/xdgopenurl";
+        command = lib.getExe xdgOpenUrl;
         args = [ "url" ];
       })
-      ++ (lib.optional cfg.elementDesktop {
+      ++ (lib.optional cfg.elementDesktop.enable {
         name = "xdg-element-desktop";
-        command = "${xdgOpenElement}/bin/xdgopenelement";
+        command = lib.getExe xdgOpenElement;
         args = [ "url" ];
       });
 
     # Set up MicroVM shares for each MIME type and mount them to /run/xdg
     # These shares are also passed to the AppVMs where XDG items are enabled
     microvm.shares =
-      (lib.optional cfg.pdf {
+      (lib.optional cfg.pdf.enable {
         tag = "xdgshare-pdf";
         proto = "virtiofs";
         securityModel = "passthrough";
         source = "${xdgHostRoot}/pdf";
         mountPoint = "/run/xdg/pdf";
       })
-      ++ (lib.optional cfg.image {
+      ++ (lib.optional cfg.image.enable {
         tag = "xdgshare-image";
         proto = "virtiofs";
         securityModel = "passthrough";
         source = "${xdgHostRoot}/image";
         mountPoint = "/run/xdg/image";
+      })
+      ++ (lib.optional cfg.video.enable {
+        tag = "xdgshare-video";
+        proto = "virtiofs";
+        securityModel = "passthrough";
+        source = "${xdgHostRoot}/video";
+        mountPoint = "/run/xdg/video";
       });
 
     fileSystems =
-      (lib.optionalAttrs cfg.pdf {
+      (lib.optionalAttrs cfg.pdf.enable {
         "/run/xdg/pdf".options = [
           "rw"
           "nodev"
@@ -153,8 +213,16 @@ in
           "noexec"
         ];
       })
-      // (lib.optionalAttrs cfg.image {
+      // (lib.optionalAttrs cfg.image.enable {
         "/run/xdg/image".options = [
+          "rw"
+          "nodev"
+          "nosuid"
+          "noexec"
+        ];
+      })
+      // (lib.optionalAttrs cfg.video.enable {
+        "/run/xdg/video".options = [
           "rw"
           "nodev"
           "nosuid"
