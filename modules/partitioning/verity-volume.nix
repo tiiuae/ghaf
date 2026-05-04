@@ -103,6 +103,7 @@ in
 
           # Create artifacts and manifest.
           ${pkgs.buildPackages.python3}/bin/python ${./mk-manifest.py} \
+            build \
             --version ${version} \
             --system ${config.nixpkgs.hostPlatform.system} \
             --hash-file $out/dm-verity-root-hash \

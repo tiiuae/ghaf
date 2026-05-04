@@ -1,43 +1,91 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+"""Examples:
+
+  Build manifest and rename artifacts:
+    mk-manifest.py build --version 1.0 --system x86_64-linux \
+      --hash-file dm-verity-root-hash --root-image root.raw.zst \
+      --verity-image verity.raw.zst --kernel-image kernel.efi \
+      --manifest out/system_@v_@u.manifest \
+      --root-unpacked-size 123 --verity-unpacked-size 456
+
+  Sign kernel, link root/verity, write output to a new directory:
+    mk-manifest.py sign -o signed out/system_1.0_deadbeef.manifest -- \
+      --private-key key.pem --certificate cert.pem
+
+  Recompute kernel hash/size in-place:
+    mk-manifest.py rehash out/system_1.0_deadbeef.manifest
+"""
+
 import argparse
 import hashlib
 import json
 import os
+import shutil
+import subprocess
+import tempfile
+from pathlib import Path
 
-parser = argparse.ArgumentParser(
-    description="Rename verity artifacts and generate manifest."
+parser = argparse.ArgumentParser(description="Manage verity manifest artifacts.")
+subparsers = parser.add_subparsers(dest="command", required=True)
+
+build_parser = subparsers.add_parser(
+    "build", help="Rename artifacts and generate manifest."
 )
-parser.add_argument(
+build_parser.add_argument(
     "--version", required=True, help="Version string for @v placeholder."
 )
-parser.add_argument(
+build_parser.add_argument(
     "--system", required=True, help="System identifier (e.g. x86_64-linux)."
 )
-parser.add_argument(
+build_parser.add_argument(
     "--hash-file", required=True, help="Path to dm-verity root hash file."
 )
-parser.add_argument(
+build_parser.add_argument(
     "--root-image", required=True, help="Path to compressed root image."
 )
-parser.add_argument(
+build_parser.add_argument(
     "--verity-image", required=True, help="Path to compressed verity image."
 )
-parser.add_argument("--kernel-image", required=True, help="Path to kernel/UKI image.")
-parser.add_argument("--manifest", required=True, help="Output manifest path template.")
-parser.add_argument(
+build_parser.add_argument(
+    "--kernel-image", required=True, help="Path to kernel/UKI image."
+)
+build_parser.add_argument(
+    "--manifest", required=True, help="Output manifest path template."
+)
+build_parser.add_argument(
     "--root-unpacked-size",
     type=int,
     required=True,
     help="Uncompressed root image size in bytes.",
 )
-parser.add_argument(
+build_parser.add_argument(
     "--verity-unpacked-size",
     type=int,
     required=True,
     help="Uncompressed verity image size in bytes.",
 )
+
+sign_parser = subparsers.add_parser(
+    "sign", help="Sign kernel and write updated manifest/artifacts to output directory."
+)
+sign_parser.add_argument("-o", "--output", required=True, help="Output directory.")
+sign_parser.add_argument(
+    "--copy", action="store_true", help="Copy root/verity instead of symlinks."
+)
+sign_parser.add_argument("--systemd-sbsign", help="Path to systemd-sbsign binary.")
+sign_parser.add_argument("manifest", help="Input .manifest file.")
+sign_parser.add_argument(
+    "sbsign_args",
+    nargs=argparse.REMAINDER,
+    help="Arguments passed to systemd-sbsign after '--'.",
+)
+
+rehash_parser = subparsers.add_parser(
+    "rehash", help="Recompute kernel hash/size and update manifest in-place."
+)
+rehash_parser.add_argument("manifest", help="Input .manifest file to update.")
 
 
 def fixname(filename: str, version: str, fragment: str) -> str:
@@ -65,10 +113,24 @@ def file_size(path: str) -> int:
     return os.path.getsize(path)
 
 
-def main() -> None:
-    args = parser.parse_args()
+def load_manifest(path: Path) -> dict:
+    with path.open("r", encoding="utf-8") as f:
+        return json.load(f)
 
-    with open(args.hash_file, "r", encoding="utf-8") as f:
+
+def save_manifest_atomic(path: Path, manifest: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        "w", encoding="utf-8", dir=path.parent, delete=False
+    ) as tmp:
+        json.dump(manifest, tmp, indent=2, sort_keys=True)
+        tmp.write("\n")
+        tmp_name = tmp.name
+    os.replace(tmp_name, path)
+
+
+def parse_root_hash(path: str) -> str:
+    with open(path, "r", encoding="utf-8") as f:
         first_line = f.readline().strip()
     if not first_line:
         raise ValueError("hash_file first line is empty")
@@ -80,7 +142,15 @@ def main() -> None:
         raise ValueError(
             "hash_file must contain at least 64 hex characters in first line"
         )
-    root_verity_hash = root_verity_hash[:64]
+    return root_verity_hash[:64]
+
+
+def resolve_artifact_path(manifest_path: Path, rel_name: str) -> Path:
+    return manifest_path.parent / rel_name
+
+
+def cmd_build(args: argparse.Namespace) -> None:
+    root_verity_hash = parse_root_hash(args.hash_file)
 
     storehash = root_verity_hash[:16]
 
@@ -112,11 +182,89 @@ def main() -> None:
             "unpacked_size": file_size(kernel),
         },
     }
-    with open(
-        fixname(args.manifest, args.version, storehash), "w", encoding="utf-8"
-    ) as file:
-        json.dump(manifest, file, indent=2, sort_keys=True)
-        file.write("\n")
+    save_manifest_atomic(
+        Path(fixname(args.manifest, args.version, storehash)), manifest
+    )
+
+
+def cmd_sign(args: argparse.Namespace) -> None:
+    manifest_path = Path(args.manifest).resolve()
+    manifest = load_manifest(manifest_path)
+
+    outdir = Path(args.output).resolve()
+    outdir.mkdir(parents=True, exist_ok=True)
+
+    root_file = manifest.get("root", {}).get("file")
+    verity_file = manifest.get("verity", {}).get("file")
+    kernel_file = manifest.get("kernel", {}).get("file")
+    if not root_file or not verity_file or not kernel_file:
+        raise ValueError("manifest must contain root.file, verity.file and kernel.file")
+
+    src_root = resolve_artifact_path(manifest_path, root_file)
+    src_verity = resolve_artifact_path(manifest_path, verity_file)
+    src_kernel = resolve_artifact_path(manifest_path, kernel_file)
+    for path in (src_root, src_verity, src_kernel):
+        if not path.is_file():
+            raise FileNotFoundError(f"artifact not found: {path}")
+
+    dst_root = outdir / src_root.name
+    dst_verity = outdir / src_verity.name
+    dst_kernel = outdir / src_kernel.name
+
+    if args.copy:
+        shutil.copy2(src_root, dst_root)
+        shutil.copy2(src_verity, dst_verity)
+    else:
+        if dst_root.exists() or dst_root.is_symlink():
+            dst_root.unlink()
+        if dst_verity.exists() or dst_verity.is_symlink():
+            dst_verity.unlink()
+        dst_root.symlink_to(src_root)
+        dst_verity.symlink_to(src_verity)
+
+    with tempfile.NamedTemporaryFile(
+        mode="wb",
+        dir=outdir,
+        prefix=f".{dst_kernel.name}.",
+        suffix=".tmp",
+    ) as tmp:
+        tmp_kernel_path = Path(tmp.name)
+        shutil.copy2(src_kernel, tmp_kernel_path)
+        signer = args.systemd_sbsign if args.systemd_sbsign else "systemd-sbsign"
+        cmd = [signer, *args.sbsign_args, "-o", str(dst_kernel), str(tmp_kernel_path)]
+        subprocess.run(cmd, check=True)
+
+    manifest["kernel"]["sha256"] = sha256_file(str(dst_kernel))
+    manifest["kernel"]["unpacked_size"] = file_size(str(dst_kernel))
+    save_manifest_atomic(outdir / manifest_path.name, manifest)
+
+
+def cmd_rehash(args: argparse.Namespace) -> None:
+    manifest_path = Path(args.manifest).resolve()
+    manifest = load_manifest(manifest_path)
+    kernel_file = manifest.get("kernel", {}).get("file")
+    if not kernel_file:
+        raise ValueError("manifest.kernel.file is missing or empty")
+    kernel_path = resolve_artifact_path(manifest_path, kernel_file)
+    if not kernel_path.is_file():
+        raise FileNotFoundError(f"kernel image not found: {kernel_path}")
+    manifest["kernel"]["sha256"] = sha256_file(str(kernel_path))
+    manifest["kernel"]["unpacked_size"] = file_size(str(kernel_path))
+    save_manifest_atomic(manifest_path, manifest)
+
+
+def main() -> None:
+    args = parser.parse_args()
+    if getattr(args, "sbsign_args", None) and args.sbsign_args[0] == "--":
+        args.sbsign_args = args.sbsign_args[1:]
+    if args.command == "build":
+        cmd_build(args)
+    elif args.command == "sign":
+        cmd_sign(args)
+    elif args.command == "rehash":
+        cmd_rehash(args)
+    else:
+        raise ValueError(f"unknown command: {args.command}")
 
 
 if __name__ == "__main__":
