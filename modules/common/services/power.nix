@@ -516,19 +516,20 @@ in
       systemd.sleep.settings.Sleep = genericSleepConf;
 
       powerManagement = optionalAttrs cfg.vm.enable {
-        powerDownCommands =
-          optionalString cfg.vm.pciSuspend (
-            concatMapStringsSep "\n" (service: ''
+        powerDownCommands = optionalString cfg.vm.pciSuspend ''
+          if ! ${getExe' pkgs.systemd "systemctl"} list-jobs | grep -qE 'poweroff.target.*start|reboot.target.*start'; then
+            echo "Stopping configured suspend services..."
+            ${concatMapStringsSep "\n" (service: ''
               echo "Stopping service ${service}..."
               systemctl stop ${service}
-            '') cfg.vm.pciSuspendServices
-          )
-          + optionalString (cfg.suspend.extraSuspendCommands != "") ''
-            # config.ghaf.services.power-manager.suspend.extraSuspendCommands
-            if ! ${getExe' pkgs.systemd "systemctl"} list-jobs | grep -qE 'poweroff.target.*start|reboot.target.*start'; then
+            '') cfg.vm.pciSuspendServices}
+            ${optionalString (cfg.suspend.extraSuspendCommands != "") ''
+              # config.ghaf.services.power-manager.suspend.extraSuspendCommands
+              echo "Executing configured extra suspend commands..."
               ${cfg.suspend.extraSuspendCommands}
-            fi
-          '';
+            ''}
+          fi
+        '';
         resumeCommands =
           optionalString cfg.vm.pciSuspend (
             concatMapStringsSep "\n" (service: ''
