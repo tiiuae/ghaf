@@ -224,7 +224,8 @@ do_enroll_secureboot() {
   shopt -s nullglob
   local -a efi_vars
   for pattern in db KEK PK; do
-    efi_vars=("/sys/firmware/efi/efivars/${pattern}-*")
+    # shellcheck disable=SC2206
+    efi_vars=(/sys/firmware/efi/efivars/${pattern}-*)
     [[ ${#efi_vars[@]} -gt 0 ]] && chattr -i "${efi_vars[@]}" || true
   done
   shopt -u nullglob
