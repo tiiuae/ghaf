@@ -418,11 +418,9 @@ in
       after = [
         "local-fs.target"
         "systemd-modules-load.service"
-        "dev-tpmrm0.device"
         "tee-supplicant.service"
         "ghaf-load-ftpm-module.service"
       ];
-      requires = [ "dev-tpmrm0.device" ];
       unitConfig.ConditionPathExists = "/dev/tpmrm0";
       unitConfig.OnSuccess = [ "ghaf-export-ek-endorsement-bundle.service" ];
 
