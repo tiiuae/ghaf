@@ -68,6 +68,9 @@ in
               "iptables-ipset-mark"
             else
               "iptables-ipset-proto6-allports[name=${cfg.sshd-jail-fwmark.blacklistName},blocktype=DROP]";
+        }
+        // lib.optionalAttrs (config.ghaf.profiles.debug.enable or false) {
+          findtime = 60; # (in sec) In debug mode, use shorter findtime to speed up testing of ban/unban actions
         };
 
       };
