@@ -187,6 +187,24 @@ def cmd_build(args: argparse.Namespace) -> None:
     )
 
 
+def link_or_add_indirect_gcroot(src: Path, dst: Path) -> None:
+    if dst.exists() or dst.is_symlink():
+        dst.unlink()
+    if str(src).startswith("/nix/store/"):
+        src_resolved = src.resolve()
+        store_root = Path(*src_resolved.parts[:4])
+        gcroot = dst.parent / f".{dst.name}.gcroot"
+        if gcroot.exists() or gcroot.is_symlink():
+            gcroot.unlink()
+        subprocess.run(
+            ["nix-store", "--realise", "--add-root", str(gcroot), str(store_root)],
+            check=True,
+        )
+        dst.symlink_to(src_resolved)
+    else:
+        dst.symlink_to(src)
+
+
 def cmd_sign(args: argparse.Namespace) -> None:
     manifest_path = Path(args.manifest).resolve()
     manifest = load_manifest(manifest_path)
@@ -215,12 +233,8 @@ def cmd_sign(args: argparse.Namespace) -> None:
         shutil.copy2(src_root, dst_root)
         shutil.copy2(src_verity, dst_verity)
     else:
-        if dst_root.exists() or dst_root.is_symlink():
-            dst_root.unlink()
-        if dst_verity.exists() or dst_verity.is_symlink():
-            dst_verity.unlink()
-        dst_root.symlink_to(src_root)
-        dst_verity.symlink_to(src_verity)
+        link_or_add_indirect_gcroot(src_root, dst_root)
+        link_or_add_indirect_gcroot(src_verity, dst_verity)
 
     with tempfile.NamedTemporaryFile(
         mode="wb",
