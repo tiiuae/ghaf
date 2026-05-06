@@ -14,7 +14,7 @@ runCommand "ghaf-mk-manifest"
     ];
   }
   ''
-    mypy "$src"
+    mypy --strict "$src"
 
     install -Dm755 "$src" "$out/bin/ghaf-mk-manifest"
     patchShebangs "$out/bin/ghaf-mk-manifest"

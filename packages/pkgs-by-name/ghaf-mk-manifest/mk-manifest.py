@@ -26,6 +26,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+from typing import Any, cast
 
 parser = argparse.ArgumentParser(description="Manage verity manifest artifacts.")
 subparsers = parser.add_subparsers(dest="command", required=True)
@@ -113,12 +114,12 @@ def file_size(path: str) -> int:
     return os.path.getsize(path)
 
 
-def load_manifest(path: Path) -> dict:
+def load_manifest(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as f:
-        return json.load(f)
+        return cast(dict[str, Any], json.load(f))
 
 
-def save_manifest_atomic(path: Path, manifest: dict) -> None:
+def save_manifest_atomic(path: Path, manifest: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(
         "w", encoding="utf-8", dir=path.parent, delete=False
