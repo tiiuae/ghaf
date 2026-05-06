@@ -26,6 +26,13 @@ in
   config = lib.mkIf cfg.enable {
     security.apparmor.enable = true;
     security.apparmor.killUnconfinedConfinables = lib.mkDefault true;
+    # Keep AppArmor before BPF in the generated lsm= kernel parameter.
+    security.lsm = lib.mkForce [
+      "landlock"
+      "yama"
+      "apparmor"
+      "bpf"
+    ];
     services.dbus.apparmor = "enabled";
   };
 }
