@@ -231,6 +231,10 @@ def cmd_sign(args: argparse.Namespace) -> None:
     dst_kernel = outdir / src_kernel.name
 
     if args.copy:
+        if dst_root.exists() or dst_root.is_symlink():
+            dst_root.unlink()
+        if dst_verity.exists() or dst_verity.is_symlink():
+            dst_verity.unlink()
         shutil.copy2(src_root, dst_root)
         shutil.copy2(src_verity, dst_verity)
     else:
