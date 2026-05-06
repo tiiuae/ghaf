@@ -4,18 +4,18 @@
 """Examples:
 
   Build manifest and rename artifacts:
-    mk-manifest.py build --version 1.0 --system x86_64-linux \
+    ghaf-mk-manifest build --version 1.0 --system x86_64-linux \
       --hash-file dm-verity-root-hash --root-image root.raw.zst \
       --verity-image verity.raw.zst --kernel-image kernel.efi \
       --manifest out/system_@v_@u.manifest \
       --root-unpacked-size 123 --verity-unpacked-size 456
 
   Sign kernel, link root/verity, write output to a new directory:
-    mk-manifest.py sign -o signed out/system_1.0_deadbeef.manifest -- \
+    ghaf-mk-manifest sign -o signed out/system_1.0_deadbeef.manifest -- \
       --private-key key.pem --certificate cert.pem
 
   Recompute kernel hash/size in-place:
-    mk-manifest.py rehash out/system_1.0_deadbeef.manifest
+    ghaf-mk-manifest rehash out/system_1.0_deadbeef.manifest
 """
 
 import argparse

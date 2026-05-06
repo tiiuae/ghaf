@@ -15,6 +15,7 @@
     ghaf-build-helper = final.callPackage ./pkgs-by-name/ghaf-build-helper/package.nix { };
     ghaf-installer = final.callPackage ./pkgs-by-name/ghaf-installer/package.nix { };
     ghaf-intro = final.callPackage ./pkgs-by-name/ghaf-intro/package.nix { };
+    ghaf-mk-manifest = final.callPackage ./pkgs-by-name/ghaf-mk-manifest/package.nix { };
     ghaf-open = final.callPackage ./pkgs-by-name/ghaf-open/package.nix { };
     ghaf-powercontrol = final.callPackage ./ghaf-powercontrol/package.nix { };
     ghaf-qemu = final.callPackage ./pkgs-by-name/ghaf-qemu/package.nix { };
