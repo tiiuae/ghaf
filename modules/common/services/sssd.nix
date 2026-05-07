@@ -27,6 +27,42 @@ let
     lib.attrValues cfg.domains
   );
   hasKerberosRealm = lib.any (d: d.krb5.realm != null) (lib.attrValues cfg.domains);
+  strictAccessPamServices = lib.unique (
+    lib.filter (serviceName: serviceName != null) (
+      [
+        cfg.pam.displayManagerService
+        "cosmic-greeter"
+        "login"
+      ]
+      ++ lib.optional config.services.openssh.enable "sshd"
+    )
+  );
+  mkStrictAccessPamService =
+    serviceName:
+    {
+      makeHomeDir = true;
+      # Enforce SSSD account decisions (e.g. AD GPO deny) on every interactive login path.
+      sssdStrictAccess = lib.mkDefault true;
+    }
+    // optionalAttrs (serviceName == cfg.pam.displayManagerService) {
+      rules = {
+        auth = {
+          # Disable ccreds pam modules to avoid conflicts with SSSD
+          ccreds-store.enable = lib.mkForce false;
+          ccreds-validate.enable = lib.mkForce false;
+
+          # Allow both unix and sss auth
+          unix.control = lib.mkForce "sufficient";
+          sss.control = lib.mkForce "sufficient";
+        };
+      };
+
+      # Disable Kerberos pam modules
+      rules.auth.krb5.enable = lib.mkForce false;
+      rules.account.krb5.enable = lib.mkForce false;
+      rules.password.krb5.enable = lib.mkForce false;
+      rules.session.krb5.enable = lib.mkForce false;
+    };
 
   # SSSD configuration template
   sssdConfig = ''
@@ -334,32 +370,21 @@ in
       })
     ];
 
-    # PAM configuration for the service that actually authenticates domain users.
-    # See ghaf.services.sssd.pam.displayManagerService: this is `login` by
-    # default, because greetd and the other display managers now substack it
-    # rather than carrying their own rule set.
-    security.pam.services = optionalAttrs (cfg.pam.displayManagerService != null) {
-      "${cfg.pam.displayManagerService}" = {
-        makeHomeDir = true;
-        rules = {
-          auth = {
-            # Disable ccreds pam modules to avoid conflicts with SSSD
-            ccreds-store.enable = lib.mkForce false;
-            ccreds-validate.enable = lib.mkForce false;
-
-            # Allow both unix and sss auth
-            unix.control = lib.mkForce "sufficient";
-            sss.control = lib.mkForce "sufficient";
-          };
-        };
-
-        # Disable Kerberos pam modules
-        rules.auth.krb5.enable = lib.mkForce false;
-        rules.account.krb5.enable = lib.mkForce false;
-        rules.password.krb5.enable = lib.mkForce false;
-        rules.session.krb5.enable = lib.mkForce false;
-      };
-    };
+    # PAM configuration for all interactive login entrypoints.
+    #
+    # The full rule set (unix/sss sufficient, ccreds and krb5 disabled) is only
+    # applied to ghaf.services.sssd.pam.displayManagerService, which defaults to
+    # `login`: greetd and the other display managers now set
+    # `useDefaultRules = false` and reduce their stacks to `substack login`, so
+    # they carry no rules to override and forcing rules there would abort
+    # evaluation. The remaining services only get `sssdStrictAccess`, so that an
+    # SSSD account-phase deny (e.g. an AD GPO deny) fails the login on every
+    # entrypoint that authenticates domain users.
+    security.pam.services = lib.listToAttrs (
+      map (
+        serviceName: lib.nameValuePair serviceName (mkStrictAccessPamService serviceName)
+      ) strictAccessPamServices
+    );
 
     # Kerberos configuration '/etc/krb5.conf' auto-populated from domain settings
     security.krb5 = optionalAttrs hasKerberosRealm {
