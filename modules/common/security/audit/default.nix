@@ -103,6 +103,12 @@ in
     ];
 
     systemd = {
+      # Keep audit records in auditd's log file only and do not duplicate them into journald.
+      sockets.systemd-journald-audit = {
+        enable = false;
+        wantedBy = lib.mkForce [ ];
+      };
+
       services.audit-rules-nixos = {
         serviceConfig.ExecStart =
           let
