@@ -33,6 +33,7 @@ let
   hasAudioVmAcpiPath =
     (lib.hasAttr "audio-vm" config.microvm.vms)
     && (config.ghaf.hardware.definition.audio.acpiPath != null);
+  microvmNames = lib.attrNames config.microvm.vms;
 in
 {
   _file = ./microvm-host.nix;
@@ -213,7 +214,42 @@ in
                 Restart = "on-abnormal";
               };
             }
-          ) { } (lib.attrNames config.microvm.vms);
+          ) { } microvmNames;
+
+          qemuMplexServices = lib.foldl' (
+            result: name:
+            let
+              vmConfig = lib.ghaf.vm.getConfig config.microvm.vms.${name};
+              vmHypervisor = if vmConfig != null then (vmConfig.microvm.hypervisor or "qemu") else "qemu";
+              qemuSocketPath = "${config.microvm.stateDir}/${name}/${
+                if vmConfig != null then vmConfig.microvm.socket else "microvm.sock"
+              }";
+              muxSocketPath = "${config.microvm.stateDir}/${name}/${name}.mux";
+            in
+            result
+            // lib.optionalAttrs (vmHypervisor == "qemu") {
+              "ghaf-qemu-mplex-${name}" = {
+                description = "QEMU QMP mux for ${name}";
+                wantedBy = [ "microvms.target" ];
+                requires = [ "install-microvm-${name}.service" ];
+                after = [
+                  "local-fs.target"
+                  "install-microvm-${name}.service"
+                ];
+                before = [ "microvm@${name}.service" ];
+                serviceConfig = {
+                  Type = "notify";
+                  User = "microvm";
+                  Group = "kvm";
+                  Restart = "always";
+                  RestartSec = "1";
+                  ExecStart = "${lib.getExe pkgs.ghaf-qemu-mplex} ${qemuSocketPath} ${muxSocketPath}";
+                  Environment = [ "RUST_LOG=debug" ];
+                };
+                startLimitIntervalSec = 0;
+              };
+            }
+          ) { } microvmNames;
 
           vmsWithEncryptedStorage = lib.filterAttrs (
             _name: vm:
@@ -281,6 +317,7 @@ in
           # Device-id and machine-id generation moved to ghaf.identity.dynamicHostName module
         }
         // patchedMicrovmServices
+        // qemuMplexServices
         // vmstorageSetupServices;
     })
     (mkIf cfg.sharedVmDirectory.enable {

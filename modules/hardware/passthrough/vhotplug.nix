@@ -20,13 +20,18 @@ let
     vmName: vmParams:
     let
       vmConfig = lib.ghaf.vm.getConfig vmParams;
+      vmType = if vmConfig != null then vmConfig.microvm.hypervisor else "qemu";
     in
     {
       name = vmName;
-      type = if vmConfig != null then vmConfig.microvm.hypervisor else "qemu";
-      socket = "${config.microvm.stateDir}/${vmName}/${
-        if vmConfig != null then vmConfig.microvm.socket else "microvm.sock"
-      }";
+      type = vmType;
+      socket =
+        if vmType == "qemu" then
+          "${config.microvm.stateDir}/${vmName}/${vmName}.mux"
+        else
+          "${config.microvm.stateDir}/${vmName}/${
+            if vmConfig != null then vmConfig.microvm.socket else "microvm.sock"
+          }";
     }
   ) config.microvm.vms;
 in
