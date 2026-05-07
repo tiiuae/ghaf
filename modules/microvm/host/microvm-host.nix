@@ -30,6 +30,28 @@ let
     else
       config.ghaf.users;
   hasLoginUser = userConfig.homedUser.enable || userConfig.adUsers.enable;
+  loginUserHasDynamicUid = userConfig.adUsers.enable;
+  loginUserUid = toString (userConfig.homedUser.uid or 1000);
+  loginUserSessionDir = "/run/ghaf/session";
+  loginUserUidFile = "${loginUserSessionDir}/gui-vm-user.uid";
+  sharedVmDirectoryPaths = [
+    "/persist/storagevm/shared/shares"
+  ]
+  ++ map (n: "/persist/storagevm/shared/shares/Unsafe ${n} share/") cfg.sharedVmDirectory.vms;
+  xdgRuleFor =
+    xdgPath:
+    if loginUserHasDynamicUid then
+      # AD users keep their directory service UID, so the handoff path cannot be pre-owned by a fixed local user.
+      "D ${xdgPath} 0733 root root -"
+    else
+      "D ${xdgPath} 0700 ${loginUserUid} users -";
+  sharedDirRuleFor =
+    path:
+    if loginUserHasDynamicUid then
+      # AD logins need host directories that AppVMs can access before the active GUI UID is known.
+      "d ${path} 0770 root users"
+    else
+      "d ${path} 0760 ${loginUserUid} users";
   hasAudioVmAcpiPath =
     (lib.hasAttr "audio-vm" config.microvm.vms)
     && (config.ghaf.hardware.definition.audio.acpiPath != null);
@@ -178,12 +200,11 @@ in
               if xdgPathsAttempt.success then xdgPathsAttempt.value else [ ]
             ) vmsWithXdg
           );
-          xdgRules = map (
-            xdgPath: "D ${xdgPath} 0700 ${toString config.ghaf.users.homedUser.uid} users -"
-          ) xdgDirs;
+          xdgRules = map xdgRuleFor xdgDirs;
         in
         [
           "d /persist/common 0755 root root -"
+          "d /persist/common/ghaf 0755 root root -"
           "d /persist/sysupdate 0755 root root -"
           "d /persist/storagevm 0755 root root -"
           "d /persist/storagevm/img 0700 microvm kvm -"
@@ -288,15 +309,88 @@ in
       systemd.tmpfiles.rules =
         let
           vmDirs = map (
-            n:
-            "d /persist/storagevm/shared/shares/Unsafe\\x20${n}\\x20share/ 0760 ${toString config.ghaf.users.homedUser.uid} users"
+            n: sharedDirRuleFor "/persist/storagevm/shared/shares/Unsafe\\x20${n}\\x20share/"
           ) cfg.sharedVmDirectory.vms;
         in
         [
           "d /persist/storagevm/shared 0755 root root"
-          "d /persist/storagevm/shared/shares 0760 ${toString config.ghaf.users.homedUser.uid} users"
+          (sharedDirRuleFor "/persist/storagevm/shared/shares")
         ]
         ++ vmDirs;
+    })
+    (mkIf (cfg.sharedVmDirectory.enable && loginUserHasDynamicUid) {
+      systemd.tmpfiles.rules = [
+        "d /run/ghaf 0755 root root -"
+        "d /run/ghaf/session 0750 root root -"
+      ];
+
+      systemd.services."shared-vm-directory-acl" =
+        let
+          aclSetupScript = pkgs.writeShellApplication {
+            name = "shared-vm-directory-acl";
+            runtimeInputs = with pkgs; [
+              acl
+              coreutils
+              findutils
+            ];
+            text = ''
+              set -euo pipefail
+
+              uid_file=${lib.escapeShellArg loginUserUidFile}
+              current_uid=""
+
+              if [ -r "$uid_file" ]; then
+                current_uid="$(tr -d '[:space:]' < "$uid_file")"
+                case "$current_uid" in
+                  ""|*[!0-9]*)
+                    echo "Ignoring invalid GUI VM login UID: '$current_uid'" >&2
+                    current_uid=""
+                    ;;
+                esac
+              fi
+
+              apply_shared_acl() {
+                local path="$1"
+
+                install -d -m 0770 -o root -g users "$path"
+                chmod 0770 "$path"
+                chgrp users "$path"
+                setfacl -Rb "$path"
+                setfacl -R -m "g:users:rwX,o::---" "$path"
+                find "$path" -type d -exec setfacl -m "g:users:rwx,o::---,d:g:users:rwx,d:o::---" '{}' +
+
+                if [ -n "$current_uid" ]; then
+                  setfacl -R -m "u:$current_uid:rwX,g:users:rwX,o::---" "$path"
+                  find "$path" -type d -exec setfacl -m "u:$current_uid:rwx,g:users:rwx,o::---,d:u:$current_uid:rwx,d:g:users:rwx,d:o::---" '{}' +
+                fi
+              }
+
+              for path in ${lib.concatMapStringsSep " " lib.escapeShellArg sharedVmDirectoryPaths}; do
+                apply_shared_acl "$path"
+              done
+            '';
+          };
+        in
+        {
+          enable = true;
+          description = "Apply shared folder ACLs for the active GUI login";
+          wantedBy = [ "multi-user.target" ];
+          after = [ "local-fs.target" ];
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = lib.getExe aclSetupScript;
+          };
+        };
+
+      systemd.paths."shared-vm-directory-acl" = {
+        description = "Watch GUI login UID handoff and refresh shared folder ACLs";
+        wantedBy = [ "multi-user.target" ];
+        wants = [ "shared-vm-directory-acl.service" ];
+        pathConfig = {
+          PathChanged = loginUserSessionDir;
+          Unit = "shared-vm-directory-acl.service";
+        };
+      };
     })
     (mkIf
       (
