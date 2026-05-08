@@ -274,15 +274,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1775822544,
-        "narHash": "sha256-yxh8N8kPWNVPl4x2C72yR6nTDT8qBMZvCCB3twNEiJI=",
-        "owner": "tiiuae",
+        "lastModified": 1778068300,
+        "narHash": "sha256-g4Gssa/WoOuOEeIEjXlkRt19INY8sR7xISDo/j+WdCc=",
+        "owner": "slakkala",
         "repo": "ghafpkgs",
-        "rev": "62beb072731b0e9a356766b21abcee24562fd4a0",
+        "rev": "02b2f3540665c4904d76298e4d38fc0b368aaf33",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "slakkala",
+        "ref": "feat/mem-manager-mplex-oom",
         "repo": "ghafpkgs",
         "type": "github"
       }
