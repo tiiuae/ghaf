@@ -430,16 +430,16 @@ index 0000000000..dfe86af713
 +        Object *obj = object_resolve_path_type("", TYPE_ACPI_DEVICE_IF, NULL);
 +        acpi_send_event(DEVICE(obj), ACPI_BUTTON_CHANGE_STATUS);
 +    }
-+    timer_mod(s->probe_state_timer, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) +
++    timer_mod(s->probe_state_timer, qemu_clock_get_ms(QEMU_CLOCK_HOST) +
 +              s->probe_state_interval);
 +}
 +
 +static void button_probe_state_timer_init(BUTTONState *s)
 +{
 +    if (s->enable_procfs && s->probe_state_interval > 0) {
-+        s->probe_state_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL,
++        s->probe_state_timer = timer_new_ms(QEMU_CLOCK_HOST,
 +                                            button_probe_state, s);
-+        timer_mod(s->probe_state_timer, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) +
++        timer_mod(s->probe_state_timer, qemu_clock_get_ms(QEMU_CLOCK_HOST) +
 +                  s->probe_state_interval);
 +    }
 +}
