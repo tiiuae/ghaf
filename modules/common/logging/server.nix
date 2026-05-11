@@ -245,6 +245,12 @@ in
               expression = "(GatewayAuthenticator::login|Gateway login succeeded|csd-wrapper|nmcli)"
             }
           }
+          loki.source.journal "remote_guests" {
+            path = "/var/log/journal/remote"
+            relabel_rules = discovery.relabel.adminJournal.rules
+            max_age       = "168h"
+            forward_to    = [loki.process.system.receiver]
+          }
 
           loki.source.journal "journal" {
             path          = "/var/log/journal"

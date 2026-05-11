@@ -8,5 +8,7 @@
     ./client.nix
     ./server.nix
     ./fss.nix
+    ./journal-client.nix
+    ./journal-server.nix
   ];
 }
