@@ -23,6 +23,7 @@ let
     (pkgs.systemdMinimal.override (
       {
         pname = cfg.withName;
+        withRemote = cfg.withJournal;
         withAcl = true;
         withAnalyze = cfg.withDebug;
         inherit (cfg) withApparmor;

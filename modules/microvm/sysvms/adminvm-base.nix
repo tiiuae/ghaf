@@ -133,6 +133,14 @@ in
     # Logging - from globalConfig
     logging = {
       inherit (globalConfig.logging) enable listener;
+      journalServer = {
+        inherit (globalConfig.logging) enable;
+        tls = {
+          caFile = "/etc/givc/ca-cert.pem";
+          certFile = "/etc/givc/cert.pem";
+          keyFile = "/etc/givc/key.pem";
+        };
+      };
 
       server = {
         inherit (globalConfig.logging) enable;

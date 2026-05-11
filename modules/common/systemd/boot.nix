@@ -44,6 +44,9 @@ let
       "systemd-journald.service"
       "systemd-journald.socket"
       "systemd-journald-dev-log.socket"
+      "systemd-journal-remote.service"
+      "systemd-journal-remote.socket"
+      "systemd-journal-upload.service"
     ])
     ++ (lib.optionals ((!cfgBase.withDebug) && (!cfgBase.withAudit)) [
       "systemd-journald-audit.socket"
