@@ -10,8 +10,9 @@
   ...
 }:
 let
-  inherit (inputs) jetpack-nixos;
+  inherit (inputs) jetpack-nixos nixpkgs;
   system = "aarch64-linux";
+  pkgsX86 = nixpkgs.legacyPackages.x86_64-linux;
   lazyPackage =
     name: drv:
     (lib.lazyDerivation {
@@ -185,11 +186,42 @@ in
       aarch64-linux = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
       x86_64-linux =
         builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) crossTargets)
+        # Single `*-flash-script` entrypoint that picks between two
+        # pre-built QSPI firmware variants at flash time:
+        #   - no `-s`: unsigned BOOTAA64.EFI, no UEFI key enrollment
+        #   - with `-s`: signed BOOTAA64.EFI swapped in + DTBO/ESLs in QSPI
         // builtins.listToAttrs (
           map (
             t:
             lib.nameValuePair "${t.name}-flash-script" (
-              lazyPackage "${t.name}-flash-script" t.hostConfiguration.pkgs.nvidia-jetpack.legacyFlashScript
+              lazyPackage "${t.name}-flash-script" (
+                let
+                  innerName = t.hostConfiguration.config.hardware.nvidia-jetpack.name;
+                  noSB = t.hostConfiguration.pkgs.nvidia-jetpack.flashScript;
+                  withSB =
+                    (t.hostConfiguration.extendModules {
+                      modules = [
+                        { ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkForce true; }
+                      ];
+                    }).pkgs.nvidia-jetpack.flashScript;
+                in
+                pkgsX86.writeShellApplication {
+                  name = "flash-ghaf-host";
+                  text = ''
+                    signed=0
+                    for arg in "$@"; do
+                      case "$arg" in
+                        -s|--signed-sd-image) signed=1 ;;
+                      esac
+                    done
+                    if [ "$signed" = 1 ]; then
+                      exec ${withSB}/bin/flash-${innerName} "$@"
+                    else
+                      exec ${noSB}/bin/flash-${innerName} "$@"
+                    fi
+                  '';
+                }
+              )
             )
           ) crossTargets
         )
