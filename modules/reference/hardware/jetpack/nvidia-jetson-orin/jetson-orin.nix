@@ -290,6 +290,20 @@ in
       default = "";
     };
 
+    flashScriptOverrides.signedArtifactsPath = mkOption {
+      description = ''
+        Absolute path on the host that contains pre-signed Jetson Orin boot
+        artifacts.
+
+        The flash script expects at least `BOOTAA64.EFI` and `Image` to be
+        present in this directory. Optional files such as `initrd` or device
+        trees can be staged as well. The directory can also be provided at
+        runtime through the `SIGNED_ARTIFACTS_DIR` environment variable.
+      '';
+      type = types.nullOr types.str;
+      default = null;
+    };
+
     somType = mkOption {
       description = "SoM config Type (NX|AGX32|AGX64|Nano)";
       type = types.str;
@@ -329,6 +343,9 @@ in
         '';
       }
     ];
+    ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkDefault (
+      cfg.flashScriptOverrides.signedArtifactsPath != null
+    );
     hardware.nvidia-jetpack.firmware.eksFile = "${firmwareEkbImage}/eks_t234.img";
     hardware.nvidia-jetpack.kernel.version = "${cfg.kernelVersion}";
     # jetpack-nixos hardcodes the trailing rootfs device as mmcblk0p1; replay
