@@ -335,6 +335,13 @@ in
       pkgs.inter
     ];
 
+    ghaf.services.power-manager.suspend.extraResumeCommands =
+      # Workaround for https://github.com/pop-os/cosmic-applets/issues/1390
+      # TODO: Remove when upstream issue is fixed
+      ''
+        ${lib.getExe' pkgs.busybox "killall"} -q cosmic-panel || true
+      '';
+
     systemd.user.services = {
       autostart = {
         description = "Ghaf autostart";
@@ -439,6 +446,9 @@ in
       after = [ "cosmic-session.target" ];
       wantedBy = [ "cosmic-session.target" ];
     };
+
+    # TODO: Remove when https://github.com/systemd/systemd/pull/41563 is available
+    systemd.services.systemd-logind.serviceConfig.watchdogSec = lib.mkForce 0;
 
     # Below we adjust the default services from desktopManager.cosmic
 
