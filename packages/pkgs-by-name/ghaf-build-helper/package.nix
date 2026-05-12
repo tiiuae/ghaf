@@ -97,7 +97,30 @@ writeShellApplication {
         done
 
         export NIX_SSHOPTS
+
+        # Capture the current system path on the target before rebuild for diffing
+        old_system=""
+        # shellcheck disable=SC2086
+        old_system=$(ssh $NIX_SSHOPTS root@ghaf-host readlink -f /nix/var/nix/profiles/system 2>/dev/null || true)
+
         nixos-rebuild --flake "$build_target" --target-host root@ghaf-host --no-reexec "''${args[@]}"
+
+        # Show package diff between old and new system closure
+        if [ -n "$old_system" ]; then
+          # shellcheck disable=SC2086
+          # Use the profile link so this works for both "switch" and "boot":
+          # "boot" doesn't update /run/current-system until reboot, but always
+          # writes the new generation to /nix/var/nix/profiles/system.
+          new_system=$(ssh $NIX_SSHOPTS root@ghaf-host readlink -f /nix/var/nix/profiles/system 2>/dev/null || true)
+          # shellcheck disable=SC2086
+          if [ -n "$new_system" ] && [ "$old_system" != "$new_system" ] && \
+              ssh $NIX_SSHOPTS root@ghaf-host command -v nvd &>/dev/null; then
+            echo ""
+            echo "--- Package diff ---"
+            # shellcheck disable=SC2086,SC2029
+            ssh $NIX_SSHOPTS root@ghaf-host nvd diff "$old_system" "$new_system" || true
+          fi
+        fi
   '';
   meta = {
     description = "Helper script to use nixos-rebuild without persistent changes of the ssh configuration.";

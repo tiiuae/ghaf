@@ -43,6 +43,9 @@ in
 
       # For debug complicated issues
       pkgs.strace
+
+      # For comparing NixOS system closure differences between generations
+      pkgs.nvd
     ]
     ++ rmDesktopEntries [
       pkgs.htop
