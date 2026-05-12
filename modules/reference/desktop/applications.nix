@@ -62,11 +62,7 @@ in
       {
         name = "com.jeffser.Alpaca";
         desktopName = "Falcon AI";
-        categories = [
-          "Utility"
-          "Development"
-          "Chat"
-        ];
+        categories = [ ];
         description = "Your local large language model, developed by TII";
         icon = "${pkgs.ghaf-artwork}/icons/falcon-icon.svg";
         exec = "${falcon-launcher}/bin/falcon-launcher";

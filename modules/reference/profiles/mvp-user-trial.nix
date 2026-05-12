@@ -62,7 +62,6 @@ in
                 ghaf.reference.services = {
                   inherit (config.ghaf.reference.services)
                     enable
-                    alpaca-ollama
                     wireguard-gui
                     ;
                 };
@@ -178,7 +177,6 @@ in
             enable = true;
             vmName = "chrome-vm";
           };
-          alpaca-ollama = true;
           wireguard-gui = true;
         };
 
