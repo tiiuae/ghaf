@@ -221,7 +221,7 @@ in
           {
             name = "chrome-microsoft365.com__-Default";
             desktopName = "Microsoft 365";
-            categories = [ "Office" ];
+            categories = [ ];
             description = "Microsoft 365 Software Suite";
             icon = "microsoft-365";
             exec = "trusted-browser-wrapper --app=https://microsoft365.com";
@@ -230,20 +230,14 @@ in
             name = "chrome-teams.microsoft.com__-Default";
             desktopName = "Teams";
             description = "Microsoft Teams Collaboration Application";
-            categories = [
-              "Office"
-              "VideoConference"
-            ];
+            categories = [ ];
             icon = "teams-for-linux";
             exec = "trusted-browser-wrapper --app=https://teams.microsoft.com";
           }
           {
             name = "chrome-gala-atrc.azure-atrc.androidinthecloud.net__-Default";
             desktopName = "Gala";
-            categories = [
-              "Network"
-              "Utility"
-            ];
+            categories = [ ];
             description = "Secure Android-in-the-Cloud";
             icon = "distributor-logo-android";
             exec = "trusted-browser-wrapper --app=https://gala-atrc.azure-atrc.androidinthecloud.net/#/login";

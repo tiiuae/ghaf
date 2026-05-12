@@ -26,6 +26,8 @@ in
             spice = true;
           };
         };
+
+        services.alpaca-ollama = true;
       };
 
       profiles = {
