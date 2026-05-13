@@ -70,10 +70,21 @@ in
 
       # Setup host VM network bridge
       systemd.network = {
-        netdevs."10-${cfg.bridgeNicName}".netdevConfig = {
-          Kind = "bridge";
-          Name = "${cfg.bridgeNicName}";
-          MACAddress = hosts.${hostName}.mac;
+        netdevs."10-${cfg.bridgeNicName}" = {
+          netdevConfig = {
+            Kind = "bridge";
+            Name = "${cfg.bridgeNicName}";
+            MACAddress = hosts.${hostName}.mac;
+          };
+          # Disable STP to skip the 15s forward-delay during port learning.
+          # Without this, taps added to the bridge spend ~15s in
+          # blocking/listening state, which delays spire-agent's
+          # ExecStartPre health check past TimeoutStartSec on first boot.
+          # We have a static topology (tap-<vm>/virbr0), no loops possible.
+          bridgeConfig = {
+            STP = false;
+            ForwardDelaySec = 0;
+          };
         };
         networks = {
           "10-${cfg.bridgeNicName}" = {
