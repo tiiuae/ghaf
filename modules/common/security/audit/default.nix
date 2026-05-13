@@ -90,7 +90,11 @@ in
     security.audit = {
       enable = true;
       failureMode = if cfg.debug then "printk" else "panic";
-      backlogLimit = 8192;
+      # 8192 default fills during first-boot bursts (cert gen, spire restarts,
+      # microvm bring-up) and the kernel then blocks audit-triggering syscalls
+      # up to audit_backlog_wait_time (15s), stalling PAM login on slow boards
+      # (e.g. NX). 32k entries ~ 24MB kernel memory, 4x headroom.
+      backlogLimit = 32768;
       rules =
         cfg.commonRules
         ++ cfg.extraRules
