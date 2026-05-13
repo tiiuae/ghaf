@@ -151,6 +151,7 @@ export default defineConfig({
                         "ghaf/dev/architecture/config-propagation",
                         "ghaf/dev/architecture/module-conventions",
                         "ghaf/dev/architecture/anti-patterns",
+                        "ghaf/dev/architecture/ab-update",
                       ],
                     },
                     {

@@ -1,0 +1,150 @@
+---
+title: A/B Image Update
+---
+{/*
+SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+*/}
+
+# A/B Image Update
+
+This page describes the Ghaf image-based A/B update model from three angles:
+
+1. high-level architecture,
+2. operational workflow on a target machine,
+3. implementation details in the build pipeline and manifest tooling.
+
+## Intro and A/B architecture
+
+Ghaf uses an image-based A/B update model for immutable systems with dm-verity.
+
+- The system keeps versioned **root** and **verity** volumes in LVM.
+- One slot is active (currently booted), and one slot is used as the update target.
+- UKI files are managed in the EFI partition and tied to the slot version/hash.
+
+An update payload is a small, self-contained artifact set:
+
+- root image,
+- verity image,
+- kernel/UKI image,
+- manifest.
+
+At a high level, update installation writes new images into a non-active slot, updates the corresponding UKI, and switches boot selection to the new slot. The previous slot remains available for rollback.
+
+The manifest is the contract between build-time artifacts and install-time execution. It identifies which files belong together and provides integrity metadata used by the updater.
+
+## Operational workflow (target machine)
+
+Operationally, image updates are handled by `ota-update image` subcommands.
+
+Typical workflow:
+
+1. Validate payload.
+2. Install payload into the selected non-active slot.
+3. Check resulting slot status.
+
+Example commands:
+
+```sh
+# Validate manifest and artifact checksums
+ota-update image validate --manifest /persist/sysupdate/ghaf_x.y.z_xxxxxxxx.manifest
+
+# Install image (optionally enable checksum validation explicitly)
+ota-update image install --manifest /persist/sysupdate/ghaf_x.y.z_xxxxxxxx.manifest --validate
+
+# Show slot/runtime status
+ota-update image status
+```
+
+`ota-update image` always requires an explicit manifest path. In practice, we place image payloads under `/persist/sysupdate` as an operational convention.
+
+Note: this directory is reachable from Net VM, so artifacts can be uploaded with `ssh`/`scp` to the target host through the Net VM access path.
+
+Other operational commands:
+
+- `ota-update image remove --version <version> [--hash <fragment>]` removes an installed non-active slot.
+- `--dry-run` (top-level image flag) prints the execution plan without applying changes.
+
+Runtime safety notes:
+
+- `ota-update` uses a global lock (`/run/ota-update.lock`) to prevent concurrent update execution.
+- Removing the active slot is rejected.
+
+## Implementation details
+
+### Build pipeline (`verity-volume.nix`)
+
+The image build pipeline creates update artifacts in this order:
+
+1. Build root filesystem image.
+2. Generate verity image and dm-verity root hash.
+3. Build UKI and embed the verity hash into kernel cmdline.
+4. Compress root/verity payload images.
+5. Generate manifest.
+
+This logic is implemented in `modules/partitioning/verity-volume.nix`.
+
+The install-time utility used above, `ota-update`, lives in the `ghaf-givc`
+subproject (crate `ota-update`; flake input `givc`).
+
+An important related component is `veritysetup-generator`, provided via flake
+input `nix-store-veritysetup-generator`
+(`github:tiiuae/ghaf-nix-store-veritysetup-generator/ghaf`) and integrated as
+`ghaf-store-veritysetup-generator` in `modules/partitioning/flake-module.nix`.
+
+### Manifest and artifact identity
+
+The manifest stores release identity and integrity metadata for root/verity/kernel artifacts. It ties together:
+
+- version + hash fragment naming,
+- dm-verity root hash,
+- file checksums and sizes.
+
+Install-time logic consumes this manifest to validate payload consistency and to produce an installation plan.
+
+Manifest format (current shape):
+
+```json
+{
+  "manifest_version": 0,
+  "system": "x86_64-linux",
+  "meta": {},
+  "version": "26.04.1",
+  "root_verity_hash": "<64-hex>",
+  "root": {
+    "file": "ghaf_root_<version>_<hash>.raw.zst",
+    "sha256": "<hex>",
+    "packed_size": 0,
+    "unpacked_size": 0
+  },
+  "verity": {
+    "file": "ghaf_verity_<version>_<hash>.raw.zst",
+    "sha256": "<hex>",
+    "packed_size": 0,
+    "unpacked_size": 0
+  },
+  "kernel": {
+    "file": "ghaf_kernel_<version>_<hash>.efi",
+    "sha256": "<hex>",
+    "unpacked_size": 0
+  }
+}
+```
+
+All artifact file names in the manifest are interpreted relative to the manifest file location.
+
+The `meta` field is reserved for human-readable user information and/or structured metadata, including potential future GUI-facing usage.
+
+### `mk-manifest` utility (target design)
+
+`mk-manifest` is the build-time utility responsible for manifest lifecycle operations.
+
+- `build`: produce final artifact names and a manifest for a new payload.
+- `sign`: produce a signed kernel artifact and write an updated manifest.
+- `rehash`: recompute kernel integrity fields in an existing manifest.
+
+In the current target design, the utility is packaged as `ghaf-mk-manifest`, and exposed for convenience via:
+
+```sh
+nix run .#mk-manifest -- --help
+```
