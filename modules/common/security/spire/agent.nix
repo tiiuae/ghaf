@@ -70,9 +70,12 @@ let
 
       echo "Checking SPIRE Server readiness at $SERVER_URL..."
 
-      until curl --fail --silent "$SERVER_URL" > /dev/null 2>&1; do
-        echo "SPIRE Server is not ready yet. Retrying in 3 seconds..."
-        sleep 3
+      # Short per-attempt timeouts: without them, curl defaults to ~30s on
+      # silently-dropped SYNs (rpfilter / netfilter not yet up on admin-vm),
+      # so a single hung TCP burns the whole 90s ExecStartPre budget.
+      until curl --fail --silent --connect-timeout 1 --max-time 2 "$SERVER_URL" > /dev/null 2>&1; do
+        echo "SPIRE Server is not ready yet. Retrying in 1 second..."
+        sleep 1
       done
 
       echo "SPIRE Server is ready! Starting SPIRE Agent..."
@@ -144,9 +147,14 @@ in
             "network-online.target"
             "local-fs.target"
           ];
+          # givc-key-setup writes /etc/givc/{key,cert,ca-cert}.pem that
+          # LoadCredential below depends on. Without explicit After=, the
+          # agent races the cert generator and the early ExecStartPre
+          # restarts on CREDENTIALS failure before settling.
           after = [
             "network-online.target"
             "local-fs.target"
+            "givc-key-setup.service"
           ];
 
           unitConfig = {
