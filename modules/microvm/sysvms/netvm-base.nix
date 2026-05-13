@@ -227,8 +227,12 @@ in
     # ("Transfer event TRB DMA ptr not part of current TD" + NETDEV WATCHDOG
     # TX timeouts). AGX is unaffected because it has more cores per slice.
     vcpu = lib.mkDefault 4;
-    # Memory default is set to 1GB as some WiFi drivers require at least that much memory to function properly. This can be overridden via vmConfig.
-    mem = lib.mkDefault 1024;
+    # 2GB headroom: alloy + stunnel + spire-agent + givc-agent + auditd
+    # pile up on net-vm with the givc/logging stack enabled, and the
+    # 1GB default OOMs during the first-boot burst on Orin NX. The kernel
+    # then evicts page cache backing the USB-eth driver and the dongle
+    # disconnects, killing sshd on the test-net IP.
+    mem = lib.mkDefault 2048;
     hypervisor = "qemu";
 
     shares = [
