@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-"""Replace the sdmmc_user device partitions in NVIDIA's flash XML.
+"""Replace the storage-device partitions in NVIDIA's flash XML.
 
-Reads NVIDIA's flash_t234_qspi_sdmmc*.xml, finds the
-<device type="sdmmc_user"> element, replaces all its <partition>
-children with partitions defined in a JSON file, and writes the
-result. This avoids fragile line-count splicing that breaks when
-the upstream XML changes.
+Reads NVIDIA's flash_t234_qspi_{sdmmc,nvme}*.xml, finds the storage
+<device> element (sdmmc_user for eMMC boards, nvme for NVMe boards),
+replaces all its <partition> children with partitions defined in a
+JSON file, and writes the result. This avoids fragile line-count
+splicing that breaks when the upstream XML changes.
 
 Usage:
     splice-flash-xml.py [--set PARTITION.FIELD=VALUE]...
                         [--remove-device]
+                        [--device-type TYPE]
                         <nvidia-flash.xml> <partitions.json> <output.xml>
 
 The JSON file is a list of partition objects, each with:
@@ -22,8 +23,12 @@ The JSON file is a list of partition objects, each with:
 The --set flag overrides a child element value for a named partition.
 For example: --set APP.size=12345678
 
-The --remove-device flag removes the sdmmc_user device element entirely
-(for QSPI-only flashing where no eMMC partitions are needed).
+The --remove-device flag removes the storage device element entirely
+(for QSPI-only flashing where no eMMC/NVMe partitions are needed).
+
+The --device-type flag selects which <device> element to splice into
+(default "sdmmc_user"; use "nvme" for NVMe-rootfs boards like the
+p3768 Orin NX/Nano devkit).
 """
 
 import argparse
@@ -52,26 +57,27 @@ def splice_partitions(
     *,
     overrides: list[tuple[str, str, str]],
     remove_device: bool = False,
+    device_type: str = "sdmmc_user",
 ) -> None:
-    """Replace sdmmc_user partitions in NVIDIA's flash XML with our layout."""
+    """Replace the storage device's partitions in NVIDIA's flash XML."""
     tree = ET.parse(flash_xml)
     root = tree.getroot()
 
-    sdmmc_user = next(
-        (d for d in root.iter("device") if d.get("type") == "sdmmc_user"),
+    storage = next(
+        (d for d in root.iter("device") if d.get("type") == device_type),
         None,
     )
-    if sdmmc_user is None:
-        msg = f"No <device type='sdmmc_user'> found in {flash_xml}"
+    if storage is None:
+        msg = f"No <device type='{device_type}'> found in {flash_xml}"
         raise ValueError(msg)
 
     if remove_device:
-        # QSPI-only: remove the entire sdmmc_user device element
-        root.remove(sdmmc_user)
+        # QSPI-only: remove the entire storage device element
+        root.remove(storage)
     else:
         # Remove all existing children
-        for child in list(sdmmc_user):
-            sdmmc_user.remove(child)
+        for child in list(storage):
+            storage.remove(child)
 
         partitions: list[dict[str, str | dict[str, str]]] = json.loads(
             partitions_json.read_text()
@@ -91,7 +97,7 @@ def splice_partitions(
 
         for part_def in partitions:
             part = ET.SubElement(
-                sdmmc_user,
+                storage,
                 "partition",
                 name=str(part_def["name"]),
                 type=str(part_def["type"]),
@@ -136,7 +142,12 @@ def main() -> None:
     parser.add_argument(
         "--remove-device",
         action="store_true",
-        help="Remove the sdmmc_user device entirely (QSPI-only flash)",
+        help="Remove the storage device entirely (QSPI-only flash)",
+    )
+    parser.add_argument(
+        "--device-type",
+        default="sdmmc_user",
+        help="Storage <device> type to splice into (sdmmc_user or nvme)",
     )
     args = parser.parse_args()
 
@@ -148,6 +159,7 @@ def main() -> None:
         output=args.output,
         overrides=overrides,
         remove_device=args.remove_device,
+        device_type=args.device_type,
     )
 
 

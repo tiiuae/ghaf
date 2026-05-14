@@ -3,7 +3,12 @@
 #
 # Reference hardware modules
 #
-{ pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 {
   _file = ./orin-nx.nix;
 
@@ -74,7 +79,23 @@
     nvidia-jetpack = {
       enable = true;
       som = "orin-nx";
-      carrierBoard = "xavierNxDevkit";
+      # p3768 official devkit, matching the p3768 deviceTree above.
+      # "xavierNxDevkit" maps to p3509-a02 + eMMC, which the Orin NX SOM
+      # does not have.
+      carrierBoard = "devkit";
+      # carrierBoard "devkit" defaults configFileName to
+      # "jetson-orin-nano-devkit", whose .conf flashes a QSPI+SD/eMMC layout.
+      # The p3768 NX board has no eMMC, so MB2 fails to init SDMMC instance 3
+      # ("Secondary storage init failed" on UART) and hangs in Busy Spin.
+      # The "-nvme" config sources p3768-0000-p3767-0000-a0.conf and uses
+      # flash_t234_qspi_nvme.xml, which probes NVMe instead.
+      flashScriptOverrides.configFileName = "jetson-orin-nano-devkit-nvme";
+      # jetpack-nixos hardcodes the rootfs device as mmcblk0p1 (eMMC);
+      # override the trailing flash.sh arg to the NVMe partition.
+      flashScriptOverrides.flashArgs = lib.mkForce [
+        config.hardware.nvidia-jetpack.flashScriptOverrides.configFileName
+        "nvme0n1p1"
+      ];
       modesetting.enable = true;
       firmware.uefi = {
         logo = "${pkgs.ghaf-artwork}/1600px-Ghaf_logo.svg";

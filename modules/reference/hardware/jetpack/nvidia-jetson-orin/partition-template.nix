@@ -96,15 +96,25 @@ let
     }
   ];
 
-  # Build the final flash.xml by replacing the sdmmc_user partitions
+  # Build the final flash.xml by replacing the storage-device partitions
   # in NVIDIA's template with our layout using XML-aware splicing.
+  #
+  # The Orin NX SOM has no eMMC; the p3768 devkit boots its rootfs from
+  # NVMe. Splice into the nvme template + device element instead of
+  # sdmmc_user, otherwise MB2 probes SDMMC instance 3 at flash time,
+  # fails ("Secondary storage init failed"), and hangs in Busy Spin.
   partitionTemplate =
     let
       inherit (pkgs.nvidia-jetpack) bspSrc;
-      isIndustrial = config.hardware.nvidia-jetpack.som == "orin-agx-industrial";
+      inherit (config.hardware.nvidia-jetpack) som;
+      isIndustrial = som == "orin-agx-industrial";
+      isNvme = som == "orin-nx";
+      deviceType = if isNvme then "nvme" else "sdmmc_user";
       xmlFile =
         if isIndustrial then
           "${bspSrc}/bootloader/generic/cfg/flash_t234_qspi_sdmmc_industrial.xml"
+        else if isNvme then
+          "${bspSrc}/bootloader/generic/cfg/flash_t234_qspi_nvme.xml"
         else
           "${bspSrc}/bootloader/generic/cfg/flash_t234_qspi_sdmmc.xml";
     in
@@ -114,6 +124,7 @@ let
       }
       ''
         python3 ${./splice-flash-xml.py} \
+          --device-type "${deviceType}" \
           ${lib.optionalString cfg.flashScriptOverrides.onlyQSPI "--remove-device"} \
           --set "esp.size=$(($(cat ${images}/esp.size) * 512))" \
           --set "APP.size=$(($(cat ${images}/root.size) * 512))" \
