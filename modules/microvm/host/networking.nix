@@ -103,6 +103,28 @@ in
             matchConfig.Name = "tap-*";
             networkConfig.Bridge = "${cfg.bridgeNicName}";
           };
+          # USB ethernet adapters are hot-plugged into VMs by vhotplug.
+          # The host must never configure them: if host networkd claims
+          # the link (assigns an address, manages carrier), then vhotplug
+          # detaches the device and networkd tears it down — the churn,
+          # compounded by the r8152-cfgselector reset and the QEMU xHCI
+          # re-enumeration on the VM side, leaves the VM uplink flaky on
+          # cold boot (intermittent SSH timeouts in pre-merge HW tests).
+          # Mark them Unmanaged unconditionally — unlike 99-disable-external
+          # this must apply even when enableExternalNetworking is set (e.g.
+          # the debug profile), since these NICs belong to a VM regardless.
+          "12-usb-ethernet-unmanaged" = {
+            matchConfig.Driver = [
+              "r8152"
+              "r8153_ecm"
+              "cdc_ether"
+              "cdc_ncm"
+              "asix"
+              "ax88179_178a"
+              "smsc95xx"
+            ];
+            linkConfig.Unmanaged = "yes";
+          };
           # Disable addititional, non-defined external interfaces
           "99-disable-external" = optionalAttrs (!cfg.enableExternalNetworking) {
             matchConfig.Name = [
