@@ -98,28 +98,56 @@ writeShellApplication {
 
         export NIX_SSHOPTS
 
-        # Capture the current system path on the target before rebuild for diffing
+        # Capture the current system path on the target before rebuild for diffing.
+        # /nix/var/nix/profiles/system is used (not /run/current-system) so that
+        # "boot" rebuilds also have a correct baseline.
         old_system=""
         # shellcheck disable=SC2086
         old_system=$(ssh $NIX_SSHOPTS root@ghaf-host readlink -f /nix/var/nix/profiles/system 2>/dev/null || true)
 
-        nixos-rebuild --flake "$build_target" --target-host root@ghaf-host --no-reexec "''${args[@]}"
+        show_nvd_diff() {
+          local old="$1" new="$2"
+          [ -n "$old" ] && [ -n "$new" ] && [ "$old" != "$new" ] || return 0
+          # shellcheck disable=SC2086
+          ssh $NIX_SSHOPTS root@ghaf-host command -v nvd &>/dev/null || return 0
+          echo ""
+          echo "--- Package diff ---"
+          # shellcheck disable=SC2086,SC2029
+          ssh $NIX_SSHOPTS root@ghaf-host nvd diff "$old" "$new" || true
+        }
 
-        # Show package diff between old and new system closure
-        if [ -n "$old_system" ]; then
+        # Detect whether the requested action is "switch"
+        is_switch=false
+        upload_args=()
+
+        # Replace "switch" with "boot" so nixos-rebuild sets the profile
+        # and bootloader but leaves the running system untouched
+        # This lets us show the diff before any service restarts happen
+        for arg in "''${args[@]}"; do
+          [ "$arg" = "switch" ] && is_switch=true && upload_args+=("boot") && continue
+          upload_args+=("$arg")
+        done
+
+        if $is_switch; then
+          nixos-rebuild --flake "$build_target" --target-host root@ghaf-host --no-reexec "''${upload_args[@]}"
+
           # shellcheck disable=SC2086
-          # Use the profile link so this works for both "switch" and "boot":
-          # "boot" doesn't update /run/current-system until reboot, but always
-          # writes the new generation to /nix/var/nix/profiles/system.
           new_system=$(ssh $NIX_SSHOPTS root@ghaf-host readlink -f /nix/var/nix/profiles/system 2>/dev/null || true)
+          show_nvd_diff "$old_system" "$new_system"
+
+          # Activate via systemd-run --no-block so the unit is detached from the
+          # SSH session.  The connection may drop once network services restart
+          echo ""
+          echo "Activating new system (connection may drop)..."
+          # shellcheck disable=SC2086,SC2029
+          ssh $NIX_SSHOPTS root@ghaf-host \
+            "systemd-run --no-block -- $new_system/bin/switch-to-configuration switch" || true
+        else
+          nixos-rebuild --flake "$build_target" --target-host root@ghaf-host --no-reexec "''${upload_args[@]}"
+
           # shellcheck disable=SC2086
-          if [ -n "$new_system" ] && [ "$old_system" != "$new_system" ] && \
-              ssh $NIX_SSHOPTS root@ghaf-host command -v nvd &>/dev/null; then
-            echo ""
-            echo "--- Package diff ---"
-            # shellcheck disable=SC2086,SC2029
-            ssh $NIX_SSHOPTS root@ghaf-host nvd diff "$old_system" "$new_system" || true
-          fi
+          new_system=$(ssh $NIX_SSHOPTS root@ghaf-host readlink -f /nix/var/nix/profiles/system 2>/dev/null || true)
+          show_nvd_diff "$old_system" "$new_system"
         fi
   '';
   meta = {

@@ -869,6 +869,21 @@ in
                       ExecStop =
                         let
                           sysvm-stop = pkgs.writeShellScript "sysvm-stop" ''
+                            # Check if this stop is part of a real shutdown or suspend.
+                            # During a nixos-rebuild switch, affected services (system vms) are restarted
+                            # which causes their ExecStop actions to be executed
+                            # If no real reboot/suspend job is queued, we can assume the VM should be
+                            # restarted without requesting the host itself to reboot
+                            jobs=$(${getExe' pkgs.systemd "systemctl"} list-jobs 2>/dev/null || true)
+                            if ! echo "$jobs" | grep -qiE '(sleep|suspend|poweroff|reboot|halt)\.target.*start'; then
+                              echo "No shutdown/suspend in progress, skipping graceful shutdown for '${vmName}' (likely a rebuild)"
+                              kill -15 $MAINPID 2>/dev/null
+                              while kill -0 $MAINPID 2>/dev/null; do
+                                sleep 1
+                              done
+                              exit 0
+                            fi
+
                             echo "Starting poweroff target for system VM '${vmName}'"
                             vm=''${${vmName}/-vm/}
                             ${givc-cli} start service --vm '${vmName}' poweroff.target &
