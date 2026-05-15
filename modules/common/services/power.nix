@@ -200,6 +200,66 @@ let
     '';
   };
 
+  gui-vm-suspend = pkgs.writeShellApplication {
+    name = "gui-vm-suspend";
+    runtimeInputs = [
+      pkgs.systemd
+      pkgs.coreutils
+      pkgs.gawk
+    ];
+    text = ''
+      restart_logind() {
+        systemctl restart systemd-logind
+        sleep 0.3
+        local job_ids
+        job_ids=$(systemctl list-jobs --no-legend \
+          | awk '$2 == "sleep.target" || $2 == "suspend.target" || $2 == "systemd-suspend.service" { print $1 }' \
+          | tr '\n' ' ')
+        for id in $job_ids; do
+          systemctl cancel "$id" && echo "Cancelled suspend job ID $id" || true
+        done
+      }
+
+      is_lid_open() {
+        local state
+        state=$(busctl get-property "org.freedesktop.login1" "/org/freedesktop/login1" \
+          "org.freedesktop.login1.Manager" "LidClosed" | \
+              awk 'NR == 1 { print $2 == "true" ? "closed" : "open" }')
+        echo "Lid state: $state"
+        [ "$state" == "open" ]
+      }
+
+      wait_for_lid_open() {
+        is_lid_open && return 0
+
+        echo "Waiting up to 5 seconds for lid to open..."
+        local deadline=$(( SECONDS + 5 ))
+        while (( SECONDS < deadline )); do
+          sleep 0.5
+          if is_lid_open; then
+            echo "Lid opened, proceeding with resume"
+            return 0
+          fi
+        done
+
+        echo "Lid still closed after 5 seconds, attempting to restart logind..."
+        restart_logind
+        if is_lid_open; then
+          echo "Lid opened after logind restart"
+          return 0
+        fi
+        echo "Lid still closed after logind restart, proceeding with resume anyway"
+      }
+
+      echo "Forwarding suspension to host..."
+      ${givc-cli} suspend
+
+      echo "Host resumed from suspension"
+
+      wait_for_lid_open
+    '';
+  };
+
   guest-power-actions = pkgs.writeShellApplication {
     name = "guest-power-actions";
     runtimeInputs = [
@@ -588,57 +648,63 @@ in
       };
 
       # Override systemd actions for suspend, poweroff, and reboot
-      systemd.services = optionalAttrs (cfg.vm.enable && useGivc) {
-        # Replace systemd-sleep with GIVC suspend
-        systemd-suspend.serviceConfig.ExecStart = [
-          ""
-          "${givc-cli} suspend"
-        ];
+      systemd.services =
+        optionalAttrs (cfg.vm.enable && useGivc) {
+          systemd-suspend.serviceConfig.ExecStart = [
+            ""
+            "${getExe gui-vm-suspend}"
+          ];
 
-        # Intercept reboot or poweroff actions and relay it to the host
-        gui-shutdown-interceptor = {
-          description = "Ghaf GUI shutdown interceptor";
-          wantedBy = [
-            "shutdown.target"
-          ];
-          before = [
-            "shutdown.target"
-          ];
-          unitConfig.DefaultDependencies = false;
-          serviceConfig = {
-            Type = "oneshot";
-            ExecStart = "${getExe guest-shutdown-interceptor}";
+          # Intercept reboot or poweroff actions and relay it to the host
+          gui-shutdown-interceptor = {
+            description = "Ghaf GUI Shutdown Interceptor";
+            wantedBy = [
+              "shutdown.target"
+            ];
+            before = [
+              "shutdown.target"
+            ];
+            unitConfig.DefaultDependencies = false;
+            serviceConfig = {
+              Type = "oneshot";
+              ExecStart = "${getExe guest-shutdown-interceptor}";
+            };
           };
+
+          resume-actions = {
+            description = "Resume Actions";
+            wantedBy = [
+              "sleep.target"
+            ];
+            before = [
+              "sleep.target"
+            ];
+            unitConfig = {
+              DefaultDependencies = false;
+              StopWhenUnneeded = true;
+            };
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+              ExecStop =
+                let
+                  resumeActions = pkgs.writeShellScriptBin "resume-actions" ''
+                    ${getExe ghaf-powercontrol} fake-turn-on-displays '*'
+
+                    # config.ghaf.services.power-manager.suspend.extraResumeCommands
+                    ${cfg.suspend.extraResumeCommands}
+                  '';
+                in
+                getExe resumeActions;
+            };
+          };
+        }
+        // {
+          # Ensure systemd-logind never crashes during suspension
+          # Ref. https://github.com/systemd/systemd/issues/41562
+          # TODO: Remove when fixed
+          systemd-logind.serviceConfig.WatchdogSec = lib.mkForce 0;
         };
-
-        resume-actions = {
-          description = "Resume Actions";
-          wantedBy = [
-            "sleep.target"
-          ];
-          before = [
-            "sleep.target"
-          ];
-          unitConfig = {
-            DefaultDependencies = false;
-            StopWhenUnneeded = true;
-          };
-          serviceConfig = {
-            Type = "oneshot";
-            RemainAfterExit = true;
-            ExecStop =
-              let
-                resumeActions = pkgs.writeShellScriptBin "resume-actions" ''
-                  ${getExe ghaf-powercontrol} fake-turn-on-displays '*'
-
-                  # config.ghaf.services.power-manager.suspend.extraResumeCommands
-                  ${cfg.suspend.extraResumeCommands}
-                '';
-              in
-              getExe resumeActions;
-          };
-        };
-      };
 
       # Logind configuration for desktop
       services.logind.settings.Login =
