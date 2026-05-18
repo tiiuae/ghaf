@@ -1,0 +1,248 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+diff --git a/drivers/base/power/main.c b/drivers/base/power/main.c
+index 189de5250f25..e44f33d35432 100644
+--- a/drivers/base/power/main.c
++++ b/drivers/base/power/main.c
+@@ -35,6 +35,8 @@
+ #include <linux/devfreq.h>
+ #include <linux/timer.h>
+ #include <linux/nmi.h>
++#include <linux/pci.h>
++#include <linux/tty.h>
+ 
+ #include "../base.h"
+ #include "power.h"
+@@ -63,6 +65,73 @@ static pm_message_t pm_transition;
+ static DEFINE_MUTEX(async_wip_mtx);
+ static int async_error;
+ 
++static bool dpm_pm_test_device_is_intel_display(struct device *dev)
++{
++	if (dev_is_pci(dev)) {
++		struct pci_dev *pdev = to_pci_dev(dev);
++
++		if (pdev->vendor == PCI_VENDOR_ID_INTEL &&
++		    (pdev->class >> 16) == PCI_BASE_CLASS_DISPLAY) {
++			dev_info(dev, "pm_test: allowing Intel GPU PCI device\n");
++			return true;
++		}
++	}
++
++	return false;
++}
++
++static bool dpm_pm_test_device_is_serial(struct device *dev)
++{
++#if IS_ENABLED(CONFIG_TTY)
++	if (dev->class == &tty_class && strstarts(dev_name(dev), "ttyS")) {
++		dev_info(dev, "pm_test: allowing serial ttyS class device\n");
++		return true;
++	}
++#endif
++
++	if (dev->bus && !strcmp(dev->bus->name, "serial-base")) {
++		dev_info(dev, "pm_test: allowing serial-base device\n");
++		return true;
++	}
++
++	if (dev->driver) {
++		const char *name = dev->driver->name;
++
++		if (!strcmp(name, "serial")) {
++			dev_info(dev, "pm_test: allowing serial driver device\n");
++			return true;
++		}
++		if (strstarts(name, "8250")) {
++			dev_info(dev, "pm_test: allowing 8250 driver device\n");
++			return true;
++		}
++		if (strstr(name, "serial")) {
++			dev_info(dev, "pm_test: allowing serial-named driver device\n");
++			return true;
++		}
++	}
++
++	return false;
++}
++
++static bool dpm_pm_test_device_is_selected(struct device *dev)
++{
++	return dpm_pm_test_device_is_intel_display(dev) ||
++	       dpm_pm_test_device_is_serial(dev);
++}
++
++static bool dpm_pm_test_selected_only(pm_message_t state)
++{
++	return (state.event == PM_EVENT_SUSPEND ||
++		state.event == PM_EVENT_RESUME) && pm_test_gpu_only_enabled();
++}
++
++static bool dpm_pm_test_skip_device(struct device *dev, pm_message_t state)
++{
++	return dpm_pm_test_selected_only(state) &&
++	       !dpm_pm_test_device_is_selected(dev);
++}
++
+ /**
+  * pm_hibernate_is_recovering - if recovering from hibernate due to error.
+  *
+@@ -113,6 +182,7 @@ void device_pm_sleep_init(struct device *dev)
+ 	dev->power.is_suspended = false;
+ 	dev->power.is_noirq_suspended = false;
+ 	dev->power.is_late_suspended = false;
++	dev->power.pm_test_skipped = false;
+ 	init_completion(&dev->power.completion);
+ 	complete_all(&dev->power.completion);
+ 	dev->power.wakeup = NULL;
+@@ -1195,8 +1265,10 @@ void dpm_resume(pm_message_t state)
+ 	if (READ_ONCE(async_error))
+ 		dpm_save_failed_step(SUSPEND_RESUME);
+ 
+-	cpufreq_resume();
+-	devfreq_resume();
++	if (!dpm_pm_test_selected_only(state)) {
++		cpufreq_resume();
++		devfreq_resume();
++	}
+ 	trace_suspend_resume(TPS("dpm_resume"), state.event, false);
+ }
+ 
+@@ -1264,16 +1336,22 @@ void dpm_complete(pm_message_t state)
+ 	mutex_lock(&dpm_list_mtx);
+ 	while (!list_empty(&dpm_prepared_list)) {
+ 		struct device *dev = to_device(dpm_prepared_list.prev);
++		bool pm_test_skip = dev->power.pm_test_skipped;
+ 
+ 		get_device(dev);
+ 		dev->power.is_prepared = false;
++		dev->power.pm_test_skipped = false;
+ 		list_move(&dev->power.entry, &list);
+ 
+ 		mutex_unlock(&dpm_list_mtx);
+ 
+-		trace_device_pm_callback_start(dev, "", state.event);
+-		device_complete(dev, state);
+-		trace_device_pm_callback_end(dev, 0);
++		if (pm_test_skip) {
++			dev_dbg(dev, "pm_test: skipping outside GPU/serial allowlist complete\n");
++		} else {
++			trace_device_pm_callback_start(dev, "", state.event);
++			device_complete(dev, state);
++			trace_device_pm_callback_end(dev, 0);
++		}
+ 
+ 		put_device(dev);
+ 
+@@ -1873,6 +1951,11 @@ static void device_suspend(struct device *dev, pm_message_t state, bool async)
+ 	TRACE_DEVICE(dev);
+ 	TRACE_SUSPEND(0);
+ 
++	if (dev->power.pm_test_skipped) {
++		dev_dbg(dev, "pm_test: skipping outside GPU/serial allowlist suspend\n");
++		goto Complete;
++	}
++
+ 	dpm_wait_for_subordinate(dev, async);
+ 
+ 	if (READ_ONCE(async_error)) {
+@@ -2014,8 +2097,10 @@ int dpm_suspend(pm_message_t state)
+ 	trace_suspend_resume(TPS("dpm_suspend"), state.event, true);
+ 	might_sleep();
+ 
+-	devfreq_suspend();
+-	cpufreq_suspend();
++	if (!dpm_pm_test_selected_only(state)) {
++		devfreq_suspend();
++		cpufreq_suspend();
++	}
+ 
+ 	pm_transition = state;
+ 	async_error = 0;
+@@ -2229,19 +2314,28 @@ int dpm_prepare(pm_message_t state)
+ 	mutex_lock(&dpm_list_mtx);
+ 	while (!list_empty(&dpm_list) && !error) {
+ 		struct device *dev = to_device(dpm_list.next);
++		bool pm_test_skip;
+ 
+ 		get_device(dev);
+ 
+ 		mutex_unlock(&dpm_list_mtx);
+ 
+-		trace_device_pm_callback_start(dev, "", state.event);
+-		error = device_prepare(dev, state);
+-		trace_device_pm_callback_end(dev, error);
++		pm_test_skip = dpm_pm_test_skip_device(dev, state);
++		if (pm_test_skip) {
++			dev_dbg(dev, "pm_test: skipping outside GPU/serial allowlist prepare\n");
++			error = 0;
++		} else {
++			trace_device_pm_callback_start(dev, "", state.event);
++			error = device_prepare(dev, state);
++			trace_device_pm_callback_end(dev, error);
++		}
+ 
+ 		mutex_lock(&dpm_list_mtx);
+ 
++		dev->power.pm_test_skipped = false;
+ 		if (!error) {
+-			dev->power.is_prepared = true;
++			dev->power.pm_test_skipped = pm_test_skip;
++			dev->power.is_prepared = !pm_test_skip;
+ 			if (!list_empty(&dev->power.entry))
+ 				list_move_tail(&dev->power.entry, &dpm_prepared_list);
+ 		} else if (error == -EAGAIN) {
+diff --git a/include/linux/pm.h b/include/linux/pm.h
+index afcaaa37a812..1238e6fa89b6 100644
+--- a/include/linux/pm.h
++++ b/include/linux/pm.h
+@@ -688,6 +688,7 @@ struct dev_pm_info {
+ 	bool			smart_suspend:1;	/* Owned by the PM core */
+ 	bool			must_resume:1;		/* Owned by the PM core */
+ 	bool			may_skip_resume:1;	/* Set by subsystems */
++	bool			pm_test_skipped:1;	/* Owned by the PM core */
+ 	bool			out_band_wakeup:1;
+ 	bool			strict_midlayer:1;
+ #else
+@@ -828,6 +829,14 @@ extern int dpm_suspend_noirq(pm_message_t state);
+ extern int dpm_suspend_late(pm_message_t state);
+ extern int dpm_suspend(pm_message_t state);
+ extern int dpm_prepare(pm_message_t state);
++#ifdef CONFIG_SUSPEND
++extern bool pm_test_gpu_only_enabled(void);
++#else
++static inline bool pm_test_gpu_only_enabled(void)
++{
++	return false;
++}
++#endif
+ 
+ extern void __suspend_report_result(const char *function, struct device *dev, void *fn, int ret);
+ 
+diff --git a/kernel/power/suspend.c b/kernel/power/suspend.c
+index 57c44268698f..0ff9b43e0544 100644
+--- a/kernel/power/suspend.c
++++ b/kernel/power/suspend.c
+@@ -334,6 +334,22 @@ static bool platform_suspend_again(suspend_state_t state)
+ 		suspend_ops->suspend_again() : false;
+ }
+ 
++#ifdef CONFIG_PM_SLEEP_DEBUG
++static bool pm_test_gpu_only;
++module_param(pm_test_gpu_only, bool, 0644);
++MODULE_PARM_DESC(pm_test_gpu_only,
++		 "Restrict pm_test=devices to Intel GPU and serial devices");
++#endif
++
++bool pm_test_gpu_only_enabled(void)
++{
++#ifdef CONFIG_PM_SLEEP_DEBUG
++	return pm_test_gpu_only && pm_test_level == TEST_DEVICES;
++#else
++	return false;
++#endif
++}
++
+ #ifdef CONFIG_PM_DEBUG
+ static unsigned int pm_test_delay = 5;
+ module_param(pm_test_delay, uint, 0644);

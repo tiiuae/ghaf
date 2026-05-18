@@ -16,6 +16,9 @@ let
   };
 
   cfg = config.ghaf.guest.kernel.hardening;
+  gpuSuspend =
+    (config.ghaf.services.power-manager.gui.enable or false)
+    && (config.ghaf.services.power-manager.gui.gpuSuspend or false);
 in
 {
   options.ghaf.guest.kernel.hardening = {
@@ -35,5 +38,12 @@ in
   config = lib.mkIf pkgs.stdenv.hostPlatform.isx86_64 {
     boot.kernelPackages =
       if cfg.enable then pkgs.linuxPackagesFor guest_hardened_kernel else pkgs.linuxPackages_latest;
+
+    boot.kernelPatches = lib.optionals gpuSuspend [
+      {
+        name = "kernel-pm-test-gpu-suspend";
+        patch = ./patches/kernel-pm-test-gpu-suspend.patch;
+      }
+    ];
   };
 }

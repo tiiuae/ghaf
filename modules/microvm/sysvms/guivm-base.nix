@@ -335,6 +335,7 @@ in
     systemPackages = [
       pkgs.ctrl-panel
       pkgs.waypipe
+      pkgs.wlopm
     ]
     # For GIVC debugging/testing
     ++ lib.optional (globalConfig.debug.enable or false) pkgs.givc-cli
