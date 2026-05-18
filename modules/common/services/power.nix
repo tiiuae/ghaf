@@ -5,6 +5,7 @@
   config,
   pkgs,
   lib,
+  options,
   ...
 }:
 let
@@ -93,6 +94,21 @@ let
     ) config.microvm.vms
   );
 
+  # List of VMs that should run kernel GPU suspend when the host suspends
+  gpuSuspendVms = lib.attrNames (
+    filterAttrs (
+      _n: v:
+      let
+        vmConfig = lib.ghaf.vm.getConfig v;
+      in
+      vmConfig != null
+      && vmConfig.ghaf.services.power-manager.enable
+      && vmConfig.ghaf.services.power-manager.vm.enable
+      && vmConfig.ghaf.services.power-manager.gui.enable
+      && vmConfig.ghaf.services.power-manager.gui.gpuSuspend
+    ) config.microvm.vms
+  );
+
   # Host suspend actions
   host-suspend-actions = pkgs.writeShellApplication {
     name = "host-suspend-actions";
@@ -101,6 +117,7 @@ let
       pkgs.systemd
       pkgs.coreutils
       pkgs.grpcurl
+      pkgs.socat
       pkgs.vhotplug
       pkgs.wait-for-unit
     ];
@@ -173,6 +190,30 @@ let
                 echo "Fallback: restarting $vm_name..."
                 systemctl restart microvm@"$vm_name".service
               fi
+              ;;
+            *)
+              echo "Invalid action: $action"
+              echo "Usage: $0 <VM Name> <suspend-action> (suspend|resume)"
+              exit 1
+              ;;
+          esac
+          ;;
+
+        gpu-suspend)
+          case "$action" in
+            suspend)
+              echo "Signaling kernel GPU suspend to $vm_name..."
+              ${givc-cli} start service --vm "$vm_name" gpu-suspend.service &
+              sleep 1
+              ;;
+            resume)
+              wake_socket="${config.microvm.stateDir}/$vm_name/vm-wake.sock"
+              echo "Signaling kernel GPU resume to $vm_name..."
+              if [ ! -S "$wake_socket" ]; then
+                echo "Wake socket $wake_socket does not exist, $vm_name will resume after fallback timeout (${toString cfg.gui.gpuSuspendDuration}s)"
+                exit 1
+              fi
+              printf 'resume\n' | socat -u - "UNIX-CONNECT:$wake_socket"
               ;;
             *)
               echo "Invalid action: $action"
@@ -527,6 +568,29 @@ in
         If running in a VM and GIVC is enabled, it replaces the default systemd actions for suspend, poweroff, and
         reboot with givc commands.
       '';
+      gpuSuspend = mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          Whether the host should trigger kernel GPU suspend for this VM before host suspend.
+        '';
+      };
+      gpuSuspendDuration = mkOption {
+        type = types.ints.positive;
+        default = 20;
+        description = ''
+          Duration in seconds for the kernel GPU suspend pm_test delay.
+          This is used as a fallback timeout if the socket wakeup signal is not received.
+        '';
+      };
+      fakeDisplaySuspend = mkOption {
+        type = types.bool;
+        default = !cfg.gui.gpuSuspend;
+        defaultText = literalExpression "!config.ghaf.services.power-manager.gui.gpuSuspend";
+        description = ''
+          Whether to use ghaf-powercontrol to fake display off and on during GUI suspend and resume.
+        '';
+      };
     };
     host = {
       enable = mkEnableOption ''
@@ -638,7 +702,6 @@ in
 
     # GUI power management profile
     (mkIf cfg.gui.enable {
-
       # Shutdown displays early before suspend
       powerManagement = {
         powerDownCommands = lib.mkBefore (
@@ -647,7 +710,9 @@ in
               _is_shutdown=0
             else
               _is_shutdown=1
-              ${getExe ghaf-powercontrol} fake-turn-off-displays '*'
+              ${optionalString cfg.gui.fakeDisplaySuspend ''
+                ${getExe ghaf-powercontrol} fake-turn-off-displays '*'
+              ''}
             fi
           ''
           + optionalString (cfg.suspend.extraSuspendCommands != "") ''
@@ -659,9 +724,14 @@ in
         );
       };
 
+      # Allow the host power manager to trigger kernel GPU suspend in the GUI VM
+      givc.sysvm.capabilities.services = optionals (cfg.vm.enable && useGivc && cfg.gui.gpuSuspend) [
+        "gpu-suspend.service"
+      ];
+
       # Override systemd actions for suspend, poweroff, and reboot
-      systemd.services =
-        optionalAttrs (cfg.vm.enable && useGivc) {
+      systemd.services = optionalAttrs (cfg.vm.enable && useGivc) (
+        {
           systemd-suspend.serviceConfig.ExecStart = [
             ""
             "${getExe gui-vm-suspend}"
@@ -702,7 +772,9 @@ in
               ExecStop =
                 let
                   resumeActions = pkgs.writeShellScriptBin "resume-actions" ''
-                    ${getExe ghaf-powercontrol} fake-turn-on-displays '*'
+                    ${optionalString cfg.gui.fakeDisplaySuspend ''
+                      ${getExe ghaf-powercontrol} fake-turn-on-displays '*'
+                    ''}
 
                     # config.ghaf.services.power-manager.suspend.extraResumeCommands
                     ${cfg.suspend.extraResumeCommands}
@@ -717,7 +789,44 @@ in
           # Ref. https://github.com/systemd/systemd/issues/41562
           # TODO: Remove when fixed
           systemd-logind.serviceConfig.WatchdogSec = lib.mkForce 0;
-        };
+        }
+        // optionalAttrs cfg.gui.gpuSuspend {
+          gpu-suspend = {
+            description = "GPU suspend for GUI VM";
+            serviceConfig = {
+              Type = "oneshot";
+              ExecStart =
+                let
+                  guestGpuSuspend = pkgs.writeShellApplication {
+                    name = "guest-gpu-suspend";
+                    runtimeInputs = [
+                      pkgs.coreutils
+                    ];
+                    text = ''
+                      echo "Activating kernel GPU suspend"
+                      # Use pm_test_delay as a fallback timeout if the socket wakeup signal is not received
+                      echo ${toString cfg.gui.gpuSuspendDuration} > /sys/module/suspend/parameters/pm_test_delay
+                      # Limit pm_test suspend/resume to the GPU and serial wakeup device
+                      echo 1 > /sys/module/suspend/parameters/pm_test_gpu_only
+                      echo devices > /sys/power/pm_test
+                      # Enable ttyS1 as the wakeup source used by the host
+                      echo enabled > /sys/class/tty/ttyS1/power/wakeup
+                      cat /dev/ttyS1 > /dev/null &
+                      # Arm wakeup_count so incoming ttyS1 data is treated as a wakeup event
+                      wc=$(cat /sys/power/wakeup_count)
+                      echo "$wc" > /sys/power/wakeup_count
+                      # Enter suspend and wait for the host wakeup signal
+                      echo freeze > /sys/power/state
+                      echo "GPU resumed"
+                      echo 0 > /sys/module/suspend/parameters/pm_test_gpu_only
+                    '';
+                  };
+                in
+                getExe guestGpuSuspend;
+            };
+          };
+        }
+      );
 
       # Logind configuration for desktop
       services.logind.settings.Login =
@@ -739,6 +848,16 @@ in
           # TODO: Investigate root cause
           InhibitDelayMaxSec = 1;
         };
+    })
+
+    (optionalAttrs (options ? microvm && options.microvm ? qemu) {
+      # Serial device (ttyS1) for wakeup from kernel GPU suspend
+      microvm.qemu.extraArgs = mkIf (cfg.gui.enable && cfg.vm.enable && cfg.gui.gpuSuspend) [
+        "-chardev"
+        "socket,id=wake0,path=vm-wake.sock,server=on,wait=off"
+        "-device"
+        "isa-serial,chardev=wake0,index=1"
+      ];
     })
 
     # Host power management
@@ -768,7 +887,8 @@ in
             wants =
               map (vmName: "pre-sleep-poweroff@${vmName}.service") powerOffVms
               ++ map (vmName: "pre-sleep-fake-suspend@${vmName}.service") fakeSuspendVms
-              ++ map (vmName: "pre-sleep-pci-suspend@${vmName}.service") pciSuspendVms;
+              ++ map (vmName: "pre-sleep-pci-suspend@${vmName}.service") pciSuspendVms
+              ++ map (vmName: "pre-sleep-gpu-suspend@${vmName}.service") gpuSuspendVms;
           };
           "post-resume-actions" = {
             description = "Target for post-resume host actions";
@@ -777,7 +897,8 @@ in
             wants =
               map (vmName: "post-resume-poweroff@${vmName}.service") powerOffVms
               ++ map (vmName: "post-resume-fake-suspend@${vmName}.service") fakeSuspendVms
-              ++ map (vmName: "post-resume-pci-suspend@${vmName}.service") pciSuspendVms;
+              ++ map (vmName: "post-resume-pci-suspend@${vmName}.service") pciSuspendVms
+              ++ map (vmName: "post-resume-gpu-suspend@${vmName}.service") gpuSuspendVms;
           };
         };
 
@@ -832,6 +953,7 @@ in
                     "poweroff"
                     "fake-suspend"
                     "pci-suspend"
+                    "gpu-suspend"
                   ]
               )
             )
