@@ -250,7 +250,13 @@ def cmd_sign(args: argparse.Namespace) -> None:
         tmp_kernel_path = Path(tmp.name)
         shutil.copy2(src_kernel, tmp_kernel_path)
         signer = args.systemd_sbsign if args.systemd_sbsign else "systemd-sbsign"
-        cmd = [signer, *args.sbsign_args, "-o", str(dst_kernel), str(tmp_kernel_path)]
+        cmd = [
+            signer,
+            *args.sbsign_args,
+            "--output",
+            str(dst_kernel),
+            str(tmp_kernel_path),
+        ]
         subprocess.run(cmd, check=True)
 
     manifest["kernel"]["sha256"] = sha256_file(str(dst_kernel))
