@@ -14,7 +14,6 @@
     "microvm-virtiofsd@".serviceConfig = import ./microvm-virtiofsd.nix;
     "microvm@".serviceConfig = import ./microvm.nix;
     "user-runtime-dir@".serviceConfig = import ./user-runtime-dir.nix;
-    alloy.serviceConfig = import ./alloy.nix;
     bluetooth.serviceConfig = import ./bluetooth.nix;
     dbus.serviceConfig = import ./dbus.nix;
     dnsmasq.serviceConfig = import ./dnsmasq.nix;

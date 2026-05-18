@@ -175,7 +175,7 @@ in
     development.ssh.daemon.enable = globalConfig.development.ssh.daemon.enable;
     logging = {
       inherit (globalConfig.logging) enable listener;
-      client.enable = globalConfig.logging.enable;
+      journalClient.enable = globalConfig.logging.enable;
     };
   };
 

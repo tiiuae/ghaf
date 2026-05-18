@@ -127,7 +127,15 @@ in
           nix-setup.automatic-gc.enable = config.ghaf.development.nix-setup.enable;
           debug.tools.host.enable = config.ghaf.development.debug.tools.enable;
         };
-        logging.client.enable = config.ghaf.logging.enable;
+        logging = {
+          listener = {
+            address = lib.mkDefault config.ghaf.global-config.logging.listener.address;
+            port = lib.mkDefault config.ghaf.global-config.logging.listener.port;
+          };
+          journalClient = {
+            inherit (config.ghaf.logging) enable;
+          };
+        };
         common = {
           extraNetworking.hosts.ghaf-host = cfg.extraNetworking;
           policies = lib.mkIf config.ghaf.givc.policyClient.enable {

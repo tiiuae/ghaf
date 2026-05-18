@@ -139,11 +139,18 @@ let
       systemctl restart systemd-journald.service
       record_recovery_archives
 
-      if systemctl cat alloy.service >/dev/null 2>&1; then
-        systemctl restart alloy.service
-      else
-        echo "alloy.service not installed, skipping restart"
-      fi
+      restart_if_installed() {
+        local unit="$1"
+
+        if systemctl cat "$unit" >/dev/null 2>&1; then
+          systemctl restart "$unit"
+        else
+          echo "$unit not installed, skipping restart"
+        fi
+      }
+
+      restart_if_installed systemd-journal-upload.service
+      restart_if_installed alloy.service
     '';
   };
 in
@@ -152,13 +159,11 @@ in
 
   # Creating logging configuration options needed across the host and vms
   options.ghaf.logging = {
-    enable = mkEnableOption "logging service (grafana alloy client uploading journal logs to admin-vm)";
+    enable = mkEnableOption "logging service (journal clients upload logs to admin-vm, admin-vm forwards to Loki)";
 
     listener.address = mkOption {
       description = ''
-        Listener address will be used where log producers will
-        push logs and where admin-vm alloy.service will be
-        keep on listening or receiving logs.
+        Listener address where journal clients upload logs to admin-vm.
       '';
       type = types.str;
       default = "";
@@ -166,10 +171,8 @@ in
 
     listener.port = mkOption {
       description = ''
-        Listener port for the logproto endpoint which will be
-        used to receive logs from different log producers.
-        Also this port value will be used to open the port in
-        the admin-vm firewall.
+        Listener port for systemd-journal-remote on admin-vm.
+        This port is also opened in the admin-vm firewall.
       '';
       type = types.port;
       default = 9999;
@@ -217,7 +220,7 @@ in
     };
 
     recovery = {
-      enable = (mkEnableOption "journald/alloy recovery after realtime clock jumps") // {
+      enable = (mkEnableOption "journald/log-forwarder recovery after realtime clock jumps") // {
         default = true;
       };
 
@@ -246,7 +249,7 @@ in
     systemd = {
       # Watcher: detects realtime jumps by comparing realtime vs monotonic progression
       services.ghaf-clock-jump-watcher = {
-        description = "Detect realtime clock jumps and trigger journald/alloy recovery";
+        description = "Detect realtime clock jumps and trigger journald/log-forwarder recovery";
         wantedBy = [ "multi-user.target" ];
 
         serviceConfig = {
@@ -258,7 +261,7 @@ in
       };
 
       services.ghaf-journal-alloy-recover = {
-        description = "Recover journald/alloy after time jump";
+        description = "Recover journald/log-forwarder after time jump";
 
         unitConfig = {
           StartLimitIntervalSec = "0";

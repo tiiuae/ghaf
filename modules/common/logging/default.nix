@@ -5,8 +5,7 @@
 
   imports = [
     ./common.nix
-    ./client.nix
-    ./server.nix
+    ./alloy-server.nix
     ./fss.nix
     ./journal-client.nix
     ./journal-server.nix

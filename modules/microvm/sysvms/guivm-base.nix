@@ -200,15 +200,7 @@ in
       inherit (globalConfig.logging) enable listener;
       journalClient = {
         inherit (globalConfig.logging) enable;
-        tls = {
-          caFile = "/etc/givc/ca-cert.pem";
-          certFile = "/etc/givc/cert.pem";
-          keyFile = "/etc/givc/key.pem";
-        };
       };
-
-      client.enable = false; # globalConfig.logging.enable or false;
-      server.endpoint = globalConfig.logging.server.endpoint or "";
     };
 
     # Services

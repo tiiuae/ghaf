@@ -111,7 +111,7 @@ In VM modules, `globalConfig` is available as a function parameter:
 
     logging = {
       inherit (globalConfig.logging) enable listener;
-      client.enable = globalConfig.logging.enable;
+      journalClient.enable = globalConfig.logging.enable;
     };
 
     ghaf.givc = {
