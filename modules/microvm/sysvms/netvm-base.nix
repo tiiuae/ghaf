@@ -158,8 +158,9 @@ in
     # Logging - from globalConfig (includes listener address)
     logging = {
       inherit (globalConfig.logging) enable listener;
-      client.enable = globalConfig.logging.enable or false;
-      server.endpoint = globalConfig.logging.server.endpoint or "";
+      journalClient = {
+        inherit (globalConfig.logging) enable;
+      };
     };
 
     security = {

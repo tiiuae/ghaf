@@ -135,11 +135,6 @@ in
       inherit (globalConfig.logging) enable listener;
       journalServer = {
         inherit (globalConfig.logging) enable;
-        tls = {
-          caFile = "/etc/givc/ca-cert.pem";
-          certFile = "/etc/givc/cert.pem";
-          keyFile = "/etc/givc/key.pem";
-        };
       };
 
       server = {
@@ -147,16 +142,7 @@ in
         endpoint = globalConfig.logging.server.endpoint or "";
 
         tls = {
-          remoteCAFile = null;
-          certFile = "/etc/givc/cert.pem";
-          keyFile = "/etc/givc/key.pem";
           serverName = "loki.ghaflogs.vedenemo.dev";
-          minVersion = "TLS12";
-
-          terminator = {
-            backendPort = 3101; # alloy server listens here
-            verifyClients = true;
-          };
         };
       };
 

@@ -169,7 +169,7 @@ Base modules define the core VM configuration. They use `globalConfig` and `host
     development.ssh.daemon.enable = globalConfig.development.ssh.daemon.enable;
     logging = {
       inherit (globalConfig.logging) enable listener;
-      client.enable = globalConfig.logging.enable;
+      journalClient.enable = globalConfig.logging.enable;
     };
   };
 

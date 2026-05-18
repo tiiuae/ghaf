@@ -26,9 +26,8 @@ in
     enable = mkEnableOption "Journal uploader client service";
     endpoint = mkOption {
       description = ''
-        Assign endpoint url value to the alloy.service running in
-        different log producers. This endpoint URL will include
-        protocol, upstream, address along with port value.
+        Assign endpoint URL for systemd-journal-upload. This endpoint URL
+        includes protocol, upstream address, and port.
       '';
       type = types.str;
       default = "https://${listener.address}:${toString listener.port}";
@@ -38,17 +37,17 @@ in
       caFile = mkOption {
         type = types.nullOr types.path;
         default = "/etc/givc/ca-cert.pem";
-        description = "CA bundle used to verify the admin-vm TLS terminator certificate.";
+        description = "CA bundle used to verify the admin-vm journal receiver certificate.";
       };
       certFile = mkOption {
         type = types.nullOr types.path;
         default = "/etc/givc/cert.pem";
-        description = "Client certificate (PEM) used for mTLS to the admin-vm.";
+        description = "Client certificate (PEM) used for mTLS to the admin-vm journal receiver.";
       };
       keyFile = mkOption {
         type = types.nullOr types.path;
         default = "/etc/givc/key.pem";
-        description = "Client private key (PEM) used for mTLS to the admin-vm.";
+        description = "Client private key (PEM) used for mTLS to the admin-vm journal receiver.";
       };
       minVersion = mkOption {
         type = types.nullOr (

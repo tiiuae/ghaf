@@ -39,6 +39,19 @@ in
         default = "/etc/givc/key.pem";
         description = "Client private key (PEM) used for mTLS.";
       };
+
+      terminator = {
+        backendPort = mkOption {
+          type = types.port;
+          default = 3101;
+          description = "Local HTTP backend port for systemd-journal-remote when TLS termination is enabled.";
+        };
+        verifyClients = mkOption {
+          type = types.bool;
+          default = true;
+          description = "Require client certificates (mTLS).";
+        };
+      };
     };
   };
 
@@ -48,17 +61,39 @@ in
         assertion = (cfg.tls.certFile != null) && (cfg.tls.keyFile != null);
         message = "Please set ghaf.logging.journalServer.tls.certFile and tls.keyFile.";
       }
+      {
+        assertion = (!cfg.tls.terminator.verifyClients) || cfg.tls.caFile != null;
+        message = "Please set ghaf.logging.journalServer.tls.caFile when mTLS client verification is enabled.";
+      }
+      {
+        assertion = cfg.tls.terminator.backendPort != config.ghaf.logging.listener.port;
+        message = "ghaf.logging.journalServer.tls.terminator.backendPort must differ from ghaf.logging.listener.port.";
+      }
     ];
 
     services.journald.remote = {
       enable = true;
-      inherit (config.ghaf.logging.listener) port;
+      listen = "http";
+      port = cfg.tls.terminator.backendPort;
+      output = "/var/log/journal/remote/";
       settings.Remote = {
         SplitMode = "host";
-        OutputDirectory = "/var/log/journal/remote";
-        ServerKeyFile = "${cfg.tls.keyFile}";
-        ServerCertificateFile = "${cfg.tls.certFile}";
-        TrustedCertificateFile = "${cfg.tls.caFile}";
+      };
+    };
+
+    services.stunnel = {
+      enable = true;
+
+      servers."ghaf-journal" = {
+        accept = config.ghaf.logging.listener.port;
+        connect = "127.0.0.1:${toString cfg.tls.terminator.backendPort}";
+        cert = cfg.tls.certFile;
+        key = cfg.tls.keyFile;
+        verify = if cfg.tls.terminator.verifyClients then 2 else 0;
+        sslVersionMin = "TLSv1.2";
+      }
+      // lib.optionalAttrs (cfg.tls.caFile != null) {
+        CAfile = cfg.tls.caFile;
       };
     };
 
@@ -73,12 +108,27 @@ in
       };
       serviceConfig = {
         User = lib.mkForce "root";
-        Group = lib.mkForce "root";
+        Group = lib.mkForce "systemd-journal";
       };
     };
 
-    systemd.tmpfiles.rules = [
-      "d /var/log/journal/remote 2755 root root -"
+    systemd.sockets.systemd-journal-remote.listenStreams = lib.mkForce [
+      ""
+      "127.0.0.1:${toString cfg.tls.terminator.backendPort}"
+    ];
+
+    systemd.services.stunnel = {
+      after = lib.optionals givcHostEnabled [ "givc-key-setup.service" ];
+      wants = lib.optionals givcHostEnabled [ "givc-key-setup.service" ];
+      unitConfig = lib.optionalAttrs needsGivcMount {
+        RequiresMountsFor = [ "/etc/givc" ];
+      };
+    };
+
+    systemd.tmpfiles.rules = lib.mkAfter [
+      "d /var/log/journal/remote 2755 root systemd-journal -"
+      "z /var/log/journal/remote 2755 root systemd-journal -"
+      "z /var/log/journal/remote/remote-*.journal 0640 root systemd-journal -"
     ];
 
     networking.firewall.allowedTCPPorts = [ config.ghaf.logging.listener.port ];

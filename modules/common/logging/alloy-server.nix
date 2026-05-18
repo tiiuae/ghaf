@@ -13,25 +13,27 @@ let
     types
     optionalString
     optionals
+    optionalAttrs
     ;
   inherit (lib.strings) hasPrefix;
   cfg = config.ghaf.logging.server;
+  alloyHardening = import ../systemd/hardened-configs/alloy.nix;
   dynHostEnabled = config.ghaf.identity.vmHostNameSetter.enable or false;
   givcEnabled = config.ghaf.givc.enable;
   givcHostEnabled = config.ghaf.givc.host.enable;
   needsGivcMount = givcEnabled && !givcHostEnabled;
 in
 {
-  _file = ./server.nix;
+  _file = ./alloy-server.nix;
 
   options.ghaf.logging.server = {
-    enable = mkEnableOption "Logs aggregator server";
+    enable = mkEnableOption "Alloy log forwarder on the logging server";
 
     endpoint = mkOption {
       description = ''
-        Assign endpoint url value to the alloy.service running in
-        admin-vm. This endpoint URL will include protocol, upstream
-        address along with port value.
+        Assign remote Loki endpoint URL to the alloy.service running in
+        admin-vm. This endpoint URL includes protocol, upstream address,
+        and port.
       '';
       type = types.nullOr types.str;
       default = null;
@@ -50,12 +52,6 @@ in
     };
 
     tls = {
-      # CA and certificate options
-      caFile = mkOption {
-        type = types.nullOr types.path;
-        default = "/etc/givc/ca-cert.pem";
-        description = "Optional CA bundle for server verification (e.g., /etc/givc/ca-cert.pem). If null, use system CAs.";
-      };
       remoteCAFile = mkOption {
         type = types.nullOr types.path;
         default = null;
@@ -64,12 +60,12 @@ in
       certFile = mkOption {
         type = types.nullOr types.path;
         default = "/etc/givc/cert.pem";
-        description = "Client certificate (PEM) used for mTLS.";
+        description = "Client certificate (PEM) used for mTLS to remote Loki.";
       };
       keyFile = mkOption {
         type = types.nullOr types.path;
         default = "/etc/givc/key.pem";
-        description = "Client private key (PEM) used for mTLS.";
+        description = "Client private key (PEM) used for mTLS to remote Loki.";
       };
 
       # Connection options
@@ -88,19 +84,6 @@ in
         default = "TLS12";
         description = "Minimum TLS version for the outbound connection.";
       };
-
-      terminator = {
-        backendPort = mkOption {
-          type = types.port;
-          default = 3101;
-          description = "HTTP backend port for Alloy when TLS terminator is enabled.";
-        };
-        verifyClients = mkOption {
-          type = types.bool;
-          default = true;
-          description = "Require client certificates (mTLS).";
-        };
-      };
     };
   };
 
@@ -109,7 +92,7 @@ in
     assertions = [
       {
         assertion = cfg.endpoint != null;
-        message = "Please provide endpoint URL for logs aggregator server, or disable the module.";
+        message = "Please provide endpoint URL for the Alloy log forwarder, or disable the module.";
       }
       {
         assertion = cfg.identifierFilePath != null;
@@ -122,10 +105,6 @@ in
       {
         assertion = hasPrefix "https://" (cfg.endpoint or "");
         message = "Endpoint must start with https://";
-      }
-      {
-        assertion = cfg.tls.terminator.backendPort != config.ghaf.logging.listener.port;
-        message = "backendPort must differ from public listener.port.";
       }
     ];
 
@@ -143,23 +122,6 @@ in
       '';
 
       alloy.enable = true;
-
-      # TLS terminator on the public socket. Alloy stays on backendPort (HTTP).
-      stunnel = {
-        enable = true;
-
-        servers."ghaf-logs" = {
-          accept = config.ghaf.logging.listener.port;
-          connect = "127.0.0.1:${toString cfg.tls.terminator.backendPort}";
-          cert = cfg.tls.certFile;
-          key = cfg.tls.keyFile;
-          verify = if cfg.tls.terminator.verifyClients then 2 else 0;
-          sslVersionMin = "TLSv1.2";
-        }
-        // lib.optionalAttrs (cfg.tls.caFile != null) {
-          CAfile = cfg.tls.caFile;
-        };
-      };
     };
 
     environment.etc = {
@@ -186,12 +148,6 @@ in
               filename = sys.env("CREDENTIALS_DIRECTORY") + "/remote_ca"
             }
           ''}
-          ${optionalString (cfg.tls.caFile != null) ''
-            local.file "tls_ca" {
-              filename = sys.env("CREDENTIALS_DIRECTORY") + "/loki_ca"
-            }
-          ''}
-
           discovery.relabel "adminJournal" {
             targets = []
             rule {
@@ -289,17 +245,6 @@ in
             }
             external_labels = { machine = local.file.macAddress.content }
           }
-
-          loki.source.api "listener" {
-            http {
-              listen_address = "127.0.0.1"
-              listen_port    = ${toString cfg.tls.terminator.backendPort}
-            }
-
-            forward_to = [
-              loki.process.system.receiver,
-            ]
-          }
         '';
         # The UNIX file mode bits
         mode = "0644";
@@ -319,7 +264,7 @@ in
         RequiresMountsFor = [ "/etc/givc" ];
       };
 
-      serviceConfig = {
+      serviceConfig = (optionalAttrs config.ghaf.systemd.withHardenedConfigs alloyHardening) // {
 
         SupplementaryGroups = [
           "systemd-journal"
@@ -331,27 +276,19 @@ in
         # https://github.com/grafana/loki/issues/6533
         TimeoutStopSec = 4;
 
-        # Copy certs/keys (and optional CA) into /run/credentials/alloy.service/…
+        # Copy certs/keys (and optional remote CA) into /run/credentials/alloy.service/…
         LoadCredential = [
           "loki_cert:${cfg.tls.certFile}"
           "loki_key:${cfg.tls.keyFile}"
         ]
         ++ optionals (cfg.tls.remoteCAFile != null) [
           "remote_ca:${cfg.tls.remoteCAFile}"
-        ]
-        ++ optionals (cfg.tls.caFile != null) [
-          "loki_ca:${cfg.tls.caFile}"
         ];
       };
     };
 
-    ghaf.firewall = {
-      allowedTCPPorts = [ config.ghaf.logging.listener.port ];
-      allowedUDPPorts = [ ];
-    };
-
     ghaf.security.audit.extraRules = [
-      "-w /etc/alloy/logs-aggregator.alloy -p rwxa -k alloy_client_config"
+      "-w /etc/alloy/logs-aggregator.alloy -p rwxa -k alloy_server_config"
     ];
   };
 }

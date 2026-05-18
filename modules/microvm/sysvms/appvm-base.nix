@@ -257,7 +257,9 @@ in
         # Logging - from globalConfig
         logging = {
           inherit (globalConfig.logging) enable listener;
-          client.enable = globalConfig.logging.enable or false;
+          journalClient = {
+            inherit (globalConfig.logging) enable;
+          };
         };
 
         # Security
