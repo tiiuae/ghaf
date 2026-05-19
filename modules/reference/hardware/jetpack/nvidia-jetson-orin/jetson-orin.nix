@@ -273,6 +273,19 @@ in
       default = "";
     };
 
+    flashScriptOverrides.rootfsDevice = mkOption {
+      description = ''
+        Rootfs device passed to NVIDIA's flash.sh as the trailing argument
+        (e.g. "mmcblk0p1" for eMMC/SD, "nvme0n1p1" for NVMe). This is
+        consumed by the partition layout in the .conf file referenced by
+        configFileName and decides where the APP partition lands. Downstream
+        callers (e.g. disk-encryption modules) can read this to know the
+        rootfs location at build time.
+      '';
+      type = types.str;
+      default = "mmcblk0p1";
+    };
+
     somType = mkOption {
       description = "SoM config Type (NX|AGX32|AGX64|Nano)";
       type = types.str;
@@ -302,6 +315,15 @@ in
   config = mkIf cfg.enable {
     hardware.nvidia-jetpack.firmware.eksFile = "${firmwareEkbImage}/eks_t234.img";
     hardware.nvidia-jetpack.kernel.version = "${cfg.kernelVersion}";
+    # jetpack-nixos hardcodes the trailing rootfs device as mmcblk0p1; replay
+    # the same default here but route it through cfg.flashScriptOverrides.rootfsDevice
+    # so per-SoM modules (e.g. orin-nx → nvme0n1p1) only set the option, not
+    # the whole flashArgs list. mkOverride 75 beats jetpack-nixos's plain
+    # assignment (prio 100) while leaving room for downstream mkForce (prio 50).
+    hardware.nvidia-jetpack.flashScriptOverrides.flashArgs = lib.mkOverride 75 [
+      config.hardware.nvidia-jetpack.flashScriptOverrides.configFileName
+      cfg.flashScriptOverrides.rootfsDevice
+    ];
     nixpkgs.hostPlatform.system = "aarch64-linux";
 
     ghaf.hardware = {
