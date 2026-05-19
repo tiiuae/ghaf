@@ -109,7 +109,6 @@ let
       inherit (config.hardware.nvidia-jetpack) som;
       isIndustrial = som == "orin-agx-industrial";
       isNvme = som == "orin-nx";
-      deviceType = if isNvme then "nvme" else "sdmmc_user";
       xmlFile =
         if isIndustrial then
           "${bspSrc}/bootloader/generic/cfg/flash_t234_qspi_sdmmc_industrial.xml"
@@ -124,7 +123,7 @@ let
       }
       ''
         python3 ${./splice-flash-xml.py} \
-          --device-type "${deviceType}" \
+          --device-type "${if isNvme then "nvme" else "sdmmc_user"}" \
           ${lib.optionalString cfg.flashScriptOverrides.onlyQSPI "--remove-device"} \
           --set "esp.size=$(($(cat ${images}/esp.size) * 512))" \
           --set "APP.size=$(($(cat ${images}/root.size) * 512))" \
