@@ -127,6 +127,19 @@ in
         before = lib.mkForce [ ];
       };
 
+      services.auditd-resume-after-boot = {
+        description = "Resume auditd after early boot space check settles";
+        after = [
+          "auditd.service"
+          "audit-rules-nixos.service"
+        ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${pkgs.runtimeShell} -c '${pkgs.coreutils}/bin/sleep 5; ${pkgs.audit}/bin/auditctl --signal resume'";
+        };
+      };
+
       # Systemd oneshot service to immediate rotation, obeying num_logs.
       services.auditd-rotate = {
         description = "Time-based rotation of audit logs";
@@ -163,7 +176,7 @@ in
       space_left_action = SYSLOG
       admin_space_left = 5%
       admin_space_left_action = SINGLE
-      disk_full_action = ROTATE
+      disk_full_action = SUSPEND
       disk_error_action = SUSPEND
     '';
   };
