@@ -721,6 +721,10 @@ in
           HandlePowerKeyLongPress = "ignore";
           KillUserProcesses = true;
           UserStopDelaySec = 0;
+          # Limit delay from inhibitors that leak across suspend/resume cycles
+          # May be caused by net.reactivated.Fprint
+          # TODO: Investigate root cause
+          InhibitDelayMaxSec = 1;
         };
     })
 
