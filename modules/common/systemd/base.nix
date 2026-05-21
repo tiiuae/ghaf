@@ -73,7 +73,6 @@ let
         patches = prevAttrs.patches ++ [
           ./systemd-boot-double-dtb-buffer-size.patch
           ./systemd-re-enable-locale-setting.patch
-          ./systemd-localed-locale-archive.patch
         ];
       });
 
@@ -338,6 +337,9 @@ in
       # Service startup optimization
       services.systemd-networkd-wait-online.enable = mkForce false;
     };
+
+    # TODO: Remove after https://github.com/NixOS/nixpkgs/pull/445146 is available
+    environment.variables.SYSTEMD_LOCALE_DIRECTORY = "/run/current-system/sw/lib/locale";
 
     # Suppress systemd-tmp.conf to avoid %b specifier errors
     # (ProtectProc=noaccess prevents reading /proc/sys/kernel/random/boot_id)

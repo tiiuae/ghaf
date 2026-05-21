@@ -145,9 +145,15 @@ in
 
   config = lib.mkIf config.ghaf.givc.enable {
     environment.systemPackages =
-      (lib.optional cfg.pdf.enable cfg.pdf.package)
+      (lib.optionals cfg.pdf.enable [
+        cfg.pdf.package
+        pkgs.cosmic-icons
+      ])
       ++ (lib.optional cfg.image.enable cfg.image.package)
-      ++ (lib.optional cfg.video.enable cfg.video.package);
+      ++ (lib.optionals cfg.video.enable [
+        cfg.video.package
+        pkgs.cosmic-icons
+      ]);
 
     ghaf.givc.appvm.applications =
       (lib.optional cfg.pdf.enable {

@@ -126,6 +126,8 @@ in
         development = {
           nix-setup.automatic-gc.enable = config.ghaf.development.nix-setup.enable;
           debug.tools.host.enable = config.ghaf.development.debug.tools.enable;
+          # Serial console is only meaningful on the host
+          usb-serial.enable = config.ghaf.profiles.debug.enable;
         };
         logging.client.enable = config.ghaf.logging.enable;
         common = {

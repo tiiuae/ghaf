@@ -443,9 +443,6 @@ in
       wantedBy = [ "cosmic-session.target" ];
     };
 
-    # TODO: Remove when https://github.com/systemd/systemd/pull/41563 is available
-    systemd.services.systemd-logind.serviceConfig.watchdogSec = lib.mkForce 0;
-
     # Below we adjust the default services from desktopManager.cosmic
 
     # Network manager and bluetooth could be enabled if we're sure

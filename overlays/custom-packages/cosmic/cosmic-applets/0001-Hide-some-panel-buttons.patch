@@ -1,0 +1,60 @@
+From 60c3a94b0004a6f9c626ff4c76166c77ae7f504f Mon Sep 17 00:00:00 2001
+From: Kajus Naujokaitis <kajusn@gmail.com>
+Date: Tue, 19 May 2026 11:49:17 +0300
+Subject: [PATCH] Hide some panel buttons
+
+- airplane mode
+- media controls
+
+Signed-off-by: Kajus Naujokaitis <kajusn@gmail.com>
+---
+ cosmic-applet-audio/src/lib.rs   |  8 --------
+ cosmic-applet-network/src/app.rs | 13 +------------
+ 2 files changed, 1 insertion(+), 20 deletions(-)
+
+diff --git a/cosmic-applet-audio/src/lib.rs b/cosmic-applet-audio/src/lib.rs
+index 5f49d0f9..59c2b0b1 100644
+--- a/cosmic-applet-audio/src/lib.rs
++++ b/cosmic-applet-audio/src/lib.rs
+@@ -733,14 +733,6 @@ impl cosmic::Application for Audio {
+         let content = column![
+             audio_content,
+             padded_control(divider::horizontal::default()).padding([space_xxs, space_s]),
+-            padded_control(
+-                toggler(self.config.show_media_controls_in_top_panel)
+-                    .on_toggle(Message::ToggleMediaControlsInTopPanel)
+-                    .label(fl!("show-media-controls"))
+-                    .text_size(14)
+-                    .width(Length::Fill)
+-            ),
+-            padded_control(divider::horizontal::default()).padding([space_xxs, space_s]),
+             menu_button(text::body(fl!("sound-settings"))).on_press(Message::OpenSettings)
+         ]
+         .align_x(Alignment::Start)
+diff --git a/cosmic-applet-network/src/app.rs b/cosmic-applet-network/src/app.rs
+index 727d9b10..b8df12a7 100644
+--- a/cosmic-applet-network/src/app.rs
++++ b/cosmic-applet-network/src/app.rs
+@@ -1611,18 +1611,7 @@ impl cosmic::Application for CosmicNetworkApplet {
+                 .push(menu_button(menu_row).on_press(Message::SelectDevice(None)));
+         } else {
+             let menu_column = column::with_children([
+-                Element::from(vpn_ethernet_col),
+-                padded_control(
+-                    toggler(self.nm_state.nm_state.airplane_mode)
+-                        .label(fl!("airplane-mode"))
+-                        .on_toggle(Message::ToggleAirplaneMode)
+-                        .text_size(14)
+-                        .width(Length::Fill),
+-                )
+-                .into(),
+-                padded_control(divider::horizontal::default())
+-                    .padding([space_xxs, space_s])
+-                    .into(),
++                Element::from(vpn_ethernet_col)
+             ])
+             .align_x(Alignment::Center);
+             content = content
+--
+2.53.0
+
