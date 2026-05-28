@@ -29,7 +29,7 @@ in
   ];
 
   options.ghaf.graphics.nvidia-setup = {
-    enable = lib.mkEnableOption "Enable Nvidia setup";
+    enable = lib.mkEnableOption "Nvidia setup";
     withIntegratedGPU = lib.mkOption {
       type = lib.types.bool;
       default = false;

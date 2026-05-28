@@ -310,7 +310,7 @@ in
           startLimitIntervalSec = 0;
         };
 
-        # Shared folders guest config is now provided by guivm-desktop-features module
+        # Shared directories guest config is now provided by guivm-desktop-features module
         # See: modules/desktop/guivm/shared-directories.nix
       }
     )

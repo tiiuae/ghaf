@@ -20,7 +20,7 @@ in
   _file = ./disks.nix;
 
   options.ghaf.services.disks = {
-    enable = mkEnableOption "Enable disk mount daemon";
+    enable = mkEnableOption "disk mount daemon";
 
     fileManager = mkOption {
       type = types.str;

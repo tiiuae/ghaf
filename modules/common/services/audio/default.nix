@@ -13,7 +13,7 @@
   ];
 
   options.ghaf.services.audio = {
-    enable = lib.mkEnableOption "Enable Ghaf audio services";
+    enable = lib.mkEnableOption "Ghaf audio services";
     role = lib.mkOption {
       type = lib.types.enum [
         "server"

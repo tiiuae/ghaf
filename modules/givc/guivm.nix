@@ -25,7 +25,7 @@ in
   _file = ./guivm.nix;
 
   options.ghaf.givc.guivm = {
-    enable = mkEnableOption "Enable guivm givc module.";
+    enable = mkEnableOption "the guivm GIVC module.";
   };
 
   config = mkIf (cfg.enable && config.ghaf.givc.enable) {
@@ -52,10 +52,6 @@ in
         tls.enable = config.ghaf.givc.enableTls;
       };
       capabilities = {
-        services = [
-          "reboot.target"
-          "poweroff.target"
-        ];
         socketProxy = {
           enable = true;
           sockets =

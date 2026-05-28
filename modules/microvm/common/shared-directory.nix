@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 { lib, config, ... }:
 let
-  cfg = config.ghaf.storagevm.shared-folders;
+  cfg = config.ghaf.storagevm.shared-directories;
   inherit (lib) mkEnableOption;
   shared-mountPath = "/tmp/shared/shares";
   userDir =
@@ -10,8 +10,8 @@ let
 in
 {
   _file = ./shared-directory.nix;
-  options.ghaf.storagevm.shared-folders = {
-    enable = mkEnableOption "Enable shared directory";
+  options.ghaf.storagevm.shared-directories = {
+    enable = mkEnableOption "shared directory";
     isGuiVm = mkEnableOption "Indicate if the VM is the GUI VM";
   };
 

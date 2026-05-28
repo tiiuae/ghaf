@@ -14,7 +14,7 @@ in
   _file = ./laptop-x86.nix;
 
   options.ghaf.profiles.laptop-x86 = {
-    enable = lib.mkEnableOption "Enable the basic x86 laptop config";
+    enable = lib.mkEnableOption "the basic x86 laptop config";
 
     # GUI VM base configuration for profiles to extend
     guivmBase = lib.mkOption {

@@ -50,8 +50,8 @@ in
   _file = ./common.nix;
 
   options.ghaf.givc = {
-    enable = mkEnableOption "Enable gRPC inter-vm communication";
-    debug = mkEnableOption "Enable givc debug mode";
+    enable = mkEnableOption "gRPC inter-vm communication (GIVC)";
+    debug = mkEnableOption "GIVC debug mode";
     enableTls = mkOption {
       description = "Enable TLS for gRPC communication globally, or disable for debugging.";
       type = types.bool;

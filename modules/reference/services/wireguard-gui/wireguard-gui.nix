@@ -31,7 +31,7 @@ in
   _file = ./wireguard-gui.nix;
 
   options.ghaf.reference.services.wireguard-gui = {
-    enable = lib.mkEnableOption "Enable the Wireguard GUI service";
+    enable = lib.mkEnableOption "the Wireguard GUI service";
     serverPorts = lib.mkOption {
       type = lib.types.listOf lib.types.port;
       default = [ ];

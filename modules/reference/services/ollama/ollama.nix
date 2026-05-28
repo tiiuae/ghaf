@@ -13,7 +13,7 @@ in
   _file = ./ollama.nix;
 
   options.ghaf.reference.services.ollama = {
-    enable = mkEnableOption "Enable the ollama service";
+    enable = mkEnableOption "the Ollama service";
   };
 
   config = mkIf cfg.enable {

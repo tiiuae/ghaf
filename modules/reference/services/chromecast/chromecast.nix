@@ -24,7 +24,7 @@ in
   _file = ./chromecast.nix;
 
   options.ghaf.reference.services.chromecast = {
-    enable = mkEnableOption "Enable chromecast service";
+    enable = mkEnableOption "the Chromecast service";
 
     externalNic = mkOption {
       type = types.str;

@@ -31,7 +31,7 @@ in
     ./media.nix
   ];
 
-  options.ghaf.reference.appvms.enable = lib.mkEnableOption "Enable the Ghaf reference appvms module";
+  options.ghaf.reference.appvms.enable = lib.mkEnableOption "the Ghaf reference appvms module";
 
   config = lib.mkIf cfg.enable {
     # Enable the main appvm module

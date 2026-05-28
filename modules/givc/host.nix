@@ -20,7 +20,7 @@ in
   _file = ./host.nix;
 
   options.ghaf.givc.host = {
-    enable = mkEnableOption "Enable host givc module.";
+    enable = mkEnableOption "the host GIVC module.";
   };
 
   config = mkIf (cfg.enable && config.ghaf.givc.enable) {

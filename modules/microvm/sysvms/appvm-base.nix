@@ -202,7 +202,7 @@ in
                   mode = "0700";
                 }
               ];
-          shared-folders.enable =
+          shared-directories.enable =
             (sharedVmDirectory.enable or false) && builtins.elem vmName (sharedVmDirectory.vms or [ ]);
           encryption.enable = globalConfig.storage.encryption.enable or false;
         };

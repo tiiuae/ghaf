@@ -14,7 +14,7 @@ in
   _file = ./fprint.nix;
 
   options.ghaf.services.fprint = {
-    enable = mkEnableOption "Enable fingerprint reader support";
+    enable = mkEnableOption "fingerprint reader support";
   };
 
   config = mkIf cfg.enable {

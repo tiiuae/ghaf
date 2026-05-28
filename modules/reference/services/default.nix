@@ -29,8 +29,8 @@ in
   ];
   options.ghaf.reference.services = {
     enable = mkEnableOption "Ghaf reference services";
-    dendrite = mkEnableOption "dendrite-pinecone service";
-    proxy-business = mkEnableOption "Enable the proxy server service";
+    dendrite = mkEnableOption "the dendrite-pinecone service";
+    proxy-business = mkEnableOption "the proxy server service";
     google-chromecast = mkOption {
       description = "Google Chromecast service configuration";
       type = types.submodule {

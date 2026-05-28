@@ -1,13 +1,13 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# GUI VM Shared Folders Feature Module
+# GUI VM Shared Directories Feature Module
 #
-# This module configures the vinotify guest service for shared folder
+# This module configures the vinotify guest service for shared directory
 # change notifications. This allows the file manager to automatically
-# refresh when files change in shared folders.
+# refresh when files change in shared directories.
 #
-# This module is auto-included when config.ghaf.storagevm.shared-folders.enable is true.
+# This module is auto-included when config.ghaf.storagevm.shared-directories.enable is true.
 #
 {
   config,
@@ -16,15 +16,15 @@
   ...
 }:
 let
-  # Only enable if shared folders are enabled in the VM's own config
-  # (set by guivm-base.nix: ghaf.storagevm.shared-folders.enable = true)
-  sharedFoldersEnabled = config.ghaf.storagevm.shared-folders.enable or false;
+  # Only enable if shared directories are enabled in the VM's own config
+  # (set by guivm-base.nix: ghaf.storagevm.shared-directories.enable = true)
+  sharedFoldersEnabled = config.ghaf.storagevm.shared-directories.enable or false;
 in
 {
-  _file = ./shared-folders.nix;
+  _file = ./shared-directories.nix;
 
   config = lib.mkIf sharedFoldersEnabled {
-    # Receive shared folder inotify events from the host to automatically refresh the file manager
+    # Receive shared directory inotify events from the host to automatically refresh the file manager
     systemd.services.vinotify = {
       enable = true;
       description = "vinotify";

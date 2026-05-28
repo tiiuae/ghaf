@@ -34,7 +34,7 @@ in
   _file = ./orin.nix;
 
   options.ghaf.profiles.orin = {
-    enable = lib.mkEnableOption "Enable the basic nvidia orin config";
+    enable = lib.mkEnableOption "the basic Nvidia Orin config";
 
     # Net VM base configuration for profiles to extend
     netvmBase = lib.mkOption {

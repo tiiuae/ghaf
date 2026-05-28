@@ -50,7 +50,7 @@ in
   _file = ./adminvm.nix;
 
   options.ghaf.givc.adminvm = {
-    enable = mkEnableOption "Enable adminvm givc module.";
+    enable = mkEnableOption "the adminvm GIVC module.";
   };
 
   config = mkIf (cfg.enable && config.ghaf.givc.enable) {
@@ -90,13 +90,9 @@ in
         admin.transport = lib.head config.ghaf.givc.adminConfig.addresses;
       };
 
-      capabilities = {
-        services = [
-          "poweroff.target"
-          "reboot.target"
-        ];
-      };
-
+      capabilities.services = lib.optionals config.ghaf.gracefulShutdown [
+        "poweroff.target"
+      ];
     };
 
     ghaf.security.audit.extraRules = [
