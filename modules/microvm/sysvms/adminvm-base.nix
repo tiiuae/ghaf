@@ -182,6 +182,10 @@ in
     services.timezone.enable = lib.mkDefault (
       timezoneEnabled && globalConfig.platform.timeZone == null
     );
+
+    # Make sure admin-vm is the last to shutdown
+    # This is done to allow servicing GIVC requests until the very end
+    shutdownLast = true;
   };
 
   time.timeZone = lib.mkIf (!timezoneEnabled) (lib.mkDefault globalConfig.platform.timeZone);

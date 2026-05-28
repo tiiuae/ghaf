@@ -63,7 +63,7 @@ in
 
       vms = mkOption {
         description = ''
-          List of names of virtual machines for which unsafe shared folder will be enabled.
+          List of names of virtual machines for which unsafe shared directory will be enabled.
         '';
         type = types.listOf types.str;
         default = [ ];
@@ -205,18 +205,6 @@ in
 
       systemd.services =
         let
-          patchedMicrovmServices = lib.foldl' (
-            result: name:
-            result
-            // {
-              # Prevent microvm restart if shutdown internally. If set to 'on-failure', 'microvm-shutdown'
-              # in ExecStop of the microvm@ service fails and causes the service to restart.
-              "microvm@${name}".serviceConfig = {
-                Restart = "on-abnormal";
-              };
-            }
-          ) { } (lib.attrNames config.microvm.vms);
-
           vmsWithEncryptedStorage = lib.filterAttrs (
             _name: vm:
             let
@@ -282,7 +270,6 @@ in
         {
           # Device-id and machine-id generation moved to ghaf.identity.dynamicHostName module
         }
-        // patchedMicrovmServices
         // vmstorageSetupServices;
     })
     (mkIf cfg.sharedVmDirectory.enable {
@@ -307,8 +294,8 @@ in
         && config.ghaf.virtualization.microvm.guivm.enable
       )
       {
-        # Enable passthrough of the shared folder inotify events from the host to the GUI VM
-        # This is required for the file manager to refresh the shared folder content when it is updated from AppVMs
+        # Enable passthrough of the shared directory inotify events from the host to the GUI VM
+        # This is required for the file manager to refresh the shared directory content when it is updated from AppVMs
         systemd.services.vinotify = {
           enable = true;
           description = "vinotify";
@@ -324,7 +311,7 @@ in
         };
 
         # Shared folders guest config is now provided by guivm-desktop-features module
-        # See: modules/desktop/guivm/shared-folders.nix
+        # See: modules/desktop/guivm/shared-directories.nix
       }
     )
     (mkIf (cfg.enable && config.services.userborn.enable) {
