@@ -83,6 +83,16 @@ let
     ) config.microvm.vms
   );
 
+  gracefulShutdownVms = lib.attrNames (
+    filterAttrs (
+      _: vm:
+      let
+        vmConfig = lib.ghaf.vm.getConfig vm;
+      in
+      vmConfig != null && vmConfig.ghaf.gracefulShutdown
+    ) config.microvm.vms
+  );
+
   # Host suspend actions
   host-suspend-actions = pkgs.writeShellApplication {
     name = "host-suspend-actions";
@@ -264,15 +274,17 @@ let
     name = "guest-power-actions";
     runtimeInputs = [
       pkgs.pci-binder
+      pkgs.systemd
     ];
     text = ''
       case "$1" in
         reboot|poweroff)
           # Signal host to power off or reboot the system
-          ${givc-cli} "$1" &
-          # This is a workaround since the givc-cli does support async requests,
-          # and does not return when starting a reboot or poweroff target
-          sleep 1
+          systemd-run --no-block -u "signal-$1-host" \
+            -p DefaultDependencies=no -p TimeoutSec=5 \
+            -- ${givc-cli} "$1"
+          # This is a workaround since givc-cli does not support async requests,
+          # and may not return (or return an error) when requesting reboot or shutdown
           ;;
         suspend)
           # Script to unbind PCI devices for suspend
@@ -668,6 +680,7 @@ in
             serviceConfig = {
               Type = "oneshot";
               ExecStart = "${getExe guest-shutdown-interceptor}";
+              TimeoutSec = 5;
             };
           };
 
@@ -864,62 +877,116 @@ in
           # since system VMs are expected to power off quickly.
           (mkIf useGivc (
             lib.listToAttrs (
-              map
-                (
-                  vmName:
-                  nameValuePair "microvm@${vmName}" {
-                    serviceConfig = {
-                      TimeoutStopSec = "30";
-                      ExecStop =
-                        let
-                          sysvm-stop = pkgs.writeShellScript "sysvm-stop" ''
-                            # Check if this stop is part of a real shutdown or suspend.
-                            # During a nixos-rebuild switch, affected services (system vms) are restarted
-                            # which causes their ExecStop actions to be executed
-                            # If no real reboot/suspend job is queued, we can assume the VM should be
-                            # restarted without requesting the host itself to reboot
-                            jobs=$(${getExe' pkgs.systemd "systemctl"} list-jobs 2>/dev/null || true)
-                            if ! echo "$jobs" | grep -qiE '(sleep|suspend|poweroff|reboot|halt)\.target.*start'; then
-                              echo "No shutdown/suspend in progress, skipping graceful shutdown for '${vmName}' (likely a rebuild)"
-                              kill -15 $MAINPID 2>/dev/null
-                              while kill -0 $MAINPID 2>/dev/null; do
-                                sleep 1
-                              done
-                              exit 0
-                            fi
-
-                            echo "Starting poweroff target for system VM '${vmName}'"
-                            vm=''${${vmName}/-vm/}
-                            ${givc-cli} start service --vm '${vmName}' poweroff.target &
-
-                            echo "Waiting for system VM '${vmName}' with QEMU PID=$MAINPID to stop"
+              map (
+                vmName:
+                nameValuePair "microvm@${vmName}" {
+                  serviceConfig = {
+                    TimeoutStopSec = "30";
+                    ExecStop =
+                      let
+                        sysvm-stop = pkgs.writeShellScript "sysvm-stop" ''
+                          # Check if this stop is part of a real shutdown or suspend.
+                          # During a nixos-rebuild switch, affected services (system vms) are restarted
+                          # which causes their ExecStop actions to be executed
+                          # If no real reboot/suspend job is queued, we can assume the VM should be
+                          # restarted without requesting the host itself to reboot
+                          jobs=$(${getExe' pkgs.systemd "systemctl"} list-jobs 2>/dev/null || true)
+                          if ! echo "$jobs" | grep -qiE '(sleep|suspend|poweroff|reboot|halt)\.target.*start'; then
+                            echo "No shutdown/suspend in progress, skipping graceful shutdown for '${vmName}' (likely a rebuild)"
+                            kill -15 $MAINPID 2>/dev/null
                             while kill -0 $MAINPID 2>/dev/null; do
                               sleep 1
                             done
-                            echo "System VM '${vmName}' with QEMU PID=$MAINPID stopped"
-                          '';
-                        in
-                        [
-                          # Clear previous microvm ExecStop logic
-                          ""
-                          # '+' allows the sysvm-stop script to be executed with full privileges
-                          "+${sysvm-stop}"
-                        ];
-                    };
-                  }
-                )
-                (
-                  lib.attrNames (
-                    filterAttrs (
-                      _: vm:
-                      let
-                        vmConfig = lib.ghaf.vm.getConfig vm;
+                            exit 0
+                          fi
+
+                          echo "Starting poweroff target for system VM '${vmName}'"
+                          vm=''${${vmName}/-vm/}
+                          ${givc-cli} start service --vm '${vmName}' poweroff.target &
+
+                          echo "Waiting for system VM '${vmName}' with QEMU PID=$MAINPID to stop"
+                          while kill -0 $MAINPID 2>/dev/null; do
+                            sleep 1
+                          done
+                          echo "System VM '${vmName}' with QEMU PID=$MAINPID stopped"
+                        '';
                       in
-                      vmConfig != null && vmConfig.ghaf.type == "system-vm" && vmConfig.ghaf.gracefulShutdown
-                    ) config.microvm.vms
-                  )
-                )
+                      [
+                        # Clear previous microvm ExecStop logic
+                        ""
+                        # '+' allows the sysvm-stop script to be executed with full privileges
+                        "+${sysvm-stop}"
+                      ];
+                  };
+                }
+              ) gracefulShutdownVms
             )
+          ))
+          # Handle app-vms shutdown
+          (lib.listToAttrs (
+            map
+              (
+                vmName:
+                nameValuePair "microvm@${vmName}" {
+                  serviceConfig = {
+                    TimeoutStopSec = "30";
+                    ExecStop =
+                      let
+                        ghaf-vm-stop = pkgs.writeShellScript "ghaf-vm-stop" ''
+                          echo "Sending SIGTERM to VM '${vmName}'"
+                          kill -15 $MAINPID 2>/dev/null
+
+                          echo "Waiting for VM '${vmName}' with QEMU PID=$MAINPID to stop"
+                          while kill -0 $MAINPID 2>/dev/null; do
+                            sleep 1
+                          done
+
+                          echo "VM '${vmName}' with QEMU PID=$MAINPID stopped"
+                        '';
+                      in
+                      [
+                        # Clear previous microvm ExecStop logic
+                        ""
+                        # '+' allows the ghaf-vm-stop script to be executed with full privileges
+                        "+${ghaf-vm-stop}"
+                      ];
+                  };
+                }
+              )
+              (
+                lib.attrNames (
+                  filterAttrs (
+                    _: vm:
+                    let
+                      vmConfig = lib.ghaf.vm.getConfig vm;
+                    in
+                    vmConfig != null && vmConfig.ghaf.type != "system-vm"
+                  ) config.microvm.vms
+                )
+              )
+          ))
+          # Handle VMs with shutdownLast enabled
+          (lib.listToAttrs (
+            map
+              (
+                vmName:
+                lib.nameValuePair "microvm@${vmName}" {
+                  before = map (n: "microvm@${n}.service") (
+                    lib.filter (n: n != vmName) (lib.attrNames config.microvm.vms)
+                  );
+                }
+              )
+              (
+                lib.attrNames (
+                  lib.filterAttrs (
+                    _: vm:
+                    let
+                      vmConfig = lib.ghaf.vm.getConfig vm;
+                    in
+                    vmConfig != null && vmConfig.ghaf.shutdownLast
+                  ) config.microvm.vms
+                )
+              )
           ))
         ];
       };

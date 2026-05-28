@@ -164,7 +164,7 @@ in
     };
     gracefulShutdown = mkOption {
       type = types.bool;
-      default = config.ghaf.givc.enable;
+      default = config.ghaf.givc.enable && config.ghaf.type != "app-vm";
       defaultText = "config.ghaf.givc.enable";
       description = ''
         If true, the microvm ExecStop logic for this VM will be overridden
@@ -174,6 +174,17 @@ in
         This option only has effect if the power manager module is enabled
         on the host:
         `ghaf.services.power-manager.host.enable = true;`
+      '';
+    };
+    shutdownLast = mkOption {
+      type = types.bool;
+      default = false;
+      description = ''
+        If true, this VM will stop after all other VMs during shutdown or reboot.
+
+        Only one VM should have this enabled. If multiple VMs enable it, each
+        will be ordered after all others but with no defined order among
+        themselves.
       '';
     };
   };
