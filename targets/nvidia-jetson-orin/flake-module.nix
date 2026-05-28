@@ -231,7 +231,12 @@ in
             lib.nameValuePair "${t.name}-flash-qspi" (
               lazyPackage "${t.name}-flash-qspi"
                 (t.hostConfiguration.extendModules {
-                  modules = [ { ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = true; } ];
+                  modules = [
+                    {
+                      ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = true;
+                      ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkForce true;
+                    }
+                  ];
                 }).pkgs.nvidia-jetpack.flashScript
             )
           ) crossTargets
