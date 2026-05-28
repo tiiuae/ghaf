@@ -196,7 +196,7 @@ in
   _file = ./base.nix;
 
   options.ghaf.systemd = {
-    enable = mkEnableOption "Enable minimal systemd configuration.";
+    enable = mkEnableOption "the minimal systemd configuration.";
 
     withName = mkOption {
       description = "Set systemd name.";

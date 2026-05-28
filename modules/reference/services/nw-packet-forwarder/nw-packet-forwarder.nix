@@ -79,12 +79,12 @@ in
       description = "nw-packet-forwarder chromecast configuration";
       type = types.submodule {
         options = {
-          enable = mkEnableOption "Enable chromecast feature";
+          enable = mkEnableOption "the Chromecast feature";
 
           vmName = mkOption {
             type = types.str;
             example = "chrome-vm";
-            description = "The name of the chromium/chrome VM to setup chromecast for.";
+            description = "The name of the chromium/chrome VM to setup Chromecast for.";
             default = "chrome-vm";
           };
         };

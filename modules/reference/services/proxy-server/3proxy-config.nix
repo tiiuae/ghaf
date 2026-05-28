@@ -75,7 +75,7 @@ in
   _file = ./3proxy-config.nix;
 
   options.ghaf.reference.services.proxy-server = {
-    enable = mkEnableOption "Enable proxy server module";
+    enable = mkEnableOption "the proxy server module";
     internalAddress = lib.mkOption {
       type = lib.types.str;
       default = config.ghaf.networking.hosts."net-vm".ipv4;

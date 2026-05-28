@@ -13,7 +13,7 @@ in
   _file = ./chromium.nix;
 
   options.ghaf.reference.programs.chromium = {
-    enable = lib.mkEnableOption "Enable Chromium program settings";
+    enable = lib.mkEnableOption "Chromium program settings";
     openInNormalExtension = lib.mkEnableOption "browser extension to open links in the normal browser";
   };
   config = lib.mkIf cfg.enable {

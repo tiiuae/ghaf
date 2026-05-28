@@ -236,7 +236,9 @@ let
                   };
                 };
                 capabilities = {
-                  services = [ ];
+                  services = lib.optionals config.ghaf.gracefulShutdown [
+                    "poweroff.target"
+                  ];
                   eventProxy.enable = lib.mkForce false;
                 };
               };

@@ -22,7 +22,7 @@ in
   _file = ./netvm.nix;
 
   options.ghaf.givc.netvm = {
-    enable = mkEnableOption "Enable netvm givc module.";
+    enable = mkEnableOption "the netvm GIVC module.";
   };
 
   config = mkIf (cfg.enable && config.ghaf.givc.enable) {
@@ -47,22 +47,22 @@ in
         admin.transport = lib.head config.ghaf.givc.adminConfig.addresses;
       };
       capabilities = {
-        services = [
-          "poweroff.target"
-          "reboot.target"
-        ]
-        ++ optionals config.ghaf.services.power-manager.vm.enable [
-          "suspend.target"
-          "systemd-suspend.service"
-        ]
-        ++ optionals config.ghaf.services.performance.net.tuned.enable [
-          "net-powersave.service"
-          "net-balanced.service"
-          "net-performance.service"
-          "net-powersave-battery.service"
-          "net-balanced-battery.service"
-          "net-performance-battery.service"
-        ];
+        services =
+          optionals config.ghaf.gracefulShutdown [
+            "poweroff.target"
+          ]
+          ++ optionals config.ghaf.services.power-manager.vm.enable [
+            "suspend.target"
+            "systemd-suspend.service"
+          ]
+          ++ optionals config.ghaf.services.performance.net.tuned.enable [
+            "net-powersave.service"
+            "net-balanced.service"
+            "net-performance.service"
+            "net-powersave-battery.service"
+            "net-balanced-battery.service"
+            "net-performance-battery.service"
+          ];
         hwid.enable = true;
 
         socketProxy = {

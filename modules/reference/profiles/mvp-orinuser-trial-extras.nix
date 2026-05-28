@@ -10,7 +10,7 @@ in
   imports = [ ./mvp-orinuser-trial.nix ];
 
   options.ghaf.reference.profiles.mvp-orinuser-trial-extras = {
-    enable = lib.mkEnableOption "Enable the mvp orin configuration for apps and services";
+    enable = lib.mkEnableOption "the mvp Orin configuration for apps and services";
   };
 
   config = lib.mkIf cfg.enable {

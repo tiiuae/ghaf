@@ -144,7 +144,7 @@ in
     storagevm = {
       enable = true;
       name = vmName;
-      shared-folders = {
+      shared-directories = {
         enable = true;
         isGuiVm = true;
       };

@@ -21,7 +21,7 @@ in
   _file = ./default.nix;
 
   options.ghaf.security.ssh-tarpit = {
-    enable = mkEnableOption "Enable ssh tarpit";
+    enable = mkEnableOption "SSH tarpit";
     listenAddress = mkOption {
       type = types.str;
       default = "0.0.0.0";

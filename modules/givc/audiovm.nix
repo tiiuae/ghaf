@@ -23,7 +23,7 @@ in
   _file = ./audiovm.nix;
 
   options.ghaf.givc.audiovm = {
-    enable = mkEnableOption "Enable audiovm givc module.";
+    enable = mkEnableOption "the audiovm givc module.";
   };
 
   config = mkIf (cfg.enable && config.ghaf.givc.enable) {
@@ -47,17 +47,17 @@ in
         admin.transport = lib.head config.ghaf.givc.adminConfig.addresses;
       };
       capabilities = {
-        services = [
-          "poweroff.target"
-          "reboot.target"
-        ]
-        ++ optionals config.ghaf.services.power-manager.vm.enable [
-          "suspend.target"
-          "systemd-suspend.service"
-        ];
+        services =
+          optionals config.ghaf.gracefulShutdown [
+            "poweroff.target"
+          ]
+          ++ optionals config.ghaf.services.power-manager.vm.enable [
+            "suspend.target"
+            "systemd-suspend.service"
+          ];
         socketProxy = {
           enable = true;
-          sockets = lib.optionals (builtins.elem guivmName config.ghaf.common.vms) [
+          sockets = optionals (builtins.elem guivmName config.ghaf.common.vms) [
             {
               transport = {
                 name = guivmName;
@@ -80,7 +80,7 @@ in
         };
         eventProxy = {
           enable = true;
-          events = lib.optionals (builtins.elem guivmName config.ghaf.common.vms) [
+          events = optionals (builtins.elem guivmName config.ghaf.common.vms) [
             {
               transport = {
                 name = guivmName;

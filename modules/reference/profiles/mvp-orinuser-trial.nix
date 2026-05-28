@@ -12,7 +12,7 @@ in
   _file = ./mvp-orinuser-trial.nix;
 
   options.ghaf.reference.profiles.mvp-orinuser-trial = {
-    enable = lib.mkEnableOption "Enable the mvp configuration for apps and services";
+    enable = lib.mkEnableOption "the mvp configuration for apps and services";
   };
 
   config = lib.mkIf cfg.enable {

@@ -39,7 +39,7 @@ in
     ssh = mkOption {
       type = types.submodule {
         options = {
-          enable = mkEnableOption "Enable SSH flood mitigation";
+          enable = mkEnableOption "SSH flood mitigation";
           rule = mkOption {
             type = floodType;
             default = {
@@ -64,7 +64,7 @@ in
     ping = mkOption {
       type = types.submodule {
         options = {
-          enable = mkEnableOption "Enable Ping flood mitigation" // {
+          enable = mkEnableOption "Ping flood mitigation" // {
             default = true;
           };
           rule = mkOption {

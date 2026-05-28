@@ -22,7 +22,7 @@ in
   _file = ./appvm.nix;
 
   options.ghaf.givc.appvm = {
-    enable = mkEnableOption "Enable appvm givc module.";
+    enable = mkEnableOption "the appvm GIVC module.";
     applications = mkOption {
       type = types.listOf types.attrs;
       default = [ { } ];

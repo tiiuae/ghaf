@@ -14,7 +14,7 @@ in
   _file = ./default.nix;
 
   options.ghaf.graphics.intel-setup = {
-    enable = lib.mkEnableOption "Enable Intel GPU setup";
+    enable = lib.mkEnableOption "Intel GPU setup";
   };
 
   config = lib.mkIf cfg.enable {
