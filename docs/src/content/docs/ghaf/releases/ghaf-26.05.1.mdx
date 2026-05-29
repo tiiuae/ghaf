@@ -1,0 +1,91 @@
+---
+title: Release ghaf-26.05.1
+sidebar:
+  order: 9968
+  badge:
+    text: Latest
+    variant: success
+
+---
+
+This is monthly Ghaf release which has been fully tested on Nvidia Orin NX, Nvidia Orin AGX, Lenovo X1 Carbon Gen11 and System76 Darter Pro platforms
+
+## Release Tag
+
+https://github.com/tiiuae/ghaf/releases/tag/ghaf-26.05.1
+
+## Supported Hardware
+
+The following target hardware is supported by this release:
+
+- NVIDIA Jetson Orin AGX
+- NVIDIA Jetson Orin NX
+- Lenovo ThinkPad X1 Carbon Gen 10/11/12/13, Gen9 2-in-1
+- Lenovo T14 AMD
+- Dell Latitude 7230, 7330
+- Alienware M18
+- System76 Darter Pro
+- NXP i.MX 8M Plus
+
+## What's Changed
+
+* build(deps): bump step-security/harden-runner from 2.19.0 to 2.19.1 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1923
+* build(deps): bump github/codeql-action from 4.35.2 to 4.35.3 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1922
+* bump(docs): update to the latest by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1926
+* fix(installer): fix secure boot key enrollment by @kajusnau in https://github.com/tiiuae/ghaf/pull/1927
+* bump: version number by @clayhill66 in https://github.com/tiiuae/ghaf/pull/1932
+* refactor(fss): refine journal verification, recovery, and test coverage by @juliuskoskela in https://github.com/tiiuae/ghaf/pull/1819
+* fix(logging): add journal service_name relabel fallbacks by @everton-dematos in https://github.com/tiiuae/ghaf/pull/1920
+* fix(power): fix long shutdown by @kajusnau in https://github.com/tiiuae/ghaf/pull/1928
+* chore(fail2ban): set shorter findtime in debug mode for sshd jail by @enesoztrk in https://github.com/tiiuae/ghaf/pull/1930
+* fix(firewall): refactoring&creating dynamic firewall rule chains by @enesoztrk in https://github.com/tiiuae/ghaf/pull/1917
+* fix(dell-latitude-7330): resolve black screen on boot by @nesteroff in https://github.com/tiiuae/ghaf/pull/1929
+* docs: add 26.04.1 release note by @clayhill66 in https://github.com/tiiuae/ghaf/pull/1933
+* fix(audit): keep audit records out of journald text by @everton-dematos in https://github.com/tiiuae/ghaf/pull/1935
+* build(deps): bump actions/dependency-review-action from 4.9.0 to 5.0.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1939
+* build(deps): bump github/codeql-action from 4.35.3 to 4.35.4 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1940
+* build(deps): bump cachix/install-nix-action from 31.10.5 to 31.10.6 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1941
+* refactor(desktop): adjust app categories, move falcon to extras by @kajusnau in https://github.com/tiiuae/ghaf/pull/1944
+* fix(audio-applet): fix audio applet not working after resume by @kajusnau in https://github.com/tiiuae/ghaf/pull/1937
+* feat(dbus-proxy): support for BlueZ and multiple agents by @jkuro-tii in https://github.com/tiiuae/ghaf/pull/1899
+* feat(ci/rebuild): add nvd diff print to ghaf-rebuild by @kajusnau in https://github.com/tiiuae/ghaf/pull/1946
+* fix(power): fix double suspend on lid close by @kajusnau in https://github.com/tiiuae/ghaf/pull/1945
+* fix(ci/rebuild): fix rebuild switch by @kajusnau in https://github.com/tiiuae/ghaf/pull/1950
+* build(deps): bump step-security/harden-runner from 2.19.1 to 2.19.3 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1952
+* build(deps): bump peaceiris/actions-gh-pages from 4.0.0 to 4.1.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1953
+* build(deps): bump github/codeql-action from 4.35.4 to 4.35.5 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1954
+* bump: may bump by @kajusnau in https://github.com/tiiuae/ghaf/pull/1936
+
+
+**Full Changelog**: https://github.com/tiiuae/ghaf/compare/ghaf-26.04.1...ghaf-26.05.1
+
+## Bug fixes
+
+Fixed bugs that were present in the previous release
+
+* (System76) Secure Boot key enrollment doesn't work
+* Audio lost after suspend/resume
+
+## Known Issues and Limitations
+
+| Issue                                                                                                     | Status      | Comments                                                                   |
+| --------------------------------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------- |
+| **x86**                                                                                             |             |                                                                            |
+| Reboot and shutdown takes long time | In Progress | Fis is under verification |
+| Not able to open videos | In Progress | Issue is under investigation |
+| (System76) Laptop suspended again after opening the lid | In Progress | Seen occasionally, issue is under investigation |
+| Occasional black screen and wifi connectivity issues after suspend/resume | InProgress | Fix is under verification |
+| Layout can be selected only once and not changed afterwards | In Progress | Fix is under verification |
+| (X1) Unlock with fingerprint doesn't work | In Progress | Issue is under investigation |
+| **NVIDIA Jetson AGX Orin / Orin NX**                                                                      |             |                                                                            |
+| GUI login does not work | On Hold | |
+| Device boots to black screen with only cursor blinking | On Hold | |
+| If suspended, device doesn't wake-up | On Hold | |
+| Locking the device from power menu doesn't work | On Hold |  |
+| Unlocking from lock screen does not work | On Hold |  |
+
+## Installation Instructions
+
+Released images are available at https://archive.vedenemo.dev/
+
+Download the required image and use the following instructions: [Build and Run](https://ghaf.tii.ae/ghaf/dev/ref/build_and_run)
