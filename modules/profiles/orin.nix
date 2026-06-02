@@ -11,10 +11,10 @@
 # - Net VM
 # - Admin VM
 # - GUI VM with combined GPU and display passthrough
+# - IDS VM: passive traffic monitoring
 #
 # Disabled VMs (architectural reasons):
 # - Audio VM: Audio hardware directly accessible from host
-# - IDS VM: Resource constraints on embedded platform
 #
 # VM bases are exported for target-specific composition.
 #
@@ -132,6 +132,16 @@ in
       readOnly = true;
       description = "Create an App VM on the Orin base (AArch64 analogue of laptop-x86.mkAppVm).";
     };
+
+    # IDS VM base configuration for profiles to extend
+    idsvmBase = lib.mkOption {
+      type = lib.types.unspecified;
+      readOnly = true;
+      description = ''
+        Orin IDS VM base configuration.
+        Profiles can extend this with extendModules if customization needed.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -211,6 +221,30 @@ in
             hostConfig = lib.ghaf.vm.mkHostConfig {
               inherit config;
               vmName = "gui-vm";
+            };
+          };
+        };
+
+        # Export IDS VM base for profiles to extend
+        orin.idsvmBase = lib.nixosSystem {
+          modules = [
+            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.idsvm-base
+            # Import nixpkgs config module to get overlays
+            {
+              nixpkgs = {
+                hostPlatform.system = "aarch64-linux";
+                inherit (config.nixpkgs) overlays;
+                inherit (config.nixpkgs) config;
+              };
+            }
+          ];
+          specialArgs = lib.ghaf.vm.mkSpecialArgs {
+            inherit lib inputs;
+            globalConfig = hostGlobalConfig;
+            hostConfig = lib.ghaf.vm.mkHostConfig {
+              inherit config;
+              vmName = "ids-vm";
             };
           };
         };
@@ -316,10 +350,18 @@ in
             # wifi is now controlled via ghaf.global-config.features.wifi
             # Use evaluatedConfig pattern - extend netvmBase with vmConfig modules
             evaluatedConfig = config.ghaf.profiles.orin.netvmBase.extendModules {
-              modules = lib.ghaf.vm.applyVmConfig {
-                inherit config;
-                vmName = "netvm";
-              };
+              modules =
+                (lib.ghaf.vm.applyVmConfig {
+                  inherit config;
+                  vmName = "netvm";
+                })
+                ++ [
+                  # RPS steering across mirrored external interfaces is
+                  # disabled on Orin - see
+                  # modules/microvm/common/traffic-mirror.nix (defaults to
+                  # enabled elsewhere, e.g. laptop-x86).
+                  { ghaf.virtualization.microvm.trafficMirror.sender.rps.enable = false; }
+                ];
             };
           };
 
@@ -349,8 +391,18 @@ in
           };
 
           idsvm = {
-            enable = false;
+            enable = true;
+            evaluatedConfig = cfg.idsvmBase;
+            passiveMonitor = {
+              enable = true;
+              external = true;
+            };
           };
+
+          # RPS steering on the host-side receive taps is disabled on Orin -
+          # see modules/microvm/host/traffic-mirror.nix for what this
+          # otherwise does (defaults to enabled elsewhere, e.g. laptop-x86).
+          host.trafficMirror.rps.enable = false;
 
           guivm = {
             enable = lib.mkDefault false;
