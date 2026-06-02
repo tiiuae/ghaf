@@ -167,6 +167,7 @@
     # Hardware specific modules and configurations for NixOS
     nixos-hardware = {
       url = "github:NixOS/nixos-hardware";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # Packages managment similar to nixpkgs, applied to flake parts
