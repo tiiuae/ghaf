@@ -218,6 +218,10 @@ in
   # to be discoverable via mDNS, so turn publishing off on both sides.
   systemd.network.networks."10-ethint0".networkConfig.MulticastDNS = false;
   networking.networkmanager.connectionConfig."connection.mdns" = 0;
+  ghaf.virtualization.microvm.trafficMirror.sender = {
+    enable = globalConfig.idsvm.passiveMonitor.enable or false;
+    mirrorExternalInterfaces = globalConfig.idsvm.passiveMonitor.external or false;
+  };
 
   systemd.tmpfiles.rules = [ "d /persist/sysupdate 0755 ghaf root -" ]; # Set permissions for mountpoint
   microvm = {

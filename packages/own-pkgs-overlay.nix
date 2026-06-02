@@ -21,6 +21,7 @@
     ghaf-qemu = final.callPackage ./pkgs-by-name/ghaf-qemu/package.nix { };
     ghaf-vms = final.callPackage ./pkgs-by-name/ghaf-vms/package.nix { };
     hardware-scan = final.callPackage ./pkgs-by-name/hardware-scan/package.nix { };
+    ids-mirror-bench = final.callPackage ./pkgs-by-name/ids-mirror-bench/package.nix { };
     make-checks = final.callPackage ./pkgs-by-name/make-checks/package.nix { };
     memsocket = final.callPackage ./pkgs-by-name/memsocket/package.nix { };
     pci-binder = final.callPackage ./pkgs-by-name/pci-binder/package.nix { };

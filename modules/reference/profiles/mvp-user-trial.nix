@@ -87,6 +87,9 @@ in
           # Admin VM: Use laptop base directly (no customization needed for MVP)
           adminvm.evaluatedConfig = config.ghaf.profiles.laptop-x86.adminvmBase;
 
+          # IDS VM: Use laptop base directly (passive monitoring, no customization needed)
+          idsvm.evaluatedConfig = config.ghaf.profiles.laptop-x86.idsvmBase;
+
           # Audio VM: Use laptop base with vmConfig
           audiovm.evaluatedConfig = config.ghaf.profiles.laptop-x86.audiovmBase.extendModules {
             modules = lib.ghaf.vm.applyVmConfig {

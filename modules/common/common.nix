@@ -151,6 +151,11 @@ in
           default = [ { } ];
           description = "List of USB devices enabled for passthrough.";
         };
+        usbEthernetPrefix = mkOption {
+          type = types.str;
+          default = "ueth";
+          description = "Interface name prefix assigned to USB Ethernet adapters via udev rename rule";
+        };
       };
     };
     type = mkOption {

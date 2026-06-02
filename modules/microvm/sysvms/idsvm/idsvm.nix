@@ -30,6 +30,12 @@ in
   options.ghaf.virtualization.microvm.idsvm = {
     enable = lib.mkEnableOption "Whether to enable IDS-VM on the system";
 
+    passiveMonitor = {
+      enable = lib.mkEnableOption "passive traffic monitoring via TC tap mirror from net-vm";
+      external = lib.mkEnableOption "mirror external (physical NIC) traffic";
+      internal = lib.mkEnableOption "mirror internal (inter-VM) traffic";
+    };
+
     evaluatedConfig = lib.mkOption {
       type = lib.types.nullOr lib.types.unspecified;
       default = null;
@@ -53,6 +59,8 @@ in
         inherit vmName;
         inherit (cfg) enable evaluatedConfig extraNetworking;
       };
+
+      ghaf.virtualization.microvm.host.trafficMirror.enable = lib.mkDefault cfg.passiveMonitor.enable;
     }
     (lib.mkIf cfg.enable {
       assertions = [

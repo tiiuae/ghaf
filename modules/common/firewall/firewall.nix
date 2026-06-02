@@ -29,6 +29,7 @@ let
   ghafFwChainPrefix = cfg.chainNamePrefix;
   dynPrefix = "${ghafFwChainPrefix}dyn-";
   ipt = cfg.cmd;
+  vmTapPrefix = config.ghaf.networking.vmTapPrefix;
 
   # Remove, (re)create, and optionally hook a chain. flag is "-I" or "-A".
   setupChain = hook: table: name: flag: ''
@@ -560,8 +561,8 @@ in
 
           ${optionalString (cfg.filter-arp && (lib.hasAttr "host" config.ghaf)) ''
             # Drop ARP traffic on all tap-* interfaces
-            ebtables -A INPUT -p arp -j DROP -i tap-+
-            ebtables -A FORWARD -p arp -j DROP -i tap-+
+            ebtables -A INPUT -p arp -j DROP -i ${vmTapPrefix}-+
+            ebtables -A FORWARD -p arp -j DROP -i ${vmTapPrefix}-+
           ''}
 
         '';
