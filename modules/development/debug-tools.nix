@@ -46,6 +46,12 @@ in
 
       # For comparing NixOS system closure differences between generations
       pkgs.nvd
+
+      # For debugging network interfaces and traffic
+      pkgs.ethtool
+
+      # For debugging network interfa cards
+      pkgs.iw
     ]
     ++ rmDesktopEntries [
       pkgs.htop

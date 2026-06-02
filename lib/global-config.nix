@@ -143,11 +143,31 @@ rec {
         };
       };
 
+      # IDS-VM options
+      idsvm.passiveMonitor = {
+        enable = mkEnableOption "passive traffic monitoring in IDS-VM";
+        external = mkEnableOption "mirror external (physical NIC) traffic";
+        internal = mkEnableOption "mirror internal (inter-VM) traffic";
+        snaplen = mkOption {
+          type = types.nullOr types.ints.positive;
+          default = null;
+          description = ''
+            Truncate mirrored packets to this many bytes (header-only capture);
+            null mirrors full packets, unchanged.
+          '';
+        };
+        netem = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = ''
+            netem qdisc params applied to net-vm's `mirror` tap; null leaves
+            trafficMirror.sender.netem at its own default.
+          '';
+        };
+      };
+
       # Graphics/boot UI settings
       graphics.boot.enable = mkEnableOption "graphical boot support (splash screen, user login detection)";
-
-      # IDS VM specific settings
-      idsvm.mitmproxy.enable = mkEnableOption "MITM proxy in IDS VM for traffic inspection";
 
       # Platform information (populated from host config)
       platform = {
@@ -397,7 +417,6 @@ rec {
       graphics.boot.enable = true;
 
       shm.enable = false;
-      idsvm.mitmproxy.enable = false;
 
       # Feature defaults for debug profile
       features = {
@@ -498,7 +517,6 @@ rec {
       graphics.boot.enable = true;
 
       shm.enable = false;
-      idsvm.mitmproxy.enable = false;
 
       # Feature defaults for release profile
       features = {
@@ -594,7 +612,6 @@ rec {
       };
 
       shm.enable = false;
-      idsvm.mitmproxy.enable = false;
 
       # Feature defaults for minimal profile - all disabled
       features = {
