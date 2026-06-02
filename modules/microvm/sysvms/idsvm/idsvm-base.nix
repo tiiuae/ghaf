@@ -56,6 +56,11 @@ in
     profiles.debug.enable = lib.mkDefault (globalConfig.debug.enable or false);
     profiles.release.enable = lib.mkDefault (globalConfig.release.enable or false);
 
+    givc = {
+      enable = globalConfig.givc.enable or false;
+      debug = globalConfig.givc.debug or false;
+    };
+
     # MiTM proxy feature - from globalConfig
     virtualization.microvm.idsvm.mitmproxy.enable = globalConfig.idsvm.mitmproxy.enable or false;
 
@@ -82,10 +87,42 @@ in
 
     virtualization.microvm.swap.enable = true;
 
-    # Networking - IDS VM acts as gateway
+    virtualization.microvm.tpm.passthrough = {
+      # At the moment the TPM is only used for storage encryption, so the features are coupled.
+      # TPM passthrough is only supported on x86_64.
+      enable =
+        (globalConfig.storage.encryption.enable or false)
+        && ((globalConfig.platform.hostSystem or "") == "x86_64-linux");
+      rootNVIndex = "0x81705000"; # TPM2 NV index for ids-vm LUKS key
+    };
+
+    virtualization.microvm.tpm.emulated = {
+      # Use emulated TPM for non-x86_64 systems when encryption is enabled
+      enable =
+        (globalConfig.storage.encryption.enable or false)
+        && ((globalConfig.platform.hostSystem or "") != "x86_64-linux");
+      name = vmName;
+    };
+
+    # Logging - from globalConfig
+    logging = {
+      inherit (globalConfig.logging) enable listener;
+      journalClient = {
+        inherit (globalConfig.logging) enable;
+      };
+    };
+
+    # Persistent storage required for journal retention and FSS sealing keys
+    storagevm = {
+      enable = true;
+      name = vmName;
+      encryption.enable = globalConfig.storage.encryption.enable or false;
+    };
+
+    # Networking - IDS VM is passive (monitoring only, not a gateway)
     virtualization.microvm.vm-networking = {
       enable = true;
-      isGateway = true;
+      isGateway = false;
       inherit vmName;
     };
 
@@ -103,16 +140,16 @@ in
     hostPlatform.system = globalConfig.platform.hostSystem or "x86_64-linux";
   };
 
+  ghaf.virtualization.microvm.trafficMirror.receiver.enable =
+    globalConfig.idsvm.passiveMonitor.enable or false;
+
   # IDS-specific packages
-  environment.systemPackages = [
-    pkgs.snort # TODO: put into separate module
-  ]
-  ++ (lib.optional (globalConfig.debug.enable or false) pkgs.tcpdump);
+  environment.systemPackages = lib.optional (globalConfig.debug.enable or false) pkgs.tcpdump;
 
   microvm = {
     optimize.enable = true;
     # Sensible defaults - can be overridden via vmConfig
-    vcpu = lib.mkDefault 2;
+    vcpu = lib.mkDefault 1;
     mem = lib.mkDefault 512;
   };
 }

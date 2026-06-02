@@ -47,6 +47,12 @@ in
       # For comparing NixOS system closure differences between generations.
       # ghaf-rebuild runs this on the target to print its post-switch package diff.
       pkgs.dix
+
+      # For debugging network interfaces and traffic
+      pkgs.ethtool
+
+      # For debugging network interface cards
+      pkgs.iw
     ]
     ++ rmDesktopEntries [
       pkgs.htop
