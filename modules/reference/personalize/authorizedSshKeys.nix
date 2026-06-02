@@ -40,6 +40,7 @@
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINlIpJ9Q1oW1KiFBa12N5K/ecGVeGSBbcD8M9ZjA0TYe kajus.naujokaitis@unikie.com"
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPE/CgI8MXyHiiUyt7BXWjQG1pb25b4N3als/dKKPZyD samuli@nixos"
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJpTkKsWyFQxWKwL22fghfJnLaOhUtZLlF9h2gdWcoJz everton.dematos@tii.ae"
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHkq2GqA7XfW4JN8kiDLjaYf8j2zOsw1DABA7wLmk1qN janne.pirskanen@tii.ae"
 
         # For ghaf-installer automated testing:
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAolaKCuIUBQSBFGFZI1taNX+JTAr8edqUts7A6k2Kv7"
