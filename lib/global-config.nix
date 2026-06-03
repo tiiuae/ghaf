@@ -43,8 +43,6 @@ rec {
       };
 
       logging = {
-        enable = mkEnableOption "logging globally";
-
         listener = {
           address = mkOption {
             type = types.str;
@@ -67,8 +65,6 @@ rec {
           };
         };
       };
-
-      security.audit.enable = mkEnableOption "security auditing globally";
 
       givc = {
         enable = mkEnableOption "GIVC (Ghaf Inter-VM Communication) globally";
@@ -122,12 +118,6 @@ rec {
           default = "x86_64-linux";
           description = "Host platform system (e.g., x86_64-linux)";
         };
-
-        timeZone = mkOption {
-          type = lib.types.nullOr types.str;
-          default = null;
-          description = "System timezone";
-        };
       };
 
       # ═══════════════════════════════════════════════════════════════════════
@@ -156,6 +146,15 @@ rec {
             type = types.listOf types.str;
             default = [ "audio-vm" ];
             description = "VMs that should have audio support";
+          };
+        };
+
+        audit = {
+          enable = mkEnableOption "the Linux audit system";
+          targetVms = mkOption {
+            type = types.listOf types.str;
+            default = [ ];
+            description = "VMs that should have the Linux audit system enabled";
           };
         };
 
@@ -211,6 +210,28 @@ rec {
           };
         };
 
+        log-upload = {
+          enable = mkEnableOption "log uploading to central logging infrastructure";
+          targetVms = mkOption {
+            type = types.listOf types.str;
+            default = [ ];
+            description = ''
+              VMs that should upload their logs to the central logging server.
+              For client VMs this enables journal forwarding to admin-vm.
+              For admin-vm this enables uploading to the external Loki endpoint.
+            '';
+          };
+        };
+
+        logging = {
+          enable = mkEnableOption "log collection infrastructure";
+          targetVms = mkOption {
+            type = types.listOf types.str;
+            default = [ ];
+            description = "VMs that should have log collection enabled";
+          };
+        };
+
         performance = {
           enable = mkEnableOption "Ghaf performance and PPD profiles";
           targetVms = mkOption {
@@ -230,14 +251,15 @@ rec {
         };
 
         timezone = {
-          enable = mkEnableOption "runtime management of timezone settings and propagation to host";
+          enable = mkEnableOption "runtime management of timezone settings";
           targetVms = mkOption {
             type = types.listOf types.str;
             default = [ ];
             description = ''
-              VMs where runtime timezone settings management should be enabled.
+              Enables runtime management of timezone settings and sets default timezone to UTC.
 
-              Propagation will only be enabled on GUI VM.
+              For gui-vm this also enables timezone propagation - any runtime changes made will be
+              forwarded to the host and all other VMs.
             '';
           };
         };
@@ -279,10 +301,7 @@ rec {
   # ═══════════════════════════════════════════════════════════════════════════
   #
   # Helper functions for checking and managing service feature assignments.
-  # These are used by VM base modules to determine which services to enable.
-  #
-  # Usage in VM base modules:
-  #   ghaf.services.fprint.enable = lib.ghaf.features.isEnabledFor globalConfig "fprint" vmName;
+  # These are used by VM base modules and host to determine which services to enable.
   #
   features = {
     # Check if a feature should be enabled for a specific VM
@@ -297,6 +316,10 @@ rec {
     #   vmName: Name of the VM to check (e.g., "gui-vm", "net-vm")
     #
     # Returns: bool
+    #
+    # Usage in VM base modules:
+    #   ghaf.services.fprint.enable = lib.ghaf.features.isEnabledFor globalConfig "fprint" vmName;
+    #
     isEnabledFor =
       globalConfig: featureName: vmName:
       let
@@ -308,6 +331,33 @@ rec {
           };
       in
       (feature.enable or false) && builtins.elem vmName (feature.targetVms or [ ]);
+    # Check if a feature is enabled system-wide
+    #
+    # Usage:
+    #   lib.ghaf.features.isEnabled globalConfig "fprint"
+    #   # Returns: true if fprint.enable
+    #
+    # This is useful for the host and appvms
+    #
+    # Parameters:
+    #   globalConfig: The ghaf.global-config attribute set (from specialArgs)
+    #   featureName: Name of the feature (e.g., "fprint", "wifi")
+    #
+    # Returns: bool
+    #
+    # Usage in host config:
+    #   ghaf.services.fprint.enable = lib.ghaf.features.isEnabled config.ghaf.global-config "fprint";
+    #
+    isEnabled =
+      globalConfig: featureName:
+      let
+        featuresAttr = globalConfig.features or { };
+        feature =
+          featuresAttr.${featureName} or {
+            enable = false;
+          };
+      in
+      feature.enable or false;
   };
 
   # Predefined global config profiles
@@ -327,11 +377,8 @@ rec {
       # Note: listener.address is auto-populated from admin-vm IP by
       # modules/common/global-config.nix (no need to set it per profile).
       logging = {
-        enable = true;
         server.endpoint = defaultLoggingEndpoint;
       };
-
-      security.audit.enable = false;
 
       givc = {
         enable = true;
@@ -402,6 +449,33 @@ rec {
             "gui-vm"
           ];
         };
+        audit = {
+          enable = true;
+          targetVms = [
+            "admin-vm"
+            "audio-vm"
+            "gui-vm"
+            "net-vm"
+          ];
+        };
+        log-upload = {
+          enable = true;
+          targetVms = [
+            "admin-vm"
+            "audio-vm"
+            "gui-vm"
+            "net-vm"
+          ];
+        };
+        logging = {
+          enable = true;
+          targetVms = [
+            "admin-vm"
+            "audio-vm"
+            "gui-vm"
+            "net-vm"
+          ];
+        };
         timezone = {
           enable = true;
           targetVms = [
@@ -425,10 +499,8 @@ rec {
       };
 
       logging = {
-        enable = true;
         server.endpoint = defaultLoggingEndpoint;
       };
-      security.audit.enable = true;
 
       givc = {
         enable = true;
@@ -498,6 +570,33 @@ rec {
             "gui-vm"
           ];
         };
+        audit = {
+          enable = true;
+          targetVms = [
+            "admin-vm"
+            "audio-vm"
+            "gui-vm"
+            "net-vm"
+          ];
+        };
+        log-upload = {
+          enable = true;
+          targetVms = [
+            "admin-vm"
+            "audio-vm"
+            "gui-vm"
+            "net-vm"
+          ];
+        };
+        logging = {
+          enable = true;
+          targetVms = [
+            "admin-vm"
+            "audio-vm"
+            "gui-vm"
+            "net-vm"
+          ];
+        };
         timezone = {
           enable = true;
           targetVms = [
@@ -519,9 +618,6 @@ rec {
         debug.tools.enable = false;
         nix-setup.enable = false;
       };
-
-      logging.enable = false;
-      security.audit.enable = false;
 
       givc = {
         enable = false;
@@ -567,11 +663,23 @@ rec {
           enable = false;
           targetVms = [ ];
         };
-        power-manager = {
+        audit = {
+          enable = false;
+          targetVms = [ ];
+        };
+        log-upload = {
+          enable = false;
+          targetVms = [ ];
+        };
+        logging = {
           enable = false;
           targetVms = [ ];
         };
         performance = {
+          enable = false;
+          targetVms = [ ];
+        };
+        power-manager = {
           enable = false;
           targetVms = [ ];
         };

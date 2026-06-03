@@ -39,13 +39,18 @@
 }:
 let
   vmName = "gui-vm";
-  fprintEnabled = lib.ghaf.features.isEnabledFor globalConfig "fprint" vmName;
-  yubikeyEnabled = lib.ghaf.features.isEnabledFor globalConfig "yubikey" vmName;
+  # keep-sorted start
+  auditEnabled = lib.ghaf.features.isEnabledFor globalConfig "audit" vmName;
   brightnessEnabled = lib.ghaf.features.isEnabledFor globalConfig "brightness" vmName;
-  powerManagerEnabled = lib.ghaf.features.isEnabledFor globalConfig "power-manager" vmName;
-  performanceEnabled = lib.ghaf.features.isEnabledFor globalConfig "performance" vmName;
+  fprintEnabled = lib.ghaf.features.isEnabledFor globalConfig "fprint" vmName;
   localeEnabled = lib.ghaf.features.isEnabledFor globalConfig "locale" vmName;
+  logUploadEnabled = lib.ghaf.features.isEnabledFor globalConfig "log-upload" vmName;
+  loggingEnabled = lib.ghaf.features.isEnabledFor globalConfig "logging" vmName;
+  performanceEnabled = lib.ghaf.features.isEnabledFor globalConfig "performance" vmName;
+  powerManagerEnabled = lib.ghaf.features.isEnabledFor globalConfig "power-manager" vmName;
   timezoneEnabled = lib.ghaf.features.isEnabledFor globalConfig "timezone" vmName;
+  yubikeyEnabled = lib.ghaf.features.isEnabledFor globalConfig "yubikey" vmName;
+  # keep-sorted end
 
   # A list of applications from all AppVMs (accessed via hostConfig)
   enabledVms = lib.filterAttrs (_: vm: vm.enable) (hostConfig.appvms or { });
@@ -136,9 +141,9 @@ in
     givc = {
       enable = globalConfig.givc.enable or false;
       debug = globalConfig.givc.debug or false;
+      guivm.enable = true;
+      sni.enable = true;
     };
-    givc.guivm.enable = true;
-    givc.sni.enable = true;
 
     # Storage - from globalConfig
     storagevm = {
@@ -195,11 +200,12 @@ in
       };
     };
 
-    # Logging - from globalConfig
+    # Logging - from globalConfig and features
     logging = {
-      inherit (globalConfig.logging) enable listener;
+      enable = loggingEnabled;
+      inherit (globalConfig.logging) listener;
       journalClient = {
-        inherit (globalConfig.logging) enable;
+        enable = logUploadEnabled;
       };
     };
 
@@ -247,7 +253,7 @@ in
       };
 
       timezone = {
-        enable = lib.mkDefault (timezoneEnabled && globalConfig.platform.timeZone == null);
+        enable = lib.mkDefault timezoneEnabled;
         propagate = true;
       };
 
@@ -264,7 +270,7 @@ in
 
     security = {
       # Audit - from globalConfig
-      audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
+      audit.enable = lib.mkDefault auditEnabled;
       fail2ban.enable = globalConfig.development.ssh.daemon.enable or false;
 
       spire.agent = {
@@ -274,8 +280,6 @@ in
       };
     };
   };
-
-  time.timeZone = lib.mkIf (!timezoneEnabled) (lib.mkDefault globalConfig.platform.timeZone);
 
   services = {
     # We dont enable services.blueman because it adds blueman desktop entry

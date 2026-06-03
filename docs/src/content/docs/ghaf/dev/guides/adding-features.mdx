@@ -15,9 +15,12 @@ This guide covers how to add new hardware features to the Ghaf Framework using t
 The features system (`globalConfig.features`) provides:
 
 - **Centralized management** - All feature assignments in one place
-- **Flexible VM assignment** - Features can run in any VM
+- **Two-tier enablement** - `isEnabled` for host/appvms, `isEnabledFor` for sysvms
+- **Flexible VM assignment** - Features can run in any sysvm via `targetVms`
 - **Multi-VM support** - Same feature in multiple VMs
 - **Downstream customization** - Easy to override assignments
+
+When a feature is enabled (`feature.enable = true`), it is active on the **host** and all **appvms** unconditionally. The `targetVms` list additionally gates which **sysvms** receive it. Use `lib.ghaf.features.isEnabled` in host and appvm modules, and `lib.ghaf.features.isEnabledFor` in sysvm base modules.
 
 ## Adding a New Feature
 
@@ -45,9 +48,22 @@ features = {
 };
 ```
 
-### Step 2: Create the Feature Module
+### Step 2: Wire up the host and/or appvm (if applicable)
 
-Create `modules/microvm/guivm-features/my-feature.nix`:
+If the feature should also apply to the host or appvms, add an `isEnabled` check in `modules/microvm/host/microvm-host.nix` or `modules/microvm/sysvms/appvm-base.nix`, respectively:
+
+```nix
+let
+  myFeatureEnabled = lib.ghaf.features.isEnabled globalConfig "myFeature";
+in
+{
+  ghaf.services.myFeature.enable = myFeatureEnabled;
+}
+```
+
+### Step 3: Create the Sysvm Feature Module
+
+Create `modules/microvm/guivm-features/my-feature.nix`. Use `isEnabledFor` since this is a sysvm:
 
 ```nix
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
@@ -88,7 +104,7 @@ in
 }
 ```
 
-### Step 3: Include in VM Base
+### Step 4: Include in VM Base
 
 Add to the appropriate VM base module. In `modules/microvm/sysvms/guivm-base.nix`:
 
@@ -108,7 +124,7 @@ imports = [
   ../guivm-features/my-feature.nix;
 ```
 
-### Step 4: Add Hardware Passthrough (if needed)
+### Step 5: Add Hardware Passthrough (if needed)
 
 If the feature requires hardware passthrough, update the hardware definition:
 
@@ -376,7 +392,7 @@ Example documentation block:
 
 - [ ] Add feature schema to `lib/global-config.nix`
 - [ ] Create feature module with `_file` declaration
-- [ ] Use `lib.ghaf.features.isEnabledFor` for conditional config
+- [ ] Use `lib.ghaf.features.isEnabledFor` or `lib.ghaf.features.isEnabled` for conditional config
 - [ ] Add to appropriate VM base module imports
 - [ ] Configure hardware passthrough if needed
 - [ ] Add udev rules if needed

@@ -43,6 +43,11 @@ let
   # Get VM definition from hostConfig
   vm = hostConfig.appvm;
   vmName = "${vm.name}-vm";
+  # keep-sorted start
+  logUploadEnabled = lib.ghaf.features.isEnabled globalConfig "log-upload";
+  loggingEnabled = lib.ghaf.features.isEnabled globalConfig "logging";
+  timezoneEnabled = lib.ghaf.features.isEnabled globalConfig "timezone";
+  # keep-sorted end
 
   # Helper to unwrap mkDefault values for use in lib.mkIf conditions
   # Values like `lib.mkDefault true` become { _type = "override"; content = true; priority = 1000; }
@@ -254,12 +259,11 @@ in
           role = "client";
         };
 
-        # Logging - from globalConfig
+        # Logging - from globalConfig and features
         logging = {
-          inherit (globalConfig.logging) enable listener;
-          journalClient = {
-            inherit (globalConfig.logging) enable;
-          };
+          enable = loggingEnabled;
+          inherit (globalConfig.logging) listener;
+          journalClient.enable = logUploadEnabled;
         };
 
         # Security
@@ -271,6 +275,8 @@ in
             nodeAttestationMode = if globalConfig.givc.enable then "x509pop" else "join_token";
           };
         };
+
+        services.timezone.enable = lib.mkDefault timezoneEnabled;
       };
 
       # Combined udev rules (yubikey + passthrough)
@@ -307,8 +313,6 @@ in
       };
 
       system.stateVersion = lib.trivial.release;
-
-      time.timeZone = lib.mkDefault globalConfig.platform.timeZone;
 
       nixpkgs = {
         buildPlatform.system = globalConfig.platform.buildSystem or "x86_64-linux";

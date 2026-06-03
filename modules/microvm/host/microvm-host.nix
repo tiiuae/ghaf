@@ -14,6 +14,12 @@
 }:
 let
   cfg = config.ghaf.virtualization.microvm-host;
+  globalConfig = config.ghaf.global-config;
+  # System-wide features
+  auditEnabled = lib.ghaf.features.isEnabled globalConfig "audit";
+  logUploadEnabled = lib.ghaf.features.isEnabled globalConfig "log-upload";
+  loggingEnabled = lib.ghaf.features.isEnabled globalConfig "logging";
+  timezoneEnabled = lib.ghaf.features.isEnabled globalConfig "timezone";
   inherit (lib)
     mkEnableOption
     mkIf
@@ -130,13 +136,12 @@ in
           usb-serial.enable = config.ghaf.profiles.debug.enable;
         };
         logging = {
+          enable = lib.mkDefault loggingEnabled;
           listener = {
-            address = lib.mkDefault config.ghaf.global-config.logging.listener.address;
-            port = lib.mkDefault config.ghaf.global-config.logging.listener.port;
+            address = lib.mkDefault globalConfig.logging.listener.address;
+            port = lib.mkDefault globalConfig.logging.listener.port;
           };
-          journalClient = {
-            inherit (config.ghaf.logging) enable;
-          };
+          journalClient.enable = lib.mkDefault logUploadEnabled;
         };
         common = {
           extraNetworking.hosts.ghaf-host = cfg.extraNetworking;
@@ -149,13 +154,19 @@ in
             };
           };
         };
+        security = {
+          audit.enable = auditEnabled;
 
-        security.spire.agent = {
-          inherit (config.ghaf.global-config.spire) enable;
-          logLevel = if config.ghaf.global-config.spire.debug then "DEBUG" else "INFO";
-          nodeAttestationMode = if config.ghaf.global-config.givc.enable then "x509pop" else "join_token";
-          settings.join_token.token = "/persist/common/spire/tokens/${config.networking.hostName}.token";
-          trustBundlePath = "/persist/common/spire/bundle.pem";
+          spire.agent = {
+            inherit (globalConfig.spire) enable;
+            logLevel = if globalConfig.spire.debug then "DEBUG" else "INFO";
+            nodeAttestationMode = if globalConfig.givc.enable then "x509pop" else "join_token";
+            settings.join_token.token = "/persist/common/spire/tokens/${config.networking.hostName}.token";
+            trustBundlePath = "/persist/common/spire/bundle.pem";
+          };
+        };
+        services.timezone = {
+          enable = lib.mkDefault timezoneEnabled;
         };
       };
 

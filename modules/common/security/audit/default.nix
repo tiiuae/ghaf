@@ -28,7 +28,7 @@ in
   _file = ./default.nix;
 
   options.ghaf.security.audit = {
-    enable = mkEnableOption "audit support";
+    enable = mkEnableOption "the Linux audit system";
     debug = mkOption {
       type = types.bool;
       default = true; # for now
