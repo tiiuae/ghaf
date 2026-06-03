@@ -12,6 +12,7 @@
   cosmic-greeter = import ./cosmic/cosmic-greeter { inherit prev; };
   cosmic-initial-setup = import ./cosmic/cosmic-initial-setup { inherit prev; };
   cosmic-osd = import ./cosmic/cosmic-osd { inherit prev; };
+  cosmic-reader = import ./cosmic/cosmic-reader { inherit prev; };
   cosmic-settings = import ./cosmic/cosmic-settings { inherit prev; };
   cosmic-settings-daemon = import ./cosmic/cosmic-settings-daemon { inherit prev; };
   element-desktop = import ./element-desktop { inherit prev; };
@@ -19,8 +20,6 @@
   intel-gpu-tools = import ./intel-gpu-tools { inherit prev; };
   oculante = import ./oculante { inherit prev; };
   osquery-with-hostname = import ./osquery-with-hostname { inherit prev; };
-  papirus-icon-theme = import ./papirus-icon-theme { inherit prev; };
   spire = import ./spire { inherit prev; };
-  xdg-desktop-portal-cosmic = import ./cosmic/xdg-desktop-portal-cosmic { inherit prev; };
 })
 # keep-sorted end
