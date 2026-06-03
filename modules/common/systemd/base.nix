@@ -73,7 +73,6 @@ let
       (prevAttrs: {
         patches = prevAttrs.patches ++ [
           ./systemd-boot-double-dtb-buffer-size.patch
-          ./systemd-re-enable-locale-setting.patch
         ];
       });
 
