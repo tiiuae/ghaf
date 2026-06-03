@@ -192,6 +192,8 @@ in
         }
       ];
 
+      i18n.imperativeLocale = true;
+
       security.polkit = {
         enable = true;
         extraConfig = ''

@@ -3,14 +3,98 @@
 #
 # This overlay is for specific fixes needed only to enable cross-compilation.
 #
+# keep-sorted start skip_lines=1 block=yes newline_separated=yes
 (final: prev: {
+  # cosmic-reader add missing pkg-config nativeBuildInput dependency
+  cosmic-reader = prev.cosmic-reader.overrideAttrs (oldAttrs: {
+    nativeBuildInputs =
+      (oldAttrs.nativeBuildInputs or [ ])
+      ++ final.lib.optionals (
+        !builtins.any (p: (p.pname or "") == "pkg-config") (oldAttrs.nativeBuildInputs or [ ])
+      ) [ final.buildPackages.pkg-config ];
+  });
+
+  # Fix for efitools cross-compilation.
+  # The Make.rules uses `uname -m` to detect ARCH, which returns the build machine
+  # architecture instead of the target architecture during cross-compilation.
+  # This causes x86_64-specific compiler flags (like -mno-red-zone) to be used
+  # when building for aarch64, and wrong include paths to be used.
+  # Also, the Makefile uses hardcoded `ar`, `nm`, and `objcopy` instead of the
+  # cross-toolchain versions.
+  # Additionally, the default `all` target generates certificates and signed EFI
+  # files by running freshly-built tools (cert-to-efi-sig-list, sign-efi-sig-list).
+  # These are cross-compiled for the target and cannot execute on the build host.
+  # We build only the CLI binaries and EFI files, skipping cert generation.
+  efitools = prev.efitools.overrideAttrs (oldAttrs: {
+    nativeBuildInputs = (oldAttrs.nativeBuildInputs or [ ]) ++ [
+      final.buildPackages.openssl
+      final.buildPackages.sbsigntool
+    ];
+    postPatch = (oldAttrs.postPatch or "") + ''
+      # Fix ar to use $(AR) variable
+      substituteInPlace Make.rules --replace-warn 'ar rcv' '$(AR) rcv'
+      # Fix nm to use $(NM) variable
+      substituteInPlace Make.rules --replace-warn 'nm -D' '$(NM) -D'
+      # Fix objcopy to use the cross-toolchain version
+      substituteInPlace Make.rules --replace-warn 'OBJCOPY		= objcopy' 'OBJCOPY		= ${final.stdenv.cc.targetPrefix}objcopy'
+    '';
+    makeFlags = (oldAttrs.makeFlags or [ ]) ++ [
+      "ARCH=${final.stdenv.hostPlatform.parsed.cpu.name}"
+      "AR=${final.stdenv.cc.targetPrefix}ar"
+      "NM=${final.stdenv.cc.targetPrefix}nm"
+    ];
+    # Only build the CLI binaries and EFI files — skip cert/auth generation
+    # and EFI signing which require executing cross-compiled binaries on the
+    # build host.
+    buildFlags = [
+      "cert-to-efi-sig-list"
+      "sig-list-to-certs"
+      "sign-efi-sig-list"
+      "hash-to-efi-sig-list"
+      "efi-readvar"
+      "efi-updatevar"
+      "cert-to-efi-hash-list"
+      "flash-var"
+    ];
+    installPhase = ''
+      runHook preInstall
+      mkdir -p $out/bin
+      install -m 755 cert-to-efi-sig-list sig-list-to-certs sign-efi-sig-list \
+        hash-to-efi-sig-list efi-readvar efi-updatevar cert-to-efi-hash-list \
+        flash-var $out/bin
+      runHook postInstall
+    '';
+  });
+
   # Remove gfortran from FFTW to avoid cross-compiling the entire Fortran
   # toolchain. FFTW is pulled in by PipeWire for audio processing. The Fortran
   # wrapper generation is only needed when building docs (--disable-doc already
   # strips the Fortran codegen step). Ghaf does not use the Fortran bindings.
-  fftwFloat = prev.fftwFloat.overrideAttrs (old: {
+  fftwFloat = prev.fftwFloat.overrideAttrs (oldAttrs: {
     nativeBuildInputs = builtins.filter (d: !(final.lib.hasPrefix "gfortran" (d.pname or ""))) (
-      old.nativeBuildInputs or [ ]
+      oldAttrs.nativeBuildInputs or [ ]
+    );
+  });
+
+  # git 2.54+ includes a Rust component (gitcore) whose build script runs on
+  # the build machine but can't find `cc` in the cross-compilation stdenv.
+  git = prev.git.overrideAttrs (oldAttrs: {
+    nativeBuildInputs = (oldAttrs.nativeBuildInputs or [ ]) ++ [
+      final.buildPackages.stdenv.cc
+    ];
+  });
+
+  # Fix for libqmi cross-compilation.
+  # libqmi 1.38 switched from gtk-doc to gi-docgen for documentation.
+  # gi-docgen looks up its dependency via build-machine pkg-config,
+  # which is not available during cross-compilation
+  # Disable documentation generation to unblock the build
+  libqmi = prev.libqmi.overrideAttrs (oldAttrs: {
+    mesonFlags = map (f: if f == "-Dgtk_doc=true" then "-Dgtk_doc=false" else f) (
+      oldAttrs.mesonFlags or [ ]
+    );
+    nativeBuildInputs = builtins.filter (d: (d.pname or "") != "gi-docgen") (
+      oldAttrs.nativeBuildInputs or [ ]
     );
   });
 
@@ -97,69 +181,5 @@
     '';
   });
 
-  # Fix for efitools cross-compilation.
-  # The Make.rules uses `uname -m` to detect ARCH, which returns the build machine
-  # architecture instead of the target architecture during cross-compilation.
-  # This causes x86_64-specific compiler flags (like -mno-red-zone) to be used
-  # when building for aarch64, and wrong include paths to be used.
-  # Also, the Makefile uses hardcoded `ar`, `nm`, and `objcopy` instead of the
-  # cross-toolchain versions.
-  # Additionally, the default `all` target generates certificates and signed EFI
-  # files by running freshly-built tools (cert-to-efi-sig-list, sign-efi-sig-list).
-  # These are cross-compiled for the target and cannot execute on the build host.
-  # We build only the CLI binaries and EFI files, skipping cert generation.
-  efitools = prev.efitools.overrideAttrs (oldAttrs: {
-    nativeBuildInputs = (oldAttrs.nativeBuildInputs or [ ]) ++ [
-      final.buildPackages.openssl
-      final.buildPackages.sbsigntool
-    ];
-    postPatch = (oldAttrs.postPatch or "") + ''
-      # Fix ar to use $(AR) variable
-      substituteInPlace Make.rules --replace-warn 'ar rcv' '$(AR) rcv'
-      # Fix nm to use $(NM) variable
-      substituteInPlace Make.rules --replace-warn 'nm -D' '$(NM) -D'
-      # Fix objcopy to use the cross-toolchain version
-      substituteInPlace Make.rules --replace-warn 'OBJCOPY		= objcopy' 'OBJCOPY		= ${final.stdenv.cc.targetPrefix}objcopy'
-    '';
-    makeFlags = (oldAttrs.makeFlags or [ ]) ++ [
-      "ARCH=${final.stdenv.hostPlatform.parsed.cpu.name}"
-      "AR=${final.stdenv.cc.targetPrefix}ar"
-      "NM=${final.stdenv.cc.targetPrefix}nm"
-    ];
-    # Only build the CLI binaries and EFI files — skip cert/auth generation
-    # and EFI signing which require executing cross-compiled binaries on the
-    # build host.
-    buildFlags = [
-      "cert-to-efi-sig-list"
-      "sig-list-to-certs"
-      "sign-efi-sig-list"
-      "hash-to-efi-sig-list"
-      "efi-readvar"
-      "efi-updatevar"
-      "cert-to-efi-hash-list"
-      "flash-var"
-    ];
-    installPhase = ''
-      runHook preInstall
-      mkdir -p $out/bin
-      install -m 755 cert-to-efi-sig-list sig-list-to-certs sign-efi-sig-list \
-        hash-to-efi-sig-list efi-readvar efi-updatevar cert-to-efi-hash-list \
-        flash-var $out/bin
-      runHook postInstall
-    '';
-  });
-
-  # Fix for libqmi cross-compilation.
-  # libqmi 1.38 switched from gtk-doc to gi-docgen for documentation.
-  # gi-docgen looks up its dependency via build-machine pkg-config,
-  # which is not available during cross-compilation
-  # Disable documentation generation to unblock the build
-  libqmi = prev.libqmi.overrideAttrs (old: {
-    mesonFlags = map (f: if f == "-Dgtk_doc=true" then "-Dgtk_doc=false" else f) (
-      old.mesonFlags or [ ]
-    );
-    nativeBuildInputs = builtins.filter (d: (d.pname or "") != "gi-docgen") (
-      old.nativeBuildInputs or [ ]
-    );
-  });
 })
+# keep-sorted end
