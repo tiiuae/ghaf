@@ -10,9 +10,13 @@ Summary of the proposed changes in the PR description in your own words. For dep
 -->
 
 ### Type of Change
-- [ ] New Feature
-- [ ] Bug Fix
+
+- [ ] New feature
+- [ ] Bug fix
+- [ ] Update
 - [ ] Improvement / Refactor
+- [ ] Documentation
+- [ ] Infrastructure / CI/CD
 
 ## Related Issues / Tickets
 
@@ -33,8 +37,6 @@ Completing this checklist shows that you value and respect their time and effort
 - [ ] Commits are logically organized and squashed if appropriate
 - [ ] [Contribution guidelines](https://github.com/tiiuae/ghaf/blob/main/CONTRIBUTING.md) followed
 - [ ] Ghaf documentation updated with the commit - https://tiiuae.github.io/ghaf/
-- [ ] Author has run `make-checks` and it passes
-- [ ] All automatic GitHub Action checks pass - see [actions](https://github.com/tiiuae/ghaf/actions)
 - [ ] Author has added reviewers and removed PR draft status
 
 <!-- Additional description of omitted [ ] items if not obvious. -->
@@ -42,20 +44,23 @@ Completing this checklist shows that you value and respect their time and effort
 ## Testing Instructions
 
 ### Applicable Targets
+
 - [ ] Orin AGX `aarch64`
 - [ ] Orin NX `aarch64`
-- [ ] Lenovo X1 `x86_64`
-- [ ] Dell Latitude `x86_64`
-- [ ] System 76 `x86_64`
+- [ ] Intel Laptop `x86_64`
+- [ ] Intel Laptop (low mem) `x86_64`
 
 ### Installation Method
+
 - [ ] Requires full re-installation
 - [ ] Can be updated with `nixos-rebuild ... switch`
 - [ ] Other:
 
 ### Test Steps To Verify:
+
 <!--
 Provide clear, simple step-by-step instructions to verify the functionality.
 Please do not assume that readers know everything you currently know.
 -->
+
 1. ...
