@@ -79,7 +79,7 @@ in
         };
         package = lib.mkOption {
           type = lib.types.package;
-          default = pkgs.spire;
+          default = pkgs.spire4ghaf;
           example = lib.literalExpression "pkgs.spire";
           description = "Spire package to use.";
         };

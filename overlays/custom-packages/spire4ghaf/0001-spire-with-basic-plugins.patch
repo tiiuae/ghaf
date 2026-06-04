@@ -1,0 +1,547 @@
+From c0cbf9056bd0679f3aea3d3e2068418ea3ccf528 Mon Sep 17 00:00:00 2001
+From: Ganga Ram <Ganga.Ram@tii.ae>
+Date: Thu, 4 Jun 2026 17:27:12 +0400
+Subject: [PATCH] spire with basic plugins
+
+Signed-off-by: Ganga Ram <Ganga.Ram@tii.ae>
+---
+ Makefile                                     | 11 +++++
+ pkg/agent/catalog/keymanager.go              |  2 +
+ pkg/agent/catalog/keymanager_base.go         | 37 ++++++++++++++++
+ pkg/agent/catalog/nodeattestor.go            |  2 +
+ pkg/agent/catalog/nodeattestor_base.go       | 42 +++++++++++++++++++
+ pkg/agent/catalog/svidstore.go               |  2 +
+ pkg/agent/catalog/svidstore_base.go          | 34 +++++++++++++++
+ pkg/agent/catalog/workloadattestor.go        |  2 +
+ pkg/agent/catalog/workloadattestor_base.go   | 38 +++++++++++++++++
+ pkg/server/catalog/bundlepublisher.go        |  1 +
+ pkg/server/catalog/bundlepublisher_base.go   | 34 +++++++++++++++
+ pkg/server/catalog/keymanager.go             |  2 +
+ pkg/server/catalog/keymanager_base.go        | 37 ++++++++++++++++
+ pkg/server/catalog/nodeattestor.go           |  2 +
+ pkg/server/catalog/nodeattestor_base.go      | 44 ++++++++++++++++++++
+ pkg/server/catalog/notifier.go               |  2 +
+ pkg/server/catalog/notifier_base.go          | 36 ++++++++++++++++
+ pkg/server/catalog/upstreamauthority.go      |  2 +
+ pkg/server/catalog/upstreamauthority_base.go | 40 ++++++++++++++++++
+ 19 files changed, 370 insertions(+)
+ create mode 100644 pkg/agent/catalog/keymanager_base.go
+ create mode 100644 pkg/agent/catalog/nodeattestor_base.go
+ create mode 100644 pkg/agent/catalog/svidstore_base.go
+ create mode 100644 pkg/agent/catalog/workloadattestor_base.go
+ create mode 100644 pkg/server/catalog/bundlepublisher_base.go
+ create mode 100644 pkg/server/catalog/keymanager_base.go
+ create mode 100644 pkg/server/catalog/nodeattestor_base.go
+ create mode 100644 pkg/server/catalog/notifier_base.go
+ create mode 100644 pkg/server/catalog/upstreamauthority_base.go
+
+diff --git a/Makefile b/Makefile
+index 5a3d1d9d6..6a9fef1de 100644
+--- a/Makefile
++++ b/Makefile
+@@ -233,6 +233,17 @@ ifneq ($(GOVERBOSE),)
+ 	go_flags += -v
+ endif
+ 
++GO_TAGS := $(GO_TAGS)
++
++ifeq ($(WITH_PLUGINS),1)
++    GO_TAGS += withplugins
++endif
++
++# Append the final computed tags to go_flags
++ifneq ($(strip $(GO_TAGS)),)
++    go_flags += -tags="$(strip $(GO_TAGS))"
++endif
++
+ # Determine the ldflags passed to the go linker. The git tag and hash will be
+ # provided to the linker unless the git status is dirty.
+ go_ldflags := -s -w
+diff --git a/pkg/agent/catalog/keymanager.go b/pkg/agent/catalog/keymanager.go
+index 28d12e4c0..237bb0b7b 100644
+--- a/pkg/agent/catalog/keymanager.go
++++ b/pkg/agent/catalog/keymanager.go
+@@ -1,3 +1,5 @@
++//go:build withplugins
++
+ package catalog
+ 
+ import (
+diff --git a/pkg/agent/catalog/keymanager_base.go b/pkg/agent/catalog/keymanager_base.go
+new file mode 100644
+index 000000000..8bc4879b4
+--- /dev/null
++++ b/pkg/agent/catalog/keymanager_base.go
+@@ -0,0 +1,37 @@
++//go:build !withplugins
++
++package catalog
++
++import (
++	"github.com/spiffe/spire/pkg/common/catalog"
++
++	"github.com/spiffe/spire/pkg/agent/plugin/keymanager"
++	"github.com/spiffe/spire/pkg/agent/plugin/keymanager/memory"
++)
++
++type keyManagerRepository struct {
++	keymanager.Repository
++}
++
++func (repo *keyManagerRepository) Binder() any {
++	return repo.SetKeyManager
++}
++
++func (repo *keyManagerRepository) Constraints() catalog.Constraints {
++	return catalog.ExactlyOne()
++}
++
++func (repo *keyManagerRepository) Versions() []catalog.Version {
++	return []catalog.Version{keyManagerV1{}}
++}
++
++func (repo *keyManagerRepository) BuiltIns() []catalog.BuiltIn {
++	return []catalog.BuiltIn{
++		memory.BuiltIn(),
++	}
++}
++
++type keyManagerV1 struct{}
++
++func (keyManagerV1) New() catalog.Facade { return new(keymanager.V1) }
++func (keyManagerV1) Deprecated() bool    { return false }
+diff --git a/pkg/agent/catalog/nodeattestor.go b/pkg/agent/catalog/nodeattestor.go
+index 97af6912a..d80524d8b 100644
+--- a/pkg/agent/catalog/nodeattestor.go
++++ b/pkg/agent/catalog/nodeattestor.go
+@@ -1,3 +1,5 @@
++//go:build withplugins
++
+ package catalog
+ 
+ import (
+diff --git a/pkg/agent/catalog/nodeattestor_base.go b/pkg/agent/catalog/nodeattestor_base.go
+new file mode 100644
+index 000000000..493ffde36
+--- /dev/null
++++ b/pkg/agent/catalog/nodeattestor_base.go
+@@ -0,0 +1,42 @@
++//go:build !withplugins
++
++package catalog
++
++import (
++	"github.com/spiffe/spire/pkg/agent/plugin/nodeattestor"
++	"github.com/spiffe/spire/pkg/agent/plugin/nodeattestor/jointoken"
++	"github.com/spiffe/spire/pkg/agent/plugin/nodeattestor/x509pop"
++	"github.com/spiffe/spire/pkg/agent/plugin/nodeattestor/tpmdevid"
++	"github.com/spiffe/spire/pkg/common/catalog"
++)
++
++type nodeAttestorRepository struct {
++	nodeattestor.Repository
++}
++
++func (repo *nodeAttestorRepository) Binder() any {
++	return repo.SetNodeAttestor
++}
++
++func (repo *nodeAttestorRepository) Constraints() catalog.Constraints {
++	return catalog.ExactlyOne()
++}
++
++func (repo *nodeAttestorRepository) Versions() []catalog.Version {
++	return []catalog.Version{
++		nodeAttestorV1{},
++	}
++}
++
++func (repo *nodeAttestorRepository) BuiltIns() []catalog.BuiltIn {
++	return []catalog.BuiltIn{
++		jointoken.BuiltIn(),
++		tpmdevid.BuiltIn(),
++		x509pop.BuiltIn(),
++	}
++}
++
++type nodeAttestorV1 struct{}
++
++func (nodeAttestorV1) New() catalog.Facade { return new(nodeattestor.V1) }
++func (nodeAttestorV1) Deprecated() bool    { return false }
+diff --git a/pkg/agent/catalog/svidstore.go b/pkg/agent/catalog/svidstore.go
+index 6d9c20745..a0d656524 100644
+--- a/pkg/agent/catalog/svidstore.go
++++ b/pkg/agent/catalog/svidstore.go
+@@ -1,3 +1,5 @@
++//go:build withplugins
++
+ package catalog
+ 
+ import (
+diff --git a/pkg/agent/catalog/svidstore_base.go b/pkg/agent/catalog/svidstore_base.go
+new file mode 100644
+index 000000000..87ee3e725
+--- /dev/null
++++ b/pkg/agent/catalog/svidstore_base.go
+@@ -0,0 +1,34 @@
++//go:build !withplugins
++
++package catalog
++
++import (
++	"github.com/spiffe/spire/pkg/agent/plugin/svidstore"
++	"github.com/spiffe/spire/pkg/common/catalog"
++)
++
++type svidStoreRepository struct {
++	svidstore.Repository
++}
++
++func (repo *svidStoreRepository) Binder() any {
++	return repo.SetSVIDStore
++}
++
++func (repo *svidStoreRepository) Constraints() catalog.Constraints {
++	return catalog.ZeroOrMore()
++}
++
++func (repo *svidStoreRepository) Versions() []catalog.Version {
++	return []catalog.Version{svidStoreV1{}}
++}
++
++func (repo *svidStoreRepository) BuiltIns() []catalog.BuiltIn {
++	return []catalog.BuiltIn{
++	}
++}
++
++type svidStoreV1 struct{}
++
++func (svidStoreV1) New() catalog.Facade { return new(svidstore.V1) }
++func (svidStoreV1) Deprecated() bool    { return false }
+diff --git a/pkg/agent/catalog/workloadattestor.go b/pkg/agent/catalog/workloadattestor.go
+index 4e367815b..94d36ac54 100644
+--- a/pkg/agent/catalog/workloadattestor.go
++++ b/pkg/agent/catalog/workloadattestor.go
+@@ -1,3 +1,5 @@
++//go:build withplugins
++
+ package catalog
+ 
+ import (
+diff --git a/pkg/agent/catalog/workloadattestor_base.go b/pkg/agent/catalog/workloadattestor_base.go
+new file mode 100644
+index 000000000..3eecbd7b4
+--- /dev/null
++++ b/pkg/agent/catalog/workloadattestor_base.go
+@@ -0,0 +1,38 @@
++//go:build !withplugins
++
++package catalog
++
++import (
++	"github.com/spiffe/spire/pkg/agent/plugin/workloadattestor"
++	"github.com/spiffe/spire/pkg/agent/plugin/workloadattestor/systemd"
++	"github.com/spiffe/spire/pkg/agent/plugin/workloadattestor/unix"
++	"github.com/spiffe/spire/pkg/common/catalog"
++)
++
++type workloadAttestorRepository struct {
++	workloadattestor.Repository
++}
++
++func (repo *workloadAttestorRepository) Binder() any {
++	return repo.AddWorkloadAttestor
++}
++
++func (repo *workloadAttestorRepository) Constraints() catalog.Constraints {
++	return catalog.AtLeastOne()
++}
++
++func (repo *workloadAttestorRepository) Versions() []catalog.Version {
++	return []catalog.Version{workloadAttestorV1{}}
++}
++
++func (repo *workloadAttestorRepository) BuiltIns() []catalog.BuiltIn {
++	return []catalog.BuiltIn{
++		systemd.BuiltIn(),
++		unix.BuiltIn(),
++	}
++}
++
++type workloadAttestorV1 struct{}
++
++func (workloadAttestorV1) New() catalog.Facade { return new(workloadattestor.V1) }
++func (workloadAttestorV1) Deprecated() bool    { return false }
+diff --git a/pkg/server/catalog/bundlepublisher.go b/pkg/server/catalog/bundlepublisher.go
+index e98c8164c..ed58536f7 100644
+--- a/pkg/server/catalog/bundlepublisher.go
++++ b/pkg/server/catalog/bundlepublisher.go
+@@ -1,3 +1,4 @@
++//go:build withplugins
+ package catalog
+ 
+ import (
+diff --git a/pkg/server/catalog/bundlepublisher_base.go b/pkg/server/catalog/bundlepublisher_base.go
+new file mode 100644
+index 000000000..5ad254e4b
+--- /dev/null
++++ b/pkg/server/catalog/bundlepublisher_base.go
+@@ -0,0 +1,34 @@
++//go:build !withplugins
++
++package catalog
++
++import (
++	"github.com/spiffe/spire/pkg/common/catalog"
++	"github.com/spiffe/spire/pkg/server/plugin/bundlepublisher"
++)
++
++type bundlePublisherRepository struct {
++	bundlepublisher.Repository
++}
++
++func (repo *bundlePublisherRepository) Binder() any {
++	return repo.AddBundlePublisher
++}
++
++func (repo *bundlePublisherRepository) Constraints() catalog.Constraints {
++	return catalog.ZeroOrMore()
++}
++
++func (repo *bundlePublisherRepository) Versions() []catalog.Version {
++	return []catalog.Version{bundlePublisherV1{}}
++}
++
++func (repo *bundlePublisherRepository) BuiltIns() []catalog.BuiltIn {
++	return []catalog.BuiltIn{
++	}
++}
++
++type bundlePublisherV1 struct{}
++
++func (bundlePublisherV1) New() catalog.Facade { return new(bundlepublisher.V1) }
++func (bundlePublisherV1) Deprecated() bool    { return false }
+diff --git a/pkg/server/catalog/keymanager.go b/pkg/server/catalog/keymanager.go
+index 13338bc96..cb16bfbda 100644
+--- a/pkg/server/catalog/keymanager.go
++++ b/pkg/server/catalog/keymanager.go
+@@ -1,3 +1,5 @@
++//go:build withplugins 
++
+ package catalog
+ 
+ import (
+diff --git a/pkg/server/catalog/keymanager_base.go b/pkg/server/catalog/keymanager_base.go
+new file mode 100644
+index 000000000..17727a4a5
+--- /dev/null
++++ b/pkg/server/catalog/keymanager_base.go
+@@ -0,0 +1,37 @@
++//go:build !withplugins
++
++package catalog
++
++import (
++	"github.com/spiffe/spire/pkg/common/catalog"
++
++	"github.com/spiffe/spire/pkg/server/plugin/keymanager"
++	"github.com/spiffe/spire/pkg/server/plugin/keymanager/memory"
++)
++
++type keyManagerRepository struct {
++	keymanager.Repository
++}
++
++func (repo *keyManagerRepository) Binder() any {
++	return repo.SetKeyManager
++}
++
++func (repo *keyManagerRepository) Constraints() catalog.Constraints {
++	return catalog.ExactlyOne()
++}
++
++func (repo *keyManagerRepository) Versions() []catalog.Version {
++	return []catalog.Version{keyManagerV1{}}
++}
++
++func (repo *keyManagerRepository) BuiltIns() []catalog.BuiltIn {
++	return []catalog.BuiltIn{
++		memory.BuiltIn(),
++	}
++}
++
++type keyManagerV1 struct{}
++
++func (keyManagerV1) New() catalog.Facade { return new(keymanager.V1) }
++func (keyManagerV1) Deprecated() bool    { return false }
+diff --git a/pkg/server/catalog/nodeattestor.go b/pkg/server/catalog/nodeattestor.go
+index 2e9d540a6..0e40ef6ee 100644
+--- a/pkg/server/catalog/nodeattestor.go
++++ b/pkg/server/catalog/nodeattestor.go
+@@ -1,3 +1,5 @@
++//go:build withplugins
++
+ package catalog
+ 
+ import (
+diff --git a/pkg/server/catalog/nodeattestor_base.go b/pkg/server/catalog/nodeattestor_base.go
+new file mode 100644
+index 000000000..fb43da4bf
+--- /dev/null
++++ b/pkg/server/catalog/nodeattestor_base.go
+@@ -0,0 +1,44 @@
++//go:build !withplugins
++
++package catalog
++
++import (
++	"github.com/spiffe/spire/pkg/common/catalog"
++	"github.com/spiffe/spire/pkg/server/plugin/nodeattestor"
++	"github.com/spiffe/spire/pkg/server/plugin/nodeattestor/httpchallenge"
++	"github.com/spiffe/spire/pkg/server/plugin/nodeattestor/jointoken"
++	"github.com/spiffe/spire/pkg/server/plugin/nodeattestor/tpmdevid"
++	"github.com/spiffe/spire/pkg/server/plugin/nodeattestor/x509pop"
++)
++
++type nodeAttestorRepository struct {
++	nodeattestor.Repository
++}
++
++func (repo *nodeAttestorRepository) Binder() any {
++	return repo.SetNodeAttestor
++}
++
++func (repo *nodeAttestorRepository) Constraints() catalog.Constraints {
++	return catalog.ZeroOrMore()
++}
++
++func (repo *nodeAttestorRepository) Versions() []catalog.Version {
++	return []catalog.Version{
++		nodeAttestorV1{},
++	}
++}
++
++func (repo *nodeAttestorRepository) BuiltIns() []catalog.BuiltIn {
++	return []catalog.BuiltIn{
++		httpchallenge.BuiltIn(),
++		jointoken.BuiltIn(),
++		tpmdevid.BuiltIn(),
++		x509pop.BuiltIn(),
++	}
++}
++
++type nodeAttestorV1 struct{}
++
++func (nodeAttestorV1) New() catalog.Facade { return new(nodeattestor.V1) }
++func (nodeAttestorV1) Deprecated() bool    { return false }
+diff --git a/pkg/server/catalog/notifier.go b/pkg/server/catalog/notifier.go
+index 0f61612c0..0e2c048a2 100644
+--- a/pkg/server/catalog/notifier.go
++++ b/pkg/server/catalog/notifier.go
+@@ -1,3 +1,5 @@
++//go:build withplugins
++
+ package catalog
+ 
+ import (
+diff --git a/pkg/server/catalog/notifier_base.go b/pkg/server/catalog/notifier_base.go
+new file mode 100644
+index 000000000..346b57a5b
+--- /dev/null
++++ b/pkg/server/catalog/notifier_base.go
+@@ -0,0 +1,36 @@
++//go:build !withplugins
++
++package catalog
++
++import (
++	"github.com/spiffe/spire/pkg/common/catalog"
++	"github.com/spiffe/spire/pkg/server/plugin/notifier"
++)
++
++type notifierRepository struct {
++	notifier.Repository
++}
++
++func (repo *notifierRepository) Binder() any {
++	return repo.AddNotifier
++}
++
++func (repo *notifierRepository) Constraints() catalog.Constraints {
++	return catalog.ZeroOrMore()
++}
++
++func (repo *notifierRepository) Versions() []catalog.Version {
++	return []catalog.Version{
++		notifierV1{},
++	}
++}
++
++func (repo *notifierRepository) BuiltIns() []catalog.BuiltIn {
++	return []catalog.BuiltIn{
++	}
++}
++
++type notifierV1 struct{}
++
++func (notifierV1) New() catalog.Facade { return new(notifier.V1) }
++func (notifierV1) Deprecated() bool    { return false }
+diff --git a/pkg/server/catalog/upstreamauthority.go b/pkg/server/catalog/upstreamauthority.go
+index 2f77a7838..185cb1a59 100644
+--- a/pkg/server/catalog/upstreamauthority.go
++++ b/pkg/server/catalog/upstreamauthority.go
+@@ -1,3 +1,5 @@
++//go:build withplugins
++
+ package catalog
+ 
+ import (
+diff --git a/pkg/server/catalog/upstreamauthority_base.go b/pkg/server/catalog/upstreamauthority_base.go
+new file mode 100644
+index 000000000..b7a4defbc
+--- /dev/null
++++ b/pkg/server/catalog/upstreamauthority_base.go
+@@ -0,0 +1,40 @@
++//go:build !withplugins
++
++package catalog
++
++import (
++	"github.com/spiffe/spire/pkg/common/catalog"
++	"github.com/spiffe/spire/pkg/server/plugin/upstreamauthority"
++	"github.com/spiffe/spire/pkg/server/plugin/upstreamauthority/disk"
++	spireplugin "github.com/spiffe/spire/pkg/server/plugin/upstreamauthority/spire"
++)
++
++type upstreamAuthorityRepository struct {
++	upstreamauthority.Repository
++}
++
++func (repo *upstreamAuthorityRepository) Binder() any {
++	return repo.SetUpstreamAuthority
++}
++
++func (repo *upstreamAuthorityRepository) Constraints() catalog.Constraints {
++	return catalog.MaybeOne()
++}
++
++func (repo *upstreamAuthorityRepository) Versions() []catalog.Version {
++	return []catalog.Version{
++		upstreamAuthorityV1{},
++	}
++}
++
++func (repo *upstreamAuthorityRepository) BuiltIns() []catalog.BuiltIn {
++	return []catalog.BuiltIn{
++		spireplugin.BuiltIn(),
++		disk.BuiltIn(),
++	}
++}
++
++type upstreamAuthorityV1 struct{}
++
++func (upstreamAuthorityV1) New() catalog.Facade { return new(upstreamauthority.V1) }
++func (upstreamAuthorityV1) Deprecated() bool    { return false }
+-- 
+2.51.2
+
