@@ -216,6 +216,20 @@ in
       # Allow admin UI login
       users.admin.enableUILogin = true;
     };
+    environment.variables.SYSTEMD_RELAX_ESP_CHECKS = "1";
+
+    system.build.installBootLoader = lib.mkForce (
+      pkgs.writeShellScript "install-bootloader-wrapper" ''
+        echo "[ghaf] running systemd-boot (non-fatal)"
+
+        export SYSTEMD_RELAX_ESP_CHECKS=1
+
+        ${pkgs.systemd}/bin/bootctl --esp-path=/boot install || true
+        ${pkgs.systemd}/bin/bootctl --esp-path=/boot update || true
+
+        exit 0
+      ''
+    );
 
     # Cosmic on orin
     environment.sessionVariables = {
