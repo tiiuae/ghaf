@@ -448,7 +448,7 @@ let
       }
 
       # Convinience variables
-      luksDev=${if cfg.somType == "nx" then "/dev/sda2" else "/dev/mmcblk0p1"}
+      luksDev=${if cfg.somType == "nx" then "/dev/sda2" else "/dev/mmcblk0p2"}
       defaultManufactureKey=${cfg.diskEncryption.deviceUniqueKey.deviceManufacturePassphrase}
       luksDiskKeyKeyringDescription=${luksDiskKeyDescription}
 
@@ -797,7 +797,7 @@ in
       );
       luks.devices = lib.mkIf cfg.diskEncryption.enable {
         ${cfg.diskEncryption.mapperName} = {
-          device = if cfg.somType == "nx" then "/dev/sda2" else "/dev/mmcblk0p1";
+          device = if cfg.somType == "nx" then "/dev/sda2" else "/dev/mmcblk0p2";
           allowDiscards = true;
           keyFile = if cfg.diskEncryption.deviceUniqueKey.enable then "none" else null;
         };
