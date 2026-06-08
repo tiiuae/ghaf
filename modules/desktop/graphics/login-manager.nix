@@ -72,11 +72,29 @@ in
 
     security.pam.services = {
       cosmic-greeter = {
+        fprintAuth = true;
         rules = {
+          account = {
+            # When homed auth was used, PAM_AUTHTOK holds the real password and
+            # systemd_home account succeeds → done. When fingerprint was used,
+            # PAM_AUTHTOK is unset and systemd_home fails → fall through to permit.
+            systemd_home.control = lib.mkForce "[success=done default=ignore]";
+            permit = {
+              enable = true;
+              control = "[success=done default=ignore]";
+              modulePath = "${pkgs.linux-pam}/lib/security/pam_permit.so";
+              order = 10900; # after systemd_home (10800), before unix (11000)
+            };
+          };
           auth = {
-            systemd_home.order = 11399; # Re-order to allow either password _or_ fingerprint on lockscreen
             unix.settings.use_first_pass = !config.ghaf.services.sssd.enable;
-            fprintd.args = [ "maxtries=3" ];
+            fprintd = {
+              args = [
+                "max-tries=3"
+                "timeout=-1"
+                "debug=1"
+              ];
+            };
           };
         };
       };
@@ -86,7 +104,6 @@ in
           auth = {
             systemd_home.order = 11399; # Re-order to allow either password _or_ fingerprint on lockscreen
             unix.settings.use_first_pass = !config.ghaf.services.sssd.enable;
-            fprintd.args = [ "maxtries=3" ];
 
             # This should precede other auth rules e.g. pam_sss.so (pam module for SSSD)
             faillock_preauth = mkIf cfg.failLock.enable {
