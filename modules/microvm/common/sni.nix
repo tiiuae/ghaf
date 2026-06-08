@@ -33,7 +33,6 @@ let
   inherit (config.networking) hostName;
   guivmName = "gui-vm";
   appUserUid = toString config.ghaf.users.appUser.uid;
-  homedUid = toString config.ghaf.users.homedUser.uid;
 
   # Port map: built from sniCfg.vms so ports start at portBase regardless of
   # where the VM falls in the full appHosts list.
@@ -175,41 +174,29 @@ in
           inherit (src) socket;
         }) sniSources;
 
-        # Path units: activate the dbus-proxy-sni service only when the tunnel
-        # socket actually appears (i.e., the appvm has SNI enabled and is running).
-        # This prevents restart-loops for appvms that have SNI disabled.
-        systemd.paths = listToAttrs (
-          map (
-            src:
-            nameValuePair "dbus-proxy-sni-${src.vmName}" {
-              description = "Watch for SNI tunnel socket from ${src.vmName}";
-              wantedBy = [ "graphical.target" ];
-              pathConfig = {
-                PathExists = src.socket;
-                Unit = "dbus-proxy-sni-${src.vmName}.service";
-              };
-            }
-          ) sniSources
-        );
-
-        # One dbus-proxy-sni service per appvm: bridges the GIVC tunnel socket
-        # (system bus) to the user session bus so the compositor sees the tray icons.
-        # Activated on-demand by the corresponding path unit above.
-        systemd.services = listToAttrs (
+        # User services: run as the logged-in user.
+        systemd.user.services = listToAttrs (
           map (
             src:
             nameValuePair "dbus-proxy-sni-${src.vmName}" {
               description = "DBus proxy for SNI tray icons from ${src.vmName}";
-              after = [ "user-login.service" ];
+              after = [ "graphical-session.target" ];
+              wantedBy = [ "graphical-session.target" ];
+              partOf = [ "graphical-session.target" ];
+              unitConfig = {
+                ConditionUser = toString config.ghaf.users.homedUser.uid;
+              };
               serviceConfig = {
                 Type = "exec";
                 Restart = "on-failure";
-                RestartSec = "5s";
+                # Retry if the GIVC socket is not yet ready when the session starts.
+                RestartSec = "30s";
+                # Override the system bus to the GIVC tunnel socket.
+                # The session bus is available automatically in user service context.
                 Environment = [
                   "DBUS_SYSTEM_BUS_ADDRESS=unix:path=${src.socket}"
-                  "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/${homedUid}/bus"
                 ];
-                User = homedUid;
+
                 ExecStart = ''
                   ${getExe pkgs.dbus-proxy} \
                     --sni-mode \
