@@ -8,6 +8,7 @@
     chrome-extensions = final.callPackage ./chrome-extensions { };
     dendrite-pinecone = final.callPackage ./pkgs-by-name/dendrite-pinecone/package.nix { };
     falcon-launcher = final.callPackage ./falcon-launcher/package.nix { };
+    fingwit = final.callPackage ./pkgs-by-name/fingwit/package.nix { };
     flash-script = final.callPackage ./pkgs-by-name/flash-script/package.nix { };
     fleet-desktop = final.callPackage ./pkgs-by-name/fleet-desktop/package.nix { };
     fleet-orbit = final.callPackage ./pkgs-by-name/fleet-orbit/package.nix { };

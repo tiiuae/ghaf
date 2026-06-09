@@ -20,7 +20,10 @@ in
   config = mkIf cfg.enable {
     # Enable service and package for fingerprint reader
     services.fprintd.enable = true;
-    environment.systemPackages = [ pkgs.fprintd ];
+    environment.systemPackages = [
+      pkgs.fprintd
+      pkgs.fingwit
+    ];
 
     ghaf = {
       systemd.withPolkit = true;
