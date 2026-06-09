@@ -171,6 +171,15 @@ let
         export BOOTAA64_EFI="$SIGNED_ARTIFACTS_DIR/BOOTAA64.EFI"
         export KERNEL_IMAGE="$SIGNED_ARTIFACTS_DIR/Image"
 
+        # NOTE: initrd and DTB swaps are currently a no-op for Secure Boot.
+        # UEFI on Orin only verifies the loaded EFI binary (BOOTAA64.EFI);
+        # the kernel Image, initrd, and devicetree are loaded by systemd-boot
+        # after handoff and are not part of the SB measurement chain. These
+        # swaps exist so a signed-image build can ship matching artifacts,
+        # but they do not extend the trust boundary on their own. Closing
+        # this gap (UKI bundling the kernel/initrd/cmdline into the signed
+        # PE, plus DTB measurement / signing) is tracked separately and is
+        # a prerequisite for disk encryption rooted in firmware trust.
         if [ -f "$SIGNED_ARTIFACTS_DIR/initrd" ]; then
           export INITRD_IMAGE="$SIGNED_ARTIFACTS_DIR/initrd"
         fi
