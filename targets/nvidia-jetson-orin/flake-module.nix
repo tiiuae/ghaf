@@ -193,9 +193,31 @@ in
       x86_64-linux =
         builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) crossTargets)
         # Single `*-flash-script` entrypoint that picks between two
-        # pre-built QSPI firmware variants at flash time:
-        #   - no `-s`: unsigned BOOTAA64.EFI, no UEFI key enrollment
-        #   - with `-s`: signed BOOTAA64.EFI swapped in + DTBO/ESLs in QSPI
+        # pre-built QSPI firmware variants at flash time.
+        #
+        # Why two variants instead of one profile-level toggle:
+        #
+        # `ghaf.hardware.nvidia.orin.secureboot.enable` is evaluated at Nix
+        # build time. When true, it bakes the `UefiDefaultSecurityKeys`
+        # device-tree overlay and PK/KEK/db ESLs into the QSPI firmware, so
+        # the device enrolls keys and turns Secure Boot on at first boot.
+        # Flipping it on unconditionally in the Orin profile would brick the
+        # default unsigned flash path: the QSPI carries enrollment material
+        # but BOOTAA64.EFI is unsigned, leaving the board in the UEFI
+        # Interactive Shell with no recoverable boot entry.
+        #
+        # `-s/--signed-sd-image` is a *runtime* flag on the flash script: it
+        # only swaps in a signed BOOTAA64.EFI / kernel staged from a signed
+        # sd-image, it cannot influence the QSPI firmware that was already
+        # produced at Nix evaluation time. So the QSPI variant has to be
+        # selected *before* the script runs, which is what the wrapper does:
+        #
+        #   - no `-s`  → unsigned QSPI (no DTBO, no ESLs) + unsigned BOOTAA64.EFI
+        #   - with `-s` → SB-enabled QSPI (DTBO + ESLs) + signed BOOTAA64.EFI
+        #
+        # Both variants share substituted store paths (jetpack-nixos
+        # `flashScript` is a thin wrapper around the same per-target
+        # derivations), so the second build is mostly a Nix-eval cost.
         // builtins.listToAttrs (
           map (
             t:
