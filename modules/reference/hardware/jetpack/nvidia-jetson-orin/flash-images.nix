@@ -40,6 +40,9 @@ let
   #   flasher.entrypoint  : Path inside the <target>-flash-script package to
   #                         the executable.
   #   flasher.system      : Nix system the flasher binary is built for.
+  #   flasher.target_drives : Drives the flasher can write the rootfs to,
+  #                         selected via its `--target=<name>` CLI flag.
+  #                         Empty for qspi-only (no rootfs written).
   #   artifacts[].name    : Filename inside this output directory.
   #   artifacts[].role    : "esp" | "root".
   #   artifacts[].compression : "zstd".
@@ -60,6 +63,15 @@ let
       flasher = {
         entrypoint = "bin/initrd-flash-${config.networking.hostName}";
         system = "x86_64-linux";
+        target_drives =
+          if cfg.flashScriptOverrides.onlyQSPI then
+            [ ]
+          else
+            [
+              "emmc"
+              "nvme"
+              "usb"
+            ];
       };
       artifacts =
         if cfg.flashScriptOverrides.onlyQSPI then
