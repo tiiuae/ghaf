@@ -416,15 +416,15 @@
         ]
       },
       "locked": {
-        "lastModified": 1778573910,
-        "narHash": "sha256-q3Qy+D+1HRhJJvaTzPyvWW+MjhYt0jTQ8wZEOSSzoNI=",
-        "owner": "vadika",
+        "lastModified": 1780981160,
+        "narHash": "sha256-BkXU09KiGvMU6McLlQ/u0ac3HbN9Qvda043uePhZxeE=",
+        "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "6df1681be410a15c1fd0f1b5fa229ddbda85341d",
+        "rev": "39a8fdec16ef01d59107b366b01a86d420d88b96",
         "type": "github"
       },
       "original": {
-        "owner": "vadika",
+        "owner": "tiiuae",
         "ref": "refactor/flash-signed-sd-image-v2",
         "repo": "jetpack-nixos",
         "type": "github"
