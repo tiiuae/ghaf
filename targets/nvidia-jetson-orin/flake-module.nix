@@ -189,7 +189,7 @@ in
           map (
             t:
             lib.nameValuePair "${t.name}-flash-script" (
-              lazyPackage "${t.name}-flash-script" t.hostConfiguration.pkgs.nvidia-jetpack.legacyFlashScript
+              lazyPackage "${t.name}-flash-script" t.hostConfiguration.pkgs.nvidia-jetpack.initrdFlashScript
             )
           ) crossTargets
         )
@@ -201,6 +201,16 @@ in
                 (t.hostConfiguration.extendModules {
                   modules = [ { ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = true; } ];
                 }).pkgs.nvidia-jetpack.flashScript
+            )
+          ) crossTargets
+        )
+        # ESP + root image set with the flash-manifest.json that external CI
+        # / hw-test automation consumes to discover artifact layout.
+        // builtins.listToAttrs (
+          map (
+            t:
+            lib.nameValuePair "${t.name}-flash-images" (
+              lazyPackage "${t.name}-flash-images" t.hostConfiguration.config.system.build.ghafFlashImages
             )
           ) crossTargets
         );

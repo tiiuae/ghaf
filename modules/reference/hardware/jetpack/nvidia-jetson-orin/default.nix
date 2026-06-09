@@ -4,7 +4,8 @@
 # Top-level module entry point for the Orin family of chips
 {
   imports = [
-    ./partition-template.nix
+    ./flash-images.nix
+    ./initrd-flash.nix
     ./jetson-orin.nix
     ./pci-passthrough-common.nix
     ./virtualization
