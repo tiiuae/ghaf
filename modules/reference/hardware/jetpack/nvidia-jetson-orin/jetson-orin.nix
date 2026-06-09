@@ -281,9 +281,13 @@ in
         configFileName and decides where the APP partition lands. Downstream
         callers (e.g. disk-encryption modules) can read this to know the
         rootfs location at build time.
+
+        No default: rootfs storage is not common to all carrier boards, so
+        every per-SoM module must set this explicitly. An assertion in the
+        config block enforces a non-empty value.
       '';
       type = types.str;
-      default = "mmcblk0p1";
+      default = "";
     };
 
     somType = mkOption {
@@ -313,6 +317,18 @@ in
   };
 
   config = mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = cfg.flashScriptOverrides.rootfsDevice != "";
+        message = ''
+          ghaf.hardware.nvidia.orin.flashScriptOverrides.rootfsDevice must be
+          set explicitly (e.g. "mmcblk0p1" for eMMC/SD, "nvme0n1p1" for NVMe).
+          The default is intentionally empty because rootfs storage varies per
+          carrier board; the per-SoM module must declare it to avoid silently
+          flashing to the wrong device.
+        '';
+      }
+    ];
     hardware.nvidia-jetpack.firmware.eksFile = "${firmwareEkbImage}/eks_t234.img";
     hardware.nvidia-jetpack.kernel.version = "${cfg.kernelVersion}";
     # jetpack-nixos hardcodes the trailing rootfs device as mmcblk0p1; replay
