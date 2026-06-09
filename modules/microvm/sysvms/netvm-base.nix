@@ -206,14 +206,33 @@ in
       allowedUDPPorts = [ dnsPort ];
     };
 
+  # Disable mDNS publishing on net-vm. With two live interfaces (internal
+  # ethint0 + USB/Wi-Fi uplink), systemd-resolved hears its own announcements
+  # echo between them and enters an unbounded conflict-resolution loop. The
+  # dynamic hostname `ghaf-NNNNNNNNNN` matches resolved's `<base>-<int>`
+  # pattern, so conflict resolution strips the numeric tail and republishes as
+  # `ghaf-<rand>`, producing thousands of renames per hour. Net-vm never needs
+  # to be discoverable via mDNS, so turn publishing off on both sides.
+  systemd.network.networks."10-ethint0".networkConfig.MulticastDNS = false;
+  networking.networkmanager.connectionConfig."connection.mdns" = 0;
+
   systemd.tmpfiles.rules = [ "d /persist/sysupdate 0755 ghaf root -" ]; # Set permissions for mountpoint
   microvm = {
     # Optimize is disabled because when it is enabled, qemu is built without libusb
     optimize.enable = false;
-    # Sensible defaults - can be overridden via vmConfig
-    vcpu = lib.mkDefault 2;
-    # Memory default is set to 1GB as some WiFi drivers require at least that much memory to function properly. This can be overridden via vmConfig.
-    mem = lib.mkDefault 1024;
+    # 4 vCPUs is the minimum that keeps QEMU USB emulation (libusb
+    # redirection of the ethernet dongle) from starving when alloy, givc
+    # node + stunnel, and spire-agent are all active on Orin NX. At 2 vCPUs
+    # the xhci_hcd guest driver desyncs with the QEMU event ring under load
+    # ("Transfer event TRB DMA ptr not part of current TD" + NETDEV WATCHDOG
+    # TX timeouts). AGX is unaffected because it has more cores per slice.
+    vcpu = lib.mkDefault 4;
+    # 2GB headroom: alloy + stunnel + spire-agent + givc-agent + auditd
+    # pile up on net-vm with the givc/logging stack enabled, and the
+    # 1GB default OOMs during the first-boot burst on Orin NX. The kernel
+    # then evicts page cache backing the USB-eth driver and the dongle
+    # disconnects, killing sshd on the test-net IP.
+    mem = lib.mkDefault 2048;
     hypervisor = "qemu";
 
     shares = [

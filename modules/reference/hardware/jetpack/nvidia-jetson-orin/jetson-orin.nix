@@ -304,6 +304,13 @@ in
     hardware.nvidia-jetpack.kernel.version = "${cfg.kernelVersion}";
     nixpkgs.hostPlatform.system = "aarch64-linux";
 
+    ghaf.givc.enable = true;
+    ghaf.givc.debug = false;
+    ghaf.logging.enable = true;
+    ghaf.logging.listener.address = config.ghaf.networking.hosts.admin-vm.ipv4;
+
+    ghaf.global-config.givc.enable = true;
+    ghaf.global-config.logging.enable = true;
     ghaf.hardware = {
       aarch64.systemd-boot-dtb.enable = true;
       passthrough = {
@@ -411,11 +418,9 @@ in
       after = [
         "local-fs.target"
         "systemd-modules-load.service"
-        "dev-tpmrm0.device"
         "tee-supplicant.service"
         "ghaf-load-ftpm-module.service"
       ];
-      requires = [ "dev-tpmrm0.device" ];
       unitConfig.ConditionPathExists = "/dev/tpmrm0";
       unitConfig.OnSuccess = [ "ghaf-export-ek-endorsement-bundle.service" ];
 

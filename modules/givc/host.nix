@@ -15,6 +15,7 @@ let
     optionalString
     optionals
     ;
+  tlsStoragePath = "/persist/storagevm/givc";
 in
 {
   _file = ./host.nix;
@@ -80,7 +81,7 @@ in
         addr = v.ipv4;
       }) config.ghaf.networking.hosts;
       generatorHostName = config.networking.hostName;
-      storagePath = "/persist/storagevm/givc";
+      storagePath = tlsStoragePath;
     };
 
     ghaf.security.audit.extraRules = [

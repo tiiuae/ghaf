@@ -70,10 +70,21 @@ in
 
       # Setup host VM network bridge
       systemd.network = {
-        netdevs."10-${cfg.bridgeNicName}".netdevConfig = {
-          Kind = "bridge";
-          Name = "${cfg.bridgeNicName}";
-          MACAddress = hosts.${hostName}.mac;
+        netdevs."10-${cfg.bridgeNicName}" = {
+          netdevConfig = {
+            Kind = "bridge";
+            Name = "${cfg.bridgeNicName}";
+            MACAddress = hosts.${hostName}.mac;
+          };
+          # Disable STP to skip the 15s forward-delay during port learning.
+          # Without this, taps added to the bridge spend ~15s in
+          # blocking/listening state, which delays spire-agent's
+          # ExecStartPre health check past TimeoutStartSec on first boot.
+          # We have a static topology (tap-<vm>/virbr0), no loops possible.
+          bridgeConfig = {
+            STP = false;
+            ForwardDelaySec = 0;
+          };
         };
         networks = {
           "10-${cfg.bridgeNicName}" = {
@@ -91,6 +102,28 @@ in
           "11-vm-network" = {
             matchConfig.Name = "tap-*";
             networkConfig.Bridge = "${cfg.bridgeNicName}";
+          };
+          # USB ethernet adapters are hot-plugged into VMs by vhotplug.
+          # The host must never configure them: if host networkd claims
+          # the link (assigns an address, manages carrier), then vhotplug
+          # detaches the device and networkd tears it down — the churn,
+          # compounded by the r8152-cfgselector reset and the QEMU xHCI
+          # re-enumeration on the VM side, leaves the VM uplink flaky on
+          # cold boot (intermittent SSH timeouts in pre-merge HW tests).
+          # Mark them Unmanaged unconditionally — unlike 99-disable-external
+          # this must apply even when enableExternalNetworking is set (e.g.
+          # the debug profile), since these NICs belong to a VM regardless.
+          "12-usb-ethernet-unmanaged" = {
+            matchConfig.Driver = [
+              "r8152"
+              "r8153_ecm"
+              "cdc_ether"
+              "cdc_ncm"
+              "asix"
+              "ax88179_178a"
+              "smsc95xx"
+            ];
+            linkConfig.Unmanaged = "yes";
           };
           # Disable addititional, non-defined external interfaces
           "99-disable-external" = optionalAttrs (!cfg.enableExternalNetworking) {

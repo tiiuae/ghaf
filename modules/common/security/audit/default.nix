@@ -90,7 +90,11 @@ in
     security.audit = {
       enable = true;
       failureMode = if cfg.debug then "printk" else "panic";
-      backlogLimit = 8192;
+      # 8192 default fills during first-boot bursts (cert gen, spire restarts,
+      # microvm bring-up) and the kernel then blocks audit-triggering syscalls
+      # up to audit_backlog_wait_time (15s), stalling PAM login on slow boards
+      # (e.g. NX). 32k entries ~ 24MB kernel memory, 4x headroom.
+      backlogLimit = 32768;
       rules =
         cfg.commonRules
         ++ cfg.extraRules
@@ -121,6 +125,19 @@ in
         # Let systemd use default ordering for audit-rules instead of early-boot
         unitConfig.DefaultDependencies = lib.mkForce true;
         before = lib.mkForce [ ];
+      };
+
+      services.auditd-resume-after-boot = {
+        description = "Resume auditd after early boot space check settles";
+        after = [
+          "auditd.service"
+          "audit-rules-nixos.service"
+        ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${pkgs.runtimeShell} -c '${pkgs.coreutils}/bin/sleep 5; ${pkgs.audit}/bin/auditctl --signal resume'";
+        };
       };
 
       # Systemd oneshot service to immediate rotation, obeying num_logs.
@@ -159,7 +176,7 @@ in
       space_left_action = SYSLOG
       admin_space_left = 5%
       admin_space_left_action = SINGLE
-      disk_full_action = ROTATE
+      disk_full_action = SUSPEND
       disk_error_action = SUSPEND
     '';
   };
