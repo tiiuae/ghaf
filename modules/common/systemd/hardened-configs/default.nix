@@ -31,6 +31,7 @@
     nw-packet-forwarder.serviceConfig = import ./nw-packet-forwarder.nix;
     rtkit-daemon.serviceConfig = import ./rtkit-daemon.nix;
     seatd.serviceConfig = import ./seatd.nix;
+    ssh-tarpit.serviceConfig = import ./ssh-tarpit.nix;
     systemd-journal-catalog-update.serviceConfig = import ./systemd-journal-catalog-update.nix;
     systemd-journal-flush.serviceConfig = import ./systemd-journal-flush.nix;
     systemd-networkd-wait-online.serviceConfig = import ./systemd-networkd-wait-online.nix;

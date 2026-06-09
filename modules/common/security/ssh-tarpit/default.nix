@@ -3,6 +3,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 let
@@ -13,6 +14,7 @@ let
     mkForce
     mkOption
     types
+    getExe
     ;
   tarpitListenPort = 2222;
   sshPort = lib.head config.services.openssh.ports;
@@ -48,18 +50,17 @@ in
         message = "Fail2ban must be enabled to activate ssh-tarpit module";
       }
     ];
-    services.endlessh-go = {
-      enable = true;
-      port = tarpitListenPort;
-      openFirewall = false;
-      inherit (cfg) listenAddress;
-      extraOptions = [ "-interval_ms 3000 -v 1" ];
-    };
-    systemd.services.endlessh-go.serviceConfig = {
-      Restart = lib.mkForce "on-failure";
-      RestartSec = "10s";
-      StartLimitBurst = 10;
-      StartLimitIntervalSec = 60;
+    systemd.services.ssh-tarpit = {
+      description = "SSH tarpit";
+      requires = [ "network.target" ];
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig = {
+        ExecStart = mkForce "${getExe pkgs.tarssh} --listen ${cfg.listenAddress}:${toString tarpitListenPort} --delay 3 --max-clients 64";
+        Restart = mkForce "always";
+        RestartSec = mkForce "10s";
+        StartLimitBurst = mkForce 10;
+        StartLimitIntervalSec = mkForce 60;
+      };
     };
 
     ghaf.security.fail2ban.sshd-jail-fwmark = {
