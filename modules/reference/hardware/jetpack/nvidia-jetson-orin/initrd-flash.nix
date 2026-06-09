@@ -191,8 +191,8 @@ let
     # mmc / sd use a bare index. detect_mass_storage returns the parent
     # device node as it appears on the host (typically /dev/sdX), so the
     # bare index works on the host side regardless of how the chosen drive
-    # is named on the device.
-    FLASH_IMAGES="${ghafFlashImages}"
+    # is named on the device. $FLASH_IMAGES comes from CLI / default
+    # (see arg parsing above).
     echo "Writing ESP image to ''${STORAGE_DEV}1..."
     zstd -d "$FLASH_IMAGES/esp.img.zst" --stdout | dd of="''${STORAGE_DEV}1" bs=4M status=progress
     echo "Writing root image to ''${STORAGE_DEV}2..."
@@ -257,25 +257,41 @@ in
                 zstd
                 util-linux
                 coreutils
+                jq
               ];
               text = ''
-                                # --- CLI argument parsing ---
-                                FLASH_TARGET=emmc
-                                while [ $# -gt 0 ]; do
-                                  case "$1" in
-                                    --target=*) FLASH_TARGET=''${1#*=} ;;
-                                    --target)   shift; FLASH_TARGET=''${1:-} ;;
-                                    -h|--help)
-                                      cat <<USAGE
-                Usage: $(basename "$0") [--target=emmc|nvme|usb]
+                # --- CLI argument parsing ---
+                FLASH_TARGET=emmc
+                # Default flash-images dir is the one this derivation was built with
+                # (closure-bundled). Override via --flash-images=DIR to use an
+                # artifact set produced elsewhere (e.g. Jenkins-built, copied to
+                # the test agent's filesystem).
+                FLASH_IMAGES="${ghafFlashImages}"
+                EXPECTED_HOST_NAME="${config.networking.hostName}"
+                EXPECTED_SCHEMA_VERSION=1
+                while [ $# -gt 0 ]; do
+                  case "$1" in
+                    --target=*)        FLASH_TARGET=''${1#*=} ;;
+                    --target)          shift; FLASH_TARGET=''${1:-} ;;
+                    --flash-images=*)  FLASH_IMAGES=''${1#*=} ;;
+                    --flash-images)    shift; FLASH_IMAGES=''${1:-} ;;
+                    -h|--help)
+                      cat <<USAGE
+                Usage: $(basename "$0") [--target=emmc|nvme|usb] [--flash-images=DIR]
 
-                  --target  Destination drive for the NixOS rootfs (default: emmc).
-                            'emmc' targets /dev/mmcblk0 on the device.
-                            'nvme' targets /dev/nvme0n1 (requires an M.2 NVMe present).
-                            'usb'  targets /dev/sda    (requires a USB drive attached
-                                                        to a host-mode USB port).
-                            The chosen target must be detected on the device; otherwise
-                            the script aborts before any partition is touched.
+                  --target         Destination drive for the NixOS rootfs (default: emmc).
+                                   'emmc' targets /dev/mmcblk0 on the device.
+                                   'nvme' targets /dev/nvme0n1 (requires an M.2 NVMe present).
+                                   'usb'  targets /dev/sda    (requires a USB drive attached
+                                                                to a host-mode USB port).
+                                   The chosen target must be detected on the device; otherwise
+                                   the script aborts before any partition is touched.
+
+                  --flash-images   Directory containing esp.img.zst + root.img.zst +
+                                   flash-manifest.json (the output of the
+                                   <target>-flash-images flake package). Default is the
+                                   path baked into this script at build time; override to
+                                   use artifacts copied from a build host.
                 USAGE
                                       exit 0 ;;
                                     *) echo "ERROR: unknown argument '$1'. Use --help." >&2; exit 1 ;;
@@ -286,16 +302,52 @@ in
                                   emmc|nvme|usb) ;;
                                   *) echo "ERROR: --target must be one of emmc, nvme, usb (got '$FLASH_TARGET')." >&2; exit 1 ;;
                                 esac
+
+                                # --- Validate --flash-images directory + manifest ---
+                                if [ ! -d "$FLASH_IMAGES" ]; then
+                                  echo "ERROR: --flash-images: '$FLASH_IMAGES' is not a directory." >&2
+                                  exit 1
+                                fi
+                                if [ ! -f "$FLASH_IMAGES/flash-manifest.json" ]; then
+                                  echo "ERROR: --flash-images: '$FLASH_IMAGES/flash-manifest.json' missing. The directory must be a <target>-flash-images package output." >&2
+                                  exit 1
+                                fi
+                                MANIFEST_SCHEMA=$(jq -r '.schema_version' "$FLASH_IMAGES/flash-manifest.json")
+                                MANIFEST_HOST=$(jq -r '.host_name' "$FLASH_IMAGES/flash-manifest.json")
+                                MANIFEST_TRANSPORT=$(jq -r '.transport' "$FLASH_IMAGES/flash-manifest.json")
+                                if [ "$MANIFEST_SCHEMA" != "$EXPECTED_SCHEMA_VERSION" ]; then
+                                  echo "ERROR: manifest schema_version=$MANIFEST_SCHEMA, this flasher expects $EXPECTED_SCHEMA_VERSION." >&2
+                                  exit 1
+                                fi
+                                if [ "$MANIFEST_HOST" != "$EXPECTED_HOST_NAME" ]; then
+                                  echo "ERROR: manifest host_name=$MANIFEST_HOST, this flasher was built for $EXPECTED_HOST_NAME. Refusing to flash mismatched images." >&2
+                                  exit 1
+                                fi
                                 ${
                                   if cfg.flashScriptOverrides.onlyQSPI then
                                     ''
+                                      if [ "$MANIFEST_TRANSPORT" != "qspi-only" ]; then
+                                        echo "ERROR: manifest transport=$MANIFEST_TRANSPORT, this flasher is qspi-only." >&2
+                                        exit 1
+                                      fi
                                       if [ "$FLASH_TARGET" != emmc ]; then
                                         echo "WARNING: --target=$FLASH_TARGET is ignored by the QSPI-only flasher (no rootfs is written)." >&2
                                       fi
                                     ''
                                   else
                                     ''
+                                      if [ "$MANIFEST_TRANSPORT" != "initrd-mass-storage" ]; then
+                                        echo "ERROR: manifest transport=$MANIFEST_TRANSPORT, this flasher expects initrd-mass-storage." >&2
+                                        exit 1
+                                      fi
+                                      for f in esp.img.zst root.img.zst; do
+                                        if [ ! -f "$FLASH_IMAGES/$f" ]; then
+                                          echo "ERROR: required artifact '$f' missing from $FLASH_IMAGES." >&2
+                                          exit 1
+                                        fi
+                                      done
                                       echo "Flash target drive: $FLASH_TARGET"
+                                      echo "Flash images:       $FLASH_IMAGES"
                                     ''
                                 }
 
