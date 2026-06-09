@@ -15,6 +15,90 @@
 }:
 let
   cfg = config.ghaf.hardware.nvidia.orin;
+  jetpackCfg = config.hardware.nvidia-jetpack;
+
+  # External-automation manifest. Emitted as flash-manifest.json next to the
+  # artifacts in system.build.ghafFlashImages. Lets external CI / hw-test
+  # automation discover, per-target:
+  #   - which files this output contains and what role each plays
+  #   - which flasher entrypoint to run against them
+  #   - what signing applies (so the consumer does not need to re-sign)
+  #
+  # The flasher itself is a separate flake package; per ghaf convention the
+  # consumer builds .#packages.x86_64-linux.<target>-flash-script (or
+  # -flash-qspi) using the same <target> attribute it used to build these
+  # images. The manifest therefore does not embed a flake attribute name —
+  # the consumer already knows it.
+  #
+  # Schema (schema_version=1):
+  #   host_name           : NixOS hostName of the target configuration.
+  #   transport           : "initrd-mass-storage" | "qspi-only".
+  #                         initrd-mass-storage: full 2-stage flash; artifacts
+  #                         here are written to eMMC after firmware over USB.
+  #                         qspi-only: artifacts list is empty; the flasher
+  #                         only writes platform firmware to QSPI.
+  #   flasher.entrypoint  : Path inside the <target>-flash-script package to
+  #                         the executable.
+  #   flasher.system      : Nix system the flasher binary is built for.
+  #   artifacts[].name    : Filename inside this output directory.
+  #   artifacts[].role    : "esp" | "root".
+  #   artifacts[].compression : "zstd".
+  #   artifacts[].partition.gpt_type : sgdisk type code (EF00, 8300, ...).
+  #   artifacts[].partition.label    : GPT partition name expected on device.
+  #   artifacts[].partition.size_mib : MiB for fixed-size partitions, "auto"
+  #                                    for the trailing fill-to-end one.
+  #   signing.firmware_pkc_signed : true iff jetpack PKC signing is enabled.
+  #   signing.esp_secureboot      : reserved; currently always false.
+  #   signing.root_dmverity       : reserved; currently always false.
+  #
+  # Bump schema_version on any breaking change so consumers can fail loudly.
+  flashManifest = pkgs.writeText "flash-manifest.json" (
+    builtins.toJSON {
+      schema_version = 1;
+      host_name = config.networking.hostName;
+      transport = if cfg.flashScriptOverrides.onlyQSPI then "qspi-only" else "initrd-mass-storage";
+      flasher = {
+        entrypoint = "bin/initrd-flash-${config.networking.hostName}";
+        system = "x86_64-linux";
+      };
+      artifacts =
+        if cfg.flashScriptOverrides.onlyQSPI then
+          [ ]
+        else
+          [
+            {
+              name = "esp.img.zst";
+              role = "esp";
+              compression = "zstd";
+              partition = {
+                gpt_type = "EF00";
+                label = "FIRMWARE";
+                size_mib = espSizeMiB;
+              };
+            }
+            {
+              name = "root.img.zst";
+              role = "root";
+              compression = "zstd";
+              partition = {
+                gpt_type = "8300";
+                label = "NIXOS_ROOT";
+                size_mib = "auto";
+              };
+            }
+          ];
+      signing = {
+        # jetpack-nixos signs the platform-firmware blob (boot.img + bootloader
+        # variants) with the upstream PKC when pkcFile is set. The flasher
+        # consumes the signed blob; consumers do not need to re-sign.
+        firmware_pkc_signed = jetpackCfg.firmware.secureBoot.pkcFile != null;
+        # ESP and root images are produced unsigned. UEFI Secure Boot for the
+        # ESP and dm-verity for root are out of scope for the current flow.
+        esp_secureboot = false;
+        root_dmverity = false;
+      };
+    }
+  );
 
   # First-boot service: load Nix store registration and create system profile.
   # make-ext4-fs.nix ships raw store paths + /nix-path-registration but does not
@@ -151,8 +235,11 @@ in
         }
         ''
           mkdir -p $out
-          zstd -19 -T$NIX_BUILD_CORES ${espImage} -o $out/esp.img.zst
-          zstd -19 -T$NIX_BUILD_CORES ${rootImage} -o $out/root.img.zst
+          ${lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
+            zstd -19 -T$NIX_BUILD_CORES ${espImage} -o $out/esp.img.zst
+            zstd -19 -T$NIX_BUILD_CORES ${rootImage} -o $out/root.img.zst
+          ''}
+          cp ${flashManifest} $out/flash-manifest.json
         '';
   };
 }

@@ -203,6 +203,16 @@ in
                 }).pkgs.nvidia-jetpack.flashScript
             )
           ) crossTargets
+        )
+        # ESP + root image set with the flash-manifest.json that external CI
+        # / hw-test automation consumes to discover artifact layout.
+        // builtins.listToAttrs (
+          map (
+            t:
+            lib.nameValuePair "${t.name}-flash-images" (
+              lazyPackage "${t.name}-flash-images" t.hostConfiguration.config.system.build.ghafFlashImages
+            )
+          ) crossTargets
         );
     };
   };
