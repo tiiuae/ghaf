@@ -50,6 +50,13 @@ let
     --display ${cfg.persistentWaypipeServer.display} \
     server -- ${pkgs.coreutils}/bin/sleep infinity
   '';
+
+  xwaylandSatelliteSocket =
+    xDisplay:
+    let
+      displayNumber = builtins.head (strings.splitString "." (strings.removePrefix ":" xDisplay));
+    in
+    "/tmp/.X11-unix/X${displayNumber}";
 in
 {
   _file = ./waypipe.nix;
@@ -234,23 +241,45 @@ in
               '';
             };
           };
-
+        }
+        // lib.optionalAttrs (cfg.persistentWaypipeServer.xDisplay != null) {
           # XWayland Satellite allows X11 apps to run in the AppVM and display through the persistent Waypipe server
           xwayland-satellite = {
-            enable = cfg.persistentWaypipeServer.xDisplay != null;
             description = "XWayland Satellite";
-            wantedBy = [ "waypipe-server.service" ];
+            requires = [
+              "xwayland-satellite.socket"
+              "waypipe-server.service"
+            ];
             after = [ "waypipe-server.service" ];
             unitConfig = {
               ConditionUser = config.ghaf.users.appUser.name;
             };
             serviceConfig = {
               Type = "notify";
+              Environment = [
+                "WAYLAND_DISPLAY=${cfg.persistentWaypipeServer.display}"
+              ];
               ExecStart = ''
-                ${lib.getExe pkgs.xwayland-satellite} ${cfg.persistentWaypipeServer.xDisplay}
+                ${getExe pkgs.xwayland-satellite} ${cfg.persistentWaypipeServer.xDisplay} -listenfd 3
               '';
-              Restart = "on-failure";
-              RestartSec = "5s";
+            };
+          };
+        };
+
+        systemd.user.sockets = lib.optionalAttrs (cfg.persistentWaypipeServer.xDisplay != null) {
+          xwayland-satellite = {
+            description = "XWayland Satellite socket";
+            wantedBy = [ "sockets.target" ];
+            unitConfig = {
+              ConditionUser = config.ghaf.users.appUser.name;
+            };
+            listenStreams = [ (xwaylandSatelliteSocket cfg.persistentWaypipeServer.xDisplay) ];
+            socketConfig = {
+              DirectoryMode = "1777";
+              FlushPending = true;
+              RemoveOnStop = true;
+              Service = "xwayland-satellite.service";
+              SocketMode = "0600";
             };
           };
         };
