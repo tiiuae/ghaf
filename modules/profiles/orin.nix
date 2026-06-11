@@ -132,7 +132,7 @@ in
       graphics.cosmic = {
         # Crucial for Orin devices to use the correct render device
         # Also needs 'mesa' to be in hardware.graphics.extraPackages
-        renderDevice = "/dev/dri/renderD129";
+        renderDevice = lib.mkDefault "/dev/dri/renderD128";
         # Keep only essential applets for Orin devices
         topPanelApplets.right = [
           "com.system76.CosmicAppletInputSources"
@@ -217,8 +217,19 @@ in
       users.admin.enableUILogin = true;
     };
 
+    # Cosmic on orin
+    environment.sessionVariables = {
+      GBM_BACKEND = "dri";
+      __EGL_VENDOR_LIBRARY_FILENAMES = "/run/opengl-driver/share/glvnd/egl_vendor.d/50_mesa.json";
+    };
+
+    # Cosmic on orin
     hardware.graphics.extraPackages = lib.mkAfter [
       pkgs.mesa
     ];
+
+    # Cosmic on orin
+    users.users.ghaf.extraGroups = [ "video" ];
+
   };
 }
