@@ -91,6 +91,9 @@ let
       extraModules = commonModules;
       extraConfig = {
         reference.profiles.mvp-orinuser-trial.enable = true;
+        # Crucial for Orin devices to use the correct render device
+        # Also needs 'mesa' to be in hardware.graphics.extraPackages
+        graphics.cosmic.renderDevice = "/dev/dri/renderD128";
       };
     })
 
@@ -143,6 +146,9 @@ let
       extraModules = commonModules;
       extraConfig = {
         reference.profiles.mvp-orinuser-trial.enable = true;
+        # Crucial for Orin devices to use the correct render device
+        # Also needs 'mesa' to be in hardware.graphics.extraPackages
+        graphics.cosmic.renderDevice = "/dev/dri/renderD128";
       };
     })
   ];
