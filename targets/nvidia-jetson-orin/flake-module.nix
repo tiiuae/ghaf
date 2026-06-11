@@ -175,6 +175,70 @@ let
   # Add nodemoapps targets
   targets = target-configs ++ (map generate-nodemoapps target-configs);
   crossTargets = map generate-cross-from-x86_64 targets;
+  secureTarget =
+    t: qspiOnly:
+    let
+      innerName = t.hostConfiguration.config.hardware.nvidia-jetpack.name;
+      noSB =
+        (t.hostConfiguration.extendModules {
+          modules = [
+            {
+              ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly;
+            }
+          ];
+        }).pkgs.nvidia-jetpack.flashScript;
+      withSB =
+        (t.hostConfiguration.extendModules {
+          modules = [
+            {
+              ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkForce true;
+              ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly;
+            }
+          ];
+        }).pkgs.nvidia-jetpack.flashScript;
+    in
+    # Single `*-flash-script` entrypoint that picks between two
+    # pre-built QSPI firmware variants at flash time.
+    #
+    # Why two variants instead of one profile-level toggle:
+    #
+    # `ghaf.hardware.nvidia.orin.secureboot.enable` is evaluated at Nix
+    # build time. When true, it bakes the `UefiDefaultSecurityKeys`
+    # device-tree overlay and PK/KEK/db ESLs into the QSPI firmware, so
+    # the device enrolls keys and turns Secure Boot on at first boot.
+    # Flipping it on unconditionally in the Orin profile would brick the
+    # default unsigned flash path: the QSPI carries enrollment material
+    # but BOOTAA64.EFI is unsigned, leaving the board in the UEFI
+    # Interactive Shell with no recoverable boot entry.
+    #
+    # `-s/--signed-sd-image` is a *runtime* flag on the flash script: it
+    # only swaps in a signed BOOTAA64.EFI / kernel staged from a signed
+    # sd-image, it cannot influence the QSPI firmware that was already
+    # produced at Nix evaluation time. So the QSPI variant has to be
+    # selected *before* the script runs, which is what the wrapper does:
+    #
+    #   - no `-s`  → unsigned QSPI (no DTBO, no ESLs) + unsigned BOOTAA64.EFI
+    #   - with `-s` → SB-enabled QSPI (DTBO + ESLs) + signed BOOTAA64.EFI
+    #
+    # Both variants share substituted store paths (jetpack-nixos
+    # `flashScript` is a thin wrapper around the same per-target
+    # derivations), so the second build is mostly a Nix-eval cost.
+    pkgsX86.writeShellApplication {
+      name = "flash-ghaf-host";
+      text = ''
+        signed=0
+        for arg in "$@"; do
+          case "$arg" in
+            -s|--signed-sd-image) signed=1 ;;
+          esac
+        done
+        if [ "$signed" = 1 ]; then
+          exec ${withSB}/bin/flash-${innerName} "$@"
+        else
+          exec ${noSB}/bin/flash-${innerName} "$@"
+        fi
+      '';
+    };
 in
 {
   flake = {
@@ -186,81 +250,20 @@ in
       aarch64-linux = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
       x86_64-linux =
         builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) crossTargets)
-        # Single `*-flash-script` entrypoint that picks between two
-        # pre-built QSPI firmware variants at flash time.
-        #
-        # Why two variants instead of one profile-level toggle:
-        #
-        # `ghaf.hardware.nvidia.orin.secureboot.enable` is evaluated at Nix
-        # build time. When true, it bakes the `UefiDefaultSecurityKeys`
-        # device-tree overlay and PK/KEK/db ESLs into the QSPI firmware, so
-        # the device enrolls keys and turns Secure Boot on at first boot.
-        # Flipping it on unconditionally in the Orin profile would brick the
-        # default unsigned flash path: the QSPI carries enrollment material
-        # but BOOTAA64.EFI is unsigned, leaving the board in the UEFI
-        # Interactive Shell with no recoverable boot entry.
-        #
-        # `-s/--signed-sd-image` is a *runtime* flag on the flash script: it
-        # only swaps in a signed BOOTAA64.EFI / kernel staged from a signed
-        # sd-image, it cannot influence the QSPI firmware that was already
-        # produced at Nix evaluation time. So the QSPI variant has to be
-        # selected *before* the script runs, which is what the wrapper does:
-        #
-        #   - no `-s`  → unsigned QSPI (no DTBO, no ESLs) + unsigned BOOTAA64.EFI
-        #   - with `-s` → SB-enabled QSPI (DTBO + ESLs) + signed BOOTAA64.EFI
-        #
-        # Both variants share substituted store paths (jetpack-nixos
-        # `flashScript` is a thin wrapper around the same per-target
-        # derivations), so the second build is mostly a Nix-eval cost.
         // builtins.listToAttrs (
           map (
             t:
+            #Note: secureTarget does not toggle between secureboot on/off!!
             lib.nameValuePair "${t.name}-flash-script" (
-              lazyPackage "${t.name}-flash-script" (
-                let
-                  innerName = t.hostConfiguration.config.hardware.nvidia-jetpack.name;
-                  noSB = t.hostConfiguration.pkgs.nvidia-jetpack.flashScript;
-                  withSB =
-                    (t.hostConfiguration.extendModules {
-                      modules = [
-                        { ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkForce true; }
-                      ];
-                    }).pkgs.nvidia-jetpack.flashScript;
-                in
-                pkgsX86.writeShellApplication {
-                  name = "flash-ghaf-host";
-                  text = ''
-                    signed=0
-                    for arg in "$@"; do
-                      case "$arg" in
-                        -s|--signed-sd-image) signed=1 ;;
-                      esac
-                    done
-                    if [ "$signed" = 1 ]; then
-                      exec ${withSB}/bin/flash-${innerName} "$@"
-                    else
-                      exec ${noSB}/bin/flash-${innerName} "$@"
-                    fi
-                  '';
-                }
-              )
+              lazyPackage "${t.name}-flash-script" (secureTarget t false)
             )
           ) crossTargets
         )
         // builtins.listToAttrs (
           map (
             t:
-            lib.nameValuePair "${t.name}-flash-qspi" (
-              lazyPackage "${t.name}-flash-qspi"
-                (t.hostConfiguration.extendModules {
-                  modules = [
-                    {
-                      ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = true;
-                      ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkForce true;
-                    }
-                  ];
-                }).pkgs.nvidia-jetpack.flashScript
-            )
+            #Note: secureTarget does not toggle between secureboot on/off!!
+            lib.nameValuePair "${t.name}-flash-qspi" (lazyPackage "${t.name}-flash-qspi" (secureTarget t true))
           ) crossTargets
         );
     };
