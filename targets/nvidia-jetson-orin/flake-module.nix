@@ -96,6 +96,23 @@ let
         # Also needs 'mesa' to be in hardware.graphics.extraPackages
         graphics.cosmic.renderDevice = "/dev/dri/renderD128";
       };
+      vmConfig = {
+        sysvms.netvm = {
+          # 4 vCPUs is the minimum that keeps QEMU USB emulation (libusb
+          # redirection of the ethernet dongle) from starving when alloy, givc
+          # node + stunnel, and spire-agent are all active on Orin NX. At 2 vCPUs
+          # the xhci_hcd guest driver desyncs with the QEMU event ring under load
+          # ("Transfer event TRB DMA ptr not part of current TD" + NETDEV WATCHDOG
+          # TX timeouts). AGX is unaffected because it has more cores per slice.
+          vcpu = 4;
+          # 2GB headroom: alloy + stunnel + spire-agent + givc-agent + auditd
+          # pile up on net-vm with the givc/logging stack enabled, and the
+          # 1GB default OOMs during the first-boot burst on Orin NX. The kernel
+          # then evicts page cache backing the USB-eth driver and the dongle
+          # disconnects, killing sshd on the test-net IP.
+          mem = 2048;
+        };
+      };
     })
 
     # ============================================================

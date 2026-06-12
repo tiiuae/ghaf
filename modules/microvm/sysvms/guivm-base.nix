@@ -375,7 +375,7 @@ in
     optimize.enable = false;
     # Sensible defaults - can be overridden via vmConfig
     vcpu = lib.mkDefault 6;
-    mem = lib.mkDefault 8192;
+    mem = lib.mkDefault 6144;
     hypervisor = "qemu";
 
     shares = [
