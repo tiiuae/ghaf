@@ -226,6 +226,7 @@ in
 
               batch_size          = "256KiB"
               max_backoff_period  = "30s"
+              max_backoff_retries = 0
               remote_timeout      = "60s"
 
               tls_config {
@@ -274,7 +275,7 @@ in
         # If there is no internet connection , shutdown/reboot will take around 100sec
         # So, to fix that problem we need to add stop timeout
         # https://github.com/grafana/loki/issues/6533
-        TimeoutStopSec = 4;
+        TimeoutStopSec = 25;
 
         # Copy certs/keys (and optional remote CA) into /run/credentials/alloy.service/…
         LoadCredential = [
