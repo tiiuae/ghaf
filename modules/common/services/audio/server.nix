@@ -95,9 +95,9 @@ in
                 "context.modules" = [ ];
                 "pulse.properties" = {
                   "server.address" = [
-                    "unix:native"
+                    # "unix:native"
                     # We don't need a unix native server on server
-                    # but keep it for compatibility with CLI tools
+                    # Uncomment to keep it for compatibility with CLI tools
                     {
                       "address" = "tcp:${toString cfg.server.pulseaudioTcpPort}"; # address
                       "max-clients" = 32; # maximum number of clients

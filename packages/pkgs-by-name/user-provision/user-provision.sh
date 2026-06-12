@@ -12,7 +12,7 @@ LDAP_SEARCH_TIMEOUT=30
 # Ghaf color scheme
 GHAF_PRIMARY="#5AC379"
 GHAF_SECONDARY="#3D8252"
-GHAF_ERROR="#FF6B6B"
+GHAF_ERROR="#FF0000"
 
 # UI color constants
 COLOR_SUCCESS="$GHAF_PRIMARY"
@@ -22,13 +22,13 @@ COLOR_INFO="#FFFFFF"
 COLOR_DEBUG="#808080"
 
 # Unified spacing constants
-SPACING_MARGIN="0 1"
+SPACING_MARGIN="0 0"
 SPACING_PADDING="0 1"
 SPACING_HEADER_BOTTOM="1 0"
 SPACING_INFO_BOTTOM="0"
 
 # Header styling constants
-HEADER_WIDTH=80
+HEADER_WIDTH=70
 HEADER_HEIGHT=3
 HEADER_PADDING="1 2"
 
@@ -274,10 +274,14 @@ apply_configuration() {
 # Configure gum styling
 export GUM_INPUT_CURSOR_FOREGROUND="$GHAF_PRIMARY"
 export GUM_INPUT_HEADER_FOREGROUND="$GHAF_SECONDARY"
+export GUM_CHOOSE_HEADER_FOREGROUND="$GHAF_PRIMARY"
 export GUM_CHOOSE_CURSOR_FOREGROUND="$GHAF_PRIMARY"
 export GUM_CHOOSE_SELECTED_FOREGROUND="$GHAF_SECONDARY"
 export GUM_SPIN_SPINNER_FOREGROUND="$GHAF_PRIMARY"
+export GUM_SPIN_TITLE_FOREGROUND="$GHAF_PRIMARY"
 export GUM_CONFIRM_SELECTED_BACKGROUND="$GHAF_PRIMARY"
+export GUM_CONFIRM_SELECTED_FOREGROUND="#000000"
+export GUM_CONFIRM_PROMPT_FOREGROUND="$GHAF_PRIMARY"
 
 # Success message wrapper
 show_success() {
@@ -307,14 +311,15 @@ show_warning() {
 show_header() {
   gum style \
     --foreground="$GHAF_PRIMARY" \
-    --border="rounded" \
+    --bold \
+    --border="double" \
     --border-foreground="$GHAF_SECONDARY" \
     --align="center" \
     --width="$HEADER_WIDTH" \
     --height="$HEADER_HEIGHT" \
     --margin="$SPACING_HEADER_BOTTOM" \
     --padding="$HEADER_PADDING" \
-    "$@"
+    -- "$@"
 }
 
 # Section wrapper with border
@@ -324,7 +329,7 @@ show_section() {
     --border-foreground="$GHAF_SECONDARY" \
     --padding="$SPACING_PADDING" \
     --margin="$SPACING_MARGIN" \
-    "$@"
+    -- "$@"
 }
 
 # Input wrapper
@@ -343,10 +348,11 @@ prompt_confirm() {
   local message="$1"
   local affirmative="${2:-Yes}"
   local negative="${3:-No}"
+  local default=${4:-true}
   gum confirm \
     --affirmative="$affirmative" \
     --negative="$negative" \
-    --default=true \
+    --default="$default" \
     "$message"
 }
 
@@ -354,12 +360,10 @@ prompt_confirm() {
 prompt_choice() {
   local header="$1"
   shift
+  header="$(gum style --bold "$header")"
   gum choose \
-    --cursor.foreground="$GHAF_PRIMARY" \
-    --selected.foreground="$GHAF_SECONDARY" \
     --header="$header" \
-    --header.foreground="$GHAF_SECONDARY" \
-    "$@"
+    -- "$@"
 }
 
 # Progress spinner wrapper
@@ -937,15 +941,15 @@ create_user() {
   # Show configuration summary
   show_info "User Configuration Summary:"
   show_section \
-    "Username:     $USERNAME" \
-    "Real name:    $REALNAME" \
-    "User ID:      $USER_ID" \
-    "Groups:       $USER_GROUPS" \
-    "Home size:    ${HOME_SIZE}MB" \
-    "Filesystem:   $FS_TYPE" \
-    "Shell:        $USER_SHELL" \
+    "Username:      $USERNAME" \
+    "Real name:     $REALNAME" \
+    "User ID:       $USER_ID" \
+    "Groups:        $USER_GROUPS" \
+    "Home size:     $(awk -v s="$HOME_SIZE" 'BEGIN{printf "%.1f", s/1024}') GiB" \
+    "Filesystem:    $FS_TYPE" \
+    "Shell:         $USER_SHELL" \
     ${FIDO_AUTH:+"FIDO2 Device:  ${FIDO_SUPPORT:-Not configured}"} \
-    "Recovery Key: $RECOVERY_KEY"
+    "Recovery Key:  $RECOVERY_KEY"
   echo ""
 
   if ! $NON_INTERACTIVE; then
@@ -1473,7 +1477,7 @@ non_interactive_setup() {
   debug "Username:     $USERNAME"
   debug "Real name:    $REALNAME"
   debug "Groups:       $USER_GROUPS"
-  debug "Home size:    ${HOME_SIZE}MB"
+  debug "Home size:    $(awk -v s="$HOME_SIZE" 'BEGIN{printf "%.1f", s/1024}') GiB"
   debug "User ID:      $USER_ID"
   debug "Filesystem:   $FS_TYPE"
   debug "FIDO2:        $FIDO_AUTH"
