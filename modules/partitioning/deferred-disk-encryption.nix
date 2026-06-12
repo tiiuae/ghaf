@@ -34,19 +34,19 @@ let
 
   firstBootEncryptScript = pkgs.writeShellApplication {
     name = "first-boot-encrypt";
-    runtimeInputs = [
-      pkgs.cryptsetup
-      pkgs.lvm2
-      pkgs.systemd
-      pkgs.util-linux
+    runtimeInputs = with pkgs; [
+      btrfs-progs
       config.ghaf.security.tpm2.tools
-      pkgs.e2fsprogs
-      pkgs.btrfs-progs
-      pkgs.coreutils
-      pkgs.gnugrep
-      pkgs.gawk
-      pkgs.kmod
-      pkgs.pcsclite.lib
+      coreutils
+      cryptsetup
+      e2fsprogs
+      gawk
+      gnugrep
+      kmod
+      lvm2
+      pcsclite.lib
+      systemd
+      util-linux
     ];
     text = ''
       LVM_PV="${lvmPartition}"
@@ -125,14 +125,16 @@ let
       export TERM=linux
       stty cols 256 2>/dev/null || true
 
-      echo "+--------------------------------------------------------+"
-      echo "|         First Boot - Disk Encryption Setup             |"
-      echo "+--------------------------------------------------------+"
-      echo ""
-      echo "This system will now apply full disk encryption to protect"
-      echo "your data. This process is irreversible and required for"
-      echo "system security."
-      echo ""
+      cat <<EOF
+      +--------------------------------------------------------+
+      |         First Boot - Disk Encryption Setup             |
+      +--------------------------------------------------------+
+
+      This system will now apply full disk encryption to protect
+      your data. This process is irreversible and required for
+      system security.
+
+      EOF
 
       ${
         if !cfg.interactiveSetup then
@@ -145,13 +147,15 @@ let
         else
           ''
             # Release mode: prompt for user password/PIN
-            echo "You will be prompted to set a PIN or password."
-            echo "This will be required on every boot to unlock the system."
-            echo ""
-            echo "Requirements:"
-            echo "  - Minimum 4 characters"
-            echo "  - Cannot be empty"
-            echo ""
+            cat <<EOF
+            You will be prompted to set a PIN or password.
+            This will be required on every boot to unlock the system.
+
+            Requirements:
+              - Minimum 4 characters
+              - Cannot be empty
+
+            EOF
 
             # Read passphrase securely using systemd-ask-password
             PASSPHRASE=""
@@ -209,8 +213,10 @@ let
       # Calculate new size (current - 32MB)
       NEW_SIZE=$((PV_SIZE - 32 * 1024 * 1024))
 
-      echo "Current size: $PV_SIZE bytes"
-      echo "New size:     $NEW_SIZE bytes"
+      cat <<EOF
+      Current size: $PV_SIZE bytes
+      New size:     $NEW_SIZE bytes
+      EOF
 
       # Resize PV
       # We use --yes to confirm if prompted
@@ -263,11 +269,13 @@ let
       umount -f /persist 2>/dev/null || true
       swapoff -a 2>/dev/null || true
 
-      echo ""
-      echo "! Encrypting partition..."
-      echo "    This will take several minutes depending on disk size."
-      echo "    Please do not power off the system!"
-      echo ""
+      cat <<EOF
+
+      ! Encrypting partition...
+          This will take several minutes depending on disk size.
+          Please do not power off the system!
+
+      EOF
 
       # Encrypt the partition in-place using cryptsetup-reencrypt
       # Options:
@@ -322,8 +330,10 @@ let
 
               # Check if TPM is accessible
               if ! tpm2_getcap properties-fixed 2>/dev/null >/dev/null; then
-                echo "!  Warning: TPM not accessible or not ready"
-                echo "!  Skipping TPM enrollment, password will be required on each boot"
+                cat <<EOF
+            !  Warning: TPM not accessible or not ready
+            !  Skipping TPM enrollment, password will be required on each boot
+            EOF
               else
                 echo "!  TPM is ready, enrolling..."
 
@@ -352,8 +362,10 @@ let
 
                   echo "! TPM enrollment complete!"
                 else
-                  echo "!  TPM enrollment failed!"
-                  echo "    Password slot will NOT be removed. You must use your password to unlock the disk."
+                  cat <<EOF
+            !  TPM enrollment failed!
+                Password slot will NOT be removed. You must use your password to unlock the disk.
+            EOF
                 fi
               fi
             else
@@ -399,8 +411,10 @@ let
 
                 echo "! FIDO2 enrollment complete!"
               else
-                echo "!  FIDO2 enrollment failed!"
-                echo "    Password slot will NOT be removed. You must use your password to unlock the disk."
+                cat <<EOF
+            !  FIDO2 enrollment failed!
+                Password slot will NOT be removed. You must use your password to unlock the disk.
+            EOF
               fi
             else
               echo "!  No FIDO2 device found, password will be required on each boot"
@@ -419,8 +433,10 @@ let
       echo "! Writing state file..."
 
       # Load filesystem modules
-      echo "!  Loading filesystem modules..."
-      echo "!  Available filesystems before loading:"
+      cat <<EOF
+      !  Loading filesystem modules...
+      !  Available filesystems before loading:
+      EOF
       cat /proc/filesystems | grep -E "btrfs|ext4" || echo "    (none found)"
 
       if modprobe btrfs 2>&1; then
@@ -480,9 +496,11 @@ let
         sync
         umount /tmp/persist || true
       else
-        echo "!  ERROR: Failed to mount persist after 5 attempts"
-        echo "!  The encryption will be attempted again on next boot"
-        echo "!  Debug info:"
+        cat <<EOF
+      !  ERROR: Failed to mount persist after 5 attempts
+      !  The encryption will be attempted again on next boot
+      !  Debug info:
+      EOF
         dmsetup ls || true
         lvs || true
         lsmod | grep -E "btrfs|ext4" || true
@@ -492,16 +510,18 @@ let
         ${
           if !cfg.interactiveSetup then
             ''
-              echo ""
-              echo "+--------------------------------------------------------+"
-              echo "|              EMERGENCY DEBUG SHELL                      |"
-              echo "+--------------------------------------------------------+"
-              echo "Mount failed. Dropping to emergency shell for debugging."
-              echo "Available commands: mount, lsmod, modprobe, blkid, lsblk"
-              echo "Device: /dev/mapper/pool-persist"
-              echo "Try: modprobe btrfs && mount -t btrfs /dev/mapper/pool-persist /tmp/persist"
-              echo "Type 'exit' to continue boot (will retry encryption next boot)"
-              echo ""
+              cat <<EOF
+
+              +--------------------------------------------------------+
+              |              EMERGENCY DEBUG SHELL                     |
+              +--------------------------------------------------------+
+              Mount failed. Dropping to emergency shell for debugging.
+              Available commands: mount, lsmod, modprobe, blkid, lsblk
+              Device: /dev/mapper/pool-persist
+              Try: modprobe btrfs && mount -t btrfs /dev/mapper/pool-persist /tmp/persist
+              Type 'exit' to continue boot (will retry encryption next boot)
+
+              EOF
               /bin/sh
             ''
           else
@@ -514,14 +534,16 @@ let
       vgchange -an pool || true
       cryptsetup close crypted || true
 
-      echo ""
-      echo "+--------------------------------------------------------+"
-      echo "|              Encryption Setup Complete!                |"
-      echo "+--------------------------------------------------------+"
-      echo ""
-      echo "Your disk is now fully encrypted and protected."
-      echo "The system will reboot to complete the setup."
-      echo ""
+      cat <<EOF
+
+      +--------------------------------------------------------+
+      |              Encryption Setup Complete!                |
+      +--------------------------------------------------------+
+
+      Your disk is now fully encrypted and protected.
+      The system will reboot to complete the setup.
+
+      EOF
 
       # Remove the installer marker so we don't run again if this fails.
       rm -f /mnt/esp/.ghaf-installer-encrypt
@@ -537,12 +559,16 @@ let
         else
           ''
             if [ -e /dev/tpmrm0 ]; then
-              echo "On next boot:"
-              echo "  ! TPM will automatically unlock the disk"
-              echo "  ! You may be prompted for your PIN as additional security"
+              cat <<EOF
+            On next boot:
+              ! TPM will automatically unlock the disk
+              ! You may be prompted for your PIN as additional security
+            EOF
             else
-              echo "On next boot:"
-              echo "  ! You will need to enter your password to unlock the disk"
+              cat <<EOF
+            On next boot:
+              ! You will need to enter your password to unlock the disk
+            EOF
             fi
             echo ""
             echo "Press Enter to reboot..."
@@ -573,33 +599,33 @@ in
     # boot.plymouth.enable = lib.mkForce false;
 
     # Install required tools
-    environment.systemPackages = [
-      pkgs.cryptsetup
-      pkgs.lvm2
+    environment.systemPackages = with pkgs; [
       config.ghaf.security.tpm2.tools
-      pkgs.util-linux
-      pkgs.parted
-      pkgs.gptfdisk
+      cryptsetup
+      gptfdisk
+      lvm2
+      parted
+      util-linux
     ];
 
     # Include required packages in initrd
     boot.initrd = {
       systemd = {
-        storePaths = [
-          pkgs.cryptsetup
-          pkgs.lvm2
-          pkgs.systemd
+        storePaths = with pkgs; [
+          btrfs-progs
           config.ghaf.security.tpm2.tools
-          pkgs.util-linux
-          pkgs.coreutils
-          pkgs.gnugrep
-          pkgs.gawk
-          pkgs.plymouth
-          pkgs.btrfs-progs
-          pkgs.e2fsprogs
-          pkgs.kmod
-          pkgs.pcsclite.lib
+          coreutils
+          cryptsetup
+          e2fsprogs
           firstBootEncryptScript
+          gawk
+          gnugrep
+          kmod
+          lvm2
+          pcsclite.lib
+          plymouth
+          systemd
+          util-linux
         ];
 
         services = {

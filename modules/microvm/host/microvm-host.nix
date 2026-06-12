@@ -76,8 +76,8 @@ in
     };
   };
 
-  config = mkMerge [
-    (mkIf cfg.enable {
+  config = mkIf cfg.enable (mkMerge [
+    {
       microvm.host.enable = true;
       # microvm.host.useNotifySockets = true;
 
@@ -279,7 +279,7 @@ in
           # Device-id and machine-id generation moved to ghaf.identity.dynamicHostName module
         }
         // vmstorageSetupServices;
-    })
+    }
     (mkIf cfg.sharedVmDirectory.enable {
       # Create directories required for sharing files with correct permissions.
       systemd.tmpfiles.rules =
@@ -322,7 +322,7 @@ in
         # See: modules/desktop/guivm/shared-directories.nix
       }
     )
-    (mkIf (cfg.enable && config.services.userborn.enable) {
+    (mkIf config.services.userborn.enable {
       system.activationScripts.microvm-host = lib.mkForce "";
       systemd.services."microvm-host-startup" =
         let
@@ -350,7 +350,7 @@ in
           };
         };
     })
-    (mkIf cfg.enable {
+    {
       systemd.services."nvidia-brightness-control" =
         let
           backlightDevice = "nvidia_wmi_ec_backlight";
@@ -392,11 +392,17 @@ in
             RestartSec = "1";
           };
         };
-    })
-    (mkIf (cfg.enable && config.security.tpm2.enable && config.security.tpm2.tssGroup != null) {
+    }
+    (mkIf (config.security.tpm2.enable && config.security.tpm2.tssGroup != null) {
       users.users.microvm.extraGroups = [
         config.security.tpm2.tssGroup
       ];
     })
-  ];
+    {
+      # Set backlight brightness to max while host still has control over display
+      services.udev.extraRules = ''
+        ACTION=="add", SUBSYSTEM=="backlight", ATTR{brightness}="$attr{max_brightness}"
+      '';
+    }
+  ]);
 }
