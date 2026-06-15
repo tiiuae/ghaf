@@ -10,7 +10,25 @@
 }:
 let
   cfg = config.ghaf.hardware.nvidia.orin;
+  luksDiskKeyDescription = "luksDiskDeviceUniqueKey";
 
+  # Stable partition references for the LUKS flow, derived from the sd-image DOS
+  # disk identifier (firmwarePartitionID). MS-DOS partition tables expose a
+  # PARTUUID of "<disk-id>-<NN>", which is independent of the kernel device name
+  # (mmcblk0 / nvme0n1 / sda) and survives LUKS encryption (it lives in the
+  # partition table, not the filesystem). This replaces the previous
+  # somType-based "/dev/mmcblk0pX" / "/dev/sdaX" hardcodes, which broke whenever
+  # the rootfs landed on a different controller (e.g. NX flashes to NVMe).
+  #
+  # KNOWN LIMITATION (twin drive): if two drives both hold a verbatim ghaf flash
+  # they carry the same PARTUUID, so the runtime scan cannot tell them apart and
+  # picks the first match. Disambiguating that case needs either boot-device
+  # detection or a per-install-unique firmwarePartitionID, left as follow-up.
+  luksDiskId = lib.toLower (
+    lib.removePrefix "0x" (config.sdImage.firmwarePartitionID or "0x2178694e")
+  );
+  luksRootPartUUID = "${luksDiskId}-02";
+  luksEspPartUUID = "${luksDiskId}-01";
   rtcSeedAnchorPath = "/var/lib/systemd/timesync/clock";
   rtcSeedMaxAheadSeconds = 180 * 24 * 60 * 60;
   rtcSeedMinEpochSeconds = 1704067200; # 2024-01-01T00:00:00Z
@@ -228,6 +246,10 @@ let
         # Avoid interactive prompt in gen_ekb.py by providing UEFI auth key.
         printf '%s' "0x00000000000000000000000000000000" > auth.key
 
+        # Used for disk encryption.
+        # printf '%s' "0x00000000000000000000000000000000" > sym_t234.key
+        printf '%s' "0x00000000000000000000000000000000" > sym2_t234.key
+
                 openssl req -x509 -newkey rsa:2048 -sha256 -nodes \
                   -keyout ek-rsa-key.pem -out ek-rsa.pem \
                   -subj "/CN=Jetson Orin fTPM EK RSA/O=Ghaf" \
@@ -246,6 +268,7 @@ let
           -chip t234 \
           -oem_k1_key oem_k1.key \
           -in_auth_key auth.key \
+          -in_sym_key2 sym2_t234.key \
           -in_ftpm_rsa_ek_cert ek-rsa.der \
           -in_ftpm_ec_ek_cert ek-ecc.der \
           -out "$out/eks_t234.img"
@@ -257,6 +280,290 @@ let
     mkIf
     types
     ;
+  resizepartitionsScript = pkgs.writeShellApplication {
+    name = "resize-partitions-cmds";
+    runtimeInputs = with pkgs; [
+      gptfdisk
+      parted
+      cryptsetup
+      util-linux
+      e2fsprogs
+      coreutils
+      systemd
+    ];
+    text = ''
+      RESIZE_MARKER=".ghaf-resize-done"
+      ESP_MOUNT="/mnt-esp"
+      ESP_DEVICE="/dev/disk/by-partuuid/${luksEspPartUUID}"
+
+      # Resolve the root partition by its stable PARTUUID rather than a hardcoded
+      # device name. When encryption is enabled, require the crypto_LUKS payload
+      # so a stale plaintext partition with the same PARTUUID is ignored.
+      PART_DEV=""
+      for _ in $(seq 1 30); do
+        for d in $(blkid -o device -t PARTUUID=${luksRootPartUUID} 2>/dev/null); do
+          ${lib.optionalString cfg.diskEncryption.enable ''
+            [ "$(blkid -o value -s TYPE "$d" 2>/dev/null)" = "crypto_LUKS" ] || continue
+          ''}
+          PART_DEV="$d"
+          break
+        done
+        if [ -n "$PART_DEV" ]; then break; fi
+        sleep 1
+      done
+
+      if [ -z "$PART_DEV" ]; then
+        echo "Root partition (PARTUUID=${luksRootPartUUID}) not found, skipping resize."
+        exit 0
+      fi
+
+      # Derive the parent disk and partition number from the resolved node so the
+      # rest of the script works regardless of mmcblk/nvme/sda enumeration.
+      real_dev=$(readlink -f "$PART_DEV")
+      base_dev=$(basename "$real_dev")
+      PART_NUM=$(cat "/sys/class/block/$base_dev/partition")
+      DISK="/dev/$(basename "$(readlink -f "/sys/class/block/$base_dev/..")")"
+
+      RESIZE_TARGET="$PART_DEV"
+      ${lib.optionalString cfg.diskEncryption.enable ''
+        MAPPER_NAME="${cfg.diskEncryption.mapperName}"
+        RESIZE_TARGET="/dev/mapper/$MAPPER_NAME"
+      ''}
+
+      mkdir -p "$ESP_MOUNT"
+      if [[ -b $ESP_DEVICE ]]; then
+        if mount "$ESP_DEVICE" "$ESP_MOUNT"; then
+          if [ -f "$ESP_MOUNT/$RESIZE_MARKER" ]; then
+            echo "Resize already performed, skipping."
+            umount "$ESP_MOUNT"
+            exit 0
+          fi
+          umount "$ESP_MOUNT"
+        else
+          echo "Failed to mount ESP $ESP_DEVICE, continuing without marker check."
+        fi
+      else
+        echo "ESP partition not found, continuing without marker check."
+      fi
+
+      # Wait for the device to be available
+      for _ in {1..30}; do
+        [ -b "$RESIZE_TARGET" ] && break
+        sleep 1
+      done
+
+      if [ ! -b "$RESIZE_TARGET" ]; then
+        echo "Target device $RESIZE_TARGET not found, skipping."
+        exit 0
+      fi
+
+      echo "Fixing GPT..."
+      sgdisk -e "$DISK" || true
+
+      echo "Resizing partition $PART_NUM to 100%..."
+      # Use resizepart which works on busy partitions by using the BLKPG_RESIZE_PARTITION ioctl
+      parted -s "$DISK" resizepart "$PART_NUM" 100%
+
+      # Re-read partition table and wait for udev
+      partprobe "$DISK" || true
+      udevadm settle || true
+
+      ${lib.optionalString cfg.diskEncryption.enable ''
+        echo "Resizing LUKS container $MAPPER_NAME..."
+        ${lib.optionalString cfg.diskEncryption.deviceUniqueKey.enable ''
+          cryptsetup resize --key-description ${luksDiskKeyDescription} "$MAPPER_NAME"
+        ''}
+        ${lib.optionalString cfg.diskEncryption.userPassphrase.enable ''
+           # Use systemd-ask-password to handle prompts in a non-interactive environment
+          PASSPHRASE=$(systemd-ask-password --timeout=60 "Enter passphrase for resizing LUKS container:")
+          if [ -n "$PASSPHRASE" ]; then
+            echo "$PASSPHRASE" | cryptsetup resize -v "$MAPPER_NAME" --key-file=-
+          else
+             echo "No passphrase entered, LUKS resize might have failed."
+          fi
+        ''}
+        echo "LUKS status for $MAPPER_NAME after resize:"
+        cryptsetup status "$MAPPER_NAME"
+      ''}
+
+      echo "Resizing filesystem on $RESIZE_TARGET..."
+      # resize2fs may require a filesystem check before resizing
+      e2fsck -fy "$RESIZE_TARGET" || true
+      resize2fs "$RESIZE_TARGET"
+
+      # Persist completion on the ESP so later initrd boots can skip the
+      # service without mounting the root filesystem and racing fsck.
+      if [[ -b $ESP_DEVICE ]] && mount "$ESP_DEVICE" "$ESP_MOUNT"; then
+        touch "$ESP_MOUNT/$RESIZE_MARKER"
+        umount "$ESP_MOUNT"
+      else
+        echo "Failed to persist resize marker on ESP."
+      fi
+    '';
+  };
+
+  preDiskUniqueKeyScript = pkgs.writeShellApplication {
+    name = "pre-disk-unique-key";
+    runtimeInputs = with pkgs; [
+      cryptsetup
+      coreutils
+      gawk
+      gnused
+      keyutils
+      nvidia-jetpack.nvLuksSrv
+      gnugrep
+      util-linux
+    ];
+    text = ''
+      handle_error()
+      {
+        if ! nvluks-srv-app -n; then
+          printf "Note: Attempt to stop the nvluks service failed (it may have already been stopped). Proceeding with device reboot.\n"
+        fi
+
+        printf "Encountered unexpected/unrecoverable error with disk encryption.\n"
+        printf "Rebooting in 10 second...\n"
+        sleep 8
+        printf "\nRebooting now\n"
+        sleep 2
+        reboot now
+      }
+
+      does_luks_device_ready_exist()
+      {
+        luksDev=$1
+
+        # Following serving two purpose
+        # 1. A basic sanity check
+        # 2. Verify device readiness
+
+        # Following is a basic sanity check
+        for _ in {0..5}
+        do
+          if cryptsetup isLuks "$luksDev"; then
+            return 0
+          fi
+          sleep 1
+        done
+
+        printf "error: [%s] is not a luks device OR device is not ready\n" "$luksDev"
+        handle_error
+      }
+
+      read_luksDev_serial()
+      {
+        local luksDev=$1
+        local luksSerial
+
+        luksSerial=$(udevadm info --query=property --name="$luksDev" | sed -n 's/^ID_SERIAL=//p')
+        if [[ -z "$luksSerial" ]]; then
+           printf "error: Failed to get luksDev serial\n"
+           handle_error
+        else
+          echo "$luksSerial"
+        fi
+      }
+
+      switch_to_use_device_unique_key()
+      {
+        uniqueKeyDescription=$1
+        defaultKey=$2
+        luksDev=$3
+
+        printf "Switching to use device unique key. This might take a bit..\n"
+        if ! printf "%s" "$defaultKey" | cryptsetup luksAddKey --new-key-description "$uniqueKeyDescription" --key-file=- "$luksDev"; then
+          printf "error: Failed to set unique key\n"
+          handle_error
+        fi
+
+        if ! printf "%s" "$defaultKey" | cryptsetup luksRemoveKey --key-file=- "$luksDev"; then
+          printf "error: Failed to remove default key\n"
+          handle_error
+        fi
+
+        # Re-encrypt only if cryptsetup version is NOT 2.2.XX
+        if [[ ! "$(cryptsetup --version | gawk '{print $2}')" =~ ^2\.2\.[0-9]+$ ]]; then
+          printf "Note: Re-encryption may take 1 minute for every 1 GB of data ...\n"
+          if ! cryptsetup reencrypt --key-description "$uniqueKeyDescription" "$luksDev"; then
+             printf "error: Re-encryption failed\n"
+             handle_error
+          fi
+        fi
+      }
+
+      # Convinience variables
+      # Resolve the LUKS partition by its stable PARTUUID and verify it is a
+      # crypto_LUKS payload, independent of mmcblk/nvme/sda enumeration.
+      luksDev=""
+      for _ in $(seq 1 30); do
+        for d in $(blkid -o device -t PARTUUID=${luksRootPartUUID} 2>/dev/null); do
+          [ "$(blkid -o value -s TYPE "$d" 2>/dev/null)" = "crypto_LUKS" ] || continue
+          luksDev="$d"
+          break
+        done
+        if [ -n "$luksDev" ]; then break; fi
+        sleep 1
+      done
+      if [[ -z "$luksDev" ]]; then
+        printf "error: LUKS root partition (PARTUUID=%s) not found\n" "${luksRootPartUUID}"
+        handle_error
+      fi
+      defaultManufactureKey=${cfg.diskEncryption.deviceUniqueKey.deviceManufacturePassphrase}
+      luksDiskKeyKeyringDescription=${luksDiskKeyDescription}
+
+      does_luks_device_ready_exist "$luksDev"
+
+      luksDevSerial=$(read_luksDev_serial "$luksDev")
+
+      # Load luks key into kernel keyring
+      luksKeyKeyringID=$(printf "%s" "$(nvluks-srv-app -c "$luksDevSerial" -u | tr -d '\n')" | keyctl padd user "$luksDiskKeyKeyringDescription" @u)
+
+      # Lock/prevent any other queries to luks key
+      if ! nvluks-srv-app -n; then
+        printf "error: Unable to stop nvluks service\n";
+        handle_error
+      fi
+
+      # Granting write access, because otherwise key is not removable
+      if ! keyctl setperm "$luksKeyKeyringID"  0x3f070000; then
+        printf "error: Unable modify setperm\n"
+        handle_error
+      fi
+
+      # Sanity check
+      if ! keyctl describe "$luksKeyKeyringID" > /dev/null 2>&1; then
+        printf "error: Unable to add luks key to keyring\n"
+        handle_error
+      fi
+
+
+      # First boot is determined by checking whether the LUKS keyring description exists.
+      # Do not use cryptsetup --test-passphrase for this check, because it succeeds
+      # if the device can be unlocked by any available mechanism, including tokens/keyring.
+      if ! cryptsetup luksDump "$luksDev" 2>/dev/null |grep -Fq ${luksDiskKeyDescription}; then
+        switch_to_use_device_unique_key "$luksDiskKeyKeyringDescription" "$defaultManufactureKey" "$luksDev"
+      fi
+
+      if ! cryptsetup token add --key-description "$luksDiskKeyKeyringDescription" "$luksDev" > /dev/null 2>&1; then
+        printf "error: Unable to add cryptrsetup token\n"
+        handle_error
+      fi
+    '';
+  };
+
+  postDiskUniqueKeyScript = pkgs.writeShellApplication {
+    name = "post-disk-unique-key";
+    runtimeInputs = with pkgs; [
+      coreutils
+      keyutils
+    ];
+    text = ''
+      if ! keyctl revoke "$(keyctl search @u user ${luksDiskKeyDescription})"; then
+        printf "warn: Unable to revoke a key from keyring\n"
+      fi
+    '';
+  };
+
 in
 {
   _file = ./jetson-orin.nix;
@@ -328,6 +635,52 @@ in
       default = true;
     };
 
+    diskEncryption = {
+      enable = mkEnableOption "generic LUKS root filesystem encryption for eMMC APP partition";
+
+      deviceUniqueKey = {
+        enable = mkEnableOption "Enable disk decryption using a unique hardware key fetched from the OP-TEE.
+
+          On the first boot, the key (initially encrypted with a manufacturer key)
+          is rotated and re-encrypted with a device-unique key. Note that this
+          initial setup makes the first boot significantly slower.
+
+          This method provides an unattended boot process and does not require user input to unlock the drive.";
+
+        deviceManufacturePassphrase = mkOption {
+          description = "The temporary passphrase used to decrypt the device disk at the first boot.
+            Once the key is rotated to a device-unique key,
+            this passphrase is no longer needed for subsequent unlocks.";
+          type = types.str;
+          default = "ghaf";
+        };
+      };
+
+      userPassphrase = {
+        enable = mkEnableOption "Enables a semi-manual passphrase for disk encryption.
+          During device boot, the device will prompt the console for the user to input the password.
+
+          Note: This option is primarily intended for testing purposes.";
+
+        passphrase = mkOption {
+          description = "The manual passphrase used to encrypt the disk.";
+          type = types.str;
+          default = "ghaf";
+        };
+      };
+
+      mode = mkOption {
+        description = "Disk encryption mode for Jetson root filesystem";
+        type = types.enum [ "generic-luks-passphrase" ];
+        default = "generic-luks-passphrase";
+      };
+
+      mapperName = mkOption {
+        description = "Mapped device name used by initrd after LUKS unlock";
+        type = types.str;
+        default = "cryptroot";
+      };
+    };
   };
 
   config = mkIf cfg.enable {
@@ -340,6 +693,21 @@ in
           The default is intentionally empty because rootfs storage varies per
           carrier board; the per-SoM module must declare it to avoid silently
           flashing to the wrong device.
+        '';
+      }
+      {
+        assertion =
+          if cfg.diskEncryption.enable then
+            (cfg.diskEncryption.deviceUniqueKey.enable != cfg.diskEncryption.userPassphrase.enable)
+          else
+            true;
+        message = ''
+          Disk encryption is enabled, but the unlock method is misconfigured.
+          You must enable exactly one of:
+          - 'diskEncryption.deviceUniqueKey.enable'
+          - 'diskEncryption.userPassphrase.enable'
+
+          Note: They are mutually exclusive and cannot both be false.
         '';
       }
     ];
@@ -366,6 +734,16 @@ in
 
     ghaf.global-config.givc.enable = true;
     ghaf.global-config.logging.enable = true;
+
+    environment.systemPackages = with pkgs; [
+      gptfdisk
+      parted
+      cryptsetup
+      util-linux
+      e2fsprogs
+      gawk
+    ];
+
     ghaf.hardware = {
       aarch64.systemd-boot-dtb.enable = true;
       passthrough = {
@@ -419,7 +797,192 @@ in
             HW_RANDOM_TPM = no;
           };
         }
+      ]
+      ++ lib.optionals (cfg.diskEncryption.enable && cfg.kernelVersion == "upstream-6-6") [
+        {
+          name = "dm-crypt-config";
+          patch = null;
+          structuredExtraConfig = with lib.kernel; {
+            BLK_DEV_DM = yes;
+            DM_BUFIO = yes;
+            DM_BIO_PRISON = yes;
+            DM_CRYPT = yes;
+            CRYPTO_USER_API = yes;
+            CRYPTO_USER_API_HASH = yes;
+            CRYPTO_USER_API_SKCIPHER = yes;
+            CRYPTO_XTS = yes;
+          };
+        }
       ];
+
+    };
+
+    boot.initrd = {
+      # Keep module selection aligned with the Orin JetPack baseline and avoid
+      # requesting dm-crypt as a loadable module for upstream-6-6.
+      availableKernelModules = [
+        "xhci-tegra"
+        "ucsi_ccg"
+        "typec_ucsi"
+        "typec"
+        "nvme"
+        "tegra_mce"
+        "phy-tegra-xusb"
+        "i2c-tegra"
+        "fusb301"
+        "phy_tegra194_p2u"
+        "pcie_tegra194"
+        "nvpps"
+        "nvethernet"
+      ]
+      ++ lib.optionals cfg.diskEncryption.enable [
+        "dm-crypt"
+        "dm-mod"
+      ];
+      kernelModules = [ ];
+      # algif_skcipher is not available with the upstream-6-6 kernel variant
+      # used by current Orin reference targets.
+      luks.cryptoModules = lib.mkIf cfg.diskEncryption.enable (
+        lib.mkForce [
+          "aes"
+          "aes_generic"
+          "cbc"
+          "xts"
+          "sha1"
+          "sha256"
+          "sha512"
+          "af_alg"
+        ]
+      );
+      luks.devices = lib.mkIf cfg.diskEncryption.enable {
+        ${cfg.diskEncryption.mapperName} = {
+          device = "/dev/disk/by-partuuid/${luksRootPartUUID}";
+          allowDiscards = true;
+          keyFile = if cfg.diskEncryption.deviceUniqueKey.enable then "none" else null;
+        };
+      };
+
+      systemd.initrdBin = [
+        pkgs.gawk
+        pkgs.gnused
+        pkgs.keyutils
+        pkgs.nvidia-jetpack.nvLuksSrv
+        pkgs.gnugrep
+      ];
+
+      systemd.storePaths =
+        with pkgs;
+        [
+          gptfdisk
+          parted
+          cryptsetup
+          util-linux
+          e2fsprogs
+          coreutils
+          systemd
+          resizepartitionsScript
+        ]
+        ++ lib.optionals cfg.diskEncryption.deviceUniqueKey.enable [
+          preDiskUniqueKeyScript
+          postDiskUniqueKeyScript
+        ];
+
+      services.udev.rules = ''
+        ${lib.optionalString cfg.diskEncryption.deviceUniqueKey.enable ''
+          ACTION=="add", SUBSYSTEM=="block", ENV{ID_PART_ENTRY_UUID}=="${luksRootPartUUID}", TAG+="systemd", ENV{SYSTEMD_WANTS}+="pre-disk-unique-key.service"
+        ''}
+      '';
+
+      systemd.services.load-diskkey-to-keyring = mkIf cfg.diskEncryption.deviceUniqueKey.enable {
+        description = "Service for loading unique device key to kernel keyring";
+        before = [
+          "systemd-pre-disk-unique-key.service"
+        ];
+        unitConfig = {
+          DefaultDependencies = false;
+        };
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStart = "${preDiskUniqueKeyScript}/bin/pre-disk-unique-key";
+          StandardInput = "tty";
+          StandardOutput = "journal+console";
+          StandardError = "journal+console";
+        };
+      };
+
+      systemd.services.pre-disk-unique-key = mkIf cfg.diskEncryption.deviceUniqueKey.enable {
+        description = "Service for device unique key disk encryption";
+        before = [
+          "systemd-cryptsetup@${cfg.diskEncryption.mapperName}.service"
+        ];
+        unitConfig = {
+          DefaultDependencies = false;
+        };
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStart = "${preDiskUniqueKeyScript}/bin/pre-disk-unique-key";
+          StandardInput = "tty";
+          StandardOutput = "journal+console";
+          StandardError = "journal+console";
+          KeyringMode = "shared";
+        };
+      };
+
+      systemd.services.post-disk-unique-key = mkIf cfg.diskEncryption.deviceUniqueKey.enable {
+        description = "Cleanup service for device unique key disk encryption";
+        wantedBy = [ "initrd-switch-root.target" ];
+        after = [
+          "systemd-resize-partitions.service"
+        ];
+        unitConfig = {
+          DefaultDependencies = false;
+        };
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStart = "${postDiskUniqueKeyScript}/bin/post-disk-unique-key";
+          StandardInput = "tty";
+          StandardOutput = "journal+console";
+          StandardError = "journal+console";
+        };
+      };
+
+      systemd.services.resize-partitions = {
+        description = "Resize partitions to fill the disk on first boot";
+        wantedBy = [ "initrd.target" ];
+        before = [
+          "systemd-fsck-root.service"
+          "sysroot.mount"
+          "initrd-root-fs.target"
+        ];
+        after = [ "systemd-cryptsetup@${cfg.diskEncryption.mapperName}.service" ];
+        unitConfig = {
+          DefaultDependencies = false;
+        };
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStart = "${resizepartitionsScript}/bin/resize-partitions-cmds";
+          StandardInput = "tty";
+          StandardOutput = "journal+console";
+          StandardError = "journal+console";
+          KeyringMode = "shared";
+        };
+      };
+
+      supportedFilesystems = [
+        "ext4"
+        "vfat"
+      ];
+    };
+
+    fileSystems = mkIf cfg.diskEncryption.enable {
+      "/" = lib.mkForce {
+        device = "/dev/mapper/${cfg.diskEncryption.mapperName}";
+        fsType = "ext4";
+      };
     };
 
     services.udev.extraRules = ''

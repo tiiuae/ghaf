@@ -138,6 +138,10 @@ let
     runtimeInputs = [
       pkgs.pkgsBuildBuild.zstd
       pkgs.pkgsBuildBuild.gnused
+      pkgs.pkgsBuildBuild.cryptsetup
+      pkgs.pkgsBuildBuild.e2fsprogs
+      pkgs.pkgsBuildBuild.coreutils
+      pkgs.pkgsBuildBuild.util-linux
     ];
     text = ''
       echo "============================================================"
@@ -146,6 +150,7 @@ let
       echo "Version: ${config.ghaf.version}"
       echo "SoM: ${config.hardware.nvidia-jetpack.som}"
       echo "Carrier board: ${config.hardware.nvidia-jetpack.carrierBoard}"
+      echo "Disk encryption: ${lib.boolToString cfg.diskEncryption.enable}"
       echo "============================================================"
       echo ""
       WORKDIR=$PWD
@@ -245,15 +250,18 @@ let
            bs=512 iseek="$ESP_OFFSET" count="$ESP_SIZE" status=progress
 
         echo "Extracting root partition..."
+        ROOT_IMAGE_PATH="$WORKDIR/bootloader/root.img"
         dd if=<(pzstd -d "$img" -c) \
-           of="$WORKDIR/bootloader/root.img" \
+           of="$ROOT_IMAGE_PATH" \
            bs=512 iseek="$ROOT_OFFSET" count="$ROOT_SIZE" status=progress
 
-        echo ""
-        echo "Patching flash.xml with image paths..."
+        echo "Patching flash.xml with image paths and sizes..."
+        ROOT_IMAGE_SIZE_BYTES=$(stat -c %s "$ROOT_IMAGE_PATH")
         sed -i \
           -e "s#bootloader/esp.img#$WORKDIR/bootloader/esp.img#" \
-          -e "s#root.img#$WORKDIR/bootloader/root.img#" \
+          -e "s#root.img#$ROOT_IMAGE_PATH#" \
+          -e "s#ESP_SIZE#$((ESP_SIZE * 512))#" \
+          -e "s#ROOT_SIZE#$ROOT_IMAGE_SIZE_BYTES#" \
           flash.xml
       ''}
 
@@ -269,7 +277,7 @@ let
 in
 {
   config = lib.mkIf cfg.enable {
-    hardware.nvidia-jetpack.flashScriptOverrides.partitionTemplate = partitionTemplate;
     hardware.nvidia-jetpack.flashScriptOverrides.preFlashCommands = "${preFlashScript}/bin/pre-flash-commands";
+    hardware.nvidia-jetpack.flashScriptOverrides.partitionTemplate = partitionTemplate;
   };
 }
