@@ -15,7 +15,6 @@
 }:
 let
   cfg = config.ghaf.hardware.nvidia.orin;
-  inherit (pkgs.nvidia-jetpack) bspSrc;
 
   # sdImage containing ESP and root partitions (compressed)
   images = config.system.build.sdImage;
