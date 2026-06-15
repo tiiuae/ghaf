@@ -64,6 +64,12 @@ in
     in
     {
       firmwareSize = 256;
+      # The stock expand-root-partition.service resolves the root device via
+      # `lsblk -npo PKNAME /`, which is empty for a /dev/mapper/cryptroot root
+      # and makes sfdisk fail ("no disk device specified"). The initrd
+      # resize-partitions service already grows the LUKS partition + filesystem,
+      # so disable the redundant stock expand when encryption is enabled.
+      expandOnBoot = !config.ghaf.hardware.nvidia.orin.diskEncryption.enable;
       populateFirmwareCommands = ''
         mkdir -pv firmware
         ${mkESPContent} \

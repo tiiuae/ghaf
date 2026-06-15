@@ -11,6 +11,24 @@
 let
   cfg = config.ghaf.hardware.nvidia.orin;
   luksDiskKeyDescription = "luksDiskDeviceUniqueKey";
+
+  # Stable partition references for the LUKS flow, derived from the sd-image DOS
+  # disk identifier (firmwarePartitionID). MS-DOS partition tables expose a
+  # PARTUUID of "<disk-id>-<NN>", which is independent of the kernel device name
+  # (mmcblk0 / nvme0n1 / sda) and survives LUKS encryption (it lives in the
+  # partition table, not the filesystem). This replaces the previous
+  # somType-based "/dev/mmcblk0pX" / "/dev/sdaX" hardcodes, which broke whenever
+  # the rootfs landed on a different controller (e.g. NX flashes to NVMe).
+  #
+  # KNOWN LIMITATION (twin drive): if two drives both hold a verbatim ghaf flash
+  # they carry the same PARTUUID, so the runtime scan cannot tell them apart and
+  # picks the first match. Disambiguating that case needs either boot-device
+  # detection or a per-install-unique firmwarePartitionID, left as follow-up.
+  luksDiskId = lib.toLower (
+    lib.removePrefix "0x" (config.sdImage.firmwarePartitionID or "0x2178694e")
+  );
+  luksRootPartUUID = "${luksDiskId}-02";
+  luksEspPartUUID = "${luksDiskId}-01";
   rtcSeedAnchorPath = "/var/lib/systemd/timesync/clock";
   rtcSeedMaxAheadSeconds = 180 * 24 * 60 * 60;
   rtcSeedMinEpochSeconds = 1704067200; # 2024-01-01T00:00:00Z
@@ -274,12 +292,37 @@ let
       systemd
     ];
     text = ''
-      DISK=${if cfg.somType == "nx" then "/dev/sda" else "/dev/mmcblk0"}
-      PART_NUM=${if cfg.somType == "nx" then "2" else "1"}
-      PART_DEV=${if cfg.somType == "nx" then "/dev/sda2" else "/dev/mmcblk0p1"}
-      ESP_DEVICE=${if cfg.somType == "nx" then "/dev/sda1" else "/dev/mmcblk0p2"}
       RESIZE_MARKER=".ghaf-resize-done"
       ESP_MOUNT="/mnt-esp"
+      ESP_DEVICE="/dev/disk/by-partuuid/${luksEspPartUUID}"
+
+      # Resolve the root partition by its stable PARTUUID rather than a hardcoded
+      # device name. When encryption is enabled, require the crypto_LUKS payload
+      # so a stale plaintext partition with the same PARTUUID is ignored.
+      PART_DEV=""
+      for _ in $(seq 1 30); do
+        for d in $(blkid -o device -t PARTUUID=${luksRootPartUUID} 2>/dev/null); do
+          ${lib.optionalString cfg.diskEncryption.enable ''
+            [ "$(blkid -o value -s TYPE "$d" 2>/dev/null)" = "crypto_LUKS" ] || continue
+          ''}
+          PART_DEV="$d"
+          break
+        done
+        if [ -n "$PART_DEV" ]; then break; fi
+        sleep 1
+      done
+
+      if [ -z "$PART_DEV" ]; then
+        echo "Root partition (PARTUUID=${luksRootPartUUID}) not found, skipping resize."
+        exit 0
+      fi
+
+      # Derive the parent disk and partition number from the resolved node so the
+      # rest of the script works regardless of mmcblk/nvme/sda enumeration.
+      real_dev=$(readlink -f "$PART_DEV")
+      base_dev=$(basename "$real_dev")
+      PART_NUM=$(cat "/sys/class/block/$base_dev/partition")
+      DISK="/dev/$(basename "$(readlink -f "/sys/class/block/$base_dev/..")")"
 
       RESIZE_TARGET="$PART_DEV"
       ${lib.optionalString cfg.diskEncryption.enable ''
@@ -369,6 +412,7 @@ let
       keyutils
       nvidia-jetpack.nvLuksSrv
       gnugrep
+      util-linux
     ];
     text = ''
       handle_error()
@@ -448,7 +492,22 @@ let
       }
 
       # Convinience variables
-      luksDev=${if cfg.somType == "nx" then "/dev/sda2" else "/dev/mmcblk0p2"}
+      # Resolve the LUKS partition by its stable PARTUUID and verify it is a
+      # crypto_LUKS payload, independent of mmcblk/nvme/sda enumeration.
+      luksDev=""
+      for _ in $(seq 1 30); do
+        for d in $(blkid -o device -t PARTUUID=${luksRootPartUUID} 2>/dev/null); do
+          [ "$(blkid -o value -s TYPE "$d" 2>/dev/null)" = "crypto_LUKS" ] || continue
+          luksDev="$d"
+          break
+        done
+        if [ -n "$luksDev" ]; then break; fi
+        sleep 1
+      done
+      if [[ -z "$luksDev" ]]; then
+        printf "error: LUKS root partition (PARTUUID=%s) not found\n" "${luksRootPartUUID}"
+        handle_error
+      fi
       defaultManufactureKey=${cfg.diskEncryption.deviceUniqueKey.deviceManufacturePassphrase}
       luksDiskKeyKeyringDescription=${luksDiskKeyDescription}
 
@@ -797,7 +856,7 @@ in
       );
       luks.devices = lib.mkIf cfg.diskEncryption.enable {
         ${cfg.diskEncryption.mapperName} = {
-          device = if cfg.somType == "nx" then "/dev/sda2" else "/dev/mmcblk0p2";
+          device = "/dev/disk/by-partuuid/${luksRootPartUUID}";
           allowDiscards = true;
           keyFile = if cfg.diskEncryption.deviceUniqueKey.enable then "none" else null;
         };
@@ -829,11 +888,8 @@ in
         ];
 
       services.udev.rules = ''
-        ${lib.optionalString (cfg.diskEncryption.deviceUniqueKey.enable && cfg.somType == "nx") ''
-          ACTION=="add", SUBSYSTEM=="block", KERNEL=="sda", TAG+="systemd", ENV{SYSTEMD_WANTS}+="pre-disk-unique-key.service"
-        ''}
-        ${lib.optionalString (cfg.diskEncryption.deviceUniqueKey.enable && cfg.somType == "agx") ''
-          ACTION=="add", SUBSYSTEM=="block", KERNEL=="mmcblk0", TAG+="systemd", ENV{SYSTEMD_WANTS}+="pre-disk-unique-key.service"
+        ${lib.optionalString cfg.diskEncryption.deviceUniqueKey.enable ''
+          ACTION=="add", SUBSYSTEM=="block", ENV{ID_PART_ENTRY_UUID}=="${luksRootPartUUID}", TAG+="systemd", ENV{SYSTEMD_WANTS}+="pre-disk-unique-key.service"
         ''}
       '';
 
