@@ -218,6 +218,15 @@ let
           extraConfig = {
             reference.profiles.mvp-orinuser-trial.enable = true;
             partitioning.verity.enable = true;
+            partitioning.verity.uki-signing-key-dir = lib.mkIf (
+              variant == "debug"
+            ) ../../modules/secureboot/dev-keys;
+            hardware.nvidia.orin.secureboot.enable = true;
+            # Debug builds enroll the dev certs so they match the dev signing
+            # keys; release builds keep the production certs from keysSource.
+            hardware.nvidia.orin.secureboot.keysSource = lib.mkIf (
+              variant == "debug"
+            ) ../../modules/secureboot/dev-keys;
           };
         }
       )

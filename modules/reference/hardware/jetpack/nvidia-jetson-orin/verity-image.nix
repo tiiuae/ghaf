@@ -32,43 +32,26 @@ let
   #   ghaf_<ver>_<hash>.manifest       — JSON manifest
   inherit (config.system.build) ghafImage;
 
-  espImage =
-    pkgs.runCommand "esp-image"
-      {
-        nativeBuildInputs = with pkgs.buildPackages; [
-          dosfstools
-          mtools
-          zstd
-        ];
-      }
-      ''
-        mkdir -p $out
+  # The ESP FAT image is built at flash time (not here) so that
+  # EFI binaries can be signed with a private key that never enters
+  # the Nix store.  We only export the individual files needed.
+  espFiles = pkgs.runCommand "esp-files" { } ''
+    mkdir -p $out
 
-        # Find the UKI from ghafImage (built without .dtb, roothash patched)
-        uki=$(find ${ghafImage} -name '*.efi' | head -1)
-        if [ -z "$uki" ]; then
-          echo "ERROR: No UKI (.efi) found in ghafImage output"
-          ls -la ${ghafImage}/
-          exit 1
-        fi
-        echo "Using UKI: $uki"
+    # UKI (roothash-patched)
+    uki=$(find ${ghafImage} -name '*.efi' | head -1)
+    if [ -z "$uki" ]; then
+      echo "ERROR: No UKI (.efi) found in ghafImage output"
+      ls -la ${ghafImage}/
+      exit 1
+    fi
+    ln -s "$uki" "$out/uki.efi"
+    basename "$uki" > "$out/uki-filename"
 
-        # Create 512M FAT32 image
-        truncate -s 512M esp.img
-        mkfs.vfat -F 32 -n ESP esp.img
-
-        # Install systemd-boot as BOOTAA64.efi
-        boot_efi="${config.systemd.package}/lib/systemd/boot/efi/systemd-bootaa64.efi"
-        mmd -i esp.img ::EFI
-        mmd -i esp.img ::EFI/BOOT
-        mmd -i esp.img ::EFI/Linux
-        mcopy -i esp.img "$boot_efi" ::EFI/BOOT/BOOTAA64.efi
-
-        # Install UKI — auto-discovered by systemd-boot from EFI/Linux/
-        mcopy -i esp.img "$uki" "::EFI/Linux/$(basename "$uki")"
-
-        zstd --compress esp.img -o $out/esp.img.zst
-      '';
+    # systemd-boot
+    ln -s "${config.systemd.package}/lib/systemd/boot/efi/systemd-bootaa64.efi" \
+      "$out/systemd-bootaa64.efi"
+  '';
 
   # LVM image: must be built in a VM because LVM needs block devices.
   # Reads the manifest from ghafImage to determine LV names, then writes
@@ -228,7 +211,7 @@ in
   config = lib.mkIf cfg.enable {
     system.build.verityImages = pkgs.runCommand "verity-images" { } ''
       mkdir -p $out
-      ln -s ${espImage}/esp.img.zst $out/esp.img.zst
+      ln -s ${espFiles} $out/esp-files
       ln -s ${lvmImage}/system.img.zst $out/system.img.zst
       ln -s ${lvmImage}/system.raw_size $out/system.raw_size
     '';

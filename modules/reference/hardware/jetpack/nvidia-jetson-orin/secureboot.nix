@@ -52,6 +52,20 @@ in
       default = ../../../../secureboot/keys;
       description = "Directory containing PK.crt, KEK.crt and db.crt used to generate ESLs.";
     };
+
+    signingKeyDir = lib.mkOption {
+      type = lib.types.str;
+      default = toString ../../../../secureboot/dev-keys;
+      description = ''
+        Path to directory containing db.key and db.crt for signing EFI
+        binaries at flash time (on the build host). This is intentionally
+        a string (not a path) to avoid copying private keys into the Nix
+        store.
+
+        Can be overridden at flash time via the SECURE_BOOT_SIGNING_KEY_DIR
+        environment variable.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {

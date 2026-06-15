@@ -140,8 +140,58 @@ let
     # prevents flash.sh from rebuilding esp.img via create_espimage.
     export NO_ESP_IMG=0
 
-    echo "Decompressing pre-built ESP image..."
-    "${pkgs.pkgsBuildBuild.zstd}/bin/zstd" -f -d "${verityImages}/esp.img.zst" -o "$WORKDIR/bootloader/esp.img"
+    echo "Building ESP image..."
+    _esp="$WORKDIR/bootloader/esp.img"
+    _uki_name=$(cat "${verityImages}/esp-files/uki-filename")
+    _uki_src="${verityImages}/esp-files/uki.efi"
+    _boot_src="${verityImages}/esp-files/systemd-bootaa64.efi"
+
+    # Copy to writable tmp so we can sign in-place
+    _sign_dir=$(mktemp -d)
+    cp "$_boot_src" "$_sign_dir/BOOTAA64.efi"
+    cp "$_uki_src" "$_sign_dir/$_uki_name"
+
+    # Sign EFI binaries if secure boot keys are available
+    _sb_key_dir="''${SECURE_BOOT_SIGNING_KEY_DIR:-${
+      if config.ghaf.hardware.nvidia.orin.secureboot.enable then
+        config.ghaf.hardware.nvidia.orin.secureboot.signingKeyDir
+      else
+        ""
+    }}"
+    if [ -n "$_sb_key_dir" ] && [ -f "$_sb_key_dir/db.key" ] && [ -f "$_sb_key_dir/db.crt" ]; then
+      echo "Signing EFI binaries with $_sb_key_dir/db.crt ..."
+      for _efi in "$_sign_dir"/*.efi; do
+        echo "  Signing: $(basename "$_efi")"
+        "${pkgs.pkgsBuildBuild.sbsigntool}/bin/sbsign" \
+          --key "$_sb_key_dir/db.key" --cert "$_sb_key_dir/db.crt" \
+          --output "$_efi" "$_efi"
+      done
+    ${
+      if config.ghaf.hardware.nvidia.orin.secureboot.enable then
+        ''
+          else
+            echo "ERROR: Secure Boot is enabled but no signing keys found." >&2
+            echo "  Set SECURE_BOOT_SIGNING_KEY_DIR or place db.key + db.crt in:" >&2
+            echo "  $_sb_key_dir" >&2
+            exit 1
+        ''
+      else
+        ''
+          else
+            echo "Secure Boot signing skipped (no keys found)."
+        ''
+    }
+    fi
+
+    # Create 512M FAT32 ESP image
+    "${pkgs.pkgsBuildBuild.dosfstools}/bin/mkfs.vfat" -F 32 -n ESP -C "$_esp" $((512 * 1024))
+    "${pkgs.pkgsBuildBuild.mtools}/bin/mmd" -i "$_esp" ::EFI
+    "${pkgs.pkgsBuildBuild.mtools}/bin/mmd" -i "$_esp" ::EFI/BOOT
+    "${pkgs.pkgsBuildBuild.mtools}/bin/mmd" -i "$_esp" ::EFI/Linux
+    "${pkgs.pkgsBuildBuild.mtools}/bin/mcopy" -i "$_esp" "$_sign_dir/BOOTAA64.efi" ::EFI/BOOT/BOOTAA64.efi
+    "${pkgs.pkgsBuildBuild.mtools}/bin/mcopy" -i "$_esp" "$_sign_dir/$_uki_name" "::EFI/Linux/$_uki_name"
+    rm -rf "$_sign_dir"
+    echo "ESP image built: $_esp"
 
     echo "Decompressing pre-built system (LVM) sparse image..."
     "${pkgs.pkgsBuildBuild.zstd}/bin/zstd" -f -d "${verityImages}/system.img.zst" -o "$WORKDIR/bootloader/system.img"
