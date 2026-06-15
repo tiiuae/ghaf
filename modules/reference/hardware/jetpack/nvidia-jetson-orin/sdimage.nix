@@ -26,8 +26,11 @@ let
   cryptsetup =
     (pkgs.callPackage "${toString pkgs.path}/pkgs/by-name/cr/cryptsetup/package.nix" { }).overrideAttrs
       (oldAttrs: {
+        # /run/cryptsetup (the upstream default) is not writable inside the
+        # image build, and /build only exists on sandboxed-to-/build builders.
+        # /tmp is writable in every nix build environment.
         configureFlags = oldAttrs.configureFlags ++ [
-          "--with-luks2-lock-path=/build/cryptsetup"
+          "--with-luks2-lock-path=/tmp/cryptsetup"
         ];
       });
 in
@@ -129,6 +132,10 @@ in
             truncate -s "$(( TARGET_PAYLOAD_BYTES + LUKS_DATA_OFFSET_BYTES ))" "$ROOT_IMAGE"
 
             echo "Encrypting extracted root image with LUKS2 ..."
+            # cryptsetup is built with --with-luks2-lock-path=/tmp/cryptsetup;
+            # newer releases refuse to take the reencryption lock if that
+            # directory does not already exist.
+            mkdir -p /tmp/cryptsetup
             ${cryptsetup}/bin/cryptsetup reencrypt \
               --encrypt \
               --type luks2 \
