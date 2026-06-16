@@ -234,7 +234,14 @@ export default defineConfig({
                 {
                   label: "Release Notes",
                   collapsed: true,
-                  autogenerate: { directory: "ghaf/releases" },
+                  items: [
+                    {
+                      autogenerate: {
+                        directory: "ghaf/releases",
+                        collapsed: true,
+                      },
+                    },
+                  ],
                 },
                 {
                   label: "Appendices",
@@ -273,11 +280,13 @@ export default defineConfig({
                     "givc/api",
                     {
                       label: "NixOS Modules",
-                      autogenerate: { directory: "givc/api/nixos" },
+                      items: [
+                        { autogenerate: { directory: "givc/api/nixos" } },
+                      ],
                     },
                     {
                       label: "GRPC API",
-                      autogenerate: { directory: "givc/api/grpc" },
+                      items: [{ autogenerate: { directory: "givc/api/grpc" } }],
                     },
                     {
                       label: "Go API",
@@ -287,12 +296,26 @@ export default defineConfig({
                         {
                           label: "Go-GRPC API",
                           collapsed: true,
-                          autogenerate: { directory: "givc/api/go/grpc" },
+                          items: [
+                            {
+                              autogenerate: {
+                                directory: "givc/api/go/grpc",
+                                collapsed: true,
+                              },
+                            },
+                          ],
                         },
                         {
                           label: "Go Packages",
                           collapsed: true,
-                          autogenerate: { directory: "givc/api/go/pkgs" },
+                          items: [
+                            {
+                              autogenerate: {
+                                directory: "givc/api/go/pkgs",
+                                collapsed: true,
+                              },
+                            },
+                          ],
                         },
                       ],
                     },
