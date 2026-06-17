@@ -358,15 +358,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1779271543,
-        "narHash": "sha256-y+DkgslWfrbDHohjOkyDkv4fEwtq0tFadoMVLWkttiE=",
-        "owner": "tiiuae",
+        "lastModified": 1781694479,
+        "narHash": "sha256-fpVm9+flB1ngSO7IYffY3l9M9qWRUG/Q4x1SdE9xniE=",
+        "owner": "jkuro-tii",
         "repo": "ghaf-givc",
-        "rev": "5fdb39db05ca6c1ded809311e52046740632f1ba",
+        "rev": "d8883560a8f9b355927576305b7d283065ad895a",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "jkuro-tii",
+        "ref": "socket-problem-rebase",
         "repo": "ghaf-givc",
         "type": "github"
       }
