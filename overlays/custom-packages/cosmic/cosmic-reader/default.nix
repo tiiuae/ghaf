@@ -10,10 +10,8 @@ prev.cosmic-reader.overrideAttrs (oldAttrs: {
   postPatch = (oldAttrs.postPatch or "") + ''
         substituteInPlace Cargo.toml \
           --replace-fail \
-            'git = "https://github.com/messense/mupdf-rs"
-    optional = true' \
-            'git = "https://github.com/messense/mupdf-rs"
-    optional = true
+            '[dependencies.mupdf]' \
+            '[dependencies.mupdf]
     default-features = false
     features = ["js","xps","svg","cbz","img","html","epub","system-fonts","brotli","docx-output"]'
   ''; # Here we exclude 'tesseract' on purpose to reduce closure size

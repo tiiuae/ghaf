@@ -6,6 +6,7 @@
 (prev.cosmic-settings.overrideAttrs (oldAttrs: {
   cargoBuildNoDefaultFeatures = true;
   cargoBuildFeatures = [
+    "cosmic-comp-config"
     "a11y"
     "dbus-config"
     "page-about"
@@ -27,6 +28,7 @@
     "wayland"
     "wgpu"
     "xdg-portal"
+    "systemd"
   ];
 
   # Below is needed for cosmic DE and tools to query PipeWire on audio-vm

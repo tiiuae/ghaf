@@ -1,18 +1,18 @@
-From 22d608f97fb776e94be60253e1e6096b257a23e9 Mon Sep 17 00:00:00 2001
-From: Kajus Naujokaitis <kajus.naujokaitis@unikie.com>
-Date: Fri, 31 Oct 2025 13:29:27 +0200
+From 130b8142b5791612125db4576ad0abb46e4055bc Mon Sep 17 00:00:00 2001
+From: Kajus Naujokaitis <kajusn@gmail.com>
+Date: Thu, 18 Jun 2026 10:35:53 +0300
 Subject: [PATCH] Preselect Ghaf themes
 
-Signed-off-by: Kajus Naujokaitis <kajus.naujokaitis@unikie.com>
+Signed-off-by: Kajus Naujokaitis <kajusn@gmail.com>
 ---
  src/page/appearance.rs | 23 +++++++----------------
  1 file changed, 7 insertions(+), 16 deletions(-)
 
 diff --git a/src/page/appearance.rs b/src/page/appearance.rs
-index 31ecb15..fa95166 100644
+index a46b8c9..f0599e7 100644
 --- a/src/page/appearance.rs
 +++ b/src/page/appearance.rs
-@@ -81,20 +81,7 @@ impl Page {
+@@ -80,20 +80,7 @@ impl Page {
              }
          };
 
@@ -34,8 +34,8 @@ index 31ecb15..fa95166 100644
 
          #[cfg(feature = "nixos")]
          let themes_dir_path = "/run/current-system/sw/share/cosmic-themes/";
-@@ -149,7 +136,7 @@ impl Page {
-             themes.extend(extra_themes.into_iter());
+@@ -148,7 +135,7 @@ impl Page {
+             themes.extend(extra_themes);
          }
 
 -        Self {
@@ -43,7 +43,7 @@ index 31ecb15..fa95166 100644
              theme_mode_config,
              dark_theme_config: cosmic::cosmic_theme::Theme::dark_config().ok(),
              dark_theme_builder_config: ThemeBuilder::dark_config().ok(),
-@@ -157,7 +144,11 @@ impl Page {
+@@ -156,7 +143,11 @@ impl Page {
              light_theme_builder_config: ThemeBuilder::light_config().ok(),
              themes,
              selected: if ThemeMode::default().is_dark { 0 } else { 1 },
@@ -57,4 +57,5 @@ index 31ecb15..fa95166 100644
 
      pub fn update(&mut self, message: Message) -> Task<page::Message> {
 --
-2.51.0
+2.54.0
+
