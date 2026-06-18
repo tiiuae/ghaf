@@ -33,7 +33,10 @@
 }:
 writeShellApplication {
   name = "ghaf-build-helper";
-  runtimeInputs = [ nixos-rebuild ];
+  runtimeInputs = [
+    nixos-rebuild
+    ipcalc
+  ];
   text = ''
         function script_usage() {
           cat << EOF
@@ -68,7 +71,7 @@ writeShellApplication {
         fi
 
         proxy_jump="$1"
-        if ! ${ipcalc}/bin/ipcalc -c "$proxy_jump"; then
+        if ! ipcalc -c "$proxy_jump"; then
           echo "Invalid IP address: $proxy_jump"
           exit 1
         fi
@@ -78,6 +81,7 @@ writeShellApplication {
         NIX_SSHOPTS="-o ProxyJump=root@$proxy_jump"
 
         # Parse flags
+        insecure=false
         args=()
         for arg in "$@"; do
           case "$arg" in
@@ -88,13 +92,24 @@ writeShellApplication {
               args+=(--builders \'\')
               ;;
             --insecure)
-              NIX_SSHOPTS+=" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+              insecure=true
               ;;
             *)
               args+=("$arg")
               ;;
           esac
         done
+
+        if $insecure; then
+          # ProxyJump spawns a separate ssh process that does not inherit -o options,
+          # so StrictHostKeyChecking=no would not apply to the jump host. Use a temp
+          # config with ProxyCommand instead so both hops skip host key checking.
+          _ssh_cfg=$(mktemp)
+          printf 'Host ghaf-host\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile /dev/null\n\tProxyCommand ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -W %%h:%%p root@%s\n' "$proxy_jump" > "$_ssh_cfg"
+          # shellcheck disable=SC2064
+          trap "rm -f $_ssh_cfg" EXIT
+          NIX_SSHOPTS="-F $_ssh_cfg"
+        fi
 
         export NIX_SSHOPTS
 
