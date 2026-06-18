@@ -104,6 +104,7 @@ in
       capabilities.services = lib.optionals config.ghaf.gracefulShutdown [
         "poweroff.target"
       ];
+      accessControl.enable = config.ghaf.givc.accessControl.enable;
     };
 
     ghaf.security.audit.extraRules = [

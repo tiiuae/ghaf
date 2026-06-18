@@ -307,6 +307,12 @@ in
         value = vm.extraNetworking or { };
       }) enabledVms;
 
+      ghaf.common.adminAccessControl = lib.concatLists (
+        lib.mapAttrsToList (
+          _name: vm: vm.evaluatedConfig.config.ghaf.givc.accessControl.commonAdminRules or [ ]
+        ) enabledVms
+      );
+
       ghaf.common.spire.agents = lib.foldr lib.recursiveUpdate { } (
         lib.mapAttrsToList (
           name: vm:

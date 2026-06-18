@@ -76,6 +76,7 @@ in
             lib.mkIf cfg.evaluatedConfig.config.ghaf.security.spire.server.enable
               cfg.evaluatedConfig.config.ghaf.networking.hosts.${vmName}.ipv4;
         };
+        adminAccessControl = cfg.evaluatedConfig.config.ghaf.givc.accessControl.commonAdminRules or [ ];
       };
 
       microvm.vms."${vmName}" = {

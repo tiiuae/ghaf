@@ -103,6 +103,7 @@ in
           withDebug = config.ghaf.profiles.debug.enable;
           withHardenedConfigs = true;
         };
+        givc.accessControl.enable = config.ghaf.global-config.givc.withAccessControl or false;
         givc.host.enable = true;
         graphics.boot = {
           enable = true; # Enable graphical boot on host
@@ -148,6 +149,7 @@ in
               inherit (config.ghaf.security.spire.agent) nodeAttestationMode workloads;
             };
           };
+          adminAccessControl = config.ghaf.givc.accessControl.commonAdminRules or [ ];
         };
 
         security.spire.agent = {

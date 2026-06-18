@@ -78,7 +78,7 @@ rec {
 
       givc = {
         enable = mkEnableOption "GIVC (Ghaf Inter-VM Communication) globally";
-
+        withAccessControl = mkEnableOption "Enable access control for GIVC globally";
         debug = mkEnableOption "GIVC debug mode";
       };
 
@@ -370,6 +370,7 @@ rec {
 
       givc = {
         enable = true;
+        withAccessControl = true;
         # givc.debug disabled to allow logging (they conflict due to security)
         debug = false;
       };
@@ -467,6 +468,7 @@ rec {
 
       givc = {
         enable = true;
+        withAccessControl = true;
         debug = false;
       };
 
@@ -560,6 +562,7 @@ rec {
 
       givc = {
         enable = false;
+        withAccessControl = true;
         debug = false;
       };
 

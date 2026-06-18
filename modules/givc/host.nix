@@ -38,6 +38,8 @@ in
         permittedRequests = [
           "GetUnitStatus"
           "RegisterService"
+          "StartService"
+          "StopService"
           "Suspend"
           "Wakeup"
         ];
