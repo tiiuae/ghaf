@@ -1,4 +1,4 @@
-From 6345d51cd491a22ea7569f2aa179f8073b7caa22 Mon Sep 17 00:00:00 2001
+From 23016cc0da3c64c866b3c35895d17b59a3f00b24 Mon Sep 17 00:00:00 2001
 From: Leonid Bloch <lb.workbox@gmail.com>
 Date: Sun, 1 Sep 2019 19:18:00 +0300
 Subject: [PATCH 3/4] hw/acpi: Introduce the QEMU AC adapter
@@ -28,6 +28,7 @@ QMP commands:
 
 Signed-off-by: Leonid Bloch <lb.workbox@gmail.com>
 Signed-off-by: Brian McGillion <bmg.avoin@gmail.com>
+Signed-off-by: Kajus Naujokaitis <kajusn@gmail.com>
 ---
  MAINTAINERS                          |   6 +
  docs/specs/acad.rst                  | 195 ++++++++++++
@@ -46,13 +47,13 @@ Signed-off-by: Brian McGillion <bmg.avoin@gmail.com>
  create mode 100644 include/hw/acpi/acad.h
 
 diff --git a/MAINTAINERS b/MAINTAINERS
-index eb71a4a4b7..19bea634c7 100644
+index 99bafcd8f2..424ef24511 100644
 --- a/MAINTAINERS
 +++ b/MAINTAINERS
-@@ -2934,6 +2934,12 @@ S: Maintained
+@@ -3030,6 +3030,12 @@ S: Maintained
  F: hw/acpi/battery.*
  F: docs/specs/battery.rst
- 
+
 +AC Adapter
 +M: Leonid Bloch <lb.workbox@gmail.com>
 +S: Maintained
@@ -264,7 +265,7 @@ index 0000000000..73d5501b8f
 +  qemu-system-x86_64 -device battery,use-qmp=false,enable-sysfs=true \
 +                     -device acad,use-qmp=false,enable-sysfs=true
 diff --git a/docs/specs/index.rst b/docs/specs/index.rst
-index 616e8228cc..e144afcd90 100644
+index 3442b76da6..a19c75384c 100644
 --- a/docs/specs/index.rst
 +++ b/docs/specs/index.rst
 @@ -22,6 +22,7 @@ guest hardware that is specific to QEMU.
@@ -276,13 +277,13 @@ index 616e8228cc..e144afcd90 100644
     sev-guest-firmware
     fw_cfg
 diff --git a/hw/acpi/Kconfig b/hw/acpi/Kconfig
-index 64403378bd..9d28c3addf 100644
+index 6b2c46d37a..889ace2dfa 100644
 --- a/hw/acpi/Kconfig
 +++ b/hw/acpi/Kconfig
-@@ -69,6 +69,10 @@ config ACPI_VIOT
+@@ -74,6 +74,10 @@ config ACPI_VIOT
      bool
      depends on ACPI
- 
+
 +config AC_ADAPTER
 +    bool
 +    depends on ACPI
@@ -317,7 +318,7 @@ index 0000000000..699198c194
 +#include "hw/nvram/fw_cfg.h"
 +#include "qapi/error.h"
 +#include "qemu/error-report.h"
-+#include "hw/qdev-properties.h"
++#include "hw/core/qdev-properties.h"
 +#include "migration/vmstate.h"
 +#include "hw/acpi/acpi_aml_interface.h"
 +#include "qapi/qapi-commands-acpi.h"
@@ -744,16 +745,16 @@ index 0000000000..699198c194
 +
 +type_init(acad_register_types)
 diff --git a/hw/acpi/meson.build b/hw/acpi/meson.build
-index 10379a7b2c..2b24951f28 100644
+index ee6a4216c0..0c6141524d 100644
 --- a/hw/acpi/meson.build
 +++ b/hw/acpi/meson.build
-@@ -32,6 +32,7 @@ if have_tpm
+@@ -34,6 +34,7 @@ if have_tpm
    acpi_ss.add(files('tpm.c'))
  endif
  acpi_ss.add(when: 'CONFIG_BATTERY', if_true: files('battery.c'))
 +acpi_ss.add(when: 'CONFIG_AC_ADAPTER', if_true: files('acad.c'))
- system_ss.add(when: 'CONFIG_ACPI', if_false: files('acpi-stub.c', 'aml-build-stub.c', 'ghes-stub.c', 'acpi_interface.c'))
- system_ss.add(when: 'CONFIG_ACPI_PCI_BRIDGE', if_false: files('pci-bridge-stub.c'))
+ stub_ss.add(files('acpi-stub.c', 'aml-build-stub.c', 'ghes-stub.c'))
+ stub_ss.add(files('pci-bridge-stub.c'))
  system_ss.add_all(when: 'CONFIG_ACPI', if_true: acpi_ss)
 diff --git a/hw/acpi/trace-events b/hw/acpi/trace-events
 index dd3e815482..68ac6e9701 100644
@@ -769,7 +770,7 @@ index dd3e815482..68ac6e9701 100644
 +acad_get_dynamic_status(uint8_t state) "AC adapter read state: %"PRIu8
 +acad_ioport_read_unknown(void) "AC adapter read unknown"
 diff --git a/hw/i386/Kconfig b/hw/i386/Kconfig
-index 2c878fd112..baab382a2e 100644
+index 94004ffeb2..06f21cadb7 100644
 --- a/hw/i386/Kconfig
 +++ b/hw/i386/Kconfig
 @@ -40,6 +40,7 @@ config PC
@@ -814,7 +815,7 @@ index 0000000000..a4e7149488
 +
 +#endif
 diff --git a/include/hw/acpi/acpi_dev_interface.h b/include/hw/acpi/acpi_dev_interface.h
-index 3064ef6734..588fbbd05f 100644
+index a6f9022c0b..3ba4cea115 100644
 --- a/include/hw/acpi/acpi_dev_interface.h
 +++ b/include/hw/acpi/acpi_dev_interface.h
 @@ -15,6 +15,7 @@ typedef enum {
@@ -823,7 +824,7 @@ index 3064ef6734..588fbbd05f 100644
      ACPI_BATTERY_CHANGE_STATUS = 256,
 +    ACPI_AC_ADAPTER_CHANGE_STATUS = 512,
  } AcpiEventStatusBits;
- 
+
  #define TYPE_ACPI_DEVICE_IF "acpi-device-interface"
 diff --git a/qapi/acpi.json b/qapi/acpi.json
 index d1ad663bfd..52e151f0e6 100644
@@ -882,5 +883,6 @@ index d1ad663bfd..52e151f0e6 100644
 +##
 +{ 'command': 'query-ac-adapter',
 +  'returns': 'AcAdapterInfo' }
--- 
-2.50.1
+--
+2.54.0
+

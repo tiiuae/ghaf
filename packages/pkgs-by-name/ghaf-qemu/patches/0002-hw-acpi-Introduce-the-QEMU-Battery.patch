@@ -1,4 +1,4 @@
-From 2d631d08ce422005c7226c5acb749f030cc7f41d Mon Sep 17 00:00:00 2001
+From 0d47ee2defa0e9c64e9c1e63d6198d8af712ecd6 Mon Sep 17 00:00:00 2001
 From: Leonid Bloch <lb.workbox@gmail.com>
 Date: Tue, 18 Jun 2019 21:59:03 +0300
 Subject: [PATCH 2/4] hw/acpi: Introduce the QEMU Battery
@@ -34,6 +34,7 @@ interface for virtualization management systems.
 Signed-off-by: Leonid Bloch <lb.workbox@gmail.com>
 Signed-off-by: Marcel Apfelbaum <marcel.apfelbaum@gmail.com>
 Signed-off-by: Brian McGillion <bmg.avoin@gmail.com>
+Signed-off-by: Kajus Naujokaitis <kajusn@gmail.com>
 ---
  MAINTAINERS                          |   6 +
  docs/specs/battery.rst               | 225 ++++++++
@@ -53,13 +54,13 @@ Signed-off-by: Brian McGillion <bmg.avoin@gmail.com>
  create mode 100644 include/hw/acpi/battery.h
 
 diff --git a/MAINTAINERS b/MAINTAINERS
-index a64b5b849b..eb71a4a4b7 100644
+index ad215eced8..3bb0829be4 100644
 --- a/MAINTAINERS
 +++ b/MAINTAINERS
-@@ -2928,6 +2928,12 @@ F: hw/vmapple/*
- F: include/hw/vmapple/*
- F: docs/system/arm/vmapple.rst
- 
+@@ -3024,6 +3024,12 @@ F: hw/nitro/
+ F: include/hw/nitro/
+ F: docs/system/nitro.rst
+
 +Battery
 +M: Leonid Bloch <lb.workbox@gmail.com>
 +S: Maintained
@@ -301,7 +302,7 @@ index 0000000000..e426b91ea5
 +  echo "750000" > /tmp/fake_battery/energy_now     # 25% of 3000000
 +  echo "300000" > /tmp/fake_battery/power_now      # Discharge rate (300 mW)
 diff --git a/docs/specs/index.rst b/docs/specs/index.rst
-index f19d73c9f6..616e8228cc 100644
+index b7909a108a..3442b76da6 100644
 --- a/docs/specs/index.rst
 +++ b/docs/specs/index.rst
 @@ -22,6 +22,7 @@ guest hardware that is specific to QEMU.
@@ -313,10 +314,10 @@ index f19d73c9f6..616e8228cc 100644
     fw_cfg
     fsi
 diff --git a/hw/acpi/Kconfig b/hw/acpi/Kconfig
-index 1d4e9f0845..64403378bd 100644
+index daabbe6cd1..6b2c46d37a 100644
 --- a/hw/acpi/Kconfig
 +++ b/hw/acpi/Kconfig
-@@ -83,3 +83,7 @@ config ACPI_ERST
+@@ -88,3 +88,7 @@ config ACPI_ERST
  config ACPI_CXL
      bool
      depends on ACPI
@@ -351,7 +352,7 @@ index 0000000000..5ab3ab7472
 +#include "hw/nvram/fw_cfg.h"
 +#include "qapi/error.h"
 +#include "qemu/error-report.h"
-+#include "hw/qdev-properties.h"
++#include "hw/core/qdev-properties.h"
 +#include "migration/vmstate.h"
 +#include "hw/acpi/acpi_aml_interface.h"
 +#include "qapi/qapi-commands-acpi.h"
@@ -1066,16 +1067,16 @@ index 0000000000..5ab3ab7472
 +
 +type_init(battery_register_types)
 diff --git a/hw/acpi/meson.build b/hw/acpi/meson.build
-index 73f02b9691..10379a7b2c 100644
+index 1c5251909b..ee6a4216c0 100644
 --- a/hw/acpi/meson.build
 +++ b/hw/acpi/meson.build
-@@ -31,6 +31,7 @@ acpi_ss.add(when: 'CONFIG_PC', if_false: files('acpi-x86-stub.c'))
+@@ -33,6 +33,7 @@ stub_ss.add(files('acpi-x86-stub.c'))
  if have_tpm
    acpi_ss.add(files('tpm.c'))
  endif
 +acpi_ss.add(when: 'CONFIG_BATTERY', if_true: files('battery.c'))
- system_ss.add(when: 'CONFIG_ACPI', if_false: files('acpi-stub.c', 'aml-build-stub.c', 'ghes-stub.c', 'acpi_interface.c'))
- system_ss.add(when: 'CONFIG_ACPI_PCI_BRIDGE', if_false: files('pci-bridge-stub.c'))
+ stub_ss.add(files('acpi-stub.c', 'aml-build-stub.c', 'ghes-stub.c'))
+ stub_ss.add(files('pci-bridge-stub.c'))
  system_ss.add_all(when: 'CONFIG_ACPI', if_true: acpi_ss)
 diff --git a/hw/acpi/trace-events b/hw/acpi/trace-events
 index edc93e703c..dd3e815482 100644
@@ -1091,7 +1092,7 @@ index edc93e703c..dd3e815482 100644
 +battery_get_dynamic_status(uint32_t state, uint32_t rate, uint32_t charge) "Battery read state: 0x%"PRIx32", rate: %"PRIu32", charge: %"PRIu32
 +battery_ioport_read_unknown(void) "Battery read unknown"
 diff --git a/hw/i386/Kconfig b/hw/i386/Kconfig
-index 3a0e2b8ebb..2c878fd112 100644
+index 12473acaa7..94004ffeb2 100644
 --- a/hw/i386/Kconfig
 +++ b/hw/i386/Kconfig
 @@ -39,6 +39,7 @@ config PC
@@ -1103,19 +1104,19 @@ index 3a0e2b8ebb..2c878fd112 100644
      select I8254
      select PCKBD
 diff --git a/hw/i386/acpi-build.c b/hw/i386/acpi-build.c
-index 423c4959fe..790b16e582 100644
+index f622b91b76..b1dee1c1d2 100644
 --- a/hw/i386/acpi-build.c
 +++ b/hw/i386/acpi-build.c
-@@ -1248,6 +1248,7 @@ build_dsdt(GArray *table_data, BIOSLinker *linker,
- 
+@@ -1247,6 +1247,7 @@ build_dsdt(GArray *table_data, BIOSLinker *linker,
+
          aml_append(sb_scope, dev);
      }
 +
      aml_append(dsdt, sb_scope);
- 
+
      if (pm->pcihp_bridge_en || pm->pcihp_root_en) {
 diff --git a/include/hw/acpi/acpi_dev_interface.h b/include/hw/acpi/acpi_dev_interface.h
-index 68d9d15f50..3064ef6734 100644
+index 65debb90a8..a6f9022c0b 100644
 --- a/include/hw/acpi/acpi_dev_interface.h
 +++ b/include/hw/acpi/acpi_dev_interface.h
 @@ -14,6 +14,7 @@ typedef enum {
@@ -1124,7 +1125,7 @@ index 68d9d15f50..3064ef6734 100644
      ACPI_GENERIC_ERROR = 128,
 +    ACPI_BATTERY_CHANGE_STATUS = 256,
  } AcpiEventStatusBits;
- 
+
  #define TYPE_ACPI_DEVICE_IF "acpi-device-interface"
 diff --git a/include/hw/acpi/battery.h b/include/hw/acpi/battery.h
 new file mode 100644
@@ -1246,5 +1247,6 @@ index 906b3687a5..d1ad663bfd 100644
 +##
 +{ 'command': 'query-battery',
 +  'returns': 'BatteryInfo' }
--- 
-2.50.1
+--
+2.54.0
+
