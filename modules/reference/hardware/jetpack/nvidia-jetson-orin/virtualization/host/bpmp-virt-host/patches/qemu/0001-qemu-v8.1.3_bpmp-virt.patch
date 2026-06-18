@@ -91,7 +91,7 @@ index 7e68348440..3653c77f9e 100644
      select ACPI_CXL
      select ACPI_HMAT
 +    select NVIDIA_BPMP_GUEST
- 
+
  config CHEETAH
      bool
 diff --git a/hw/arm/virt.c b/hw/arm/virt.c
@@ -104,7 +104,7 @@ index 7d9dbc2663..5ee4ec077a 100644
  #include "hw/char/pl011.h"
 +#include "hw/misc/nvidia_bpmp_guest.h"
  #include "qemu/guest-random.h"
- 
+
  #define DEFINE_VIRT_MACHINE_LATEST(major, minor, latest) \
 @@ -155,6 +156,7 @@ static const MemMapEntry base_memmap[] = {
      [VIRT_NVDIMM_ACPI] =        { 0x09090000, NVDIMM_ACPI_IO_LEN},
@@ -117,7 +117,7 @@ index 7d9dbc2663..5ee4ec077a 100644
 @@ -1046,6 +1048,9 @@ static void create_virtio_devices(const VirtMachineState *vms)
      hwaddr size = vms->memmap[VIRT_MMIO].size;
      MachineState *ms = MACHINE(vms);
- 
+
 +    /* Create NVIDIA BPMP guest passthru device, possibly need update ftd - WIP */
 +    nvidia_bpmp_guest_create(vms->memmap[VIRT_NVIDIA_BPMP_GUEST].base);
 +
@@ -131,7 +131,7 @@ index 6996d265e4..30b4c34e69 100644
 @@ -11,6 +11,9 @@ config ARMSSE_MHU
  config ARMSSE_CPU_PWRCTRL
      bool
- 
+
 +config NVIDIA_BPMP_GUEST
 +    bool
 +
@@ -157,7 +157,7 @@ index 0000000000..3facee6d00
 +#include "qemu/osdep.h"
 +#include "qemu/log.h"
 +#include "qapi/error.h" /* provides error_fatal() handler */
-+#include "hw/sysbus.h"	/* provides all sysbus registering func */
++#include "hw/core/sysbus.h"	/* provides all sysbus registering func */
 +#include "hw/misc/nvidia_bpmp_guest.h"
 +
 +#define TYPE_NVIDIA_BPMP_GUEST "nvidia_bpmp_guest"
@@ -352,6 +352,6 @@ index e1ddbea96b..fce00ae7e9 100644
      VIRT_PLATFORM_BUS,
      VIRT_GPIO,
      VIRT_SECURE_UART,
--- 
+--
 2.42.0
 

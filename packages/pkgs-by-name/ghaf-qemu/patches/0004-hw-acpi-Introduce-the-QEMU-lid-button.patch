@@ -1,4 +1,4 @@
-From fb0c306ade48e598e71397acd854eaf89aebc9b5 Mon Sep 17 00:00:00 2001
+From 1f8ecd2b4ad2fdd13956efb15d1d6497cbe3ce59 Mon Sep 17 00:00:00 2001
 From: Leonid Bloch <lb.workbox@gmail.com>
 Date: Wed, 6 Nov 2019 17:33:41 +0200
 Subject: [PATCH 4/4] hw/acpi: Introduce the QEMU lid button
@@ -28,6 +28,7 @@ QMP commands:
 
 Signed-off-by: Leonid Bloch <lb.workbox@gmail.com>
 Signed-off-by: Brian McGillion <bmg.avoin@gmail.com>
+Signed-off-by: Kajus Naujokaitis <kajusn@gmail.com>
 ---
  MAINTAINERS                          |   6 +
  docs/specs/button.rst                | 189 ++++++++++++
@@ -46,10 +47,10 @@ Signed-off-by: Brian McGillion <bmg.avoin@gmail.com>
  create mode 100644 include/hw/acpi/button.h
 
 diff --git a/MAINTAINERS b/MAINTAINERS
-index 19bea634c7..eb876803eb 100644
+index 424ef24511..be7790f76c 100644
 --- a/MAINTAINERS
 +++ b/MAINTAINERS
-@@ -2940,6 +2940,12 @@ S: Maintained
+@@ -3036,6 +3036,12 @@ S: Maintained
  F: hw/acpi/acad.*
  F: docs/specs/acad.rst
 
@@ -258,7 +259,7 @@ index 0000000000..10a940b9f5
 +                     -device acad,use-qmp=false,enable-sysfs=true \
 +                     -device button,use-qmp=false,enable-procfs=true
 diff --git a/docs/specs/index.rst b/docs/specs/index.rst
-index e144afcd90..e1c9b91b7b 100644
+index a19c75384c..54d8f5f7c5 100644
 --- a/docs/specs/index.rst
 +++ b/docs/specs/index.rst
 @@ -24,6 +24,7 @@ guest hardware that is specific to QEMU.
@@ -270,10 +271,10 @@ index e144afcd90..e1c9b91b7b 100644
     fw_cfg
     fsi
 diff --git a/hw/acpi/Kconfig b/hw/acpi/Kconfig
-index 9d28c3addf..6600685855 100644
+index 889ace2dfa..0d5f885095 100644
 --- a/hw/acpi/Kconfig
 +++ b/hw/acpi/Kconfig
-@@ -73,6 +73,10 @@ config AC_ADAPTER
+@@ -78,6 +78,10 @@ config AC_ADAPTER
      bool
      depends on ACPI
 
@@ -311,7 +312,7 @@ index 0000000000..dfe86af713
 +#include "hw/nvram/fw_cfg.h"
 +#include "qapi/error.h"
 +#include "qemu/error-report.h"
-+#include "hw/qdev-properties.h"
++#include "hw/core/qdev-properties.h"
 +#include "migration/vmstate.h"
 +#include "hw/acpi/acpi_aml_interface.h"
 +#include "qapi/qapi-commands-acpi.h"
@@ -729,16 +730,16 @@ index 0000000000..dfe86af713
 +
 +type_init(button_register_types)
 diff --git a/hw/acpi/meson.build b/hw/acpi/meson.build
-index 2b24951f28..94993ecb9a 100644
+index 0c6141524d..ae7b65db62 100644
 --- a/hw/acpi/meson.build
 +++ b/hw/acpi/meson.build
-@@ -33,6 +33,7 @@ if have_tpm
+@@ -35,6 +35,7 @@ if have_tpm
  endif
  acpi_ss.add(when: 'CONFIG_BATTERY', if_true: files('battery.c'))
  acpi_ss.add(when: 'CONFIG_AC_ADAPTER', if_true: files('acad.c'))
 +acpi_ss.add(when: 'CONFIG_BUTTON', if_true: files('button.c'))
- system_ss.add(when: 'CONFIG_ACPI', if_false: files('acpi-stub.c', 'aml-build-stub.c', 'ghes-stub.c', 'acpi_interface.c'))
- system_ss.add(when: 'CONFIG_ACPI_PCI_BRIDGE', if_false: files('pci-bridge-stub.c'))
+ stub_ss.add(files('acpi-stub.c', 'aml-build-stub.c', 'ghes-stub.c'))
+ stub_ss.add(files('pci-bridge-stub.c'))
  system_ss.add_all(when: 'CONFIG_ACPI', if_true: acpi_ss)
 diff --git a/hw/acpi/trace-events b/hw/acpi/trace-events
 index 68ac6e9701..816f027bb3 100644
@@ -754,7 +755,7 @@ index 68ac6e9701..816f027bb3 100644
 +button_get_dynamic_status(void) "Button read dynamic status entry"
 +button_ioport_read_unknown(void) "Button read unknown"
 diff --git a/hw/i386/Kconfig b/hw/i386/Kconfig
-index baab382a2e..1d2d809028 100644
+index 06f21cadb7..35c65d3f37 100644
 --- a/hw/i386/Kconfig
 +++ b/hw/i386/Kconfig
 @@ -41,6 +41,7 @@ config PC
@@ -766,7 +767,7 @@ index baab382a2e..1d2d809028 100644
      select I8254
      select PCKBD
 diff --git a/include/hw/acpi/acpi_dev_interface.h b/include/hw/acpi/acpi_dev_interface.h
-index 588fbbd05f..4f5bcc15da 100644
+index 3ba4cea115..0271aa327a 100644
 --- a/include/hw/acpi/acpi_dev_interface.h
 +++ b/include/hw/acpi/acpi_dev_interface.h
 @@ -16,6 +16,7 @@ typedef enum {
@@ -866,4 +867,5 @@ index 52e151f0e6..bcbddbfbd5 100644
 +{ 'command': 'query-lid-button',
 +  'returns': 'LidButtonInfo' }
 --
-2.50.1
+2.54.0
+
