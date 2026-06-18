@@ -76,7 +76,6 @@ in
           NF_CT_NETLINK = module;
           NF_CT_PROTO_GRE = yes;
           NF_CT_PROTO_SCTP = yes;
-          NF_CT_PROTO_UDPLITE = yes;
           NF_DEFRAG_IPV4 = module;
           NF_DEFRAG_IPV6 = module;
           NF_DUP_IPV4 = module;

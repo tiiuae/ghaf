@@ -61,7 +61,6 @@ in
     security = {
       polkit = {
         enable = true;
-        debug = true;
         # Polkit rules for fingerprint reader
         extraConfig = ''
           // Allow user to verify fingerprints

@@ -6,6 +6,7 @@
 #
 # keep-sorted start skip_lines=1
 (_final: prev: {
+  aggregateModules = import ./aggregate-modules-compat { inherit prev; };
   blueman = import ./blueman-applet { inherit prev; };
   cosmic-applets = import ./cosmic/cosmic-applets { inherit prev; };
   cosmic-comp = import ./cosmic/cosmic-comp { inherit prev; };

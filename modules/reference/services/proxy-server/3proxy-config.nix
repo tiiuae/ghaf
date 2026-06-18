@@ -107,7 +107,6 @@ in
     security = {
       polkit = {
         enable = true;
-        debug = true;
         # Polkit rules for allowing proxy-user to run proxy related systemctl
         # commands without sudo and password requirement
         extraConfig = ''
