@@ -84,6 +84,14 @@ in
           description = "Spire package to use.";
         };
       };
+      adminAccessControl = mkOption {
+        description = ''
+          Common admin rules for GIVC access control to be exported
+          by individual VMs and consumed by admin VM.
+        '';
+        type = types.listOf types.adminRulesType;
+        default = [ ];
+      };
       policies = mkOption {
         description = "System policies";
         default = { };

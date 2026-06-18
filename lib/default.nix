@@ -254,6 +254,44 @@ in
       "tpm_devid"
     ];
 
+    adminRulesType = lib.types.submodule {
+      options = {
+        from = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          description = ''
+            A list of source VM identities (callers) permitted to initiate a request listed in
+            the 'permittedRequests' option. This defines who is originating the request to admin.
+          '';
+        };
+        to = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          description = ''
+            A list of allowed destination VMs for the requests specified in `permittedRequests`.
+            The Admin server is the default consumer unless a destination VM is specified in the request at runtime.
+            - Proxy access: To allow forwarding to a target VM, list the target VM here (e.g., `[ "app-vm" ]`).
+            - Consumer access only: Leave this empty (`[ ]`) to restrict the rule so that the Admin only processes the request itself.
+          '';
+        };
+        permittedRequests = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          description = ''
+            A list of specific gRPC methods that the callers listed in `from` are allowed to execute.
+
+            Example Proxy Rule:
+              `from = [ "gui-vm" ]; to = [ "app-vm" ]; permittedRequests = [ "StartApplication" ];`
+              (Allows `gui-vm` to ask the Admin to start an application on `app-vm`)
+
+            Example Consumer Rule:
+              `from = [ "gui-vm" ]; to = [ ]; permittedRequests = [ "RegisterService" ];`
+              (Allows `gui-vm` to call `RegisterService` directly on the Admin server)
+          '';
+        };
+      };
+    };
+
   };
 
   # Launcher utilities (remove desktop entries from packages)

@@ -37,6 +37,7 @@ in
     givc.sysvm = {
       enable = true;
       inherit (config.ghaf.givc) debug;
+      accessControl.enable = config.ghaf.givc.accessControl.enable;
       network = {
         agent.transport = {
           name = hostName;

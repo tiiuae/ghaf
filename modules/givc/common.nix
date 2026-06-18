@@ -52,6 +52,32 @@ in
   options.ghaf.givc = {
     enable = mkEnableOption "gRPC inter-vm communication (GIVC)";
     debug = mkEnableOption "GIVC debug mode";
+    accessControl = {
+      enable = mkEnableOption "Enable access control for GIVC";
+      commonAdminRules = mkOption {
+        description = ''
+          Defines access control policies for the GIVC Admin server.
+          Direct agent-to-agent communication is generally discouraged,
+          so the Admin server primarily functions as a proxy routing requests
+          between agents. This option defines admin rules, which a non admin VM can push to the admin.
+          Example Proxy Rule:
+            `from = [ "gui-vm" ]; to = [ "app-vm" ]; permittedRequests = [ "StartApplication" ];`
+            (Allows `gui-vm` to ask the Admin to start an application on `app-vm`)
+        '';
+        example = [
+          {
+            from = [
+              "gui-vm"
+              "app-vm"
+            ];
+            to = [ "business-vm" ];
+            permittedRequests = [ "systemd" ];
+          }
+        ];
+        type = types.listOf types.adminRulesType;
+        default = [ ];
+      };
+    };
     enableTls = mkOption {
       description = "Enable TLS for gRPC communication globally, or disable for debugging.";
       type = types.bool;
