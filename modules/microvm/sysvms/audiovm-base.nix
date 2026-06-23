@@ -26,11 +26,16 @@
 }:
 let
   vmName = "audio-vm";
+  # keep-sorted start
   audioEnabled = lib.ghaf.features.isEnabledFor globalConfig "audio" vmName;
+  auditEnabled = lib.ghaf.features.isEnabledFor globalConfig "audit" vmName;
   bluetoothEnabled = lib.ghaf.features.isEnabledFor globalConfig "bluetooth" vmName;
-  powerManagerEnabled = lib.ghaf.features.isEnabledFor globalConfig "power-manager" vmName;
+  logUploadEnabled = lib.ghaf.features.isEnabledFor globalConfig "log-upload" vmName;
+  loggingEnabled = lib.ghaf.features.isEnabledFor globalConfig "logging" vmName;
   performanceEnabled = lib.ghaf.features.isEnabledFor globalConfig "performance" vmName;
+  powerManagerEnabled = lib.ghaf.features.isEnabledFor globalConfig "power-manager" vmName;
   timezoneEnabled = lib.ghaf.features.isEnabledFor globalConfig "timezone" vmName;
+  # keep-sorted end
 in
 {
   _file = ./audiovm-base.nix;
@@ -143,15 +148,14 @@ in
         vm.enable = true;
       };
 
-      timezone.enable = lib.mkDefault (timezoneEnabled && globalConfig.platform.timeZone == null);
+      timezone.enable = lib.mkDefault timezoneEnabled;
     };
 
-    # Logging - from globalConfig
+    # Logging - from globalConfig and features
     logging = {
-      inherit (globalConfig.logging) enable listener;
-      journalClient = {
-        inherit (globalConfig.logging) enable;
-      };
+      enable = loggingEnabled;
+      inherit (globalConfig.logging) listener;
+      journalClient.enable = logUploadEnabled;
     };
 
     security = {
@@ -182,10 +186,8 @@ in
     };
 
     # Security - from globalConfig
-    security.audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
+    security.audit.enable = lib.mkDefault auditEnabled;
   };
-
-  time.timeZone = lib.mkIf (!timezoneEnabled) (lib.mkDefault globalConfig.platform.timeZone);
 
   environment = {
     systemPackages = [

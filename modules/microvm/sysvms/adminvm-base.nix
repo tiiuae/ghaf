@@ -24,7 +24,12 @@
 }:
 let
   vmName = "admin-vm";
+  # keep-sorted start
+  auditEnabled = lib.ghaf.features.isEnabledFor globalConfig "audit" vmName;
+  logUploadEnabled = lib.ghaf.features.isEnabledFor globalConfig "log-upload" vmName;
+  loggingEnabled = lib.ghaf.features.isEnabledFor globalConfig "logging" vmName;
   timezoneEnabled = lib.ghaf.features.isEnabledFor globalConfig "timezone" vmName;
+  # keep-sorted end
 in
 {
   _file = ./adminvm-base.nix;
@@ -79,6 +84,8 @@ in
     };
 
     givc = {
+      enable = globalConfig.givc.enable or false;
+      debug = globalConfig.givc.debug or false;
       adminvm.enable = true;
       policyAdmin = {
         enable = true;
@@ -130,15 +137,16 @@ in
       };
     };
 
-    # Logging - from globalConfig
+    # Logging - from globalConfig and features
     logging = {
-      inherit (globalConfig.logging) enable listener;
+      enable = loggingEnabled;
+      inherit (globalConfig.logging) listener;
       journalServer = {
-        inherit (globalConfig.logging) enable;
+        enable = loggingEnabled;
       };
 
       server = {
-        inherit (globalConfig.logging) enable;
+        enable = logUploadEnabled;
         endpoint = globalConfig.logging.server.endpoint or "";
 
         tls = {
@@ -149,16 +157,10 @@ in
       recovery.enable = true;
     };
 
-    # GIVC configuration - from globalConfig
-    givc = {
-      inherit (globalConfig.givc) enable;
-      inherit (globalConfig.givc) debug;
-    };
-
     # Security
     security = {
       fail2ban.enable = globalConfig.development.ssh.daemon.enable or false;
-      audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
+      audit.enable = lib.mkDefault auditEnabled;
 
       spire = {
         server = {
@@ -173,16 +175,12 @@ in
       };
     };
 
-    services.timezone.enable = lib.mkDefault (
-      timezoneEnabled && globalConfig.platform.timeZone == null
-    );
+    services.timezone.enable = lib.mkDefault timezoneEnabled;
 
     # Make sure admin-vm is the last to shutdown
     # This is done to allow servicing GIVC requests until the very end
     shutdownLast = true;
   };
-
-  time.timeZone = lib.mkIf (!timezoneEnabled) (lib.mkDefault globalConfig.platform.timeZone);
 
   system.stateVersion = lib.trivial.release;
 

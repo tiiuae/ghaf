@@ -25,10 +25,15 @@
 }:
 let
   vmName = "net-vm";
-  powerManagerEnabled = lib.ghaf.features.isEnabledFor globalConfig "power-manager" vmName;
+  # keep-sorted start
+  auditEnabled = lib.ghaf.features.isEnabledFor globalConfig "audit" vmName;
+  logUploadEnabled = lib.ghaf.features.isEnabledFor globalConfig "log-upload" vmName;
+  loggingEnabled = lib.ghaf.features.isEnabledFor globalConfig "logging" vmName;
   performanceEnabled = lib.ghaf.features.isEnabledFor globalConfig "performance" vmName;
-  wifiEnabled = lib.ghaf.features.isEnabledFor globalConfig "wifi" vmName;
+  powerManagerEnabled = lib.ghaf.features.isEnabledFor globalConfig "power-manager" vmName;
   timezoneEnabled = lib.ghaf.features.isEnabledFor globalConfig "timezone" vmName;
+  wifiEnabled = lib.ghaf.features.isEnabledFor globalConfig "wifi" vmName;
+  # keep-sorted end
 in
 {
   _file = ./netvm-base.nix;
@@ -152,15 +157,14 @@ in
         net.enable = pkgs.stdenv.hostPlatform.isx86;
       };
 
-      timezone.enable = lib.mkDefault (timezoneEnabled && globalConfig.platform.timeZone == null);
+      timezone.enable = lib.mkDefault timezoneEnabled;
     };
 
-    # Logging - from globalConfig (includes listener address)
+    # Logging - from globalConfig and features
     logging = {
-      inherit (globalConfig.logging) enable listener;
-      journalClient = {
-        inherit (globalConfig.logging) enable;
-      };
+      enable = loggingEnabled;
+      inherit (globalConfig.logging) listener;
+      journalClient.enable = logUploadEnabled;
     };
 
     security = {
@@ -171,8 +175,7 @@ in
         listenAddress = hostConfig.networking.thisVm.ipv4 or "192.168.100.1";
       };
 
-      # Audit - from globalConfig
-      audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
+      audit.enable = lib.mkDefault auditEnabled;
 
       spire.agent = {
         enable = globalConfig.spire.enable or false;
@@ -187,8 +190,6 @@ in
     # Note: reference.services is NOT set here - it should come via extraModules
     # from hardware.definition.netvm.extraModules if needed
   };
-
-  time.timeZone = lib.mkIf (!timezoneEnabled) (lib.mkDefault globalConfig.platform.timeZone);
 
   system.stateVersion = lib.trivial.release;
 
