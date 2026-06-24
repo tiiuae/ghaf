@@ -20,6 +20,7 @@
   element-desktop = import ./element-desktop { inherit prev; };
   grafana-alloy = import ./grafana-alloy { inherit prev; };
   intel-gpu-tools = import ./intel-gpu-tools { inherit prev; };
+  mbrola-voices = import ./mbrola-voices { inherit prev; };
   oculante = import ./oculante { inherit prev; };
   osquery-with-hostname = import ./osquery-with-hostname { inherit prev; };
   pipewire = import ./pipewire { inherit prev; };

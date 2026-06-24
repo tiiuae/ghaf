@@ -463,7 +463,7 @@ com.system76.CosmicTk:
   header_size: Standard
   interface_font: |
     (
-        family: "Inter",
+        family: "Open Sans",
         weight: Normal,
         stretch: Normal,
         style: Normal,
