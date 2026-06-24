@@ -89,7 +89,7 @@ writeShellApplication {
               args+=(--max-jobs 0)
               ;;
             --force-local)
-              args+=(--builders \'\')
+              args+=(--builders "")
               ;;
             --insecure)
               insecure=true

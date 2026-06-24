@@ -46,10 +46,10 @@ in
         fsImage = "$out/${id}_root_@v_@u.raw";
         verityImage = "$out/${id}_verity_@v_@u.raw";
         kernelImage = "$out/${id}_kernel_@v_@u.efi";
-        # TODO: switch to -zzstd when kernel >= 6.10 (better compression & decompression speed)
         # Experimental high-performance patch for `mkfs.erofs`
         # FIXME: Question for review -- move to overlays, vendor patch
         erofs-utils-nix = pkgs.buildPackages.erofs-utils.overrideAttrs (_: {
+          version = "1.8.10";
           src = pkgs.fetchFromGitHub {
             owner = "avnik";
             repo = "erofs-utils";
@@ -83,7 +83,7 @@ in
           fi
 
           time ${erofs-utils-nix}/bin/mkfs.erofs \
-            -zlz4hc,9 -T 1 --all-root \
+            -zzstd -T 1 --all-root \
             --workers="$mkfsWorkers" \
             -L nix-store \
             ${fsImage} \
@@ -127,8 +127,7 @@ in
           verityUnpackedSize=$(stat -c%s ${verityImage})
 
           # Compress the image
-          ${pkgs.buildPackages.zstd}/bin/zstd --compress $out/*raw
-          rm -f $out/*raw
+          ${lib.getExe pkgs.buildPackages.zstd} -T''${cores} --compress $out/*raw -o "$out/ghaf-image.raw.zst" --rm
 
           # Create artifacts and manifest.
           ${pkgs.buildPackages.python3}/bin/python ${./mk-manifest.py} \

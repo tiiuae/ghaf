@@ -163,7 +163,7 @@ let
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
-        virtualization.microvm.storeOnDisk = true;
+        virtualization.microvm.storeOnDisk.enable = true;
       };
       vmConfig = {
         sysvms.guivm.mem = 6144;
@@ -181,7 +181,7 @@ let
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
-        virtualization.microvm.storeOnDisk = true;
+        virtualization.microvm.storeOnDisk.enable = true;
       };
     })
 
@@ -331,7 +331,7 @@ let
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
         services.power-manager.suspend.mode = "s2idle";
-        virtualization.microvm.storeOnDisk = true;
+        virtualization.microvm.storeOnDisk.enable = true;
         hardware.passthrough.pciAcsOverride = {
           enable = true;
           ids = [ "8086:550a" ];
@@ -454,7 +454,7 @@ let
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
-        virtualization.microvm.storeOnDisk = true;
+        virtualization.microvm.storeOnDisk.enable = true;
       };
       vmConfig = {
         sysvms.guivm.mem = 6144;
@@ -472,7 +472,7 @@ let
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
-        virtualization.microvm.storeOnDisk = true;
+        virtualization.microvm.storeOnDisk.enable = true;
       };
     })
 
@@ -602,7 +602,7 @@ let
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
         services.power-manager.suspend.mode = "s2idle";
-        virtualization.microvm.storeOnDisk = true;
+        virtualization.microvm.storeOnDisk.enable = true;
         hardware.passthrough.pciAcsOverride = {
           enable = true;
           ids = [ "8086:550a" ];
