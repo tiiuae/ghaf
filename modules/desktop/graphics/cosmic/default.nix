@@ -331,9 +331,14 @@ in
       };
     };
 
-    fonts.packages = [
-      pkgs.inter
-    ];
+    # Remove fira, as it's unused
+    fonts.packages = lib.mkForce (
+      with pkgs;
+      [
+        noto-fonts
+        open-sans
+      ]
+    );
 
     ghaf.services.power-manager.suspend.extraResumeCommands =
       # Workaround for https://github.com/pop-os/cosmic-applets/issues/1390
