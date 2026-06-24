@@ -3,6 +3,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 let
@@ -26,6 +27,10 @@ in
   };
 
   config = mkIf (cfg.enable && config.ghaf.givc.enable) {
+    environment.systemPackages = [
+      pkgs.ota-update
+    ];
+
     assertions = [
       {
         assertion = !config.ghaf.givc.policyAdmin.enable;
