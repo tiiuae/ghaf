@@ -32,6 +32,7 @@
                 nix-output-monitor
                 nix-tree
                 nixVersions.latest
+                oras
                 prefetch-npm-deps
                 reuse
                 self'.legacyPackages.flash-script
