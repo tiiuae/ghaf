@@ -39,7 +39,7 @@
       };
 
       # Propagate host storeOnDisk setting to global-config for VMs
-      storage.storeOnDisk = lib.mkIf config.ghaf.virtualization.microvm.storeOnDisk true;
+      storage.storeOnDisk = config.ghaf.virtualization.microvm.storeOnDisk;
 
       # Auto-populate logging listener address from admin-vm IP
       # The logging listener always runs on admin-vm, so derive the address

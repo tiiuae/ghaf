@@ -32,7 +32,7 @@ NC='\033[0m' # No Color
 
 # Detect if running on NixOS and use nix-shell if needed
 run_with_nix() {
-    if command -v nix-shell &> /dev/null && [[ -f "$SCRIPT_DIR/shell.nix" ]]; then
+    if command -v nix-shell &>/dev/null && [[ -f "$SCRIPT_DIR/shell.nix" ]]; then
         nix-shell "$SCRIPT_DIR/shell.nix" --run "$*"
     else
         "$@"
@@ -47,7 +47,7 @@ error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 
 # Show usage
 usage() {
-    cat << EOF
+    cat <<EOF
 ghaf-hw-test - Hardware test automation for Ghaf Framework
 
 USAGE:
@@ -153,10 +153,23 @@ cmd_status() {
 
     while [[ $# -gt 0 ]]; do
         case $1 in
-            -d|--device) device="$2"; shift 2 ;;
-            -i|--ip) ip="$2"; shift 2 ;;
-            -h|--help) usage; exit 0 ;;
-            *) error "Unknown option: $1"; usage; exit 1 ;;
+        -d | --device)
+            device="$2"
+            shift 2
+            ;;
+        -i | --ip)
+            ip="$2"
+            shift 2
+            ;;
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        *)
+            error "Unknown option: $1"
+            usage
+            exit 1
+            ;;
         esac
     done
 
@@ -199,12 +212,31 @@ cmd_test() {
 
     while [[ $# -gt 0 ]]; do
         case $1 in
-            -d|--device) device="$2"; shift 2 ;;
-            -i|--ip) ip="$2"; shift 2 ;;
-            -p|--password) password="$2"; shift 2 ;;
-            -t|--tag) tag="$2"; shift 2 ;;
-            -h|--help) usage; exit 0 ;;
-            *) error "Unknown option: $1"; usage; exit 1 ;;
+        -d | --device)
+            device="$2"
+            shift 2
+            ;;
+        -i | --ip)
+            ip="$2"
+            shift 2
+            ;;
+        -p | --password)
+            password="$2"
+            shift 2
+            ;;
+        -t | --tag)
+            tag="$2"
+            shift 2
+            ;;
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        *)
+            error "Unknown option: $1"
+            usage
+            exit 1
+            ;;
         esac
     done
 
@@ -257,11 +289,27 @@ cmd_flash() {
 
     while [[ $# -gt 0 ]]; do
         case $1 in
-            -d|--device) device="$2"; shift 2 ;;
-            --drive) drive="$2"; shift 2 ;;
-            --recovery) recovery=true; shift ;;
-            -h|--help) usage; exit 0 ;;
-            *) error "Unknown option: $1"; usage; exit 1 ;;
+        -d | --device)
+            device="$2"
+            shift 2
+            ;;
+        --drive)
+            drive="$2"
+            shift 2
+            ;;
+        --recovery)
+            recovery=true
+            shift
+            ;;
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        *)
+            error "Unknown option: $1"
+            usage
+            exit 1
+            ;;
         esac
     done
 
@@ -283,58 +331,58 @@ cmd_flash() {
     repo_root=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
 
     case "$flash_method" in
-        ghaf-flash)
-            if [[ -z "$drive" ]]; then
-                error "Drive is required for x86 flash"
-                echo "Usage: ghaf-hw-test flash --device $device --drive /dev/sdX"
-                exit 1
-            fi
-
-            if [[ "$YES" != "true" ]]; then
-                warn "This will ERASE all data on $drive!"
-                echo "Press Ctrl+C to cancel or Enter to continue..."
-                read -r
-            else
-                warn "This will ERASE all data on $drive! (--yes: skipping confirmation)"
-            fi
-
-            info "Building image..."
-            (cd "$repo_root" && nix build ".#$ghaf_target")
-
-            info "Flashing to $drive..."
-            (cd "$repo_root" && nix develop --command ghaf-flash -d "$drive" -i result/disk1.raw.zst)
-
-            success "Flash complete! Remove the drive and boot the device."
-            ;;
-
-        flash-script)
-            local flash_script_target
-            flash_script_target=$(get_device_config "$device" "flash_script_target")
-
-            if [[ "$recovery" != "true" ]]; then
-                warn "Jetson devices require recovery mode for flashing"
-                echo ""
-                echo "To flash $device:"
-                echo "1. Power off the device"
-                echo "2. Hold the recovery button while powering on"
-                echo "3. Connect USB-C cable to host"
-                echo "4. Run: ghaf-hw-test flash --device $device --recovery"
-                exit 1
-            fi
-
-            info "Building flash script..."
-            (cd "$repo_root" && nix build ".#$flash_script_target")
-
-            info "Running flash script (device must be in recovery mode)..."
-            (cd "$repo_root" && sudo ./result/bin/flash-ghaf)
-
-            success "Flash complete! The device will reboot automatically."
-            ;;
-
-        *)
-            error "Unknown flash method: $flash_method"
+    ghaf-flash)
+        if [[ -z "$drive" ]]; then
+            error "Drive is required for x86 flash"
+            echo "Usage: ghaf-hw-test flash --device $device --drive /dev/sdX"
             exit 1
-            ;;
+        fi
+
+        if [[ "$YES" != "true" ]]; then
+            warn "This will ERASE all data on $drive!"
+            echo "Press Ctrl+C to cancel or Enter to continue..."
+            read -r
+        else
+            warn "This will ERASE all data on $drive! (--yes: skipping confirmation)"
+        fi
+
+        info "Building image..."
+        (cd "$repo_root" && nix build ".#$ghaf_target")
+
+        info "Flashing to $drive..."
+        (cd "$repo_root" && nix develop --command ghaf-flash -d "$drive" -i result/ghaf-image.raw.zst)
+
+        success "Flash complete! Remove the drive and boot the device."
+        ;;
+
+    flash-script)
+        local flash_script_target
+        flash_script_target=$(get_device_config "$device" "flash_script_target")
+
+        if [[ "$recovery" != "true" ]]; then
+            warn "Jetson devices require recovery mode for flashing"
+            echo ""
+            echo "To flash $device:"
+            echo "1. Power off the device"
+            echo "2. Hold the recovery button while powering on"
+            echo "3. Connect USB-C cable to host"
+            echo "4. Run: ghaf-hw-test flash --device $device --recovery"
+            exit 1
+        fi
+
+        info "Building flash script..."
+        (cd "$repo_root" && nix build ".#$flash_script_target")
+
+        info "Running flash script (device must be in recovery mode)..."
+        (cd "$repo_root" && sudo ./result/bin/flash-ghaf)
+
+        success "Flash complete! The device will reboot automatically."
+        ;;
+
+    *)
+        error "Unknown flash method: $flash_method"
+        exit 1
+        ;;
     esac
 }
 
@@ -344,10 +392,23 @@ cmd_analyze() {
 
     while [[ $# -gt 0 ]]; do
         case $1 in
-            --results) results_dir="$2"; shift 2 ;;
-            --propose-fixes) propose_fixes=true; shift ;;
-            -h|--help) usage; exit 0 ;;
-            *) error "Unknown option: $1"; usage; exit 1 ;;
+        --results)
+            results_dir="$2"
+            shift 2
+            ;;
+        --propose-fixes)
+            propose_fixes=true
+            shift
+            ;;
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        *)
+            error "Unknown option: $1"
+            usage
+            exit 1
+            ;;
         esac
     done
 
@@ -371,15 +432,43 @@ cmd_run() {
 
     while [[ $# -gt 0 ]]; do
         case $1 in
-            -d|--device) device="$2"; shift 2 ;;
-            -i|--ip) ip="$2"; shift 2 ;;
-            -p|--password) password="$2"; shift 2 ;;
-            -t|--tag) tag="$2"; shift 2 ;;
-            --fix-loop) fix_loop=true; shift ;;
-            --drive) drive="$2"; shift 2 ;;
-            --recovery) recovery=true; shift ;;
-            -h|--help) usage; exit 0 ;;
-            *) error "Unknown option: $1"; usage; exit 1 ;;
+        -d | --device)
+            device="$2"
+            shift 2
+            ;;
+        -i | --ip)
+            ip="$2"
+            shift 2
+            ;;
+        -p | --password)
+            password="$2"
+            shift 2
+            ;;
+        -t | --tag)
+            tag="$2"
+            shift 2
+            ;;
+        --fix-loop)
+            fix_loop=true
+            shift
+            ;;
+        --drive)
+            drive="$2"
+            shift 2
+            ;;
+        --recovery)
+            recovery=true
+            shift
+            ;;
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        *)
+            error "Unknown option: $1"
+            usage
+            exit 1
+            ;;
         esac
     done
 
@@ -456,11 +545,20 @@ main() {
     # Parse global options before the command
     while [[ $# -gt 0 ]]; do
         case $1 in
-            -y|--yes) YES=true; shift ;;
-            -h|--help|help) usage; exit 0 ;;
-            -*) # Unknown global flag - could be a command option, break
-                error "Unknown global option: $1"; usage; exit 1 ;;
-            *) break ;; # First non-option is the command
+        -y | --yes)
+            YES=true
+            shift
+            ;;
+        -h | --help | help)
+            usage
+            exit 0
+            ;;
+        -*) # Unknown global flag - could be a command option, break
+            error "Unknown global option: $1"
+            usage
+            exit 1
+            ;;
+        *) break ;; # First non-option is the command
         esac
     done
 
@@ -473,12 +571,16 @@ main() {
     shift
 
     case "$command" in
-        status) cmd_status "$@" ;;
-        test) cmd_test "$@" ;;
-        flash) cmd_flash "$@" ;;
-        analyze) cmd_analyze "$@" ;;
-        run) cmd_run "$@" ;;
-        *) error "Unknown command: $command"; usage; exit 1 ;;
+    status) cmd_status "$@" ;;
+    test) cmd_test "$@" ;;
+    flash) cmd_flash "$@" ;;
+    analyze) cmd_analyze "$@" ;;
+    run) cmd_run "$@" ;;
+    *)
+        error "Unknown command: $command"
+        usage
+        exit 1
+        ;;
     esac
 }
 

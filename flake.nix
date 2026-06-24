@@ -47,9 +47,7 @@
     # Development environment management
     devshell = {
       url = "github:numtide/devshell";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-      };
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # For building and creating disk images and installers
@@ -140,9 +138,7 @@
     # For building and managing VMs
     microvm = {
       url = "github:microvm-nix/microvm.nix";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-      };
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # lsp and cmdline tools for the cli

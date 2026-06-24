@@ -89,7 +89,36 @@ rec {
 
       storage = {
         encryption.enable = mkEnableOption "storage encryption globally";
-        storeOnDisk = mkEnableOption "storing VM nix stores on disk rather than virtiofs";
+        storeOnDisk = {
+          enable = mkEnableOption "storing VM nix stores on disk rather than virtiofs";
+          compression = {
+            algorithm = lib.mkOption {
+              type = types.enum [
+                "lz4hc"
+                "zstd"
+              ];
+              description = ''
+                Compression algorithm used for the erofs boot disk file system.
+
+                zstd is recommended for kernels >= 6.15 (better compression & decompression speed).
+                Requires 'CONFIG_EROFS_FS_ZIP_ZSTD=y' to be set for the guest kernel config.
+              '';
+              default = "zstd";
+            };
+            level = lib.mkOption {
+              type = types.nullOr types.int;
+              default = null;
+              description = ''
+                The compression level to use.
+                If set to `null` will use the default for each algorithm.
+
+                1-20 for zstd (default: 3)
+                1-12 for lz4hc (default: 1)
+              '';
+              example = 3;
+            };
+          };
+        };
       };
 
       # Shared memory configuration
@@ -352,7 +381,7 @@ rec {
 
       storage = {
         encryption.enable = false;
-        storeOnDisk = false;
+        storeOnDisk.enable = false;
       };
 
       graphics.boot.enable = true;
@@ -448,7 +477,7 @@ rec {
 
       storage = {
         encryption.enable = true;
-        storeOnDisk = false;
+        storeOnDisk.enable = false;
       };
 
       graphics.boot.enable = true;
@@ -541,7 +570,7 @@ rec {
 
       storage = {
         encryption.enable = false;
-        storeOnDisk = false;
+        storeOnDisk.enable = false;
       };
 
       shm.enable = false;

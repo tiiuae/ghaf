@@ -160,8 +160,6 @@ let
     ]
     ++ extraModules;
   };
-
-  inherit (baseInstallerConfig) pkgs;
   baseIsoImage = baseInstallerConfig.config.system.build.isoImage;
 
   mkGhafInstaller =
@@ -169,24 +167,12 @@ let
       name,
       imagePath,
     }:
-    let
-      normalizedImage = pkgs.runCommand "normalized-ghaf-image" { } ''
-        mkdir -p $out
-        imageFile=$(find ${imagePath} -maxdepth 1 -name "*.raw.zst" -type f | head -n 1)
-        if [ -z "$imageFile" ]; then
-          echo "Error: No .raw.zst file found in ${imagePath}" >&2
-          exit 1
-        fi
-        cp --reflink=auto "$imageFile" $out/ghaf-image.raw.zst || \
-          ln "$imageFile" $out/ghaf-image.raw.zst
-      '';
-    in
     {
       name = "${name}-installer";
       package = baseIsoImage.override {
         contents = baseInstallerConfig.config.isoImage.contents ++ [
           {
-            source = "${normalizedImage}/ghaf-image.raw.zst";
+            source = "${imagePath}/ghaf-image.raw.zst";
             target = "/ghaf-image/ghaf-image.raw.zst";
           }
         ];

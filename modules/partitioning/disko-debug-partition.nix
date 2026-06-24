@@ -26,6 +26,7 @@ let
     name = "disko-default-password";
     text = "";
   };
+  diskName = "disk1";
 in
 {
   _file = ./disko-debug-partition.nix;
@@ -46,76 +47,75 @@ in
   config = lib.mkIf cfg.enable {
     ghaf.partitioning.btrfs-postboot.enable = true;
 
-    ghaf.storage.encryption.partitionDevice = lib.mkDefault config.disko.devices.disk.disk1.content.partitions.luks.device;
+    ghaf.storage.encryption.partitionDevice =
+      lib.mkDefault
+        config.disko.devices.disk."${diskName}".content.partitions.luks.device;
 
     system.build.ghafImage = lib.mkIf (
       !config.ghaf.partitioning.verity.enable
     ) config.system.build.diskoImages;
     disko = {
-      imageBuilder = {
-        extraPostVM = lib.mkIf (cfg.imageBuilder.compression == "zstd") ''
-          for raw in "$out"/*.raw; do
-            ${pkgs.bmaptool}/bin/bmaptool create -o "''${raw%.raw}.bmap" "$raw"
-          done
-          ${pkgs.zstd}/bin/zstd --compress $out/*raw
-          rm $out/*raw
-        '';
-      };
+      imageBuilder.extraPostVM = lib.mkIf (cfg.imageBuilder.compression == "zstd") ''
+        ${lib.getExe pkgs.bmaptool} create "$out/${diskName}.raw" -o "$out/ghaf-image.bmap"
+        cores="''${NIX_BUILD_CORES:-1}"
+        if [ "$cores" -gt 8 ]; then
+          cores=8
+        fi
+        ${lib.getExe pkgs.zstd} -T''${cores} --compress "$out/${diskName}.raw" -o "$out/ghaf-image.raw.zst" --rm
+      '';
       devices = {
-        disk = {
-          disk1 = {
-            type = "disk";
-            # NOTE: Disk image size should be enough big to fit both slots
-            #       Actual file created as sparsed, and use only as much space as root content need.
-            imageSize = "128G";
-            content = {
-              type = "gpt";
-              partitions = {
-                esp = {
-                  name = "ESP";
-                  size = "500M";
-                  type = "EF00";
-                  content = {
-                    type = "filesystem";
-                    format = "vfat";
-                    mountpoint = "/boot";
-                    mountOptions = [
-                      "umask=0077"
-                      "nofail"
-                    ];
-                  };
-                  priority = 2;
+        disk."${diskName}" = {
+          type = "disk";
+          # NOTE: Disk image size should be enough big to fit both slots
+          #       Actual file created as sparsed, and use only as much space as root content need.
+          imageSize = "128G";
+          content = {
+            type = "gpt";
+            partitions = {
+              esp = {
+                name = "ESP";
+                size = "500M";
+                type = "EF00";
+                content = {
+                  type = "filesystem";
+                  format = "vfat";
+                  mountpoint = "/boot";
+                  mountOptions = [
+                    "umask=0077"
+                    "nofail"
+                  ];
                 };
-                luks =
-                  let
-                    # Plain LVM content without LUKS wrapper
-                    plainLvmContent = {
-                      type = "lvm_pv";
-                      vg = "pool";
-                    };
-                    # LUKS-wrapped LVM content
-                    encryptedLvmContent = {
-                      type = "luks";
-                      name = "crypted";
-                      askPassword = false;
-                      initrdUnlock = false;
-                      settings = {
-                        keyFile = "${defaultPassword}";
-                      };
-                      content = plainLvmContent;
-                    };
-                  in
-                  {
-                    size = "100%";
-                    priority = 3;
-                    name = "luks";
-                    content =
-                      if config.ghaf.storage.encryption.enable && !config.ghaf.storage.encryption.deferred then
-                        encryptedLvmContent
-                      else
-                        plainLvmContent;
-                  };
+                priority = 2;
               };
+              luks =
+                let
+                  # Plain LVM content without LUKS wrapper
+                  plainLvmContent = {
+                    type = "lvm_pv";
+                    vg = "pool";
+                  };
+                  # LUKS-wrapped LVM content
+                  encryptedLvmContent = {
+                    type = "luks";
+                    name = "crypted";
+                    askPassword = false;
+                    initrdUnlock = false;
+                    settings = {
+                      keyFile = "${defaultPassword}";
+                    };
+                    content = plainLvmContent;
+                  };
+                in
+                {
+                  size = "100%";
+                  priority = 3;
+                  name = "luks";
+                  content =
+                    if config.ghaf.storage.encryption.enable && !config.ghaf.storage.encryption.deferred then
+                      encryptedLvmContent
+                    else
+                      plainLvmContent;
+                };
             };
           };
         };
