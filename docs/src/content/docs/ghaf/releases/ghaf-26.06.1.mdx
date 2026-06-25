@@ -1,0 +1,99 @@
+---
+title: Release ghaf-26.06.1
+sidebar:
+  order: 9967
+  badge:
+    text: Latest
+    variant: success
+
+---
+
+This is monthly Ghaf release which has been fully tested on Nvidia Orin NX, Nvidia Orin AGX, Lenovo X1 Carbon Gen11 and System76 Darter Pro platforms
+
+## Release Tag
+
+https://github.com/tiiuae/ghaf/releases/tag/ghaf-26.06.1
+
+## Supported Hardware
+
+The following target hardware is supported by this release:
+
+- NVIDIA Jetson Orin AGX
+- NVIDIA Jetson Orin NX
+- Lenovo ThinkPad X1 Carbon Gen 10/11/12/13, Gen9 2-in-1
+- Lenovo T14 AMD
+- Dell Latitude 7230, 7330
+- Alienware M18
+- System76 Darter Pro
+- NXP i.MX 8M Plus
+
+## What's Changed
+* bump: version number by @clayhill66 in https://github.com/tiiuae/ghaf/pull/1966
+* docs: add 26.05.1 release note by @clayhill66 in https://github.com/tiiuae/ghaf/pull/1967
+* refactor(microvm/power): default to SIGTERM to stop VMs, adjust shutdown by @kajusnau in https://github.com/tiiuae/ghaf/pull/1958
+* refactor(logging): replace per-vm alloy forwarding with journal upload by @everton-dematos in https://github.com/tiiuae/ghaf/pull/1957
+* build(deps): bump step-security/harden-runner from 2.19.3 to 2.19.4 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1960
+* build(deps): bump actions/stale from 10.2.0 to 10.3.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1962
+* build(deps): bump github/codeql-action from 4.35.5 to 4.36.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1961
+* bump(docs): upgrade to latest by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1968
+* ci(github): update PR template by @kajusnau in https://github.com/tiiuae/ghaf/pull/1972
+* bump: june bump by @kajusnau in https://github.com/tiiuae/ghaf/pull/1959
+* build(deps): bump github/codeql-action from 4.36.0 to 4.36.1 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1970
+* build(deps): bump actions/checkout from 6.0.2 to 6.0.3 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1971
+* ci(keys): Add janne's ssh key by @jannepirskanen in https://github.com/tiiuae/ghaf/pull/1969
+* feat(nvidia): enable givc and logging for nvidia targets by @vadika in https://github.com/tiiuae/ghaf/pull/1734
+* feat: a/b update docs by @avnik in https://github.com/tiiuae/ghaf/pull/1947
+* build(deps): bump github/codeql-action from 4.36.1 to 4.36.2 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1979
+* build(deps): bump astral-sh/setup-uv from 8.1.0 to 8.2.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1977
+* feat(fprint): add fingwit GUI tool for libfprint by @kajusnau in https://github.com/tiiuae/ghaf/pull/1983
+* fix(sni): migrate dbus-proxy-sni to user services to fix log visibility by @enesoztrk in https://github.com/tiiuae/ghaf/pull/1981
+* fix(orin-nx): flash the p3768 devkit to NVMe instead of eMMC by @vadika in https://github.com/tiiuae/ghaf/pull/1948
+* fix(cosmic-greeter): Enable fingerprint unlock by @jannepirskanen in https://github.com/tiiuae/ghaf/pull/1985
+* feat(power): add GPU suspend option by @nesteroff in https://github.com/tiiuae/ghaf/pull/1951
+* fix(cosmic): Orin devices COSMIC display working again by @emrahbillur in https://github.com/tiiuae/ghaf/pull/1988
+* feat(waypipe): socket-activate xwayland-satellite by @nesteroff in https://github.com/tiiuae/ghaf/pull/1987
+* fix(orin): enroll UEFI secure boot keys from certs by @vadika in https://github.com/tiiuae/ghaf/pull/1713
+* fix(audio): fix crackling audio, some refactoring by @kajusnau in https://github.com/tiiuae/ghaf/pull/1989
+* refactor(ssh-tarpit): replacing endlessh-go with tarssh by @enesoztrk in https://github.com/tiiuae/ghaf/pull/1986
+* feat(jetson-orin): A/B verity boot with secure boot and OTA updates by @Mic92 in https://github.com/tiiuae/ghaf/pull/1862
+* bump(docs): upgrade to the latest by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1994
+* fix(spire): unused plugins removed by @gngram in https://github.com/tiiuae/ghaf/pull/1974
+* fix(nixos-rebuild): Due to strictened systemd-boot by @emrahbillur in https://github.com/tiiuae/ghaf/pull/1973
+* fix(logging): prevent offline logs from being lost on reboot by @everton-dematos in https://github.com/tiiuae/ghaf/pull/1995
+* bump: mid june bump by @kajusnau in https://github.com/tiiuae/ghaf/pull/1999
+
+## New Contributors
+* @jannepirskanen made their first contribution in https://github.com/tiiuae/ghaf/pull/1969
+
+**Full Changelog**: https://github.com/tiiuae/ghaf/compare/ghaf-26.05.1...ghaf-26.06.1
+
+## Bug fixes
+
+Fixed bugs that were present in the previous release
+
+* Occasional black screen and wifi connectivity issues after suspend/resume
+* (X1) Unlock with fingerprint doesn't work
+* (Nvidia Orin) Device boots to black screen with only cursor blinking
+
+## Known Issues and Limitations
+
+| Issue                                                                                                     | Status      | Comments                                                                   |
+| --------------------------------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------- |
+| **x86**                                                                                             |             |                                                                            |
+| Reboot and shutdown takes long time | In Progress | Fis is under verification |
+| Not able to open videos | In Progress | Issue is under investigation |
+| (System76) Laptop suspended again after opening the lid | In Progress | Seen occasionally, issue is under investigation |
+| Layout can be selected only once and not changed afterwards | In Progress | Fix is under verification |
+| WireGuard GUI is not available | In Progress | Issue is under investigation |
+| Restoring brightness does not work with storeDisk image | In Progress | Issue is under investigation |
+| **NVIDIA Jetson AGX Orin / Orin NX**                                                                      |             |                                                                            |
+| GUI login does not work | On Hold | |
+| If suspended, device doesn't wake-up | On Hold | |
+| Locking the device from power menu doesn't work | On Hold |  |
+| Unlocking from lock screen does not work | On Hold |  |
+
+## Installation Instructions
+
+Released images are available at https://archive.vedenemo.dev/
+
+Download the required image and use the following instructions: [Build and Run](https://ghaf.tii.ae/ghaf/dev/ref/build_and_run)
