@@ -4,112 +4,112 @@
 
 name: build
 on:
-    push:
-        branches:
-            - main
-    pull_request_target:
-        branches:
-            - main
+  push:
+    branches:
+      - main
+  pull_request_target:
+    branches:
+      - main
 
 permissions:
-    contents: read
+  contents: read
 
 jobs:
-    authorize:
-        # Important: 'authorize' must run before checkout to ensure 'authorize.yml'
-        # runs the base version, not the untrusted version from the PR.
-        uses: ./.github/workflows/authorize.yml
-        # Skip running in forked repositories, since the workflow run would fail
-        # due to missing repository secret(s):
-        if: ${{ github.repository == 'tiiuae/ghaf' }}
+  authorize:
+    # Important: 'authorize' must run before checkout to ensure 'authorize.yml'
+    # runs the base version, not the untrusted version from the PR.
+    uses: ./.github/workflows/authorize.yml
+    # Skip running in forked repositories, since the workflow run would fail
+    # due to missing repository secret(s):
+    if: ${{ github.repository == 'tiiuae/ghaf' }}
+    with:
+      github-org: tiiuae
+    secrets:
+      read-org-members: ${{ secrets.READ_ORG_MEMBERS }}
+  build_matrix:
+    name: "build"
+    needs: [authorize]
+    if: needs.authorize.outputs.result == 'authorized'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      matrix:
+        include:
+          - target: checks.x86_64-linux.pre-commit
+          - target: devShells.x86_64-linux.default
+          - target: packages.x86_64-linux.generic-x86_64-debug
+          - target: packages.x86_64-linux.intel-laptop-debug
+          - target: packages.x86_64-linux.intel-laptop-debug-installer
+          - target: packages.x86_64-linux.nvidia-jetson-orin-agx-debug-from-x86_64
+          - target: packages.x86_64-linux.nvidia-jetson-orin-nx-debug-from-x86_64
+          - target: packages.x86_64-linux.doc
+          - target: packages.aarch64-linux.nvidia-jetson-orin-nx-debug
+          - target: packages.aarch64-linux.nvidia-jetson-orin-agx-debug
+    concurrency:
+      # Cancel any in-progress workflow runs from the same PR or branch,
+      # allowing matrix jobs to run concurrently:
+      group: ${{ github.workflow }}.${{ github.event.pull_request.number || github.ref }}.${{ matrix.target }}
+      cancel-in-progress: true
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
         with:
-            github-org: tiiuae
-        secrets:
-            read-org-members: ${{ secrets.READ_ORG_MEMBERS }}
-    build_matrix:
-        name: "build"
-        needs: [authorize]
-        if: needs.authorize.outputs.result == 'authorized'
-        runs-on: ubuntu-latest
-        timeout-minutes: 360
-        strategy:
-            matrix:
-                include:
-                    - target: checks.x86_64-linux.pre-commit
-                    - target: devShells.x86_64-linux.default
-                    - target: packages.x86_64-linux.generic-x86_64-debug
-                    - target: packages.x86_64-linux.lenovo-x1-carbon-gen11-debug
-                    - target: packages.x86_64-linux.nvidia-jetson-orin-agx-debug-from-x86_64
-                    - target: packages.x86_64-linux.nvidia-jetson-orin-nx-debug-from-x86_64
-                    - target: packages.x86_64-linux.doc
-                    - target: packages.x86_64-linux.system76-darp11-b-debug
-                    - target: packages.aarch64-linux.nvidia-jetson-orin-nx-debug
-                    - target: packages.aarch64-linux.nvidia-jetson-orin-agx-debug
-        concurrency:
-            # Cancel any in-progress workflow runs from the same PR or branch,
-            # allowing matrix jobs to run concurrently:
-            group: ${{ github.workflow }}.${{ github.event.pull_request.number || github.ref }}.${{ matrix.target }}
-            cancel-in-progress: true
-        steps:
-            - name: Harden the runner (Audit all outbound calls)
-              uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
-              with:
-                  egress-policy: audit
-            - name: Apt install
-              run: sudo apt-get update; sudo apt-get install -y inxi git
-            - name: Print runner system info
-              run: sudo inxi -c0 --width -1 --basic --memory-short
-            - uses: webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555 # v0.10.0
-              with:
-                  ssh-private-key: |
-                      ${{ secrets.BUILDER_SSH_KEY }}
-            - name: Checkout
-              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-              with:
-                  ref: ${{ github.event.pull_request.head.sha || github.ref }}
-                  fetch-depth: 0
-                  persist-credentials: false
-            - name: Rebase
-              if: ${{ github.base_ref != '' }}
-              run: |
-                  BASE="origin/${BASE_REF}"
-                  COMMITS="$(git rev-list "$BASE".. --count)"
-                  CONTEXT=5
-                  echo -e "\n[+] Git log before rebase (with $CONTEXT commits context):"
-                  git log --oneline -n$(( COMMITS + CONTEXT ))
-                  echo -e "\n[+] Rebasing $COMMITS commit(s) on top of '$BASE'"
-                  git config user.email "foo@bar.com"; git config user.name "Foo Bar"
-                  git rebase "$BASE"
-                  echo -e "\n[+] Git log after rebase (with $CONTEXT commits context):"
-                  git log --oneline -n$(( COMMITS + CONTEXT ))
-              env:
-                  BASE_REF: ${{ github.base_ref }}
-            - name: Install nix
-              uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3 # v31.10.6
-            - name: Prepare remote builds
-              run: |
-                  sudo sh -c "echo '${BUILDER_SSH_KNOWN_HOST}' >>/etc/ssh/ssh_known_hosts"
-              env:
-                  BUILDER_SSH_KNOWN_HOST: ${{ vars.BUILDER_SSH_KNOWN_HOST }}
-            - name: Build ${{ matrix.target }}
-              run: |
-                  case "${{ matrix.target }}" in
-                  *.x86_64-linux.*)
-                    BUILDER="${BUILDER_X86}"
-                    ;;
-                  *.aarch64-linux.*)
-                    BUILDER="${BUILDER_AARCH}"
-                    ;;
-                  *)
-                    echo "::error::Unknown architecture in: '${{ matrix.target }}'"
-                    exit 1
-                    ;;
-                  esac
-                  nix run --inputs-from .# nixpkgs#nix-fast-build -- \
-                    --flake .#${{ matrix.target }} \
-                    --remote "$BUILDER" \
-                    --option accept-flake-config true \
-                    --no-download --skip-cached --no-nom
-              env:
-                  BUILDER_X86: ${{ vars.BUILDER_X86 }}
-                  BUILDER_AARCH: ${{ vars.BUILDER_AARCH }}
+          egress-policy: audit
+      - name: Apt install
+        run: sudo apt-get update; sudo apt-get install -y inxi git
+      - name: Print runner system info
+        run: sudo inxi -c0 --width -1 --basic --memory-short
+      - uses: webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555 # v0.10.0
+        with:
+          ssh-private-key: |
+            ${{ secrets.BUILDER_SSH_KEY }}
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Rebase
+        if: ${{ github.base_ref != '' }}
+        run: |
+          BASE="origin/${BASE_REF}"
+          COMMITS="$(git rev-list "$BASE".. --count)"
+          CONTEXT=5
+          echo -e "\n[+] Git log before rebase (with $CONTEXT commits context):"
+          git log --oneline -n$(( COMMITS + CONTEXT ))
+          echo -e "\n[+] Rebasing $COMMITS commit(s) on top of '$BASE'"
+          git config user.email "foo@bar.com"; git config user.name "Foo Bar"
+          git rebase "$BASE"
+          echo -e "\n[+] Git log after rebase (with $CONTEXT commits context):"
+          git log --oneline -n$(( COMMITS + CONTEXT ))
+        env:
+          BASE_REF: ${{ github.base_ref }}
+      - name: Install nix
+        uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3 # v31.10.6
+      - name: Prepare remote builds
+        run: |
+          sudo sh -c "echo '${BUILDER_SSH_KNOWN_HOST}' >>/etc/ssh/ssh_known_hosts"
+        env:
+          BUILDER_SSH_KNOWN_HOST: ${{ vars.BUILDER_SSH_KNOWN_HOST }}
+      - name: Build ${{ matrix.target }}
+        run: |
+          case "${{ matrix.target }}" in
+          *.x86_64-linux.*)
+            BUILDER="${BUILDER_X86}"
+            ;;
+          *.aarch64-linux.*)
+            BUILDER="${BUILDER_AARCH}"
+            ;;
+          *)
+            echo "::error::Unknown architecture in: '${{ matrix.target }}'"
+            exit 1
+            ;;
+          esac
+          nix run --inputs-from .# nixpkgs#nix-fast-build -- \
+            --flake .#${{ matrix.target }} \
+            --remote "$BUILDER" \
+            --option accept-flake-config true \
+            --no-download --skip-cached --no-nom
+        env:
+          BUILDER_X86: ${{ vars.BUILDER_X86 }}
+          BUILDER_AARCH: ${{ vars.BUILDER_AARCH }}
