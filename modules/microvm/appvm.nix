@@ -311,9 +311,9 @@ in
         lib.mapAttrsToList (
           name: vm:
           let
-            spireAgent = vm.evaluatedConfig.config.ghaf.security.spire.agent;
+            spireAgent = vm.evaluatedConfig.config.ghaf.security.spire.agents.downstream or null;
           in
-          if spireAgent.enable then
+          if spireAgent != null && spireAgent.enable then
             {
               "${name}-vm" = {
                 inherit (spireAgent) nodeAttestationMode workloads;

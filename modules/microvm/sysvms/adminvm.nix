@@ -67,9 +67,12 @@ in
       ghaf.common = {
         extraNetworking.hosts.${vmName} = cfg.extraNetworking;
         spire = {
-          agents = lib.mkIf cfg.evaluatedConfig.config.ghaf.security.spire.agent.enable {
+          agents = lib.mkIf cfg.evaluatedConfig.config.ghaf.security.spire.agents.downstream.enable {
             "${vmName}" = {
-              inherit (cfg.evaluatedConfig.config.ghaf.security.spire.agent) nodeAttestationMode workloads;
+              inherit (cfg.evaluatedConfig.config.ghaf.security.spire.agents.downstream)
+                nodeAttestationMode
+                workloads
+                ;
             };
           };
           server.address =
