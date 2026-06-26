@@ -148,14 +148,14 @@ in
           policies = lib.mkIf config.ghaf.givc.policyClient.enable {
             ghaf-host = config.ghaf.givc.policyClient.policies;
           };
-          spire.agents = lib.mkIf config.ghaf.security.spire.agent.enable {
+          spire.agents = lib.mkIf config.ghaf.security.spire.agents.downstream.enable {
             ghaf-host = {
-              inherit (config.ghaf.security.spire.agent) nodeAttestationMode workloads;
+              inherit (config.ghaf.security.spire.agents.downstream) nodeAttestationMode workloads;
             };
           };
         };
 
-        security.spire.agent = {
+        security.spire.agents.downstream = {
           inherit (config.ghaf.global-config.spire) enable;
           logLevel = if config.ghaf.global-config.spire.debug then "DEBUG" else "INFO";
           nodeAttestationMode = if config.ghaf.global-config.givc.enable then "x509pop" else "join_token";

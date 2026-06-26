@@ -265,7 +265,7 @@ in
         # Security
         security = {
           fail2ban.enable = globalConfig.development.ssh.daemon.enable or false;
-          spire.agent = {
+          spire.agents.downstream = {
             enable = globalConfig.spire.enable or false;
             logLevel = if globalConfig.spire.debug then "DEBUG" else "INFO";
             nodeAttestationMode = if globalConfig.givc.enable then "x509pop" else "join_token";

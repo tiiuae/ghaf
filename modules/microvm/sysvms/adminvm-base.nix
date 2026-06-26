@@ -165,10 +165,27 @@ in
           enable = globalConfig.spire.enable or false;
           logLevel = if globalConfig.spire.debug then "DEBUG" else "INFO";
         };
-        agent = {
+        agents.downstream = {
           enable = globalConfig.spire.enable or false;
           logLevel = if globalConfig.spire.debug then "DEBUG" else "INFO";
           nodeAttestationMode = if globalConfig.givc.enable then "x509pop" else "join_token";
+        };
+
+        # Disabled by default. Placeholders for when connecting admin-vm to an external SPIRE backend.
+        agents.upstream = {
+          enable = false;
+
+          # Server Info
+          # serverAddress = "<external-spire-server-address>";
+          # serverPort = 8081;
+          # trustDomain = "<external-trust-domain>";
+          # trustBundlePath = "/etc/common/spire/external/bundle.pem";
+          # logLevel = if config.ghaf.global-config.spire.debug then "DEBUG" else "INFO";
+
+          # Attestation
+          # nodeAttestationMode = "x509pop";
+          # settings.x509pop.privateKeyPath = "/etc/common/spire/external/key.pem";
+          # settings.x509pop.certificatePath = "/etc/common/spire/external/cert.pem";
         };
       };
     };
