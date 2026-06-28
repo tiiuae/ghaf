@@ -17,6 +17,7 @@
           # firewall = pkgs.callPackage ./firewall { inherit self; };
           logging-fss = pkgs.callPackage ./logging { inherit self; };
           fss-test = pkgs.callPackage ./logging/test_scripts/fss-test.nix { };
+          fss-triage = pkgs.callPackage ./logging/test_scripts/fss-triage.nix { };
         };
     };
 }

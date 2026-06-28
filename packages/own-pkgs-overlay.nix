@@ -12,6 +12,7 @@
     flash-script = final.callPackage ./pkgs-by-name/flash-script/package.nix { };
     fleet-desktop = final.callPackage ./pkgs-by-name/fleet-desktop/package.nix { };
     fleet-orbit = final.callPackage ./pkgs-by-name/fleet-orbit/package.nix { };
+    fss-triage = final.callPackage ./pkgs-by-name/fss-triage/package.nix { };
     gala = final.callPackage ./pkgs-by-name/gala/package.nix { };
     ghaf-build-helper = final.callPackage ./pkgs-by-name/ghaf-build-helper/package.nix { };
     ghaf-installer = final.callPackage ./pkgs-by-name/ghaf-installer/package.nix { };
