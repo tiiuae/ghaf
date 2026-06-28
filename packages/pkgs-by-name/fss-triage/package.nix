@@ -104,10 +104,12 @@ writeShellApplication {
     COMMAND_LOG="$OUTPUT_DIR/commands.tsv"
     SUMMARY="$OUTPUT_DIR/summary.txt"
     VERIFY_SUMMARY="$OUTPUT_DIR/verify/summary.tsv"
+    RECEIPT_SUMMARY="$OUTPUT_DIR/receipt-summary.tsv"
     CRITICAL_FAILURE=0
 
     printf 'name\texit_code\tcommand\n' > "$COMMAND_LOG"
     printf 'name\texit_code\tverdict\ttags\treason\n' > "$VERIFY_SUMMARY"
+    printf 'class\ttotal\tvalid\tcurrent\tstale\tmissing\tmismatched\n' > "$RECEIPT_SUMMARY"
 
     info() { fss_log info "$1"; }
     warn() { fss_log warn "$1"; }
@@ -296,6 +298,73 @@ writeShellApplication {
       UNCLEAN_RECEIPTS="$(fss_filter_valid_receipts "$RAW_UNCLEAN_RECEIPTS")"
     }
 
+    fss_receipt_missing_paths() {
+      local records="$1"
+      local rec ver path rest missing=""
+
+      while IFS= read -r rec || [ -n "$rec" ]; do
+        [ -n "$rec" ] || continue
+        # shellcheck disable=SC2034  # ver/rest are positional placeholders
+        IFS=$'\t' read -r ver path rest <<<"$rec"
+        [ -n "$path" ] || continue
+        [ -e "$path" ] && continue
+        missing=$(fss_append_unique_line "$missing" "$path")
+      done <<<"$records"
+
+      printf '%s' "$missing"
+    }
+
+    fss_receipt_count_for_boot() {
+      local records="$1"
+      local wanted_boot="$2"
+      local mode="$3"
+      local rec ver path inode size boot rest
+      local count=0
+
+      [ -n "$wanted_boot" ] || { printf '0'; return 0; }
+      while IFS= read -r rec || [ -n "$rec" ]; do
+        [ -n "$rec" ] || continue
+        # shellcheck disable=SC2034  # ver/path/inode/size/rest are positional placeholders
+        IFS=$'\t' read -r ver path inode size boot rest <<<"$rec"
+        case "$mode" in
+        current)
+          [ "$boot" = "$wanted_boot" ] && count=$((count + 1))
+          ;;
+        stale)
+          [ -n "$boot" ] && [ "$boot" != "$wanted_boot" ] && count=$((count + 1))
+          ;;
+        esac
+      done <<<"$records"
+
+      printf '%s' "$count"
+    }
+
+    write_receipt_summary() {
+      local class="$1"
+      local raw="$2"
+      local valid="$3"
+      local mismatches="$4"
+      local missing
+
+      missing="$(fss_receipt_missing_paths "$raw")"
+      printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+        "$class" \
+        "$(fss_count_nonempty_lines "$raw")" \
+        "$(fss_count_nonempty_lines "$valid")" \
+        "$(fss_receipt_count_for_boot "$valid" "$CURRENT_BOOT_ID" current)" \
+        "$(fss_receipt_count_for_boot "$valid" "$CURRENT_BOOT_ID" stale)" \
+        "$(fss_count_nonempty_lines "$missing")" \
+        "$(fss_count_nonempty_lines "$mismatches")" \
+        >> "$RECEIPT_SUMMARY"
+    }
+
+    refresh_receipt_summary() {
+      printf 'class\ttotal\tvalid\tcurrent\tstale\tmissing\tmismatched\n' > "$RECEIPT_SUMMARY"
+      write_receipt_summary "recovery" "$RAW_RECOVERY_RECEIPTS" "$RECOVERY_RECEIPTS" "$RECOVERY_RECEIPT_MISMATCHES"
+      write_receipt_summary "pre-activation" "$RAW_PRE_ACTIVATION_RECEIPTS" "$PRE_ACTIVATION_RECEIPTS" "$PRE_ACTIVATION_RECEIPT_MISMATCHES"
+      write_receipt_summary "unclean-shutdown" "$RAW_UNCLEAN_RECEIPTS" "$UNCLEAN_RECEIPTS" "$UNCLEAN_RECEIPT_MISMATCHES"
+    }
+
     classify_verify_file() {
       local name="$1"
       local output_file="$2"
@@ -429,6 +498,7 @@ writeShellApplication {
     fi
 
     refresh_fss_allowlists
+    refresh_receipt_summary
 
     info "Writing FSS triage data to $OUTPUT_DIR"
 
@@ -446,6 +516,8 @@ writeShellApplication {
       printf 'recovery_receipt_mismatches_count=%s\n' "$(fss_count_nonempty_lines "$RECOVERY_RECEIPT_MISMATCHES")"
       printf 'pre_activation_receipts_count=%s\n' "$(fss_count_nonempty_lines "$PRE_ACTIVATION_RECEIPTS")"
       printf 'pre_activation_receipt_mismatches_count=%s\n' "$(fss_count_nonempty_lines "$PRE_ACTIVATION_RECEIPT_MISMATCHES")"
+      printf 'unclean_shutdown_receipts_count=%s\n' "$(fss_count_nonempty_lines "$UNCLEAN_RECEIPTS")"
+      printf 'unclean_shutdown_receipt_mismatches_count=%s\n' "$(fss_count_nonempty_lines "$UNCLEAN_RECEIPT_MISMATCHES")"
       printf 'current_boot_id=%s\n' "$CURRENT_BOOT_ID"
       if activation_mode_enabled; then
         printf 'activation_mode=enabled\n'
@@ -560,12 +632,16 @@ writeShellApplication {
     fi
 
     {
+      refresh_receipt_summary
       echo "FSS triage summary"
       echo
       cat "$OUTPUT_DIR/context.env"
       echo
       echo "Verification summary:"
       column -t -s $'\t' "$VERIFY_SUMMARY" 2>/dev/null || cat "$VERIFY_SUMMARY"
+      echo
+      echo "Receipt summary:"
+      column -t -s $'\t' "$RECEIPT_SUMMARY" 2>/dev/null || cat "$RECEIPT_SUMMARY"
       echo
       echo "Command log:"
       column -t -s $'\t' "$COMMAND_LOG" 2>/dev/null || cat "$COMMAND_LOG"

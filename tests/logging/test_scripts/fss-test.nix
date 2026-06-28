@@ -100,6 +100,51 @@ writeShellApplication {
       [ "$(journald_effective_seal)" = "yes" ]
     }
 
+    print_verification_warning_summary() {
+      echo "   Warning summary:"
+      if [ -n "''${FSS_ACTIVE_SYSTEM_FAILURES:-}" ]; then
+        echo "     active system journal: FAILED"
+      else
+        echo "     active system journal: OK"
+      fi
+
+      if printf '%s\n' "''${FSS_VERDICT_TAGS:-}" | grep -Fq "PRE_ACTIVATION_ARCHIVE"; then
+        if printf '%s\n' "''${FSS_VERDICT_TAGS:-}" | grep -Fq "PRE_ACTIVATION_STALE"; then
+          echo "     archived system journals: recorded stale pre-activation receipts"
+        else
+          echo "     archived system journals: recorded current-boot pre-activation receipts"
+        fi
+      elif printf '%s\n' "''${FSS_VERDICT_TAGS:-}" | grep -Fq "RECOVERY_ARCHIVE"; then
+        if printf '%s\n' "''${FSS_VERDICT_TAGS:-}" | grep -Fq "RECOVERY_STALE"; then
+          echo "     archived system journals: recorded stale recovery receipts"
+        else
+          echo "     archived system journals: recorded current-boot recovery receipts"
+        fi
+      elif printf '%s\n' "''${FSS_VERDICT_TAGS:-}" | grep -Fq "UNCLEAN_SHUTDOWN"; then
+        if printf '%s\n' "''${FSS_VERDICT_TAGS:-}" | grep -Fq "UNCLEAN_SHUTDOWN_STALE"; then
+          echo "     archived system journals: recorded stale unclean-shutdown receipts"
+        else
+          echo "     archived system journals: recorded current-boot unclean-shutdown receipts"
+        fi
+      elif [ -n "''${FSS_ARCHIVED_SYSTEM_FAILURES:-}" ]; then
+        echo "     archived system journals: unexpected archived-system failures"
+      else
+        echo "     archived system journals: OK"
+      fi
+
+      if [ -n "''${FSS_USER_FAILURES:-}" ]; then
+        echo "     user journals: verification warnings only"
+      else
+        echo "     user journals: OK"
+      fi
+
+      if [ -n "''${RECOVERY_RECEIPT_MISMATCHES:-}''${PRE_ACTIVATION_RECEIPT_MISMATCHES:-}''${UNCLEAN_RECEIPT_MISMATCHES:-}" ]; then
+        echo "     receipt mismatches: present"
+      else
+        echo "     receipt mismatches: none"
+      fi
+    }
+
     # Test 1: FSS setup service
     info "Test 1: Checking journal-fss-setup service..."
     if systemctl cat journal-fss-setup.service &>/dev/null; then
@@ -262,6 +307,7 @@ writeShellApplication {
         ;;
       warning)
         warn "Journal verification WARNING [$FSS_VERDICT_TAGS] ($FSS_VERDICT_REASON)"
+        print_verification_warning_summary
         echo "   Output: $VERIFY_OUTPUT"
         ;;
       fail)

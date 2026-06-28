@@ -106,6 +106,46 @@ _: ''
           ARCHIVED_TEMP_JOURNAL="/var/log/journal/mid/system@0000000000000001-0000000000000002.journal~"
           OTHER="/var/log/journal/mid/custom.journal"
 
+          # Trust transition matrix: these cases are the compact executable
+          # specification for FSS verification policy.
+          assert_verdict verified "PASS: $ACTIVE"
+
+          assert_verdict fail "FAIL: $ACTIVE (Bad message)"
+          [ -n "$FSS_ACTIVE_SYSTEM_FAILURES" ]
+
+          assert_verdict verified-with-exception \
+            "$(printf "FAIL: %s (Bad message)\nPASS: %s" "$PRE_ACTIVATION_ARCHIVE" "$ACTIVE")" \
+            "" "" "$(mkreceipt "$PRE_ACTIVATION_ARCHIVE" "$CURBOOT")" "$CURBOOT"
+          [ "$FSS_VERDICT_REASON" = "recorded insecure boot logs (current boot)" ]
+
+          assert_verdict warning \
+            "$(printf "FAIL: %s (Bad message)\nPASS: %s" "$PRE_ACTIVATION_ARCHIVE" "$ACTIVE")" \
+            "" "" "$(mkreceipt "$PRE_ACTIVATION_ARCHIVE" "boot-earlier")" "$CURBOOT"
+          [ "$FSS_VERDICT_REASON" = "insecure boot logs from an earlier boot" ]
+
+          assert_verdict fail \
+            "$(printf "FAIL: %s (Bad message)\nPASS: %s" "$PRE_ACTIVATION_ARCHIVE" "$ACTIVE")" \
+            "" "" "" "$CURBOOT"
+          [ "$FSS_VERDICT_REASON" = "archived system journal failures outside allowlist" ]
+
+          assert_verdict warning "$(printf "FAIL: %s (Bad message)\nPASS: %s" "$USER_JOURNAL" "$ACTIVE")"
+          [ -n "$FSS_USER_FAILURES" ]
+          [ -z "$FSS_ACTIVE_SYSTEM_FAILURES" ]
+
+          assert_verdict verified-with-exception \
+            "$(printf "FAIL: %s (Bad message)\nPASS: %s" "$ARCHIVED_TEMP_JOURNAL" "$ACTIVE")" \
+            "" "" "" "$CURBOOT" 1 "$(mkuncleanreceipt "$ARCHIVED_TEMP_JOURNAL" "$CURBOOT")"
+          [ "$FSS_VERDICT_REASON" = "recorded unclean-shutdown journal (current boot)" ]
+
+          assert_verdict fail \
+            "FAIL: $ACTIVE (Bad message)" \
+            "" "" "" "$CURBOOT" 1 "$(mkuncleanreceipt "$ARCHIVED_TEMP_JOURNAL" "$CURBOOT")"
+          [ "$FSS_VERDICT_REASON" = "active system journal verification failed" ]
+
+          assert_verdict warning "$(printf "FAIL: %s (Virheellinen viesti)\nPASS: %s" "$USER_JOURNAL" "$ACTIVE")"
+          [ -n "$FSS_USER_FAILURES" ]
+          ! printf "%s" "$FSS_REASON_TAGS" | grep -F "BAD_MESSAGE"
+
           # Active system failure → fail
           assert_verdict fail "FAIL: $ACTIVE (Bad message)"
           [ "$FSS_REASON_TAGS" = "BAD_MESSAGE" ]
@@ -476,6 +516,24 @@ _: ''
   with subtest("Deployed fss-test operator tool runs"):
       if not skip_if_setup_failed("fss-test"):
           machine.succeed("fss-test >/tmp/fss-test-operator.log 2>&1 || { cat /tmp/fss-test-operator.log; exit 1; }")
+
+  with subtest("Deployed fss-triage reports receipt summary"):
+      if not skip_if_setup_failed("fss-triage"):
+          machine.succeed("""
+            bash -lc '
+              set -euo pipefail
+              OUT=$(mktemp -d)
+              fss-triage --output-dir "$OUT" >/tmp/fss-triage-operator.log 2>&1 || {
+                cat /tmp/fss-triage-operator.log
+                exit 1
+              }
+              grep -F "Receipt summary:" "$OUT/summary.txt"
+              grep -E "^class[[:space:]]+total[[:space:]]+valid[[:space:]]+current[[:space:]]+stale[[:space:]]+missing[[:space:]]+mismatched" "$OUT/summary.txt"
+              grep -E "^pre-activation[[:space:]]+" "$OUT/summary.txt"
+              grep -E "^recovery[[:space:]]+" "$OUT/summary.txt"
+              grep -E "^unclean-shutdown[[:space:]]+" "$OUT/summary.txt"
+            '
+          """)
 
   with subtest("Setup records activation state and a content-bound receipt store"):
       if not skip_if_setup_failed("activation state + receipts"):
