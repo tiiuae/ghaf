@@ -65,6 +65,52 @@ The verification key enables:
 - Audit by external parties without access to the live system
 - Disaster recovery verification
 
+## Lifecycle Receipts
+
+Ghaf FSS verification distinguishes active integrity failures from expected
+journald lifecycle artifacts using content-bound receipts. A receipt is a small
+TSV record written when FSS setup or recovery creates an archive that may later
+fail plain `journalctl --verify` even though it is not evidence of current
+active log corruption.
+
+Receipt schema:
+
+```text
+v1 <path> <inode> <size> <boot_id> <mtime> <sha256> <reason> <event_id>
+```
+
+Fields:
+
+| Field      | Meaning                                                     |
+| ---------- | ----------------------------------------------------------- |
+| `v1`       | Receipt schema version                                      |
+| `path`     | Journal archive path recorded at the lifecycle event        |
+| `inode`    | Inode observed when the receipt was created                 |
+| `size`     | Size observed when the receipt was created                  |
+| `boot_id`  | Boot ID that produced the receipt                           |
+| `mtime`    | Archive modification time observed at receipt creation      |
+| `sha256`   | Content hash used for verification-time identity matching   |
+| `reason`   | Lifecycle reason, such as `pre-activation-rotation`, recovery, or `unclean-shutdown` |
+| `event_id` | Event identifier tying receipts from the same operation together |
+
+Receipt classes:
+
+| Class                  | Producer                         | Verification behavior |
+| ---------------------- | -------------------------------- | --------------------- |
+| Pre-activation archive | `journal-fss-setup.service`      | Current-boot receipts become verified exceptions; earlier boot receipts warn |
+| Recovery archive       | `ghaf-journal-alloy-recover`     | Current-boot receipts become verified exceptions; earlier boot receipts warn |
+| Unclean shutdown       | journald recovery plus FSS setup | Matching `.journal~` archives become verified exceptions or warnings depending on boot |
+
+Validation is fail-closed:
+
+- A matching on-disk archive must have the recorded SHA256 content hash.
+- A present archive with different content is a receipt mismatch and fails
+  verification.
+- A missing archive is tolerated because journald retention may legitimately
+  delete old archives.
+- A receipt never exempts the live `system.journal`; active system journal
+  verification failures remain critical.
+
 ## Operations
 
 ### Manual Verification
