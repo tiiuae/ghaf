@@ -9,6 +9,7 @@
 let
   # Ghaf systemd config
   cfg = config.ghaf.systemd;
+  localeDirectory = "/run/current-system/sw/lib/locale";
 
   inherit (lib)
     mkEnableOption
@@ -333,13 +334,14 @@ in
       coredump.enable = cfg.withDebug || cfg.withMachines;
       managerEnvironment.SYSTEMD_LOG_LEVEL = cfg.logLevel;
       globalEnvironment.SYSTEMD_LOG_LEVEL = cfg.logLevel;
+      globalEnvironment.SYSTEMD_LOCALE_DIRECTORY = localeDirectory;
 
       # Service startup optimization
       services.systemd-networkd-wait-online.enable = mkForce false;
     };
 
     # TODO: Remove after https://github.com/NixOS/nixpkgs/pull/445146 is available
-    environment.variables.SYSTEMD_LOCALE_DIRECTORY = "/run/current-system/sw/lib/locale";
+    environment.variables.SYSTEMD_LOCALE_DIRECTORY = localeDirectory;
 
     # Suppress systemd-tmp.conf to avoid %b specifier errors
     # (ProtectProc=noaccess prevents reading /proc/sys/kernel/random/boot_id)

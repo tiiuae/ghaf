@@ -134,14 +134,22 @@ writeShellApplication {
           # shellcheck disable=SC2086
           new_system=$(ssh $NIX_SSHOPTS root@ghaf-host readlink -f /nix/var/nix/profiles/system 2>/dev/null || true)
           show_nvd_diff "$old_system" "$new_system"
+          if [ -z "$new_system" ]; then
+            echo "Unable to resolve uploaded system profile on target; refusing to queue switch activation" >&2
+            exit 1
+          fi
 
           # Activate via systemd-run --no-block so the unit is detached from the
           # SSH session.  The connection may drop once network services restart
           echo ""
           echo "Activating new system (connection may drop)..."
           # shellcheck disable=SC2086,SC2029
-          ssh $NIX_SSHOPTS root@ghaf-host \
-            "systemd-run --no-block -- $new_system/bin/switch-to-configuration switch" || true
+          if ! ssh $NIX_SSHOPTS root@ghaf-host \
+            "systemd-run --unit=ghaf-rebuild-switch --description='Ghaf rebuild switch activation' --collect --no-block -- $new_system/bin/switch-to-configuration switch"; then
+            echo "Failed to queue remote switch activation on target" >&2
+            exit 1
+          fi
+          echo "Remote switch activation queued as ghaf-rebuild-switch.service"
         else
           nixos-rebuild --flake "$build_target" --target-host root@ghaf-host --no-reexec "''${upload_args[@]}"
 
