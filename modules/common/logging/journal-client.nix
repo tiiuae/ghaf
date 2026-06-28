@@ -75,10 +75,11 @@ in
       extraConfig = mkIf config.ghaf.logging.journalRetention.enable ''
         MaxRetentionSec=${config.ghaf.logging.journalRetention.maxRetention}
         MaxFileSec=${config.ghaf.logging.journalRetention.MaxFileSec}
+        SyncIntervalSec=${config.ghaf.logging.journalRetention.syncInterval}
         SystemMaxUse=${config.ghaf.logging.journalRetention.maxDiskUsage}
         SystemMaxFileSize=100M
         Storage=persistent
-        ${optionalString config.ghaf.logging.fss.enable ''
+        ${optionalString config.ghaf.logging.fss.staticSealEnabled ''
           Seal=yes
         ''}
       '';

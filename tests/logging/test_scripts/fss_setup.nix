@@ -36,10 +36,12 @@ _: ''
       exit_code, _ = machine.execute(f"test -f /var/log/journal/{mid}/fss")
       if exit_code == 0:
           print(f"FSS sealing key exists at /var/log/journal/{mid}/fss")
+          machine.succeed(f"test \"$(stat -c '%U:%G %a' /var/log/journal/{mid}/fss)\" = 'root:root 600'")
       else:
           exit_code2, _ = machine.execute(f"test -f /run/log/journal/{mid}/fss")
           if exit_code2 == 0:
               print("FSS sealing key exists in volatile storage")
+              machine.succeed(f"test \"$(stat -c '%U:%G %a' /run/log/journal/{mid}/fss)\" = 'root:root 600'")
           else:
               print("FSS sealing key not found - service conditions may not have been met")
 
@@ -63,6 +65,32 @@ _: ''
               print("Verification key exists and is non-empty")
           else:
               print("Skipping verification key assertion because setup did not complete successfully")
+
+  with subtest("Runtime FSS activation config is written"):
+      if setup_succeeded:
+          machine.succeed("""
+            bash -lc '
+              set -euo pipefail
+              test -f /run/systemd/journald.conf.d/90-ghaf-fss-activation.conf
+              grep -Fx "[Journal]" /run/systemd/journald.conf.d/90-ghaf-fss-activation.conf
+              grep -Fx "Seal=yes" /run/systemd/journald.conf.d/90-ghaf-fss-activation.conf
+              systemd-analyze cat-config systemd/journald.conf | grep -E "^[[:space:]]*Seal[[:space:]]*=[[:space:]]*no"
+              effective_seal=$(systemd-analyze cat-config systemd/journald.conf | awk -F= '"'"'
+                /^[[:space:]]*[#;]/ { next }
+                /^[[:space:]]*Seal[[:space:]]*=/ {
+                  value = $2
+                  sub(/^[[:space:]]*/, "", value)
+                  sub(/[[:space:]]*[#;].*$/, "", value)
+                  sub(/[[:space:]]*$/, "", value)
+                  seal = tolower(value)
+                }
+                END { print seal }
+              '"'"')
+              [ "$effective_seal" = yes ]
+            '
+          """)
+      else:
+          print("Skipping runtime activation assertion because setup did not complete successfully")
 
   with subtest("Initialized sentinel exists"):
       if setup_succeeded:

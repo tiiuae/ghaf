@@ -159,9 +159,11 @@ Indicates an integrity or corruption issue:
 # Check which files failed
 journalctl --verify 2>&1 | grep FAIL
 
-# If only .journal~ files fail, these are temp files (not critical)
-# If only user-*.journal or system@*.journal fail while system.journal passes,
-# treat this as a warning and investigate journal rotation/recovery timing.
+# If only .journal~ files fail, these are temp files (not critical).
+# If a recorded bootstrap/recovery system@*.journal archive fails while
+# system.journal passes, fss-test and journal-fss-verify treat FSS as healthy.
+# If user-*.journal files fail while system.journal passes, treat this as a
+# warning and investigate journal rotation/recovery timing.
 # Active system.journal failures remain critical.
 ```
 
