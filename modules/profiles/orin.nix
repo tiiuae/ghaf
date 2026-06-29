@@ -147,6 +147,8 @@ in
           "com.system76.CosmicAppletPower"
         ];
         screenRecorder.enable = false;
+        idleManagement.suspendOnBattery = lib.mkForce 0;
+        idleManagement.suspendOnAC = lib.mkForce 0;
       };
 
       reference.programs.windows-launcher.enable = true;
