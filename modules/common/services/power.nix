@@ -84,13 +84,33 @@ let
     ) config.microvm.vms
   );
 
-  gracefulShutdownVms = lib.attrNames (
+  # VMs that relay power events instead of acting on an ACPI power button (the
+  # GUI VM, which sets HandlePowerKey="ignore" under the gui power-manager
+  # profile). These must be powered off via givc, not a QMP/ACPI button.
+  givcShutdownVms = lib.attrNames (
     filterAttrs (
       _: vm:
       let
         vmConfig = lib.ghaf.vm.getConfig vm;
       in
-      vmConfig != null && vmConfig.ghaf.gracefulShutdown
+      vmConfig != null
+      && vmConfig.ghaf.services.power-manager.enable
+      && vmConfig.ghaf.services.power-manager.gui.enable
+    ) config.microvm.vms
+  );
+
+  # Every other VM accepts an ACPI power button, so the host shuts it down via
+  # QEMU QMP system_powerdown: the guest runs its own unprivileged systemd
+  # poweroff (flushing+sealing journald) before QEMU exits. This grants the guest
+  # no new privilege and does not depend on the givc admin coordinator.
+  qmpShutdownVms = lib.attrNames (
+    filterAttrs (
+      _: vm:
+      let
+        vmConfig = lib.ghaf.vm.getConfig vm;
+      in
+      vmConfig != null
+      && !(vmConfig.ghaf.services.power-manager.enable && vmConfig.ghaf.services.power-manager.gui.enable)
     ) config.microvm.vms
   );
 
@@ -260,7 +280,7 @@ let
     ];
     text = ''
       restart_logind() {
-        systemctl restart systemd-logind
+        systemctl restart systemd-logind || echo "Failed to restart systemd-logind; continuing resume fallback"
         sleep 0.3
         local job_ids
         job_ids=$(systemctl list-jobs --no-legend \
@@ -273,11 +293,15 @@ let
 
       is_lid_open() {
         local state
+        # busctl exits non-zero when logind is crashed or unreachable (exactly the
+        # case wait_for_lid_open recovers from). Tolerate that here instead of
+        # letting errexit/pipefail abort the whole resume helper before the
+        # restart_logind fallback runs; an unknown state is treated as not-open.
         state=$(busctl get-property "org.freedesktop.login1" "/org/freedesktop/login1" \
-          "org.freedesktop.login1.Manager" "LidClosed" | \
-              awk 'NR == 1 { print $2 == "true" ? "closed" : "open" }')
-        echo "Lid state: $state"
-        [ "$state" == "open" ]
+          "org.freedesktop.login1.Manager" "LidClosed" 2>/dev/null | \
+              awk 'NR == 1 { print $2 == "true" ? "closed" : "open" }') || true
+        echo "Lid state: ''${state:-unknown}"
+        [ "$state" = "open" ]
       }
 
       wait_for_lid_open() {
@@ -991,12 +1015,12 @@ in
           # from stdio, which is /dev/null under systemd. As a result, the command returns
           # immediately, systemd sees the process as still active, and kills it with SIGTERM.
           #
-          # For system VMs, we replace ExecStop with custom logic:
-          #   1. Request a graceful shutdown by starting 'poweroff.target' inside the guest.
-          #   2. Wait until the associated QEMU process ($MAINPID) exits.
-          #
-          # We also shorten TimeoutStopSec from the microvm default (150s) to 30s,
-          # since system VMs are expected to power off quickly.
+          # We replace ExecStop with custom logic, by VM class, then wait for the
+          # QEMU process ($MAINPID) to exit:
+          #   - GUI VM (ignores ACPI, relays power events): start poweroff.target via givc.
+          #   - every other VM: send QMP system_powerdown so the guest runs its own
+          #     ACPI poweroff and flushes/seals journald before QEMU exits.
+          # We also shorten TimeoutStopSec from the microvm default (150s) to 30s.
           (mkIf useGivc (
             lib.listToAttrs (
               map (
@@ -1007,14 +1031,15 @@ in
                     ExecStop =
                       let
                         sysvm-stop = pkgs.writeShellScript "sysvm-stop" ''
-                          # Check if this stop is part of a real shutdown or suspend.
-                          # During a nixos-rebuild switch, affected services (system vms) are restarted
-                          # which causes their ExecStop actions to be executed
-                          # If no real reboot/suspend job is queued, we can assume the VM should be
-                          # restarted without requesting the host itself to reboot
+                          # During ghaf-rebuild switch activation, affected system
+                          # VMs may be restarted as part of host service changes.
+                          # That path runs inside a named detached activation unit;
+                          # only skip guest poweroff for that narrow case. Ordinary
+                          # manual stops/restarts must still use graceful shutdown.
                           jobs=$(${getExe' pkgs.systemd "systemctl"} list-jobs 2>/dev/null || true)
-                          if ! echo "$jobs" | grep -qiE '(sleep|suspend|poweroff|reboot|halt)\.target.*start'; then
-                            echo "No shutdown/suspend in progress, skipping graceful shutdown for '${vmName}' (likely a rebuild)"
+                          if ! echo "$jobs" | grep -qiE '(sleep|suspend|poweroff|reboot|halt)\.target.*start' \
+                            && ${getExe' pkgs.systemd "systemctl"} is-active --quiet ghaf-rebuild-switch.service; then
+                            echo "ghaf-rebuild switch activation in progress, skipping guest poweroff for '${vmName}'"
                             kill -15 $MAINPID 2>/dev/null
                             while kill -0 $MAINPID 2>/dev/null; do
                               sleep 1
@@ -1022,8 +1047,11 @@ in
                             exit 0
                           fi
 
+                          # GUI VM ignores the ACPI power button (HandlePowerKey=ignore) and
+                          # relays power events via its interceptor, so it cannot be powered off
+                          # with a QMP/ACPI button; deliver poweroff.target through givc instead.
+                          # The admin coordinator is alive here because admin-vm is shutdownLast.
                           echo "Starting poweroff target for system VM '${vmName}'"
-                          vm=''${${vmName}/-vm/}
                           ${givc-cli} start service --vm '${vmName}' poweroff.target &
 
                           echo "Waiting for system VM '${vmName}' with QEMU PID=$MAINPID to stop"
@@ -1041,51 +1069,72 @@ in
                       ];
                   };
                 }
-              ) gracefulShutdownVms
+              ) givcShutdownVms
             )
           ))
-          # Handle app-vms shutdown
+          # All ACPI-capable VMs: host-side QMP system_powerdown. The guest runs its
+          # own unprivileged systemd poweroff (journald flush+seal) before QEMU
+          # exits — no SIGTERM-mid-write corruption, no new guest privilege, no
+          # admin coordinator dependency.
           (lib.listToAttrs (
-            map
-              (
-                vmName:
-                nameValuePair "microvm@${vmName}" {
-                  serviceConfig = {
-                    TimeoutStopSec = "30";
-                    ExecStop =
-                      let
-                        ghaf-vm-stop = pkgs.writeShellScript "ghaf-vm-stop" ''
-                          echo "Sending SIGTERM to VM '${vmName}'"
+            map (
+              vmName:
+              nameValuePair "microvm@${vmName}" {
+                serviceConfig = {
+                  TimeoutStopSec = lib.mkDefault "30";
+                  ExecStop =
+                    let
+                      vmConfig = lib.ghaf.vm.getConfig config.microvm.vms.${vmName};
+                      qmpSocket =
+                        if vmConfig != null && (vmConfig.microvm.socket or null) != null then
+                          "${config.microvm.stateDir}/${vmName}/${vmConfig.microvm.socket}"
+                        else
+                          "";
+                      qmp-stop = pkgs.writeShellScript "qmp-stop" ''
+                        # ghaf-rebuild switch activation restarts (not shuts down) the VM as
+                        # part of host service changes; skip the graceful poweroff only for
+                        # that narrow case and SIGTERM for a fast restart.
+                        jobs=$(${getExe' pkgs.systemd "systemctl"} list-jobs 2>/dev/null || true)
+                        if ! echo "$jobs" | grep -qiE '(sleep|suspend|poweroff|reboot|halt)\.target.*start' \
+                          && ${getExe' pkgs.systemd "systemctl"} is-active --quiet ghaf-rebuild-switch.service; then
+                          echo "ghaf-rebuild switch activation in progress, SIGTERM '${vmName}'"
                           kill -15 $MAINPID 2>/dev/null
-
-                          echo "Waiting for VM '${vmName}' with QEMU PID=$MAINPID to stop"
                           while kill -0 $MAINPID 2>/dev/null; do
                             sleep 1
                           done
+                          exit 0
+                        fi
 
-                          echo "VM '${vmName}' with QEMU PID=$MAINPID stopped"
-                        '';
-                      in
-                      [
-                        # Clear previous microvm ExecStop logic
-                        ""
-                        # '+' allows the ghaf-vm-stop script to be executed with full privileges
-                        "+${ghaf-vm-stop}"
-                      ];
-                  };
-                }
-              )
-              (
-                lib.attrNames (
-                  filterAttrs (
-                    _: vm:
-                    let
-                      vmConfig = lib.ghaf.vm.getConfig vm;
+                        socket='${qmpSocket}'
+                        if [ -n "$socket" ] && [ -S "$socket" ]; then
+                          # ACPI poweroff via QEMU QMP: the guest does its own clean systemd
+                          # shutdown (journald flush+seal) before QEMU exits. A bounded socat
+                          # (-t1) avoids microvm's trailing-`cat` /dev/null stdio trap.
+                          echo "QMP system_powerdown -> '${vmName}' ($socket)"
+                          printf '{"execute":"qmp_capabilities"}\n{"execute":"system_powerdown"}\n' \
+                            | ${pkgs.socat}/bin/socat -t1 - "UNIX-CONNECT:$socket" \
+                            || echo "WARN: QMP system_powerdown to '${vmName}' failed; relying on stop timeout" >&2
+                        else
+                          echo "WARN: no QMP socket for '${vmName}' ('$socket'); SIGTERM fallback" >&2
+                          kill -15 $MAINPID 2>/dev/null
+                        fi
+
+                        echo "Waiting for VM '${vmName}' with QEMU PID=$MAINPID to stop"
+                        while kill -0 $MAINPID 2>/dev/null; do
+                          sleep 1
+                        done
+                        echo "VM '${vmName}' with QEMU PID=$MAINPID stopped"
+                      '';
                     in
-                    vmConfig != null && vmConfig.ghaf.type != "system-vm"
-                  ) config.microvm.vms
-                )
-              )
+                    [
+                      # Clear previous microvm ExecStop logic
+                      ""
+                      # '+' runs the qmp-stop script with full privileges
+                      "+${qmp-stop}"
+                    ];
+                };
+              }
+            ) qmpShutdownVms
           ))
           # Handle VMs with shutdownLast enabled
           (lib.listToAttrs (
@@ -1096,6 +1145,10 @@ in
                   before = map (n: "microvm@${n}.service") (
                     lib.filter (n: n != vmName) (lib.attrNames config.microvm.vms)
                   );
+                  # The shutdown-last VM is the log aggregator (admin-vm): it stops
+                  # after every other VM and has the most journal to flush+seal, so
+                  # give it more time before the stop timeout SIGKILLs QEMU.
+                  serviceConfig.TimeoutStopSec = "60";
                 }
               )
               (
