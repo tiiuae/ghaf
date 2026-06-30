@@ -21,30 +21,30 @@ Fleet Orbit runs in the GUI VM and reports to a central Fleet server using a dyn
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        Host VM                               │
+│                        Ghaf Host                            │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │  ghaf-dynamic-hostname service                       │    │
-│  │  └─► /persist/common/ghaf/hostname                   │    │
+│  │  ghaf-dynamic-hostname service                      │    │
+│  │  └─► /persist/common/ghaf/hostname                  │    │
 │  └─────────────────────────────────────────────────────┘    │
-│                           │ (virtiofs)                       │
+│                           │ (virtiofs)                      │
 └───────────────────────────┼─────────────────────────────────┘
                             │
 ┌───────────────────────────┼─────────────────────────────────┐
-│                        GUI VM                                │
-│                           ▼                                  │
+│                        GUI VM                               │
+│                           ▼                                 │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │  /etc/common/ghaf/hostname                           │    │
+│  │  /etc/common/ghaf/hostname                          │    │
 │  └──────────────────────┬──────────────────────────────┘    │
-│                         │                                    │
+│                         │                                   │
 │  ┌──────────────────────▼──────────────────────────────┐    │
-│  │  orbit.service                                       │    │
-│  │  └─► ORBIT_HOSTNAME_FILE=/etc/common/ghaf/hostname   │    │
-│  │  └─► Reports to Fleet Server                         │    │
+│  │  orbit.service                                      │    │
+│  │  └─► ORBIT_HOSTNAME_FILE=/etc/common/ghaf/hostname  │    │
+│  │  └─► Reports to Fleet Server                        │    │
 │  └─────────────────────────────────────────────────────┘    │
-│                                                              │
+│                                                             │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │  fleet-desktop.service (user)                        │    │
-│  │  └─► Tray icon for device status                     │    │
+│  │  fleet-desktop.service (user)                       │    │
+│  │  └─► Tray icon for device status                    │    │
 │  └─────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -65,18 +65,18 @@ services.orbit = {
 
 ### Configuration Options
 
-| Option | Environment Variable | Description |
-|--------|---------------------|-------------|
-| `enable` | — | Enable Fleet Orbit systemd service |
-| `fleetUrl` | `ORBIT_FLEET_URL` | Base URL of the Fleet server |
-| `enrollSecret` | `ORBIT_ENROLL_SECRET` | Enroll secret for Fleet server |
+| Option             | Environment Variable       | Description                                             |
+| ------------------ | -------------------------- | ------------------------------------------------------- |
+| `enable`           | —                          | Enable Fleet Orbit systemd service                      |
+| `fleetUrl`         | `ORBIT_FLEET_URL`          | Base URL of the Fleet server                            |
+| `enrollSecret`     | `ORBIT_ENROLL_SECRET`      | Enroll secret for Fleet server                          |
 | `enrollSecretPath` | `ORBIT_ENROLL_SECRET_PATH` | Path to enroll secret file (recommended for production) |
-| `fleetCertificate` | `ORBIT_FLEET_CERTIFICATE` | Path to Fleet server certificate chain |
-| `hostnameFile` | `ORBIT_HOSTNAME_FILE` | Path to file containing hostname (Ghaf-specific) |
-| `hostIdentifier` | `ORBIT_HOST_IDENTIFIER` | Host identifier mode: `uuid` or `instance` |
-| `enableScripts` | `ORBIT_ENABLE_SCRIPTS` | Enable remote script execution |
-| `debug` | `ORBIT_DEBUG` | Enable debug logging |
-| `insecure` | `ORBIT_INSECURE` | Disable TLS certificate verification |
+| `fleetCertificate` | `ORBIT_FLEET_CERTIFICATE`  | Path to Fleet server certificate chain                  |
+| `hostnameFile`     | `ORBIT_HOSTNAME_FILE`      | Path to file containing hostname (Ghaf-specific)        |
+| `hostIdentifier`   | `ORBIT_HOST_IDENTIFIER`    | Host identifier mode: `uuid` or `instance`              |
+| `enableScripts`    | `ORBIT_ENABLE_SCRIPTS`     | Enable remote script execution                          |
+| `debug`            | `ORBIT_DEBUG`              | Enable debug logging                                    |
+| `insecure`         | `ORBIT_INSECURE`           | Disable TLS certificate verification                    |
 
 ### Secret Management
 
@@ -118,6 +118,7 @@ Two systemd services are created:
 ## Logs
 
 Orbit logs are written to:
+
 - `/var/log/orbit/orbit.log` — Main Orbit log
 - `/var/log/orbit/osquery/` — osquery result and status logs
 - `journalctl -u orbit` — Systemd journal
@@ -136,16 +137,19 @@ The Ghaf Fleet integration includes patches for NixOS compatibility:
 ### Orbit not starting
 
 Check if the hostname file exists:
+
 ```bash
 ls -la /etc/common/ghaf/hostname
 ```
 
 If you use `enrollSecretPath`, also verify the secret file is present:
+
 ```bash
 ls -la /etc/common/ghaf/fleet/enroll
 ```
 
 Check service status:
+
 ```bash
 systemctl status orbit
 journalctl -u orbit -f
@@ -154,6 +158,7 @@ journalctl -u orbit -f
 ### Connection issues
 
 Enable debug logging:
+
 ```nix
 services.orbit = {
   debug = true;
@@ -165,6 +170,7 @@ services.orbit = {
 ### Script execution failures
 
 Verify scripts are enabled and check logs:
+
 ```bash
 cat /var/log/orbit/orbit.log | grep -i script
 ```

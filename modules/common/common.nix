@@ -296,8 +296,10 @@ in
       "/share/iso-codes"
     ];
 
-    i18n.defaultLocale = "en_US.UTF-8";
-
-    i18n.extraLocales = "all";
+    i18n = {
+      defaultLocale = "en_US.UTF-8";
+      imperativeLocale = true;
+      extraLocales = "all";
+    };
   };
 }

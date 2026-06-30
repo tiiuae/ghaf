@@ -57,6 +57,9 @@ in
           "host-powersave-battery.service"
           "host-balanced-battery.service"
           "host-performance-battery.service"
+        ]
+        ++ optionals config.ghaf.services.orbit.host.enable [
+          "${config.ghaf.services.orbit.host.wipeService}.service"
         ];
         vmServices = {
           adminVm = optionalString (
