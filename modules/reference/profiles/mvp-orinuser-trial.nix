@@ -71,6 +71,9 @@ in
       };
 
       security.audit.enable = false;
+
+      # osquery fails to build for cross-compiled targets
+      services.orbit.enable = lib.mkForce false;
     };
   };
 }

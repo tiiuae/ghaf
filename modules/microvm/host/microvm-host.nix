@@ -109,6 +109,11 @@ in
           renderer = "simpledrm"; # Force simpledrm framebuffer for graphical boot on host
         };
         services = {
+          orbit = {
+            inherit (config.ghaf.global-config.orbit) enable debug;
+            host.enable = config.ghaf.global-config.orbit.enable;
+            gui.enable = config.ghaf.profiles.graphics.enable;
+          };
           power-manager = {
             host.enable = true;
             gui.enable = config.ghaf.profiles.graphics.enable;

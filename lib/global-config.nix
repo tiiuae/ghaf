@@ -87,6 +87,11 @@ rec {
         debug = mkEnableOption "SPIRE debug logs";
       };
 
+      orbit = {
+        enable = mkEnableOption "Orbit Fleet MDM globally";
+        debug = mkEnableOption "Orbing Fleet MDM debug logs";
+      };
+
       storage = {
         encryption.enable = mkEnableOption "storage encryption globally";
         storeOnDisk = {
@@ -374,6 +379,11 @@ rec {
         debug = false;
       };
 
+      orbit = {
+        enable = true;
+        debug = true;
+      };
+
       spire = {
         enable = true;
         debug = true;
@@ -475,6 +485,11 @@ rec {
         debug = false;
       };
 
+      orbit = {
+        enable = false;
+        debug = false;
+      };
+
       storage = {
         encryption.enable = true;
         storeOnDisk.enable = false;
@@ -565,6 +580,11 @@ rec {
 
       spire = {
         enable = true;
+        debug = false;
+      };
+
+      orbit = {
+        enable = false;
         debug = false;
       };
 
