@@ -333,6 +333,7 @@ in
     );
     systemd.network.networks."10-${interfaceName}" = {
       matchConfig.Name = interfaceName;
+      networkConfig.DNSDefaultRoute = false;
       dns = map (name: cfg.domains.${name}.dnsProvider.ipAddress) dnsDomains;
       domains = map (name: "~${name}") (lib.attrNames cfg.domains);
     };
