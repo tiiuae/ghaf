@@ -29,6 +29,7 @@ let
   performanceEnabled = lib.ghaf.features.isEnabledFor globalConfig "performance" vmName;
   wifiEnabled = lib.ghaf.features.isEnabledFor globalConfig "wifi" vmName;
   timezoneEnabled = lib.ghaf.features.isEnabledFor globalConfig "timezone" vmName;
+  netVmAddress = hostConfig.networking.thisVm.ipv4 or "192.168.100.1";
 in
 {
   _file = ./netvm-base.nix;
@@ -168,7 +169,7 @@ in
 
       ssh-tarpit = {
         enable = globalConfig.development.ssh.daemon.enable or false;
-        listenAddress = hostConfig.networking.thisVm.ipv4 or "192.168.100.1";
+        listenAddress = netVmAddress;
       };
 
       # Audit - from globalConfig
@@ -205,6 +206,8 @@ in
       allowedTCPPorts = [ dnsPort ];
       allowedUDPPorts = [ dnsPort ];
     };
+
+  services.resolved.settings.Resolve.DNSStubListenerExtra = netVmAddress;
 
   # Disable mDNS publishing on net-vm. With two live interfaces (internal
   # ethint0 + USB/Wi-Fi uplink), systemd-resolved hears its own announcements

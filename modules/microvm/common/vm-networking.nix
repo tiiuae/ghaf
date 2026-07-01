@@ -24,6 +24,7 @@ let
   netVmAddress = hosts."net-vm".ipv4;
   idsVmAddress = hosts."ids-vm".ipv4;
   gateway = if isIdsvmEnabled && (cfg.vmName != "ids-vm") then [ idsVmAddress ] else [ netVmAddress ];
+  useNetVmDns = cfg.vmName != "net-vm";
 in
 {
   _file = ./vm-networking.nix;
@@ -48,6 +49,7 @@ in
     networking = {
       hostName = cfg.vmName;
       enableIPv6 = false;
+      nameservers = mkIf useNetVmDns (mkDefault [ netVmAddress ]);
       useNetworkd = true;
       nat = {
         enable = cfg.isGateway;
