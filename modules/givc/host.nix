@@ -31,10 +31,25 @@ in
         message = "Policy admin cannot be enabled in host.";
       }
     ];
+    #Access control rules for host.
+    ghaf.givc.accessControl.commonAdminRules = [
+      {
+        from = [ config.networking.hostName ];
+        permittedRequests = [
+          "GetUnitStatus"
+          "RegisterService"
+          "StartService"
+          "StopService"
+          "Suspend"
+          "Wakeup"
+        ];
+      }
+    ];
     givc.host = {
       enable = true;
-
       inherit (config.ghaf.givc) debug;
+      accessControl.enable = config.ghaf.givc.accessControl.enable;
+
       network = {
         agent.transport = {
           name = config.networking.hostName;
@@ -75,6 +90,14 @@ in
           policies = mapAttrs (_name: value: value.dest) policycfg.policies;
         };
       };
+      accessControl.agentRules = [
+        {
+          permittedVms = [ config.givc.host.network.admin.transport.name ];
+          permittedModules = [
+            "stats"
+          ];
+        }
+      ];
     };
 
     givc.tls = {

@@ -1,0 +1,76 @@
+# Ghaf Access Control
+
+Ghaf Inter-VM Communication (GIVC) includes an access control mechanism to secure and restrict communication between virtual machines and the host. In the backend, the high-level Nix access control configurations defined by users are automatically transformed and compiled into **Cedar policies** to enforce fine-grained security rules at runtime.
+
+## 1. Architectural Overview
+
+The ACL system operates on a default-deny principle (except for the built-in `ServerReflectionInfo`  ). Before executing any RPC method, the gRPC interceptor/middleware evaluates the request against the injected Cedar policies. If it is  allowed it forwards the request to underline layer otherwise it returns "permission denied error". Here are the building blocks and control flow diagram for access control enforcement in GIVC admin and agents.
+
+### Building Blocks
+
+This flow shows how a request moves from a Source VM through a access control module implemented in interceptor/middleware before reaching the gRPC service. The system checks the request details against security policies to either allow or deny the request.
+
+- **Actor:**
+
+  - **Source VM:** The source vm initiating a gRPC request.
+
+- **Core Processes:**
+
+  - **[Parser] Context Extraction:** The `Request Parser` extracts complete metadata from the request header and payload and maps to the Cedar objects  (*Principal*, *Resource*, *Action*, and *Context*) required for authorization request.
+
+  - **[Cedar Authorizer] Policy Verification:** The `Cedar Authorizer` evaluates the request against the active `Cedar Policies`.
+
+  - **Gatekeeping:** If **Allowed**, the request drops into the `givc Admin Service` and returns an execution `Status`. If **Denied**, it triggers an instant `Permission Denied` error.
+
+  In Admin and Agents both evaluate request using Cedar authorizer. Since Admin accepts requests for only admin givc module and it also works as proxy between two VMs, so more parameters are added in the authorization requests e.g. RPC method and target VM(as Cedar context).
+
+                          Flow diagram in GIVC Admin
+
+  ![Admin Access Control Flow](./../../../../../assets/ghaf/access-control-admin.png)
+
+                           Flow diagram in GIVC Agents
+
+  ![Admin Access Control Flow](./../../../../../assets/ghaf/access-control-agent.png)
+
+#### ### Cedar Entity Mapping
+
+To facilitate fine-grained control, incoming gRPC requests are dynamically mapped to Cedar entities:
+
+- **Principal (`Source`)**: The identity of the calling VM, securely extracted from the TLS Subject Alternative Name (SAN).
+
+- **Resource (`Module`)**: The target gRPC service module (e.g., `systemd`, `admin`, `stats`).
+
+- **Action (`Command`)**: The specific gRPC method being invoked (e.g., `StartApplication`, `Reboot`, `RegisterService`).
+
+- **Context (`context`)**: The gRPC protobuf request payload, converted to a Cedar record (e.g., checking `context.VmName` or `context.UnitName`). **The context is evaluated only for unary requests, it is completely ingnored in stream requests.**
+
+###
+
+## 3. Core Access Control Options
+
+To configure or modify access control, follwing module options are available.
+
+- **`ghaf.global-config.givc.withAccessControl`**
+
+  - **Description:** A global boolean toggle to enable or disable the GIVC access control mechanism across the entire system (the host and all VMs).
+
+- **`ghaf.givc.accessControl.commonAdminRules`**
+
+  - **Description:** A list of top-level access rules defining what individual VMs are authorized to send to, or proxy through, the central Admin VM.
+
+- **`givc.appvm.accessControl.agentRules`**
+
+  - **Description:** Defines fine-grained local rules for application VM agents, specifying which external VMs can directly access local service modules (such as `systemd` or `stats`).
+
+- **`givc.adminvm.accessControl.adminRules`**
+
+  - **Description:** Defines fine-grained configuration rules applied directly to the Admin VM to control service consumption and traffic routing.
+
+> **Note:** For specific field definitions within these rules (such as `from`, `to`, `permittedRequests`, and `permittedModules`), please check the module option documentation for the latest schema definitions.
+
+## 3. Default Configurations Derived in Code
+
+Ghaf provides a secure baseline right out of the box. It automatically sets up default ACL rules for each VM profile. These rules are created based on the active settings. The system also includes specific rules to meet core functional requirements.
+In GIVC module admin and agents derive these rules based on the capabilities enabled for them in the respective VM for example if in host exec module is enabled it derives rule to allow access of exec module to admin VM.
+
+###

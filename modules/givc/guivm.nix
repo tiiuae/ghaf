@@ -36,12 +36,43 @@ in
       }
     ];
 
+    #Access control rules for gui-vm.
+    ghaf.givc.accessControl.commonAdminRules = [
+      {
+        from = [ config.networking.hostName ];
+        permittedRequests = [
+          "Suspend"
+          "Reboot"
+          "Poweroff"
+        ];
+      }
+      {
+        from = [ config.networking.hostName ];
+        to = config.ghaf.common.appHosts;
+        permittedRequests = [
+          "StartApplication"
+          "PauseApplication"
+          "ResumeApplication"
+          "StopApplication"
+        ];
+      }
+      {
+        from = [ config.networking.hostName ];
+        permittedRequests = [
+          "SetLocale"
+          "SetTimezone"
+          "StartService"
+        ];
+      }
+    ];
+
     # Configure guivm service
     givc.sysvm = {
       enable = true;
       inherit (config.ghaf.givc) debug;
       enableUserTlsAccess = true;
       notifier.enable = true;
+      accessControl.enable = config.ghaf.givc.accessControl.enable;
       network = {
         agent.transport = {
           name = hostName;

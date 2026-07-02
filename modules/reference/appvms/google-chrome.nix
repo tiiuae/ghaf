@@ -109,6 +109,15 @@ in
                 imports = [ ../programs/google-chrome.nix ];
                 ghaf = {
                   givc.policyClient.enable = true;
+                  givc.accessControl.commonAdminRules = [
+                    {
+                      from = [ "chrome-vm" ];
+                      to = config.ghaf.common.appHosts;
+                      permittedRequests = [
+                        "StartApplication"
+                      ];
+                    }
+                  ];
                   reference.programs.google-chrome.enable = lib.mkDefault true;
                   security.apparmor.enable = lib.mkDefault true;
                   xdgitems = {

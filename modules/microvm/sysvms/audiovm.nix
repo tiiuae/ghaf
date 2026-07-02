@@ -74,6 +74,7 @@ in
             inherit (cfg.evaluatedConfig.config.ghaf.security.spire.agent) nodeAttestationMode workloads;
           };
         };
+        adminAccessControl = cfg.evaluatedConfig.config.ghaf.givc.accessControl.commonAdminRules or [ ];
       };
 
       microvm.vms."${vmName}" = {

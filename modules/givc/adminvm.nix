@@ -74,6 +74,17 @@ in
         inherit (policycfg) storePath updater;
         policies = groupedPolicies;
       };
+      accessControl = {
+        enable = config.ghaf.givc.accessControl.enable;
+        adminRules = config.ghaf.common.adminAccessControl ++ [
+          {
+            from = config.ghaf.common.vms;
+            permittedRequests = [
+              "RegisterService"
+            ];
+          }
+        ];
+      };
     };
 
     # Sysvm agent so admin-vm receives timezone/locale propagation
@@ -93,6 +104,7 @@ in
       capabilities.services = lib.optionals config.ghaf.gracefulShutdown [
         "poweroff.target"
       ];
+      accessControl.enable = config.ghaf.givc.accessControl.enable;
     };
 
     ghaf.security.audit.extraRules = [

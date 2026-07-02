@@ -42,6 +42,7 @@ in
       enable = true;
       inherit (config.ghaf.givc) debug;
       inherit (config.ghaf.users.homedUser) uid;
+      accessControl.enable = config.ghaf.givc.accessControl.enable;
       network = {
         agent.transport = {
           name = hostName;

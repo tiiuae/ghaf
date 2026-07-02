@@ -296,6 +296,15 @@ in
 
               # Enable Policy Client
               givc.policyClient.enable = true;
+              givc.accessControl.commonAdminRules = [
+                {
+                  from = [ "business-vm" ];
+                  to = config.ghaf.common.appHosts;
+                  permittedRequests = [
+                    "StartApplication"
+                  ];
+                }
+              ];
 
               # Enable Proxy Auto-Configuration service for the browser
               reference.services = {

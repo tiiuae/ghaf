@@ -179,6 +179,7 @@ in
     givc = {
       enable = globalConfig.givc.enable or false;
       debug = globalConfig.givc.debug or false;
+      accessControl.enable = globalConfig.givc.withAccessControl or false;
     };
 
     # Security - from globalConfig

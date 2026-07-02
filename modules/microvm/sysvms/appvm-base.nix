@@ -142,6 +142,7 @@ in
         givc = {
           enable = globalConfig.givc.enable or false;
           debug = globalConfig.givc.debug or false;
+          accessControl.enable = globalConfig.givc.withAccessControl or false;
         };
         givc.appvm = {
           enable = true;
@@ -271,6 +272,14 @@ in
             nodeAttestationMode = if globalConfig.givc.enable then "x509pop" else "join_token";
           };
         };
+        givc.accessControl.commonAdminRules = lib.optionals (vm.yubiProxy or false) [
+          {
+            from = [ vmName ];
+            permittedRequests = [
+              "Ctap"
+            ];
+          }
+        ];
       };
 
       # Combined udev rules (yubikey + passthrough)
