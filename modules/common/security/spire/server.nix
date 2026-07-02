@@ -10,7 +10,6 @@ with lib;
 let
   cfg = config.ghaf.security.spire.server;
   runtimeDataDir = "/run/spire-server";
-  tokenDir = "/etc/common/spire/tokens";
   credSourceDir = "/etc/givc";
   socketPath = "${runtimeDataDir}/api.sock";
   dataDir = "${runtimeDataDir}";
@@ -23,14 +22,8 @@ let
   getVMsByAttestation =
     mode: builtins.attrNames (filterAttrs (_vm: cfg: (cfg.nodeAttestationMode == mode)) spireAgents);
 
-  joinTokenVMs = getVMsByAttestation "join_token";
   x509popVMs = getVMsByAttestation "x509pop";
 
-  joinTokenPlugin = optionalString (builtins.length joinTokenVMs > 0) ''
-    NodeAttestor "join_token" {
-      plugin_data {}
-    }
-  '';
   x509popPlugin = optionalString (builtins.length x509popVMs > 0) ''
     NodeAttestor "x509pop" {
       plugin_data {
@@ -65,55 +58,9 @@ let
       KeyManager "memory" {
         plugin_data {}
       }
-      ${joinTokenPlugin}
       ${x509popPlugin}
     }
   '';
-
-  spireGenerateJoinTokensApp = pkgs.writeShellApplication {
-    name = "spire-generate-join-tokens";
-    runtimeInputs = [
-      pkgs.coreutils
-      pkgs.gawk
-      spire-package
-    ];
-    text = ''
-      mkdir -p "${tokenDir}"
-      chmod 755 "${tokenDir}"
-
-      # Wait until the server is up
-      for i in $(seq 1 60); do
-        if spire-server healthcheck -socketPath ${socketPath} >/dev/null 2>&1; then
-          echo "SPIRE server is ready"
-          break
-        fi
-        echo "Waiting for SPIRE server... ($i/60)"
-        sleep 1
-      done
-
-      ${concatMapStringsSep "\n" (vm: ''
-        tokenFile="${tokenDir}/${vm}.token"
-
-        # Check if agent is already registered
-        if spire-server agent list -socketPath ${socketPath} 2>/dev/null | grep -q "spiffe://${trustDomain}/agent/${vm}"; then
-          echo "Agent ${vm} already registered, skipping token generation"
-        else
-          echo "Generating new token for ${vm}"
-          # Capture output and check success in one go
-          if ! output=$(spire-server token generate -socketPath "${socketPath}" -spiffeID "spiffe://${trustDomain}/${vm}"); then
-              echo "Error: SPIRE token generation failed!" >&2
-              exit 1
-          fi
-
-          token=$(echo "$output" | awk '/^Token:/ {print $2}')
-
-          printf '%s\n' "$token" > "$tokenFile"
-          chmod 0644 "$tokenFile"
-          echo "Token written to $tokenFile"
-        fi
-      '') joinTokenVMs}
-    '';
-  };
 
   spirePublishBundleApp = pkgs.writeShellApplication {
     name = "spire-publish-bundle";
@@ -194,7 +141,6 @@ in
     systemd = {
       tmpfiles.rules = [
         "d ${runtimeDataDir} 0755 root root - -"
-        "d ${tokenDir} 0755 root root - -"
       ];
 
       services = {
@@ -241,23 +187,6 @@ in
           };
         };
 
-        spire-generate-join-tokens = mkIf (builtins.length joinTokenVMs > 0) {
-          description = "Generate SPIRE join tokens for Ghaf VMs (PoC)";
-          wantedBy = [ "multi-user.target" ];
-          after = [
-            "spire-server.service"
-            "network-online.target"
-          ];
-          wants = [
-            "spire-server.service"
-            "network-online.target"
-          ];
-          serviceConfig = {
-            Type = "oneshot";
-            RemainAfterExit = true;
-            ExecStart = getExe spireGenerateJoinTokensApp;
-          };
-        };
         spire-publish-bundle = {
           description = "Publish SPIRE trust bundle (PoC)";
           wantedBy = [ "multi-user.target" ];
@@ -272,10 +201,7 @@ in
         spire-create-workload-entries = {
           description = "Create SPIRE workload entries";
           wantedBy = [ "multi-user.target" ];
-          after = [
-            "spire-server.service"
-          ]
-          ++ optionals (builtins.length joinTokenVMs > 0) [ "spire-generate-join-tokens.service" ];
+          after = [ "spire-server.service" ];
           wants = [ "spire-server.service" ];
 
           serviceConfig = {

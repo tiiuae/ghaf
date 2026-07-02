@@ -248,11 +248,7 @@ in
       }
     );
 
-    spireNodeAttestationMode = lib.types.enum [
-      "join_token"
-      "x509pop"
-      "tpm_devid"
-    ];
+    spireNodeAttestationMode = lib.types.enum [ "x509pop" ];
 
   };
 

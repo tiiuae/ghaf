@@ -168,7 +168,7 @@ in
         agents.downstream = {
           enable = globalConfig.spire.enable or false;
           logLevel = if globalConfig.spire.debug then "DEBUG" else "INFO";
-          nodeAttestationMode = if globalConfig.givc.enable then "x509pop" else "join_token";
+          nodeAttestationMode = "x509pop";
         };
 
         # Disabled by default. Placeholders for when connecting admin-vm to an external SPIRE backend.
