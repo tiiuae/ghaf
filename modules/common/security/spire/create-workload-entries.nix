@@ -67,13 +67,9 @@ pkgs.writeShellApplication {
         agentCfg = config.ghaf.common.spire.agents.${vmName};
         agentSpiffeID = "spiffe://${config.ghaf.common.spire.server.trustDomain}/${vmName}";
 
-        nodeEntryCmd =
-          if (agentCfg.nodeAttestationMode == "x509pop") then
-            ''
-              create_entry "" ${escapeShellArg agentSpiffeID} "true" "x509pop:subject:cn:${escapeShellArg vmName}"
-            ''
-          else
-            "";
+        nodeEntryCmd = ''
+          create_entry "" ${escapeShellArg agentSpiffeID} "true" "x509pop:subject:cn:${escapeShellArg vmName}"
+        '';
 
         workloadCmds = concatMapStringsSep "\n" (
           workload:

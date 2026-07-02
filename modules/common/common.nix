@@ -65,7 +65,7 @@ in
               options = {
                 nodeAttestationMode = mkOption {
                   type = types.spireNodeAttestationMode;
-                  default = "join_token";
+                  default = "x509pop";
                   description = "Spire node attestation mode";
                 };
                 workloads = mkOption {

@@ -158,8 +158,7 @@ in
         security.spire.agents.downstream = {
           inherit (config.ghaf.global-config.spire) enable;
           logLevel = if config.ghaf.global-config.spire.debug then "DEBUG" else "INFO";
-          nodeAttestationMode = if config.ghaf.global-config.givc.enable then "x509pop" else "join_token";
-          settings.join_token.token = "/persist/common/spire/tokens/${config.networking.hostName}.token";
+          nodeAttestationMode = "x509pop";
           trustBundlePath = "/persist/common/spire/bundle.pem";
         };
       };

@@ -52,10 +52,7 @@ let
         };
 
         nodeAttestationMode = mkOption {
-          type = types.enum [
-            "join_token"
-            "x509pop"
-          ];
+          type = types.enum [ "x509pop" ];
           default = "x509pop";
           description = "Node attestation mode.";
         };
@@ -91,12 +88,6 @@ let
         };
 
         settings = {
-          join_token.token = mkOption {
-            type = types.str;
-            default = "/etc/common/spire/tokens/${config.networking.hostName}.token";
-            description = "Path to the server-generated join token.";
-          };
-
           x509pop = {
             privateKeyPath = mkOption {
               type = types.str;
@@ -116,71 +107,44 @@ let
   );
 
   enabledAgents = filterAttrs (_: agent: agent.enable) config.ghaf.security.spire.agents;
-  isJoinToken = agent: agent.nodeAttestationMode == "join_token";
 
-  credentials =
-    agent:
-    if isJoinToken agent then
-      [ "join-token:${agent.settings.join_token.token}" ]
-    else
-      [
-        "key.pem:${agent.settings.x509pop.privateKeyPath}"
-        "cert.pem:${agent.settings.x509pop.certificatePath}"
-      ];
+  credentials = agent: [
+    "key.pem:${agent.settings.x509pop.privateKeyPath}"
+    "cert.pem:${agent.settings.x509pop.certificatePath}"
+  ];
 
-  credentialPaths =
-    agent:
-    if isJoinToken agent then
-      [ agent.settings.join_token.token ]
-    else
-      [
-        agent.settings.x509pop.privateKeyPath
-        agent.settings.x509pop.certificatePath
-      ];
+  credentialPaths = agent: [
+    agent.settings.x509pop.privateKeyPath
+    agent.settings.x509pop.certificatePath
+  ];
 
-  agentConf =
-    agent:
-    let
-      nodeAttestor =
-        if isJoinToken agent then
-          ''
-            NodeAttestor "join_token" {
-              plugin_data {}
-            }
-          ''
-        else
-          ''
-            NodeAttestor "x509pop" {
-              plugin_data {
-                private_key_path = "$CREDENTIALS_DIRECTORY/key.pem"
-                certificate_path = "$CREDENTIALS_DIRECTORY/cert.pem"
-              }
-            }
-          '';
-    in
-    ''
-      agent {
-        data_dir = "${agent.dataDir}"
-        log_level = "${agent.logLevel}"
-        server_address = "${agent.serverAddress}"
-        server_port = ${toString agent.serverPort}
-        trust_domain = "${agent.trustDomain}"
-        trust_bundle_path = "${agent.trustBundlePath}"
-        socket_path = "${agent.socketPath}"
-        ${optionalString (isJoinToken agent) ''join_token_file = "$CREDENTIALS_DIRECTORY/join-token"''}
-      }
+  agentConf = agent: ''
+    agent {
+      data_dir = "${agent.dataDir}"
+      log_level = "${agent.logLevel}"
+      server_address = "${agent.serverAddress}"
+      server_port = ${toString agent.serverPort}
+      trust_domain = "${agent.trustDomain}"
+      trust_bundle_path = "${agent.trustBundlePath}"
+      socket_path = "${agent.socketPath}"
+    }
 
-      plugins {
-        ${nodeAttestor}
-
-        WorkloadAttestor "unix" {
-          plugin_data {}
-        }
-        KeyManager "memory" {
-          plugin_data {}
+    plugins {
+      NodeAttestor "x509pop" {
+        plugin_data {
+          private_key_path = "$CREDENTIALS_DIRECTORY/key.pem"
+          certificate_path = "$CREDENTIALS_DIRECTORY/cert.pem"
         }
       }
-    '';
+
+      WorkloadAttestor "unix" {
+        plugin_data {}
+      }
+      KeyManager "memory" {
+        plugin_data {}
+      }
+    }
+  '';
 
   configFiles = mapAttrs (
     name: agent: pkgs.writeText "${serviceName name}.conf" (agentConf agent)
@@ -204,13 +168,6 @@ let
           echo "Waiting for SPIRE trust bundle ${agent.trustBundlePath}"
           sleep 1
         done
-
-        ${optionalString (isJoinToken agent) ''
-          until [ -e ${escapeShellArg agent.settings.join_token.token} ]; do
-            echo "Waiting for SPIRE join token ${agent.settings.join_token.token}"
-            sleep 1
-          done
-        ''}
       '';
     };
 
@@ -229,8 +186,8 @@ let
       after = [
         "network-online.target"
         "local-fs.target"
-      ]
-      ++ optional (!isJoinToken agent) "givc-key-setup.service";
+        "givc-key-setup.service"
+      ];
 
       unitConfig.RequiresMountsFor = [
         agent.trustBundlePath
