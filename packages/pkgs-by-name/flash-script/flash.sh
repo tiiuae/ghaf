@@ -23,6 +23,9 @@ TEMP_DIR=""
 SPARSE_IMAGE=""
 SPARSE_BMAP=""
 PREBUILT_BMAP=""
+export ZSTDMT_NBWORKERS_MAX=8
+ZSTD_THREADS=0
+[[ -n ${NIX_BUILD_CORES:-} ]] && ((NIX_BUILD_CORES >= 1 && NIX_BUILD_CORES <= 8)) && ZSTD_THREADS=$NIX_BUILD_CORES
 
 error() { echo -e "${RED}$*${ENDCOLOR}"; }
 success() { echo -e "${GREEN}$*${ENDCOLOR}"; }
@@ -60,7 +63,7 @@ EOF
   exit 1
 }
 
-deps=(zstd awk tr dd blkdiscard lsblk numfmt stat blockdev sync umount grep bmaptool)
+deps=(zstd awk tr dd blkdiscard lsblk numfmt stat blockdev sync umount grep bmaptool udevadm)
 # Check dependencies
 for cmd in "${deps[@]}"; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
@@ -152,6 +155,14 @@ unmount_device_tree() {
   done
 }
 
+# Unmount and let udev/automounters (e.g. udisks2) finish reacting to the
+# device before something tries to open it exclusively (bmaptool).
+sync_device() {
+  unmount_device_tree
+  blockdev --flushbufs "$DEVICE" || true
+  udevadm settle --timeout=10 2>/dev/null || true
+}
+
 confirm_flash() {
   warn "WARNING: This will erase ALL DATA on $DEVICE"
   read -p "Proceed? (Y): " -n 1 -r
@@ -175,8 +186,7 @@ wipe_device() {
   SECTORS=$(blockdev --getsz "$DEVICE")
   # Unmount possible mounted filesystems
   sync
-  unmount_device_tree
-  blockdev --flushbufs "$DEVICE" || true
+  sync_device
   # Wipe first 10MiB of disk
   dd if=/dev/zero of="$DEVICE" bs="$SECTOR" count="$MIB_TO_SECTORS" conv=fsync status=none
   # Wipe last 10MiB of disk
@@ -201,25 +211,39 @@ dd_with_progress() {
   wait "$dd_pid"
 }
 
+# Retries a bmaptool copy a few times, re-syncing the device in between.
+bmaptool_copy_retry() {
+  local attempt
+  for attempt in 1 2 3; do
+    sync_device
+    "$@" && return 0
+    [ "$attempt" -lt 3 ] && sleep 2
+  done
+  return 1
+}
+
 flash_zst_with_bmap() {
   wipe_device
+  PREBUILT_BMAP="${FILENAME%%.*}.bmap"
+  if [ -f "$PREBUILT_BMAP" ]; then
+    echo "Flashing with sparse-aware copy..."
+    if ! bmaptool_copy_retry bmaptool copy --bmap "$PREBUILT_BMAP" "$DEVICE"; then
+      warn "Sparse-aware flashing failed, likely because the device is still busy."
+      return 1
+    fi
+    return 0
+  fi
+
   TEMP_DIR="$(mktemp -d -t ghaf-flash.XXXXXX)"
   SPARSE_IMAGE="$(basename "$FILENAME")"
   SPARSE_IMAGE="$TEMP_DIR/${SPARSE_IMAGE%%.*}.raw"
-
-  echo "Preparing sparse image for faster flashing..."
-  zstdcat "$FILENAME" | dd_with_progress of="$SPARSE_IMAGE" bs=32M conv=sparse,fsync iflag=fullblock status=none
-  PREBUILT_BMAP="${FILENAME%%.*}.bmap"
-  if [ -f "$PREBUILT_BMAP" ]; then
-    SPARSE_BMAP="$PREBUILT_BMAP"
-    echo "Using prebuilt block map: $SPARSE_BMAP"
-  else
-    SPARSE_BMAP="$SPARSE_IMAGE.bmap"
-    echo "Generating block map..."
-    bmaptool create -o "$SPARSE_BMAP" "$SPARSE_IMAGE" >/dev/null
-  fi
+  echo "Preparing sparse image..."
+  zstdcat -T"$ZSTD_THREADS" "$FILENAME" | dd_with_progress of="$SPARSE_IMAGE" bs=32M conv=sparse,fsync iflag=fullblock status=none
+  SPARSE_BMAP="$SPARSE_IMAGE.bmap"
+  echo "Generating block map..."
+  bmaptool create -o "$SPARSE_BMAP" "$SPARSE_IMAGE" >/dev/null
   echo "Flashing with sparse-aware copy..."
-  if ! bmaptool copy --bmap "$SPARSE_BMAP" "$SPARSE_IMAGE" "$DEVICE"; then
+  if ! bmaptool_copy_retry bmaptool copy --bmap "$SPARSE_BMAP" "$SPARSE_IMAGE" "$DEVICE"; then
     warn "Sparse-aware flashing failed, likely because the device is still busy."
     return 1
   fi
@@ -230,9 +254,9 @@ flash_zst_stream() {
   if $USE_PV && ! $NON_INTERACTIVE; then
     PV_CMD=(pv -tpreb -N "$FILENAME")
     [[ -n $IMGSIZE ]] && PV_CMD+=(-s "$IMGSIZE")
-    zstdcat "$FILENAME" | "${PV_CMD[@]}" | dd of="$DEVICE" bs=32M conv=fsync oflag=direct iflag=fullblock status=none
+    zstdcat -T"$ZSTD_THREADS" "$FILENAME" | "${PV_CMD[@]}" | dd of="$DEVICE" bs=32M conv=fsync oflag=direct iflag=fullblock status=none
   else
-    zstdcat "$FILENAME" | dd_with_progress of="$DEVICE" bs=32M conv=fsync oflag=direct iflag=fullblock
+    zstdcat -T"$ZSTD_THREADS" "$FILENAME" | dd_with_progress of="$DEVICE" bs=32M conv=fsync oflag=direct iflag=fullblock
   fi
 }
 
@@ -247,9 +271,15 @@ flash_raw_stream() {
 
 case "$FILENAME" in
 *.zst)
-  echo "Estimating uncompressed size..."
-  IMGSIZE="$(zstd -l "$FILENAME" -v 2>/dev/null | awk '/Decompressed Size:/ {print $5}' | tr -d '()')"
-  clear_lines 1
+  _bmap="${FILENAME%%.*}.bmap"
+  if [ -f "$_bmap" ]; then
+    IMGSIZE="$(grep -oP '<ImageSize>\s*\K\d+' "$_bmap")"
+  else
+    echo "Estimating uncompressed size..."
+    IMGSIZE="$(zstd -l "$FILENAME" -v 2>/dev/null | awk '/Decompressed Size:/ {print $5}' | tr -d '()')"
+    clear_lines 1
+  fi
+  unset _bmap
   show_summary
   $FORCE || confirm_flash
 

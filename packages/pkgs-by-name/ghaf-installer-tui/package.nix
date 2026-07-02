@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
+  bmaptool,
   brightnessctl,
   coreutils,
   e2fsprogs,
@@ -27,6 +28,7 @@ in
 writeShellApplication {
   name = "ghaf-installer-tui";
   runtimeInputs = [
+    bmaptool
     brightnessctl # screen brightness on startup
     coreutils
     e2fsprogs # chattr in efivar cleanup
@@ -45,6 +47,7 @@ writeShellApplication {
     # shellcheck source=/dev/null
     source ${installerLib}
   ''
+  + builtins.readFile ../../../lib/gum-lib.sh
   + builtins.readFile ./ghaf-installer-tui.sh;
   meta = {
     description = "Interactive TUI installer for the Ghaf project";
