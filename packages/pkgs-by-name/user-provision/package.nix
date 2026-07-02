@@ -52,7 +52,7 @@ writeShellApplication {
     systemd
     umount
   ];
-  text = builtins.readFile ./user-provision.sh;
+  text = builtins.readFile ../../../lib/gum-lib.sh + builtins.readFile ./user-provision.sh;
   meta = {
     description = "Ghaf user provisioning script.";
     platforms = [

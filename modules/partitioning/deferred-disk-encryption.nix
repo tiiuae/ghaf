@@ -42,544 +42,433 @@ let
       e2fsprogs
       gawk
       gnugrep
+      gum
       kmod
+      ncurses
       lvm2
       pcsclite.lib
       systemd
       util-linux
     ];
-    text = ''
-      LVM_PV="${lvmPartition}"
-      # TODO: Need to assess the necessity of wiping the slot, as the
-      # resize-partitions service currently relies on the password slot.
-      WIPE_PASSWORD_SLOT=false
+    text =
+      let
+        inherit (cfg) interactiveSetup backendType;
+        tpm2WithPin = if interactiveSetup then "--tpm2-with-pin=yes" else "--tpm2-with-pin=no";
+      in
+      builtins.readFile ../../lib/gum-lib.sh
+      + ''
+        LVM_PV="${lvmPartition}"
+        WIPE_PASSWORD_SLOT=false
 
-      # Wait for device to appear
-      echo "Waiting for device $LVM_PV..."
-      for _ in {1..30}; do
-        if [ -e "$LVM_PV" ]; then
-          echo "Device found."
-          break
+        human_size() {
+          local bytes="$1"
+          local gib_tenths=$((bytes * 10 / 1024 / 1024 / 1024))
+          if ((gib_tenths > 0)); then
+            printf "%d.%d GiB (%d bytes)" "$((gib_tenths / 10))" "$((gib_tenths % 10))" "$bytes"
+          else
+            printf "%d MiB (%d bytes)" "$((bytes / 1024 / 1024))" "$bytes"
+          fi
+        }
+
+        # ---------------------------------------------------------------------------
+        # Wait for the LVM PV to appear
+        # ---------------------------------------------------------------------------
+        for _ in {1..30}; do [ -e "$LVM_PV" ] && break; sleep 1; done
+
+        # ---------------------------------------------------------------------------
+        # Fast-path: already encrypted
+        # ---------------------------------------------------------------------------
+        if cryptsetup isLuks "$LVM_PV"; then
+          [ -e "/dev/mapper/crypted" ] && exit 0
+          mkdir -p /run
+          touch /run/cryptsetup-pre-checked
+          systemctl start --no-block systemd-cryptsetup@crypted || true
+          exit 0
         fi
-        sleep 1
-      done
 
-      # Check if device is already LUKS (state indicator)
-      if cryptsetup isLuks "$LVM_PV"; then
-        echo "Device already encrypted."
-        if [ -e "/dev/mapper/crypted" ]; then
-           echo "Device is unlocked. Skipping..."
-           exit 0
-        fi
-        echo "Device is encrypted but NOT unlocked. Handing off unlock to systemd-cryptsetup..."
-
-       # Ensure marker exists
-        mkdir -p /run
-        touch /run/cryptsetup-pre-checked
-
-        # Start unlock asynchronously and return immediately.
-        # This avoids keeping tty-force attached while TPM2 PIN is requested.
-        echo "Starting systemd-cryptsetup@crypted (non-blocking)..."
-        systemctl start --no-block systemd-cryptsetup@crypted || true
-        exit 0
-      fi
-
-      # Check for installer/completion markers on the ESP partition.
+        # ---------------------------------------------------------------------------
+        # Check for installer marker on ESP
+        # ---------------------------------------------------------------------------
         ESP_DEVICE=""
-        for i in {1..10}; do
-            ESP_DEVICE="$(lsblk -pn -o PATH,PARTLABEL | awk 'tolower($2) ~ /esp/ { print $1; exit }')"
-            [ -n "$ESP_DEVICE" ] && break
-            sleep 1
+        for _ in {1..10}; do
+          ESP_DEVICE="$(lsblk -pn -o PATH,PARTLABEL | awk 'tolower($2) ~ /esp/ { print $1; exit }')"
+          [ -n "$ESP_DEVICE" ] && break
+          sleep 1
         done
 
         if [ -z "$ESP_DEVICE" ]; then
-            echo "ESP partition not found, cannot check for markers. Skipping deferred encryption."
-            exit 0
+          show_warning "ESP partition not found - cannot check for installer marker. Skipping deferred encryption."
+          exit 0
         fi
 
         mkdir -p /mnt/esp
         if ! mount "$ESP_DEVICE" /mnt/esp; then
-          echo "Failed to mount ESP to check for markers. Skipping deferred encryption."
+          show_warning "Failed to mount ESP - skipping deferred encryption."
           exit 0
         fi
 
-        # If it's not an installer-based boot, we also do nothing.
         if [ ! -f "/mnt/esp/.ghaf-installer-encrypt" ]; then
-          echo "Not an installer-based installation (marker not found on ESP). Skipping deferred encryption."
+          show_info "Installer marker not found on ESP - skipping deferred encryption."
           umount /mnt/esp
           exit 0
         fi
 
-      # Stop Plymouth to show encryption progress
-      if command -v plymouth >/dev/null 2>&1; then
-        plymouth quit || true
-        systemctl stop plymouth-quit-wait.service || true
+        # ---------------------------------------------------------------------------
+        # Stop Plymouth so GUM can own the framebuffer TTY
+        # ---------------------------------------------------------------------------
+        if command -v plymouth >/dev/null 2>&1; then
+          plymouth quit || true
+          systemctl stop plymouth-quit-wait.service || true
+          sleep 2
+        fi
 
-        # Wait for TTY to properly reinitialize after Plymouth quits
-        # This ensures the framebuffer console updates terminal dimensions
-        # and text wrapping works correctly
-        sleep 2
-      fi
+        clear
+        show_header "First Boot - Disk Encryption Setup"
+        echo ""
+        show_section \
+          "This system will now apply full-disk encryption to protect your data." \
+          "This process is irreversible and required for system security."
+        echo ""
 
-      # Ensure terminal is correctly configured for interaction
-      export TERM=linux
-      stty cols 256 2>/dev/null || true
-
-      cat <<EOF
-      +--------------------------------------------------------+
-      |         First Boot - Disk Encryption Setup             |
-      +--------------------------------------------------------+
-
-      This system will now apply full disk encryption to protect
-      your data. This process is irreversible and required for
-      system security.
-
-      EOF
-
-      ${
-        if !cfg.interactiveSetup then
+        # ---------------------------------------------------------------------------
+        # Obtain passphrase
+        # ---------------------------------------------------------------------------
+      ''
+      + (
+        if !interactiveSetup then
           ''
-            # Automated mode: automatic encryption with default password as
-            # systemd-cryptenroll cannot work with empty password
-            echo "! Automated mode: Applying encryption automatically..."
+            show_warning "Automated mode: applying encryption automatically..."
             PASSPHRASE="ghaf"
           ''
         else
           ''
-            # Release mode: prompt for user password/PIN
-            cat <<EOF
-            You will be prompted to set a PIN or password.
-            This will be required on every boot to unlock the system.
+            countdown "Continuing in" 5
+            clear
+            show_header "First Boot - Disk Encryption Setup"
+            echo ""
+            show_info "You will be prompted to set an encryption PIN or password."
+            show_section \
+              "Requirements:" \
+              "  - Minimum 4 characters" \
+              "  - Cannot be empty"
+            echo ""
 
-            Requirements:
-              - Minimum 4 characters
-              - Cannot be empty
-
-            EOF
-
-            # Read passphrase securely using systemd-ask-password
             PASSPHRASE=""
             PASSPHRASE2="x"
-            while [ "$PASSPHRASE" != "$PASSPHRASE2" ] || [ -z "$PASSPHRASE" ] || [ ''${#PASSPHRASE} -lt 4 ]; do
-              # Use systemd-ask-password for robust TTY handling
-              if ! PASSPHRASE=$(systemd-ask-password --timeout=0 "Enter encryption PIN/password (min 4 chars):"); then
-                 echo "! Failed to read password"
-                 sleep 2
-                 continue
-              fi
-              echo ""
+            while [ "$PASSPHRASE" != "$PASSPHRASE2" ] \
+                || [ -z "$PASSPHRASE" ] \
+                || [ "''${#PASSPHRASE}" -lt 4 ]; do
+
+              PASSPHRASE=$(prompt_password \
+                "Set encryption password" \
+                "Enter encryption PIN/password (min 4 chars)") || {
+                  show_error "Failed to read password - retrying..."
+                  sleep 1
+                  continue
+                }
 
               if [ -z "$PASSPHRASE" ]; then
-                echo "! Password cannot be empty"
+                show_error "Password cannot be empty."
                 continue
               fi
 
-              if [ ''${#PASSPHRASE} -lt 4 ]; then
-                echo "! Password must be at least 4 characters"
+              if [ "''${#PASSPHRASE}" -lt 4 ]; then
+                show_error "Password must be at least 4 characters."
                 continue
               fi
 
-              if ! PASSPHRASE2=$(systemd-ask-password --timeout=0 "Confirm PIN/password:"); then
-                 echo "! Failed to read confirmation"
-                 continue
-              fi
-              echo ""
+              PASSPHRASE2=$(prompt_password \
+                "Confirm password" \
+                "Confirm your password") || {
+                  show_error "Failed to read confirmation - retrying..."
+                  PASSPHRASE2="x"
+                  continue
+                }
 
               if [ "$PASSPHRASE" != "$PASSPHRASE2" ]; then
-                echo "! Passwords don't match, please try again"
-                echo ""
+                show_error "Passwords do not match - please try again."
+                PASSPHRASE2="x"
               fi
             done
 
-            echo "! Password set successfully"
+            show_success "Password set successfully." ""
           ''
-      }
+      )
+      + ''
 
-      echo ""
-      echo "! Preparing system for encryption..."
+        # ---------------------------------------------------------------------------
+        # Prepare system
+        # ---------------------------------------------------------------------------
+        run_spin "Syncing filesystems..." sync
+        run_spin "Settling udev events..." udevadm settle
 
-      # Ensure all filesystems are synced
-      sync
+        PV_SIZE=$(blockdev --getsize64 "$LVM_PV")
+        NEW_SIZE=$((PV_SIZE - 32 * 1024 * 1024))
 
-      # Wait for any pending udev events
-      udevadm settle
+        show_section \
+          "Physical volume: $(human_size "$PV_SIZE")" \
+          "After shrink:    $(human_size "$NEW_SIZE")  (32 MiB reserved for LUKS header)"
 
-      # Shrink the PV to make space for LUKS header
-      # We need to shrink it by at least 32M
-      echo "! Resizing physical volume..."
+        run_spin -q "Resizing physical volume..." \
+          pvresize --setphysicalvolumesize "''${NEW_SIZE}B" --yes "$LVM_PV" || \
+          show_warning "Failed to resize PV - encryption may fail if there is insufficient room for the LUKS header."
 
-      # Get current size in bytes
-      PV_SIZE=$(blockdev --getsize64 "$LVM_PV")
-      # Calculate new size (current - 32MB)
-      NEW_SIZE=$((PV_SIZE - 32 * 1024 * 1024))
-
-      cat <<EOF
-      Current size: $PV_SIZE bytes
-      New size:     $NEW_SIZE bytes
-      EOF
-
-      # Resize PV
-      # We use --yes to confirm if prompted
-      pvresize --setphysicalvolumesize "''${NEW_SIZE}B" --yes "$LVM_PV" || {
-          echo "! Failed to resize PV, encryption might fail if no space for header"
-      }
-
-      # Deactivate all LVs to prepare for encryption
-      echo "! Deactivating logical volumes..."
-
-      # Show current state for debugging
-      echo "DEBUG: Current LVM state:"
-      lvs || true
-      echo "DEBUG: Open devices:"
-      dmsetup ls || true
-
-      # Try to deactivate pool
-      if ! vgchange -an pool; then
-          echo "! Failed to deactivate pool, forcing..."
-
-          # Debug: list /dev/mapper
-          echo "DEBUG: /dev/mapper contents:"
-          ls -la /dev/mapper/ || true
-
-          # Try to force remove device mapper entries if vgchange failed
-          # We iterate through dmsetup ls output to get exact names
-          # Use || true for grep to avoid pipefail exit if no devices found
+        if ! run_spin -q "Deactivating logical volumes..." vgchange -an pool; then
+          show_warning "vgchange failed - attempting forced removal of device-mapper entries..."
           dmsetup ls | { grep '^pool-' || true; } | awk '{print $1}' | while read -r dev; do
             [ -z "$dev" ] && continue
-            echo "Forcing removal of device-mapper device: $dev"
-            # Check open count
-            dmsetup info -c "$dev" || true
             dmsetup remove -f "$dev" || true
           done
-
-          # Try vgchange again
           vgchange -an pool || true
-      fi
+        fi
 
-      sleep 1
+        run_spin -q "Waiting for device-mapper to settle..." sleep 1
 
-      # Verify deactivation
-      if dmsetup ls | grep -q "pool-"; then
-          echo "! LVM volumes still active:"
+        if dmsetup ls | grep -q "pool-"; then
+          show_error "LVM volumes still active - cannot proceed."
           dmsetup ls
           exit 1
-      fi
+        fi
 
-      # Unmount if mounted (shouldn't be at this stage but safety check)
-      umount -f /persist 2>/dev/null || true
-      swapoff -a 2>/dev/null || true
+        run_spin -q "Unmounting persist..." umount -f /persist 2>/dev/null || true
+        run_spin -q "Disabling swap..." swapoff -a 2>/dev/null || true
 
-      cat <<EOF
+        countdown "Starting encryption in" 5
 
-      ! Encrypting partition...
-          This will take several minutes depending on disk size.
-          Please do not power off the system!
+        # ---------------------------------------------------------------------------
+        # Encrypt in-place
+        # ---------------------------------------------------------------------------
+        clear
+        show_header "First Boot - Disk Encryption Setup"
+        echo ""
+        show_section \
+          "Encrypting partition..." \
+          "This will take several minutes depending on disk size." \
+          "Please do not power off the system!"
+        echo ""
 
-      EOF
+        # Encrypt the partition in-place using cryptsetup-reencrypt
+        # Options:
+        #   --encrypt: Convert plain device to LUKS
+        #   --type luks2: Use LUKS version 2
+        #   --reduce-device-size: Leave space for LUKS header
+        #   --resilience journal: Use journal for crash safety
+        #   --pbkdf argon2id: Use memory-hard KDF (secure against GPU attacks)
+        # Note: For empty passphrase (debug mode), we use printf to ensure a newline is sent
+        printf '%s' "$PASSPHRASE" | cryptsetup reencrypt \
+          --encrypt \
+          --type luks2 \
+          --reduce-device-size 32M \
+          --resilience journal \
+          --pbkdf argon2id \
+          --pbkdf-memory 1048576 \
+          --pbkdf-parallel 4 \
+          "$LVM_PV" \
+          --key-file=- || {
+            printf '\n'
+            show_error "Encryption failed!"
+            exit 1
+          }
 
-      # Encrypt the partition in-place using cryptsetup-reencrypt
-      # Options:
-      #   --encrypt: Convert plain device to LUKS
-      #   --type luks2: Use LUKS version 2
-      #   --reduce-device-size: Leave space for LUKS header
-      #   --resilience journal: Use journal for crash safety
-      #   --pbkdf argon2id: Use memory-hard KDF (secure against GPU attacks)
-      # Note: For empty passphrase (debug mode), we use printf to ensure a newline is sent
-      printf '%s' "$PASSPHRASE" | cryptsetup reencrypt \
-        --encrypt \
-        --type luks2 \
-        --reduce-device-size 32M \
-        --resilience journal \
-        --pbkdf argon2id \
-        --pbkdf-memory 1048576 \
-        --pbkdf-parallel 4 \
-        --progress-frequency 5 \
-        --verbose \
-        "$LVM_PV" \
-        --key-file=- || {
-          echo "! Encryption failed!"
+        printf '\n'
+        show_success "Encryption complete!"
+
+        printf '%s' "$PASSPHRASE" | cryptsetup open "$LVM_PV" crypted --key-file=- || {
+          show_error "Failed to open encrypted device!"
+          exit 1
+        }
+        show_success "Device opened."
+
+        run_spin -q "Activating logical volumes..." vgchange -ay pool || {
+          show_error "Failed to activate volume group!"
           exit 1
         }
 
-      echo ""
-      echo "! Encryption complete!"
+        # ---------------------------------------------------------------------------
+        # Enroll hardware unlock token
+        # ---------------------------------------------------------------------------
+        enroll_phase_header() {
+          countdown "Continuing in" 5
+          clear
+          show_header "First Boot - Disk Encryption Setup"
+          echo ""
+        }
 
-      # Open the newly encrypted device
-      echo "! Opening encrypted device..."
-      printf '%s' "$PASSPHRASE" | cryptsetup open "$LVM_PV" crypted --key-file=- || {
-        echo "! Failed to open encrypted device!"
-        exit 1
-      }
-
-      # Activate LVM on the encrypted device for TPM enrollment
-      echo "! Activating logical volumes..."
-      vgchange -ay pool || {
-        echo "! Failed to activate volume group!"
-        exit 1
-      }
-
-      ${
-        if cfg.backendType == "tpm2" then
+        enroll_recovery_and_wipe() {
+          show_info "Adding recovery key..."
+          # systemd prints the key in stdout, QR code in stderr
+          if PASSWORD="$PASSPHRASE" systemd-cryptenroll --recovery-key "$LVM_PV" 2>&1; then
+            show_success "Recovery key enrolled successfully."
+          else
+            show_warning "Recovery key enrollment failed."
+          fi
+          if [ "$WIPE_PASSWORD_SLOT" = true ]; then
+            run_spin -q "Removing password slot..." \
+              systemd-cryptenroll --wipe-slot=password "$LVM_PV" || \
+              show_warning "Could not remove password slot - it will remain available."
+          fi
+        }
+      ''
+      + (
+        if backendType == "tpm2" then
           ''
-            # Enroll TPM2 for automatic unlocking
-            echo ""
-            echo "! Enrolling TPM 2.0 for automatic unlock..."
+            enroll_phase_header
+            show_info "Enrolling TPM 2.0 for automatic unlock..."
 
             if [ -e /dev/tpmrm0 ]; then
-              echo "!  TPM device found, checking readiness..."
-
-              # Check if TPM is accessible
               if ! tpm2_getcap properties-fixed 2>/dev/null >/dev/null; then
-                cat <<EOF
-            !  Warning: TPM not accessible or not ready
-            !  Skipping TPM enrollment, password will be required on each boot
-            EOF
+                show_warning "TPM not accessible - skipping TPM enrollment."
+                show_warning "Password will be required on every boot."
               else
-                echo "!  TPM is ready, enrolling..."
+                show_success "TPM device is ready - enrolling..."
 
-                # Enroll TPM with optional PIN
                 if PASSWORD="$PASSPHRASE" systemd-cryptenroll \
-                  --tpm2-device=auto \
-                  --tpm2-pcrs=7 \
-                  ${if cfg.interactiveSetup then "--tpm2-with-pin=yes" else "--tpm2-with-pin=no"} \
-                  "$LVM_PV" 2>&1; then
-
-                  # Add recovery key
-                  echo "! Adding recovery key..."
-                  PASSWORD="$PASSPHRASE" systemd-cryptenroll \
-                    --recovery \
-                    "$LVM_PV" || {
-                      echo "!  Recovery key enrollment failed"
-                    }
-
-                  # Remove the password slot only if TPM enrollment succeeded
-                  if [ "$WIPE_PASSWORD_SLOT" = true ]; then
-                    echo "!  Removing password slot..."
-                    systemd-cryptenroll --wipe-slot=password "$LVM_PV" || {
-                    echo "!  Could not remove password slot, it will remain available"
-                   }
-                   fi
-
-                  echo "! TPM enrollment complete!"
+                    --tpm2-device=auto \
+                    --tpm2-pcrs=7 \
+                    ${tpm2WithPin} \
+                    "$LVM_PV" 2>/dev/null; then
+                  enroll_recovery_and_wipe
+                  ${lib.optionalString interactiveSetup "wait_for_user"}
+                  show_success "TPM enrollment complete!"
                 else
-                  cat <<EOF
-            !  TPM enrollment failed!
-                Password slot will NOT be removed. You must use your password to unlock the disk.
-            EOF
+                  show_error "TPM enrollment failed!"
+                  show_warning "Password slot retained. You must use your password to unlock the disk."
                 fi
               fi
             else
-              echo "!  No TPM device found, password will be required on each boot"
+              show_warning "No TPM device found - password will be required on every boot."
             fi
           ''
-        else if cfg.backendType == "fido2" then
+        else if backendType == "fido2" then
           ''
-            # Enroll FIDO2 device for unlocking
-            echo ""
-            echo "! Enrolling FIDO2 device for unlock..."
+            enroll_phase_header
+            show_info "Enrolling FIDO2 device for unlock..."
 
             if systemd-cryptenroll --fido2-device=list 2>/dev/null | grep -q '/dev'; then
-
-               if systemctl is-active --quiet plymouth-start.service; then
-                 plymouth quit || true
-                 systemctl stop plymouth-quit-wait.service || true
-                 sleep 2
-                 echo 'Please confirm presence on security token'
-               fi
+              show_info "Please confirm presence on your security token..."
 
               if PASSWORD="$PASSPHRASE" systemd-cryptenroll \
-                --fido2-device=auto \
-                --fido2-with-user-presence=yes \
-                --fido2-with-client-pin=yes \
-                "$LVM_PV"; then
-
-                # Add recovery key
-                echo "! Adding recovery key..."
-                PASSWORD="$PASSPHRASE" systemd-cryptenroll \
-                  --recovery \
-                  "$LVM_PV" || {
-                    echo "!  Recovery key enrollment failed"
-                  }
-
-                # Remove the password slot only if FIDO2 enrollment succeeded
-                if [ "$WIPE_PASSWORD_SLOT" = true ]; then
-                  echo "!  Removing password slot..."
-                  systemd-cryptenroll --wipe-slot=password "$LVM_PV" || {
-                    echo "!  Could not remove password slot, it will remain available"
-                }
-                fi
-
-                echo "! FIDO2 enrollment complete!"
+                  --fido2-device=auto \
+                  --fido2-with-user-presence=yes \
+                  --fido2-with-client-pin=yes \
+                  "$LVM_PV" 2>/dev/null; then
+                enroll_recovery_and_wipe
+                ${lib.optionalString interactiveSetup "wait_for_user"}
+                show_success "FIDO2 enrollment complete!"
               else
-                cat <<EOF
-            !  FIDO2 enrollment failed!
-                Password slot will NOT be removed. You must use your password to unlock the disk.
-            EOF
+                show_error "FIDO2 enrollment failed!"
+                show_warning "Password slot retained. You must use your password to unlock the disk."
               fi
             else
-              echo "!  No FIDO2 device found, password will be required on each boot"
+              show_warning "No FIDO2 device found - password will be required on every boot."
             fi
           ''
         else
           ''
-            echo "!  Unknown backend type: ${cfg.backendType}"
+            show_warning "Unknown backend type: ${backendType}"
           ''
-      }
+      )
+      + ''
 
-      # Clear passphrase from memory for security
-      unset PASSPHRASE PASSPHRASE2 2>/dev/null || true
+        unset PASSPHRASE PASSPHRASE2 2>/dev/null || true
 
-      # Write state file to prevent re-running on next boot
-      echo "! Writing state file..."
+        # ---------------------------------------------------------------------------
+        # Write completion marker on persist
+        # ---------------------------------------------------------------------------
+        run_spin -q "Loading btrfs module..." modprobe btrfs 2>/dev/null || show_warning "Failed to load btrfs module."
+        run_spin -q "Loading ext4 module..."  modprobe ext4  2>/dev/null || show_warning "Failed to load ext4 module."
 
-      # Load filesystem modules
-      cat <<EOF
-      !  Loading filesystem modules...
-      !  Available filesystems before loading:
-      EOF
-      cat /proc/filesystems | grep -E "btrfs|ext4" || echo "    (none found)"
+        run_spin "Waiting for persist volume..." \
+          bash -c 'for _ in {1..30}; do [ -e /dev/mapper/pool-persist ] && exit 0; sleep 1; done'
 
-      if modprobe btrfs 2>&1; then
-        echo "!  btrfs module loaded"
-      else
-        echo "!  WARNING: Failed to load btrfs module"
-      fi
+        run_spin -q "Settling block devices..."        udevadm settle || true
+        run_spin -q "Triggering block device events..." udevadm trigger --subsystem-match=block || true
+        run_spin -q "Waiting for block devices..."     sleep 3
 
-      if modprobe ext4 2>&1; then
-        echo "!  ext4 module loaded"
-      else
-        echo "!  WARNING: Failed to load ext4 module"
-      fi
+        mkdir -p /tmp/persist
+        MOUNT_SUCCESS=false
 
-      # Wait for device to be ready
-      echo "! Waiting for persist volume..."
-      for i in {1..30}; do
-        if [ -e /dev/mapper/pool-persist ]; then
-          echo "!  Device found at iteration $i"
-          break
-        fi
-        sleep 1
-      done
+        for attempt in {1..5}; do
+          if mount -t btrfs /dev/mapper/pool-persist /tmp/persist 2>/dev/null; then
+            MOUNT_SUCCESS=true
+            break
+          fi
+          show_warning "Mount attempt $attempt failed - retrying..."
+          sleep 2
+        done
 
-      # Ensure udev has fully processed the device
-      udevadm settle || true
-      udevadm trigger --subsystem-match=block || true
-      sleep 3
-
-      # Check if device is really ready
-      echo "!  Checking device readiness..."
-      ls -la /dev/mapper/pool-persist || true
-      blkid /dev/mapper/pool-persist || true
-
-      # Try to mount and write state file with retries
-      mkdir -p /tmp/persist
-      MOUNT_SUCCESS=false
-
-      for attempt in {1..5}; do
-        echo "!  Mount attempt $attempt..."
-        if mount -t btrfs /dev/mapper/pool-persist /tmp/persist 2>&1; then
-          echo "!  Persist mounted successfully"
-          MOUNT_SUCCESS=true
-          break
-        fi
-        echo "!  Mount failed, waiting 2 seconds..."
-        sleep 2
-      done
-
-      if [ "$MOUNT_SUCCESS" = true ]; then
-        echo "!  Writing state marker..."
-        if touch /tmp/persist/.encryption-applied; then
-          echo "!  State file written successfully"
+        if [ "$MOUNT_SUCCESS" = true ]; then
+          touch /tmp/persist/.encryption-applied || show_warning "Could not write state file."
+          sync
+          umount /tmp/persist || true
+          show_success "State file written."
         else
-          echo "!  Warning: Could not write state file"
-        fi
-        sync
-        umount /tmp/persist || true
-      else
-        cat <<EOF
-      !  ERROR: Failed to mount persist after 5 attempts
-      !  The encryption will be attempted again on next boot
-      !  Debug info:
-      EOF
-        dmsetup ls || true
-        lvs || true
-        lsmod | grep -E "btrfs|ext4" || true
-        echo "!  Checking available filesystems:"
-        cat /proc/filesystems || true
-
-        ${
-          if !cfg.interactiveSetup then
-            ''
-              cat <<EOF
-
-              +--------------------------------------------------------+
-              |              EMERGENCY DEBUG SHELL                     |
-              +--------------------------------------------------------+
-              Mount failed. Dropping to emergency shell for debugging.
-              Available commands: mount, lsmod, modprobe, blkid, lsblk
-              Device: /dev/mapper/pool-persist
-              Try: modprobe btrfs && mount -t btrfs /dev/mapper/pool-persist /tmp/persist
-              Type 'exit' to continue boot (will retry encryption next boot)
-
-              EOF
-              /bin/sh
-            ''
-          else
-            ""
-        }
-      fi
-
-      # Deactivate LVM so system can boot cleanly
-      echo "! Deactivating logical volumes for reboot..."
-      vgchange -an pool || true
-      cryptsetup close crypted || true
-
-      cat <<EOF
-
-      +--------------------------------------------------------+
-      |              Encryption Setup Complete!                |
-      +--------------------------------------------------------+
-
-      Your disk is now fully encrypted and protected.
-      The system will reboot to complete the setup.
-
-      EOF
-
-      # Remove the installer marker so we don't run again if this fails.
-      rm -f /mnt/esp/.ghaf-installer-encrypt
-      umount /mnt/esp
-      rmdir /mnt/esp
-
-      ${
-        if !cfg.interactiveSetup then
+          show_error "Failed to mount persist after 5 attempts - encryption will be retried on next boot."
+          dmsetup ls || true
+          lvs       || true
+      ''
+      + (
+        if !interactiveSetup then
           ''
-            echo "Automated mode: Rebooting in 5 seconds..."
-            sleep 5
+            show_warning "Dropping to emergency shell. Type 'exit' to continue boot."
+            /bin/sh
+          ''
+        else
+          ""
+      )
+      + ''
+        fi
+
+        # ---------------------------------------------------------------------------
+        # Cleanup and reboot
+        # ---------------------------------------------------------------------------
+        run_spin -q "Deactivating logical volumes..." vgchange -an pool || true
+        cryptsetup close crypted || true
+
+        rm -f /mnt/esp/.ghaf-installer-encrypt
+        umount /mnt/esp
+        rmdir  /mnt/esp
+
+        countdown "Continuing in" 5
+        clear
+        show_header "Encryption Setup Complete!"
+        echo ""
+        show_success "Your disk is now fully encrypted and protected." ""
+      ''
+      + (
+        if !interactiveSetup then
+          ''
+            countdown "Automated mode: rebooting in" 10
           ''
         else
           ''
             if [ -e /dev/tpmrm0 ]; then
-              cat <<EOF
-            On next boot:
-              ! TPM will automatically unlock the disk
-              ! You may be prompted for your PIN as additional security
-            EOF
+              show_section \
+                "On next boot:" \
+                "  - TPM will automatically unlock the disk" \
+                "  - You may be prompted for your PIN as additional security"
+                echo ""
             else
-              cat <<EOF
-            On next boot:
-              ! You will need to enter your password to unlock the disk
-            EOF
+              show_section \
+                "On next boot:" \
+                "  - You will need to enter your password to unlock the disk"
+                echo ""
             fi
-            echo ""
-            echo "Press Enter to reboot..."
-            read -r
+            until gum confirm \
+              --affirmative="Reboot now" \
+              --negative="Wait" \
+              "Reboot to complete setup?"; do
+              :
+            done
           ''
-      }
+      )
+      + ''
 
-      echo "! Rebooting system..."
-      systemctl reboot
-    '';
+        show_success "Rebooting system..."
+        systemctl reboot
+      '';
   };
+
 in
 {
   _file = ./deferred-disk-encryption.nix;
@@ -619,9 +508,11 @@ in
           e2fsprogs
           firstBootEncryptScript
           gawk
+          gum
           gnugrep
           kmod
           lvm2
+          ncurses
           pcsclite.lib
           plymouth
           systemd
@@ -653,10 +544,14 @@ in
               Type = "oneshot";
               RemainAfterExit = true;
 
-              # Interactive service - needs TTY access
+              # Interactive service - needs direct TTY access.
+              # "tty" (not "journal+console") is required so GUM's ANSI
+              # escape sequences reach the terminal unmodified; the journal
+              # path prepends timestamps and service metadata to every line
+              # which breaks GUM rendering entirely.
               StandardInput = "tty-force";
-              StandardOutput = "journal+console";
-              StandardError = "journal+console";
+              StandardOutput = "tty";
+              StandardError = "tty";
 
               # Disable restart - encryption only happens once
               Restart = "no";
@@ -717,7 +612,6 @@ in
                 "${pkgs.systemd}/lib/systemd/systemd-cryptsetup attach crypted ${lvmPartition} - ${optionsStr}";
             };
           };
-
         };
       };
 

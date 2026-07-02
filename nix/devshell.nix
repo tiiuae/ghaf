@@ -44,6 +44,12 @@
 
             startup.hook.text = config.pre-commit.installationScript;
           };
+          env = [
+            {
+              name = "NIX_BUILD_CORES";
+              eval = "8"; # Sane default to prevent I/O bottlenecks
+            }
+          ];
           commands = [
             {
               help = "Check license";

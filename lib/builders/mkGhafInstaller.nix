@@ -175,6 +175,10 @@ let
             source = "${imagePath}/ghaf-image.raw.zst";
             target = "/ghaf-image/ghaf-image.raw.zst";
           }
+          {
+            source = "${imagePath}/ghaf-image.bmap";
+            target = "/ghaf-image/ghaf-image.bmap";
+          }
         ];
       };
     };

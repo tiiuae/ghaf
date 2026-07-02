@@ -6,31 +6,8 @@
 # SCRIPT CONSTANTS & DEFAULTS
 # =============================================================================
 
-# Debug configuration
 LDAP_SEARCH_TIMEOUT=30
-
-# Ghaf color scheme
-GHAF_PRIMARY="#5AC379"
-GHAF_SECONDARY="#3D8252"
-GHAF_ERROR="#FF0000"
-
-# UI color constants
-COLOR_SUCCESS="$GHAF_PRIMARY"
-COLOR_ERROR="$GHAF_ERROR"
-COLOR_WARNING="#FFA500"
-COLOR_INFO="#FFFFFF"
 COLOR_DEBUG="#808080"
-
-# Unified spacing constants
-SPACING_MARGIN="0 0"
-SPACING_PADDING="0 1"
-SPACING_HEADER_BOTTOM="1 0"
-SPACING_INFO_BOTTOM="0"
-
-# Header styling constants
-HEADER_WIDTH=70
-HEADER_HEIGHT=3
-HEADER_PADDING="1 2"
 
 # System paths and configuration
 KERBEROS_KEYTAB="/etc/krb5.keytab"
@@ -268,124 +245,6 @@ apply_configuration() {
 }
 
 # =============================================================================
-# GUM/TUI CONFIGURATION & WRAPPERS
-# =============================================================================
-
-# Configure gum styling
-export GUM_INPUT_CURSOR_FOREGROUND="$GHAF_PRIMARY"
-export GUM_INPUT_HEADER_FOREGROUND="$GHAF_SECONDARY"
-export GUM_CHOOSE_HEADER_FOREGROUND="$GHAF_PRIMARY"
-export GUM_CHOOSE_CURSOR_FOREGROUND="$GHAF_PRIMARY"
-export GUM_CHOOSE_SELECTED_FOREGROUND="$GHAF_SECONDARY"
-export GUM_SPIN_SPINNER_FOREGROUND="$GHAF_PRIMARY"
-export GUM_SPIN_TITLE_FOREGROUND="$GHAF_PRIMARY"
-export GUM_CONFIRM_SELECTED_BACKGROUND="$GHAF_PRIMARY"
-export GUM_CONFIRM_SELECTED_FOREGROUND="#000000"
-export GUM_CONFIRM_PROMPT_FOREGROUND="$GHAF_PRIMARY"
-
-# Success message wrapper
-show_success() {
-  gum style --foreground="$COLOR_SUCCESS" "$*"
-  debug "SUCCESS: $*"
-}
-
-# Error message wrapper
-show_error() {
-  gum style --foreground="$COLOR_ERROR" "$*" >&2
-  debug "ERROR: $*"
-}
-
-# Info message wrapper
-show_info() {
-  gum style --foreground="$COLOR_INFO" --margin="$SPACING_INFO_BOTTOM" "$@"
-  debug "INFO: $*"
-}
-
-# Warning message wrapper
-show_warning() {
-  gum style --foreground="$COLOR_WARNING" "$*"
-  debug "WARNING: $*"
-}
-
-# Header wrapper - creates a bordered header box
-show_header() {
-  gum style \
-    --foreground="$GHAF_PRIMARY" \
-    --bold \
-    --border="double" \
-    --border-foreground="$GHAF_SECONDARY" \
-    --align="center" \
-    --width="$HEADER_WIDTH" \
-    --height="$HEADER_HEIGHT" \
-    --margin="$SPACING_HEADER_BOTTOM" \
-    --padding="$HEADER_PADDING" \
-    -- "$@"
-}
-
-# Section wrapper with border
-show_section() {
-  gum style \
-    --border="rounded" \
-    --border-foreground="$GHAF_SECONDARY" \
-    --padding="$SPACING_PADDING" \
-    --margin="$SPACING_MARGIN" \
-    -- "$@"
-}
-
-# Input wrapper
-prompt_input() {
-  local prompt_text="$1"
-  local placeholder="${2:-}"
-  gum input \
-    --prompt="$prompt_text " \
-    --placeholder="$placeholder" \
-    --cursor.foreground="$GHAF_PRIMARY" \
-    --prompt.bold
-}
-
-# Confirmation wrapper
-prompt_confirm() {
-  local message="$1"
-  local affirmative="${2:-Yes}"
-  local negative="${3:-No}"
-  local default=${4:-true}
-  gum confirm \
-    --affirmative="$affirmative" \
-    --negative="$negative" \
-    --default="$default" \
-    "$message"
-}
-
-# Choice menu wrapper
-prompt_choice() {
-  local header="$1"
-  shift
-  header="$(gum style --bold "$header")"
-  gum choose \
-    --header="$header" \
-    -- "$@"
-}
-
-# Progress spinner wrapper
-show_progress() {
-  local title="$1"
-  shift
-  gum spin \
-    --spinner="dot" \
-    --title="$title" \
-    --spinner.foreground="$GHAF_PRIMARY" \
-    -- "$@"
-}
-
-# Wait for user confirmation before continuing
-wait_for_user() {
-  local message="${1:-Press any key to continue...}"
-  echo ""
-  gum style --foreground="$COLOR_INFO" --italic "$message"
-  read -n 1 -s -r
-}
-
-# =============================================================================
 # STATUS FUNCTIONS
 # =============================================================================
 
@@ -566,7 +425,6 @@ prompt_username() {
     username_input=$(prompt_input "Enter username:" "lowercase, no spaces") || return 1
 
     if set_username "$username_input"; then
-      show_success "Username: $USERNAME"
       break
     else
       show_error "Invalid or empty username."
@@ -582,7 +440,6 @@ prompt_realname() {
     realname_input=$(prompt_input "Enter full name:" "your display name") || return 1
 
     if set_realname "$realname_input"; then
-      show_success "Real name: $REALNAME"
       break
     else
       show_error "Invalid or empty name. Letters and spaces only."
@@ -936,6 +793,22 @@ create_user() {
   if ! $NON_INTERACTIVE; then
     # Check for FIDO2 support
     check_fido_support
+
+    # Collect password before showing summary so the summary reflects the full configuration
+    local pass1 pass2
+    while true; do
+      pass1=$(prompt_password "Set password for '$USERNAME':" "enter password") || return 1
+      pass2=$(prompt_password "Confirm password:" "re-enter password") || return 1
+      if [[ -n $pass1 && $pass1 == "$pass2" ]]; then
+        export NEWPASSWORD="$pass1"
+        break
+      fi
+      if [[ -z $pass1 ]]; then
+        show_error "Password cannot be empty."
+      else
+        show_error "Passwords do not match. Please try again."
+      fi
+    done
   fi
 
   # Show configuration summary
@@ -954,6 +827,7 @@ create_user() {
 
   if ! $NON_INTERACTIVE; then
     if ! prompt_confirm "Create user with these settings?" "Create user" "Cancel"; then
+      unset NEWPASSWORD
       return 1
     fi
   fi
@@ -986,14 +860,18 @@ create_user() {
   # Add realm for AD users
   [[ -n $AD_REALM ]] && homectl_args+=(--realm="$AD_REALM")
 
-  # Create systemd-homed user account
-  if ! homectl create "$USERNAME" "${homectl_args[@]}"; then
+  # Create systemd-homed user account.
+  run_spin --show-output "Creating user '$USERNAME'..." \
+    homectl create "$USERNAME" "${homectl_args[@]}"
+  local homectl_exit=$?
+  unset NEWPASSWORD
+
+  if [[ $homectl_exit -ne 0 ]]; then
     show_error "User creation (homectl) failed. Please check the debug log for details."
     return 1
-  else
-    show_success "User '$USERNAME' created successfully!"
-    return 0
   fi
+  echo ""
+  show_success "User '$USERNAME' created successfully!"
 }
 
 # =============================================================================
