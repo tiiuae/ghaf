@@ -103,7 +103,18 @@ in
           withDebug = config.ghaf.profiles.debug.enable;
           withHardenedConfigs = true;
         };
-        givc.accessControl.enable = config.ghaf.global-config.givc.withAccessControl or false;
+        givc.accessControl = {
+          enable = config.ghaf.global-config.givc.withAccessControl or false;
+          commonAdminRules = [
+            {
+              from = [ config.networking.hostName ];
+              permittedRequests = [
+                "ListGenerations"
+                "SetGeneration"
+              ];
+            }
+          ];
+        };
         givc.host.enable = true;
         graphics.boot = {
           enable = true; # Enable graphical boot on host

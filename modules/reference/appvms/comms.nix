@@ -97,6 +97,15 @@ in
               xdgitems.enable = lib.mkDefault true;
               givc.sni.enable = true;
               storagevm.maximumSize = 100 * 1024; # 100 GB space for comms-vm
+              givc.accessControl.commonAdminRules = [
+                {
+                  from = [ "comms-vm" ];
+                  to = config.ghaf.common.appHosts;
+                  permittedRequests = [
+                    "StartApplication"
+                  ];
+                }
+              ];
             };
 
             # GPSD collects data from GPS and makes it available on TCP port 2947

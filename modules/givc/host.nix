@@ -87,6 +87,14 @@ in
           policies = mapAttrs (_name: value: value.dest) policycfg.policies;
         };
       };
+      accessControl.agentRules = [
+        {
+          permittedVms = [ config.givc.host.network.admin.transport.name ];
+          permittedModules = [
+            "stats"
+          ];
+        }
+      ];
     };
 
     givc.tls = {

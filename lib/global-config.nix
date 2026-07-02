@@ -78,7 +78,7 @@ rec {
 
       givc = {
         enable = mkEnableOption "GIVC (Ghaf Inter-VM Communication) globally";
-        withAccessControl = mkEnableOption "Enable access control for GIVC globally";
+        withAccessControl = mkEnableOption "access control for GIVC globally";
         debug = mkEnableOption "GIVC debug mode";
       };
 

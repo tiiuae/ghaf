@@ -81,5 +81,18 @@ in
         }
       ]
     );
+    # Additional ACL for control panel
+    ghaf.givc.accessControl.commonAdminRules = [
+      {
+        from = [ "gui-vm" ];
+        permittedRequests = [
+          "StartVM"
+          "Watch"
+          "GetStats"
+          "QueryList"
+          "Sysinfo"
+        ];
+      }
+    ];
   };
 }

@@ -54,9 +54,6 @@ in
           "PauseApplication"
           "ResumeApplication"
           "StopApplication"
-          "Suspend"
-          "Reboot"
-          "Poweroff"
         ];
       }
       {

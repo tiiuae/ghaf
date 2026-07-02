@@ -60,18 +60,15 @@ in
           Direct agent-to-agent communication is generally discouraged,
           so the Admin server primarily functions as a proxy routing requests
           between agents. This option defines admin rules, which a non admin VM can push to the admin.
-          Example Proxy Rule:
-            `from = [ "gui-vm" ]; to = [ "app-vm" ]; permittedRequests = [ "StartApplication" ];`
-            (Allows `gui-vm` to ask the Admin to start an application on `app-vm`)
+          The config in example allows `gui-vm` to start an application on `app-vm`
         '';
         example = [
           {
             from = [
               "gui-vm"
-              "app-vm"
             ];
-            to = [ "business-vm" ];
-            permittedRequests = [ "systemd" ];
+            to = [ "app-vm" ];
+            permittedRequests = [ "StartApplication" ];
           }
         ];
         type = types.listOf types.adminRulesType;
