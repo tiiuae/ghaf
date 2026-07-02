@@ -4,6 +4,11 @@
 # Saves approx 900 MB
 { prev }:
 prev.cosmic-reader.overrideAttrs (oldAttrs: {
+  postFixup = (oldAttrs.postFixup or "") + ''
+    wrapProgram $out/bin/cosmic-reader \
+      --set MALLOC_ARENA_MAX 2 \
+      --set MALLOC_TRIM_THRESHOLD_ 32768
+  '';
   buildInputs = builtins.filter (
     p: (p.pname or "") != "tesseract" && (p.pname or "") != "leptonica"
   ) (oldAttrs.buildInputs or [ ]);
