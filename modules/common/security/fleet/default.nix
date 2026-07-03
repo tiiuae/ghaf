@@ -72,13 +72,10 @@ let
             echo "      Clearing TPM - sealed blobs in any header backup are now invalid..."
             tpm2_clear || true
           ''}
-          echo "      Done."
-          echo "[3/3] Powering off..."
-          systemctl poweroff -ff
         fi
       ''}
 
-      echo "      Not a LUKS device - overwriting persist with zeroes..."
+      echo "      Overwriting persist with zeroes..."
       PERSIST_DEV=$(findmnt -n -o SOURCE /persist)
       # Discard first, so even if power is cut, at least the blocks are discarded
       blkdiscard -f "$PERSIST_DEV" 2>/dev/null || true
