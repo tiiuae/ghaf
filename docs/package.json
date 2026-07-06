@@ -13,7 +13,7 @@
     "@astrojs/starlight": "^0.40.0",
     "astro": "^6.4.7",
     "sharp": "^0.35.1",
-    "starlight-blog": "^0.26.1",
+    "starlight-blog": "^0.27.0",
     "starlight-links-validator": "^0.24.1",
     "starlight-sidebar-topics-dropdown": "^0.6.0"
   },
