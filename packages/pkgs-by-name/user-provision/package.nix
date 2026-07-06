@@ -21,6 +21,7 @@
   networkmanager,
   oddjob,
   openldap,
+  qrencode,
   sssd,
   systemd,
   umount,
@@ -29,6 +30,7 @@
 writeShellApplication {
   name = "user-provision";
   runtimeInputs = [
+    # keep-sorted start
     adcli
     brightnessctl
     coreutils
@@ -38,21 +40,23 @@ writeShellApplication {
     gnugrep
     gum
     hostname
-    iputils
     iproute2
+    iputils
     jq
     krb5
+    mount
     ncurses
     netcat
     networkmanager
-    mount
     oddjob
     openldap
+    qrencode
     sssd
     systemd
     umount
+    # keep-sorted end
   ];
-  text = builtins.readFile ./user-provision.sh;
+  text = builtins.readFile ../../../lib/gum-lib.sh + builtins.readFile ./user-provision.sh;
   meta = {
     description = "Ghaf user provisioning script.";
     platforms = [
