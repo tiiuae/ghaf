@@ -84,26 +84,22 @@ do_wipe() {
 
   # Deactivate any active LVM volume groups on the device
   for vg in $(pvs --noheadings -o vg_name "$dev"* 2>/dev/null | sort -u); do
-    vgchange -an "$vg" 2>/dev/null || true
+    run_spin -q "Deactivating volume group $vg..." vgchange -an "$vg"
   done
 
-  # Wipe filesystem and partition signatures
-  pvremove -ff -y "$dev" "$dev"* 2>/dev/null || true
-  wipefs -af "$dev" 2>/dev/null || true
+  run_spin -q "Removing LVM metadata from $dev..." pvremove -ff -y "$dev" "$dev"* 2>/dev/null
+  run_spin -q "Wiping signatures on $dev..." wipefs -af "$dev"
 
-  # Wipe any possible ZFS leftovers from previous installations
   local sector=512
   local mib_sectors=20480
   local total_sectors
   total_sectors=$(blockdev --getsz "$dev")
 
-  # Wipe first and last 10MiB of disk
-  dd if=/dev/zero of="$dev" bs="$sector" count="$mib_sectors" conv=fsync status=none
-  dd if=/dev/zero of="$dev" bs="$sector" count="$mib_sectors" \
+  run_spin "Zeroing $dev..." dd if=/dev/zero of="$dev" bs="$sector" count="$mib_sectors" conv=fsync status=none
+  run_spin "Zeroing end of $dev..." dd if=/dev/zero of="$dev" bs="$sector" count="$mib_sectors" \
     seek="$((total_sectors - mib_sectors))" conv=fsync status=none
 
-  # Force kernel to re-read partition table
-  partprobe "$dev" 2>/dev/null || true
+  run_spin -q "Re-reading partition table on $dev..." partprobe "$dev"
   debug "Wipe complete: $dev"
 }
 
@@ -121,14 +117,17 @@ find_esp_device() {
       printf '%s\n' "$esp_device"
       return 0
     fi
-    partprobe "$dev"
-    sleep 2
+    run_spin -q "Re-reading partition table..." partprobe "$dev"
+    run_spin -q "Waiting for partitions to settle..." sleep 2
   done
 
   return 1
 }
 
-# Decompress and write the raw image to the target device
+# Decompress and write the raw image to the target device.
+# Uses bmaptool for a sparse-aware copy when a .bmap file is available,
+# piping directly from zstdcat so no temp storage is needed.
+# Falls back to a streaming dd write if bmaptool is unavailable or fails.
 # shellcheck disable=SC2329
 do_install_image() {
   local dev="$1"
@@ -142,12 +141,32 @@ do_install_image() {
     return 1
   fi
 
-  show_info "Estimating image size..."
-  IMGSIZE="$(zstd -l "${raw_files[0]}" -v 2>/dev/null | awk '/Decompressed Size:/ {print $5}' | tr -d '()')"
-  debug "Writing image: ${raw_files[0]} → $dev"
-  PV_CMD=(pv --format '%{sgr:white,bold}Writing Ghaf image to disk - %r %40p %e%{sgr:reset}' -N "${raw_files[0]}")
+  local raw_file="${raw_files[0]}"
+  local bmap_file="${raw_file%.raw.zst}.bmap"
+
+  local IMGSIZE
+  if [[ -s $bmap_file ]]; then
+    IMGSIZE="$(grep -oP '<ImageSize>\s*\K\d+' "$bmap_file")"
+  else
+    show_info "Estimating image size..." ""
+    IMGSIZE="$(zstd -l "$raw_file" -v 2>/dev/null | awk '/Decompressed Size:/ {print $5}' | tr -d '()')"
+  fi
+
+  local -a PV_CMD
+  PV_CMD=(pv --format '%{sgr:white,bold}Writing Ghaf image to disk - %r %40p %e%{sgr:reset}' -N "$raw_file")
   [[ -n $IMGSIZE ]] && PV_CMD+=(-s "$IMGSIZE")
-  zstdcat "${raw_files[0]}" | "${PV_CMD[@]}" | dd of="$dev" bs=32M conv=fsync oflag=direct iflag=fullblock status=none
+
+  if command -v bmaptool >/dev/null 2>&1 && [[ -s $bmap_file ]]; then
+    debug "Using bmaptool with block map: $bmap_file"
+    if zstdcat -T0 "$raw_file" | "${PV_CMD[@]}" | bmaptool copy --bmap "$bmap_file" - "$dev" >/dev/null 2>&1; then
+      return 0
+    fi
+    debug "bmaptool failed, falling back to streaming write"
+    show_warning "Fast installation unavailable. Continuing with standard installation."
+  fi
+
+  debug "Writing image: $raw_file -> $dev"
+  zstdcat -T0 "$raw_file" | "${PV_CMD[@]}" | dd of="$dev" bs=32M conv=fsync oflag=direct iflag=fullblock status=none
 }
 
 # Place a deferred encryption marker on the ESP partition
@@ -155,8 +174,8 @@ do_install_image() {
 do_setup_encryption() {
   local dev="$1"
 
-  udevadm settle
-  sleep 2
+  run_spin "Settling block devices..." udevadm settle
+  run_spin "Waiting for partitions..." sleep 2
 
   local esp_dev
   esp_dev=$(find_esp_device "$dev") || {
@@ -234,14 +253,14 @@ do_enroll_secureboot() {
   local -A key_files=([db]="$db_auth" [KEK]="$kek_auth" [PK]="$pk_auth")
 
   for var in "${key_vars[@]}"; do
-    efi-updatevar -f "${key_files[$var]}" "$var" || {
+    run_spin -q "Enrolling $var key..." efi-updatevar -f "${key_files[$var]}" "$var" || {
       show_error "Failed to enroll $var"
       return 1
     }
   done
 
   for var in "${key_vars[@]}"; do
-    efi-readvar -v "$var" >/dev/null 2>&1 || {
+    run_spin -q "Verifying $var..." efi-readvar -v "$var" >/dev/null 2>&1 || {
       show_error "$var verification failed"
       return 1
     }
