@@ -24,6 +24,7 @@
               with pkgs;
               [
                 bmaptool
+                git-cliff
                 cachix
                 config.treefmt.build.wrapper
                 jq
@@ -56,6 +57,12 @@
               name = "check-license";
               command = "reuse lint";
               category = "linters";
+            }
+            {
+              help = "Generate changelog";
+              name = "ghaf-changelog";
+              command = "git cliff --unreleased --config .github/cliff.toml $@";
+              category = "changelog";
             }
             {
               help = "Ghaf nixos-rebuild command";

@@ -16,6 +16,7 @@ path = [
   ".github/workflows/codeql.yml",
   ".github/workflows/dependency-review.yml",
   ".pre-commit-config.yaml",
+  ".github/cliff.toml",
   "flake.lock",
   ".version",
   "assets/**/*.png",

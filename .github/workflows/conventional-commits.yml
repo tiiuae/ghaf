@@ -25,11 +25,14 @@ jobs:
     steps:
       - env:
           PR_TITLE: ${{ github.event.pull_request.title }}
+          ALLOWED_TYPES: "feat,fix,docs,perf,refactor,test,chore,ci,revert,build,bump,style"
         run: |
           echo "ℹ️ Checking if PR title is following the Conventional Commits specification..."
-          pattern='^(feat|fix|docs|refactor|test|chore|ci|revert|build|bump)(\([a-z0-9/_-]+\))?: .{1,72}$'
+          types_pattern=$(echo "$ALLOWED_TYPES" | tr ',' '|')
+          pattern="^($types_pattern)(\([a-z0-9/_-]+\))?: .{1,72}$"
           if [[ ! "$PR_TITLE" =~ $pattern ]]; then
-            printf '🚫 According to the conventional-commits specification, the PR title is not valid.\n\nFormat:  <type>(<optional scope>): <description>\nExample: fix(wireguard-gui): polkit regex to match wayland-ghaf display name\nExample: feat(netvm): add wireguard support\nExample: docs: update hardware target list\n\nAllowed types: feat, fix, docs, refactor, test, chore, ci, revert, build, bump\nRules:\n  - scope is optional, lowercase, no spaces (e.g. power, netvm, audiovm)\n  - description: imperative mood, no capital first letter, no trailing period\n  - total title length must not exceed 72 characters\n\nCurrent title: "%s"\n' "$PR_TITLE"
+            allowed_display=$(echo "$ALLOWED_TYPES" | sed 's/,/, /g')
+            printf '🚫 According to the conventional-commits specification, the PR title is not valid.\n\nFormat:  <type>(<optional scope>): <description>\nExample: fix(wireguard-gui): polkit regex to match wayland-ghaf display name\nExample: feat(netvm): add wireguard support\nExample: docs: update hardware target list\n\nAllowed types: %s\nRules:\n  - scope is optional, lowercase, no spaces (e.g. power, netvm, audiovm)\n  - description: imperative mood, no capital first letter, no trailing period\n  - total title length must not exceed 72 characters\n\nCurrent title: "%s"\n' "$allowed_display" "$PR_TITLE"
             exit 1
           fi
           printf '🎉 All commit messages are following the Conventional Commits specification.'
