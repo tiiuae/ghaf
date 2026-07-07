@@ -25,6 +25,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import sys
 from pathlib import Path
 from typing import Any, cast
 
@@ -279,6 +280,9 @@ def cmd_rehash(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
+    if len(sys.argv) == 1:
+        parser.print_help()
+        return
     args = parser.parse_args()
     if getattr(args, "sbsign_args", None) and args.sbsign_args[0] == "--":
         args.sbsign_args = args.sbsign_args[1:]
