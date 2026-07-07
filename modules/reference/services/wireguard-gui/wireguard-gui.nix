@@ -80,6 +80,8 @@ in
     ];
     security.polkit = {
       enable = true;
+      enablePkexecWrapper = true;
+      extraArgs = [ "--log-level=notice" ];
       extraConfig = ''
         polkit.addRule(function(action, subject) {
           polkit.log("user " +  subject.user + " is attempting action " + action.id + " from PID " + subject.pid);
