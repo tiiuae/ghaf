@@ -26,9 +26,13 @@
         somType = "nx";
         nx.enableNetvmEthernetPCIPassthrough = true;
         carrierBoard = "xavierNxDevkit";
-        # Orin NX p3768 devkit boots rootfs from NVMe (no eMMC on this SoM);
-        # configFileName below wires up the matching .conf + flash XML.
-        flashScriptOverrides.rootfsDevice = "nvme0n1p1";
+        # Orin NX p3768 devkit boots rootfs from NVMe and USB (no eMMC on this SoM);
+        # Default is set to USB
+        flashScriptOverrides = {
+          deviceDisk = "sda";
+          deviceDiskEspPartition = "sda1";
+          deviceDiskRootfsPartition = "sda2";
+        };
       };
 
       # Net VM hardware-specific modules - use hardware.definition for composition model
@@ -91,9 +95,9 @@
       # The "-nvme" config sources p3768-0000-p3767-0000-a0.conf and uses
       # flash_t234_qspi_nvme.xml, which probes NVMe instead.
       flashScriptOverrides.configFileName = "jetson-orin-nano-devkit-nvme";
-      # The trailing rootfs device passed to flash.sh is now driven by
-      # ghaf.hardware.nvidia.orin.flashScriptOverrides.rootfsDevice (set
-      # to "nvme0n1p1" above); jetson-orin.nix applies that to flashArgs.
+      # The trailing rootfs device passed to flash.sh is driven by
+      # ghaf.hardware.nvidia.orin.flashScriptOverrides.deviceDiskRootfsPartition;
+      # jetson-orin.nix applies that to flashArgs.
       modesetting.enable = true;
       firmware.uefi = {
         logo = "${pkgs.ghaf-artwork}/1600px-Ghaf_logo.svg";

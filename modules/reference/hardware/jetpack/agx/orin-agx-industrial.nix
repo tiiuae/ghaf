@@ -24,7 +24,11 @@
         agx.enableNetvmWlanPCIPassthrough = true;
         carrierBoard = "devkit";
         # AGX industrial devkit boots rootfs from eMMC.
-        flashScriptOverrides.rootfsDevice = "mmcblk0p1";
+        flashScriptOverrides = {
+          deviceDisk = "mmcblk0";
+          deviceDiskEspPartition = "mmcblk0p1";
+          deviceDiskRootfsPartition = "mmcblk0p2";
+        };
       };
 
       # Net VM hardware-specific modules - use hardware.definition for composition model
