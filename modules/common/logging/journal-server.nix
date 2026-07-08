@@ -73,7 +73,6 @@ in
 
     services.journald.remote = {
       enable = true;
-      listen = "http";
       port = cfg.tls.terminator.backendPort;
       output = "/var/log/journal/remote/";
       settings.Remote = {
