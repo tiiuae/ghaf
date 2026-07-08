@@ -15,19 +15,22 @@ let
 
   agentType = types.submodule (
     { name, ... }:
+    let
+      localServerDefault = value: if name == "downstream" then value else null;
+    in
     {
       options = {
         enable = mkEnableOption "SPIRE agent ${name}";
 
         serverAddress = mkOption {
-          type = types.str;
-          default = config.ghaf.common.spire.server.address;
+          type = types.nullOr types.str;
+          default = localServerDefault config.ghaf.common.spire.server.address;
           description = "SPIRE server address.";
         };
 
         serverPort = mkOption {
-          type = types.port;
-          default = config.ghaf.common.spire.server.port;
+          type = types.nullOr types.port;
+          default = localServerDefault config.ghaf.common.spire.server.port;
           description = "SPIRE server agent port.";
         };
 
@@ -46,13 +49,13 @@ let
         };
 
         trustDomain = mkOption {
-          type = types.str;
-          default = config.ghaf.common.spire.server.trustDomain;
+          type = types.nullOr types.str;
+          default = localServerDefault config.ghaf.common.spire.server.trustDomain;
           description = "SPIFFE trust domain.";
         };
 
         nodeAttestationMode = mkOption {
-          type = types.enum [ "x509pop" ];
+          type = types.spireNodeAttestationMode;
           default = "x509pop";
           description = "Node attestation mode.";
         };
@@ -64,9 +67,18 @@ let
         };
 
         trustBundlePath = mkOption {
-          type = types.str;
-          default = "/etc/common/spire/bundle.pem";
+          type = types.nullOr types.str;
+          default = localServerDefault "/etc/common/spire/bundle.pem";
           description = "Path to the SPIRE bootstrap trust bundle.";
+        };
+
+        trustBundleUrl = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = ''
+            HTTPS URL for the SPIRE bootstrap trust bundle, validated against the system CA store.
+            Prefer trustBundlePath when an out-of-band pinned bundle is available.
+          '';
         };
 
         dataDir = mkOption {
@@ -107,6 +119,16 @@ let
   );
 
   enabledAgents = filterAttrs (_: agent: agent.enable) config.ghaf.security.spire.agents;
+  hasValue = value: value != null && value != "";
+  connectionConfigured =
+    agent:
+    hasValue agent.serverAddress
+    && agent.serverPort != null
+    && hasValue agent.trustDomain
+    && (hasValue agent.trustBundleUrl || hasValue agent.trustBundlePath);
+  trustBundleUrlIsSecure =
+    agent: agent.trustBundleUrl == null || hasPrefix "https://" agent.trustBundleUrl;
+  configuredAgents = filterAttrs (_: connectionConfigured) enabledAgents;
 
   credentials = agent: [
     "key.pem:${agent.settings.x509pop.privateKeyPath}"
@@ -118,6 +140,13 @@ let
     agent.settings.x509pop.certificatePath
   ];
 
+  trustBundleConfig =
+    agent:
+    if agent.trustBundleUrl != null then
+      ''trust_bundle_url = "${agent.trustBundleUrl}"''
+    else
+      ''trust_bundle_path = "${agent.trustBundlePath}"'';
+
   agentConf = agent: ''
     agent {
       data_dir = "${agent.dataDir}"
@@ -125,7 +154,7 @@ let
       server_address = "${agent.serverAddress}"
       server_port = ${toString agent.serverPort}
       trust_domain = "${agent.trustDomain}"
-      trust_bundle_path = "${agent.trustBundlePath}"
+      ${trustBundleConfig agent}
       socket_path = "${agent.socketPath}"
     }
 
@@ -140,6 +169,9 @@ let
       WorkloadAttestor "unix" {
         plugin_data {}
       }
+      WorkloadAttestor "systemd" {
+        plugin_data {}
+      }
       KeyManager "memory" {
         plugin_data {}
       }
@@ -148,13 +180,15 @@ let
 
   configFiles = mapAttrs (
     name: agent: pkgs.writeText "${serviceName name}.conf" (agentConf agent)
-  ) enabledAgents;
+  ) configuredAgents;
 
   waitForAgent =
     name: agent:
     pkgs.writeShellApplication {
       name = "wait-for-${serviceName name}";
-      runtimeInputs = optionals agent.serverHealthCheck.enable [ pkgs.curl ];
+      runtimeInputs = optionals (agent.serverHealthCheck.enable || agent.trustBundleUrl != null) [
+        pkgs.curl
+      ];
       text = ''
         ${optionalString agent.serverHealthCheck.enable ''
           server_url="http://${agent.serverAddress}:${toString agent.serverHealthCheck.port}/ready"
@@ -164,10 +198,20 @@ let
           done
         ''}
 
-        until [ -e ${escapeShellArg agent.trustBundlePath} ]; do
-          echo "Waiting for SPIRE trust bundle ${agent.trustBundlePath}"
-          sleep 1
-        done
+        ${optionalString (agent.trustBundleUrl != null) ''
+          trust_bundle_url=${escapeShellArg agent.trustBundleUrl}
+          until curl --fail --silent --location --connect-timeout 2 --max-time 5 --output /dev/null "$trust_bundle_url"; do
+            echo "Waiting for SPIRE trust bundle URL $trust_bundle_url"
+            sleep 1
+          done
+        ''}
+
+        ${optionalString (agent.trustBundleUrl == null) ''
+          until [ -e ${escapeShellArg agent.trustBundlePath} ]; do
+            echo "Waiting for SPIRE trust bundle ${agent.trustBundlePath}"
+            sleep 1
+          done
+        ''}
       '';
     };
 
@@ -189,11 +233,10 @@ let
         "givc-key-setup.service"
       ];
 
-      unitConfig.RequiresMountsFor = [
-        agent.trustBundlePath
-      ]
-      ++ credentialPaths agent
-      ++ optional (!hasPrefix "/run/" agent.dataDir) agent.dataDir;
+      unitConfig.RequiresMountsFor =
+        optional (agent.trustBundleUrl == null) agent.trustBundlePath
+        ++ credentialPaths agent
+        ++ optional (!hasPrefix "/run/" agent.dataDir) agent.dataDir;
 
       serviceConfig = {
         ExecStartPre = [
@@ -209,7 +252,7 @@ let
         User = unitName;
         Group = unitName;
         RuntimeDirectory = unitName;
-        RuntimeDirectoryMode = "0755";
+        RuntimeDirectoryMode = if name == "downstream" then "0755" else "0750";
         Restart = "on-failure";
         RestartSec = "5s";
         UMask = "0027";
@@ -224,7 +267,7 @@ let
         ];
       };
     }
-  ) enabledAgents;
+  ) configuredAgents;
 in
 {
   _file = ./agent.nix;
@@ -236,26 +279,38 @@ in
   };
 
   config = mkIf (enabledAgents != { }) {
-    assertions = [
-      {
-        assertion =
-          builtins.length (unique (map (agent: agent.socketPath) (builtins.attrValues enabledAgents)))
-          == builtins.length (builtins.attrValues enabledAgents);
-        message = "SPIRE agents must use unique socket paths.";
-      }
-    ];
+    assertions =
+      mapAttrsToList (name: agent: {
+        assertion = connectionConfigured agent;
+        message = ''
+          Enabled SPIRE agent "${name}" must configure serverAddress, serverPort,
+          trustDomain, and either trustBundleUrl or trustBundlePath.
+        '';
+      }) enabledAgents
+      ++ mapAttrsToList (name: agent: {
+        assertion = trustBundleUrlIsSecure agent;
+        message = "SPIRE agent \"${name}\" trustBundleUrl must use HTTPS.";
+      }) enabledAgents
+      ++ [
+        {
+          assertion =
+            builtins.length (unique (map (agent: agent.socketPath) (builtins.attrValues enabledAgents)))
+            == builtins.length (builtins.attrValues enabledAgents);
+          message = "SPIRE agents must use unique socket paths.";
+        }
+      ];
 
     environment.systemPackages = [ spire-package ];
 
     users = {
-      groups = mapAttrs' (name: _: nameValuePair (serviceName name) { }) enabledAgents;
+      groups = mapAttrs' (name: _: nameValuePair (serviceName name) { }) configuredAgents;
       users = mapAttrs' (
         name: _:
         nameValuePair (serviceName name) {
           isSystemUser = true;
           group = serviceName name;
         }
-      ) enabledAgents;
+      ) configuredAgents;
     };
 
     systemd = {
@@ -266,7 +321,7 @@ in
           optionalString (
             !hasPrefix "/run/" agent.dataDir
           ) "d ${agent.dataDir} 0700 ${serviceName name} ${serviceName name} - -"
-        ) enabledAgents
+        ) configuredAgents
       );
     };
   };
