@@ -259,28 +259,68 @@ let
       package = lazyPackage name hostConfiguration.config.system.build.ghafImage;
     };
 
+  generate-luks =
+    tgt:
+    tgt
+    // rec {
+      name = tgt.name + "-luks";
+      hostConfiguration = tgt.hostConfiguration.extendModules {
+        modules = [
+          {
+            ghaf.hardware.nvidia.orin.diskEncryption.enable = true;
+            ghaf.hardware.nvidia.orin.diskEncryption.deviceUniqueKey.enable = true;
+          }
+        ];
+      };
+      package = hostConfiguration.config.system.build.ghafImage;
+    };
+
+  # LUKS and dm-verity are mutually exclusive root strategies (see the assertion
+  # in jetson-orin.nix), so the verity targets get no -luks variant.
+  luksable-target-configs = builtins.filter (t: !isVerityTarget t) target-configs;
+
   # Add nodemoapps targets
-  targets = target-configs ++ (map generate-nodemoapps target-configs);
+  targets =
+    target-configs
+    ++ (map generate-nodemoapps target-configs)
+    ++ (map generate-luks luksable-target-configs)
+    ++ (map (t: generate-luks (generate-nodemoapps t)) luksable-target-configs);
   crossTargets = map generate-cross-from-x86_64 targets;
-  secureTarget =
+  flashTarget =
     t: qspiOnly:
     let
       innerName = t.hostConfiguration.config.hardware.nvidia-jetpack.name;
       noSB =
         (t.hostConfiguration.extendModules {
           modules = [
-            {
-              ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly;
-            }
+            (
+              {
+                ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly;
+              }
+              // lib.optionalAttrs (lib.strings.hasInfix "nx" t.name && !qspiOnly) {
+                # NX boots from USB or NVMe; the flash script targets NVMe.
+                ghaf.hardware.nvidia.orin.flashScriptOverrides.deviceDisk = lib.mkForce "nvme0n1";
+                ghaf.hardware.nvidia.orin.flashScriptOverrides.deviceDiskEspPartition = lib.mkForce "nvme0n1p1";
+                ghaf.hardware.nvidia.orin.flashScriptOverrides.deviceDiskRootfsPartition = lib.mkForce "nvme0n1p2";
+              }
+            )
           ];
         }).pkgs.nvidia-jetpack.flashScript;
       withSB =
         (t.hostConfiguration.extendModules {
           modules = [
-            {
-              ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkForce true;
-              ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly;
-            }
+            (
+              {
+                ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkForce true;
+                ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly;
+              }
+              // lib.optionalAttrs (lib.strings.hasInfix "nx" t.name && !qspiOnly) {
+                # NX boots from USB or NVMe; the flash script targets NVMe.
+                ghaf.hardware.nvidia.orin.flashScriptOverrides.deviceDisk = lib.mkForce "nvme0n1";
+                ghaf.hardware.nvidia.orin.flashScriptOverrides.deviceDiskEspPartition = lib.mkForce "nvme0n1p1";
+                ghaf.hardware.nvidia.orin.flashScriptOverrides.deviceDiskRootfsPartition = lib.mkForce "nvme0n1p2";
+              }
+            )
           ];
         }).pkgs.nvidia-jetpack.flashScript;
     in
@@ -346,7 +386,7 @@ in
             t:
             #Note: secureTarget does not toggle between secureboot on/off!!
             lib.nameValuePair "${t.name}-flash-script" (
-              lazyPackage "${t.name}-flash-script" (secureTarget t false)
+              lazyPackage "${t.name}-flash-script" (flashTarget t false)
             )
           ) crossTargets
         )
@@ -354,7 +394,7 @@ in
           map (
             t:
             #Note: secureTarget does not toggle between secureboot on/off!!
-            lib.nameValuePair "${t.name}-flash-qspi" (lazyPackage "${t.name}-flash-qspi" (secureTarget t true))
+            lib.nameValuePair "${t.name}-flash-qspi" (lazyPackage "${t.name}-flash-qspi" (flashTarget t true))
           ) crossTargets
         )
         # OTA update artifacts for verity targets
