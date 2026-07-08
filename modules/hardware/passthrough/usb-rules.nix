@@ -32,11 +32,6 @@ let
           description = "Chip/SmartCard (e.g. YubiKey)";
         }
         {
-          interfaceClass = 8;
-          interfaceSubclass = 6;
-          description = "Mass Storage - SCSI (USB drives)";
-        }
-        {
           interfaceClass = 17;
           description = "USB-C alternate modes supported by device";
         }
@@ -117,6 +112,24 @@ in
       type = types.listOf types.attrs;
       default = defaultAudiovmUsbRules;
     };
+
+    peripheralsvmRules = mkOption {
+      description = "USB Device Passthrough Rules for PeripheralsVM";
+      type = types.listOf types.attrs;
+      default = [
+        {
+          description = "USB Devices for PeripheralsVM";
+          targetVm = "periph-vm";
+          allow = [
+            {
+              interfaceClass = 8;
+              interfaceSubclass = 6;
+              description = "Mass Storage - SCSI (USB drives)";
+            }
+          ];
+        }
+      ];
+    };
   };
 
   config = mkIf (config.ghaf.hardware.passthrough.mode != "none") {
@@ -124,7 +137,8 @@ in
     ghaf.hardware.passthrough.vhotplug.usbRules =
       optionals config.ghaf.virtualization.microvm.guivm.enable cfg.guivmRules
       ++ optionals config.ghaf.virtualization.microvm.netvm.enable cfg.netvmRules
-      ++ optionals config.ghaf.virtualization.microvm.audiovm.enable cfg.audiovmRules;
+      ++ optionals config.ghaf.virtualization.microvm.audiovm.enable cfg.audiovmRules
+      ++ optionals config.ghaf.virtualization.microvm.peripheralsvm.enable cfg.peripheralsvmRules;
 
   };
 }

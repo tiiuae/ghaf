@@ -69,6 +69,7 @@ let
   gpuPciDevices = config.ghaf.hardware.definition.gpu.pciDevices;
   sndPciDevices = config.ghaf.hardware.definition.audio.pciDevices;
   evdevDevices = config.ghaf.hardware.definition.input.misc.evdev;
+  usbPciDevices = config.ghaf.hardware.definition.usbControllers.pciDevices;
   busPrefix = config.ghaf.hardware.passthrough.pciPorts.pcieBusPrefix;
 in
 {
@@ -112,6 +113,13 @@ in
       default = { };
       description = ''
         Evdev devices to passthrough.
+      '';
+    };
+    usbControllers = mkOption {
+      type = types.attrs;
+      default = { };
+      description = ''
+        USB controller PCI devices to passthrough.
       '';
     };
   };
@@ -176,6 +184,18 @@ in
           "virtio-input-host-pci,evdev=${d},id=evdev-${toString i}"
         ]) evdevDevices
       );
+
+      usbControllers.microvm.devices = imap1 (i: d: {
+        bus = "pci";
+        path = pciPath d;
+        qemu = {
+          inherit (d.qemu) deviceExtraArgs;
+        }
+        // optionalAttrs cfg.hotplug {
+          id = "pci${toString i}";
+          bus = "${busPrefix}${toString i}";
+        };
+      }) usbPciDevices;
     };
   };
 }

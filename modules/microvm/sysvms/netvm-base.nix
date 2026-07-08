@@ -298,4 +298,20 @@ in
       .${globalConfig.storage.storeOnDisk.compression.algorithm};
     }
   );
+
+  # jarekk: enable usbip for net-vm by default
+  # jarekk: we should probably add a feature flag for this, but for now we just enable it
+  boot.kernelModules = [
+    "vhci_hcd"
+    "usbip-core"
+    "usbip-host"
+  ];
+
+  environment.systemPackages = [
+    pkgs.linuxPackages.usbip
+    # jarekk: remove the packages after testing
+    pkgs.usbutils
+    pkgs.pciutils
+  ];
+
 }

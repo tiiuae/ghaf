@@ -20,6 +20,7 @@ _: {
       ./sysvms/idsvm/idsvm.nix
       ./common/microvm-store-mode.nix
       ./sysvm-registry.nix
+      ./sysvms/peripheralsvm.nix
       ./vm-config.nix
     ];
 
@@ -78,6 +79,9 @@ _: {
     # Net VM feature modules (nics hardware passthrough)
     netvm-features = ./netvm-features;
 
+    # Peripherals VM feature modules (USB/IP, USB device filtering, etc.)
+    peripheralsvm-features = ./peripheralsvm-features;
+
     # Net VM base module for layered composition
     # Use with extendModules pattern:
     #   lib.nixosSystem { modules = [ inputs.self.nixosModules.netvm-base ]; ... }
@@ -90,6 +94,11 @@ _: {
     #   lib.nixosSystem { modules = [ inputs.self.nixosModules.gpuvm-base ]; ... }
     #     .extendModules { modules = [ ... ]; }
     gpuvm-base = ./sysvms/gpuvm-base.nix;
+    # Peripherals VM feature modules (USB/IP, USB device filtering, etc.)
+    # Use with extendModules pattern:
+    #   lib.nixosSystem { modules = [ inputs.self.nixosModules.peripheralsvm-base ]; ... }
+    #     .extendModules { modules = [ ... ]; }
+    peripheralsvm-base = ./sysvms/peripheralsvm-base.nix;
 
     # App VM base module for layered composition
     # Unlike singleton VMs, App VMs are instantiated multiple times using mkAppVm.
@@ -159,6 +168,10 @@ _: {
     # IDS VM - Intrusion Detection System
     # Requires: Network tap access
     idsvm = ./sysvms/idsvm/idsvm-base.nix;
+
+    # Peripherals VM - Hardware device management
+    # Requires: Various hardware passthrough
+    peripheralsvm = ./sysvms/peripheralsvm-base.nix;
 
     # App VM - Template for application VMs
     # Instantiated multiple times (chrome-vm, comms-vm, etc.)

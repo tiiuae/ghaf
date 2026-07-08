@@ -66,6 +66,16 @@ in
       '';
     };
 
+    # Peripherals VM base configuration for profiles to extend
+    peripheralsvmBase = lib.mkOption {
+      type = lib.types.unspecified;
+      readOnly = true;
+      description = ''
+        Laptop-x86 Peripherals VM base configuration.
+        Profiles can extend this with extendModules if customization needed.
+      '';
+    };
+
     # App VM factory function for creating app VMs
     mkAppVm = lib.mkOption {
       type = lib.types.unspecified;
@@ -202,6 +212,31 @@ in
               vmName = "net-vm";
             };
             # Note: netvm.wifi now controlled via globalConfig.features.wifi
+          };
+        };
+
+        # Export Peripherals VM base for profiles to extend
+        peripheralsvmBase = lib.nixosSystem {
+          modules = [
+            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.peripheralsvm-base
+            inputs.self.nixosModules.peripheralsvm-features
+            # Import nixpkgs config module to get overlays
+            {
+              nixpkgs = {
+                hostPlatform.system = "x86_64-linux";
+                inherit (config.nixpkgs) overlays;
+                inherit (config.nixpkgs) config;
+              };
+            }
+          ];
+          specialArgs = lib.ghaf.vm.mkSpecialArgs {
+            inherit lib inputs;
+            globalConfig = hostGlobalConfig;
+            hostConfig = lib.ghaf.vm.mkHostConfig {
+              inherit config;
+              vmName = "periph-vm";
+            };
           };
         };
 

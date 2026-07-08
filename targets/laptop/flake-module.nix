@@ -238,6 +238,11 @@ let
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
+        # TODO: jarekk: remove
+        # services.usb-filtering.enable = false;
+        services.usb-filtering.enable = true;
+        virtualization.microvm.peripheralsvm.usbip.enable = true;
+        virtualization.microvm.peripheralsvm.usbip.targetVms = [ "netvm" ];
       };
       buildSysupdateImage = true;
     })

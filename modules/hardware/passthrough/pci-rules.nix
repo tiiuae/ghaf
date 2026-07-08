@@ -110,6 +110,33 @@ let
       }
     ];
 
+  defaultPeripheralsvmPciRules =
+    optionals (hasHardwareDefinition && config.ghaf.services.usb-filtering.enable) [
+      {
+        description = "Static PCI Devices for PeripheralsVM";
+        targetVm = "periph-vm";
+        tag = "periph";
+        allow = map (d: {
+          address = d.path;
+          deviceId = d.productId;
+          inherit (d) vendorId;
+        }) config.ghaf.hardware.definition.usbControllers.pciDevices;
+      }
+    ]
+    ++ optionals cfg.autoDetectFilteredUsb [
+      {
+        description = "Auto-detected PCI Devices for PeripheralsVM";
+        targetVm = "periph-vm";
+        tag = "periph";
+        allow = [
+          {
+            deviceClass = 12;
+            description = "USB Devices";
+          }
+        ];
+      }
+    ];
+
   # ACPI NHLT table passthrough is required for the microphone array on some devices
   audiovmAcpiRules = [
     {
@@ -155,11 +182,19 @@ in
       default = defaultAudiovmPciRules;
     };
 
+    peripheralsvmRules = mkOption {
+      description = "PCI Device Passthrough Rules for PeripheralsVM";
+      type = types.listOf types.attrs;
+      default = defaultPeripheralsvmPciRules;
+    };
+
     autoDetectGpu = mkEnableOption "auto-detection of GPU PCI devices";
 
     autoDetectNet = mkEnableOption "auto-detection of network PCI devices";
 
     autoDetectAudio = mkEnableOption "auto-detection of audio PCI devices";
+
+    autoDetectFilteredUsb = mkEnableOption "auto-detection of filtered USB PCI devices";
   };
 
   config = lib.mkMerge [
@@ -167,7 +202,8 @@ in
       ghaf.hardware.passthrough.vhotplug.pciRules =
         optionals config.ghaf.virtualization.microvm.guivm.enable cfg.guivmRules
         ++ optionals config.ghaf.virtualization.microvm.netvm.enable cfg.netvmRules
-        ++ optionals config.ghaf.virtualization.microvm.audiovm.enable cfg.audiovmRules;
+        ++ optionals config.ghaf.virtualization.microvm.audiovm.enable cfg.audiovmRules
+        ++ optionals config.ghaf.virtualization.microvm.peripheralsvm.enable cfg.peripheralsvmRules;
 
       # ACPI rules are host-side vhotplug config (not VM extraModules)
       # They pass the NHLT ACPI table needed for microphone arrays
@@ -179,6 +215,7 @@ in
         guivm.extraModules = optionals cfg.autoDetectGpu (hwDetectModule "gui-vm");
         audiovm.extraModules = optionals cfg.autoDetectAudio (hwDetectModule "audio-vm");
         netvm.extraModules = optionals cfg.autoDetectNet (hwDetectModule "net-vm");
+        peripheralsvm.extraModules = optionals cfg.autoDetectFilteredUsb (hwDetectModule "periph-vm");
       };
     })
   ];

@@ -126,6 +126,14 @@ in
               vmName = "netvm";
             };
           };
+
+          # Peripherals VM: Use laptop base with vmConfig
+          peripheralsvm.evaluatedConfig = config.ghaf.profiles.laptop-x86.peripheralsvmBase.extendModules {
+            modules = lib.ghaf.vm.applyVmConfig {
+              inherit config;
+              vmName = "peripheralsvm";
+            };
+          };
         };
       };
 

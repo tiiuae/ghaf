@@ -39,6 +39,11 @@ in
       default = { };
       description = "NetVM kernel configuration";
     };
+    peripheralsvm = mkOption {
+      type = types.attrs;
+      default = { };
+      description = "PeripheralVM kernel configuration";
+    };
   };
 
   options.ghaf.host.kernel.memory-wipe = {
@@ -78,6 +83,7 @@ in
               config.ghaf.hardware.definition.network.pciDevices
               ++ config.ghaf.hardware.definition.gpu.pciDevices
               ++ config.ghaf.hardware.definition.audio.pciDevices
+              ++ config.ghaf.hardware.definition.usbControllers.pciDevices
             );
             hasPciPassthrough =
               pciDevices != [ ] || config.ghaf.hardware.definition.host.extraVfioPciIds != [ ];
@@ -96,6 +102,7 @@ in
                   config.ghaf.hardware.definition.network.pciDevices
                   ++ config.ghaf.hardware.definition.gpu.pciDevices
                   ++ config.ghaf.hardware.definition.audio.pciDevices
+                  ++ config.ghaf.hardware.definition.usbControllers.pciDevices
                 )
               )
               ++ config.ghaf.hardware.definition.host.extraVfioPciIds;
@@ -133,6 +140,15 @@ in
             };
             inherit (config.ghaf.hardware.definition.network.kernelConfig.stage2) kernelModules;
             inherit (config.ghaf.hardware.definition.network.kernelConfig) kernelParams;
+          };
+        };
+        peripheralsvm = {
+          boot = {
+            initrd = {
+              inherit (config.ghaf.hardware.definition.usbControllers.kernelConfig.stage1) kernelModules;
+            };
+            inherit (config.ghaf.hardware.definition.usbControllers.kernelConfig.stage2) kernelModules;
+            inherit (config.ghaf.hardware.definition.usbControllers.kernelConfig) kernelParams;
           };
         };
       };

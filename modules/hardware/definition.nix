@@ -251,6 +251,29 @@ in
         };
       };
 
+      usbControllers = {
+        # TODO? Should add PeripheralVM enabler here?
+        # peripheral.enable = mkEnableOption = "Peripheral";
+
+        pciDevices = mkOption {
+          description = "PCI USB controllers to passthrough to PeripheralVM";
+          type = types.listOf pciDevSubmodule;
+          default = [ ];
+          example = literalExpression ''
+            [{
+                path = "0000:00:0d.0";
+                vendorId = "8086";
+                productId = "a71e";
+            }]
+          '';
+        };
+        kernelConfig = mkOption {
+          description = "Hardware specific kernel configuration for filtered USB controllers";
+          type = kernelConfig;
+          default = { };
+        };
+      };
+
       gpu = {
         # TODO? Should add GuiVM enabler here?
         # guivm.enable = mkEnableOption = "NetVM";
@@ -468,5 +491,34 @@ in
           '';
         };
       };
+
+      peripheralsvm = {
+        extraModules = mkOption {
+          description = ''
+            Hardware-specific NixOS modules for Peripherals VM configuration.
+
+            This option allows hardware definitions to provide VM-specific
+            configuration that will be merged with the base Peripherals VM
+            config.
+
+            Use this ONLY for hardware-specific settings like:
+            - PCIe root ports configuration
+            - Network device passthrough
+            - Custom kernel parameters
+
+            For resource allocation (memory, vCPUs) or profile-specific modules,
+            use ghaf.virtualization.vmConfig.sysvms.peripheralsvm instead.
+          '';
+          type = types.listOf types.unspecified;
+          default = [ ];
+          example = literalExpression ''
+            [
+              ./peripherals-config.nix
+              { microvm.qemu.extraArgs = [ ... ]; }
+            ]
+          '';
+        };
+      };
+
     };
 }
