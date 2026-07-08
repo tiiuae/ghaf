@@ -15,8 +15,7 @@ pkgs.writeShellApplication {
   name = "spire-create-workload-entries";
   runtimeInputs = [
     pkgs.coreutils
-    pkgs.gawk
-    pkgs.gnugrep
+    pkgs.jq
     spire-package
   ];
   text = ''
@@ -40,7 +39,15 @@ pkgs.writeShellApplication {
       shift 3
       local selectors=("$@")
 
-      if spire-server entry show -socketPath "$SOCKET" -spiffeID "$spiffeID" >/dev/null 2>&1; then
+      local entry_count
+      entry_count="$(
+        spire-server entry count \
+          -socketPath "$SOCKET" \
+          -spiffeID "$spiffeID" \
+          -output json | jq -er '.count'
+      )"
+
+      if [ "$entry_count" -gt 0 ]; then
         echo "Entry exists: $spiffeID"
         return
       fi

@@ -19,6 +19,8 @@ let
   inherit (config.ghaf.common.spire.server) healthCheckPort;
   inherit (config.ghaf.common.spire.server) trustDomain;
   spireAgentVMs = builtins.attrNames spireAgents;
+  upstreamAgent = config.ghaf.security.spire.agents.upstream or { enable = false; };
+  upstreamAgentServiceName = "spire-agent-upstream";
   getVMsByAttestation =
     mode: builtins.attrNames (filterAttrs (_vm: cfg: (cfg.nodeAttestationMode == mode)) spireAgents);
 
@@ -108,6 +110,37 @@ let
       spireAgentVMs
       ;
   };
+
+  spireServerUpstreamWorkloadApp = pkgs.writeShellApplication {
+    name = "spire-server-upstream-workload";
+    runtimeInputs = [ pkgs.coreutils ];
+    text = ''
+      socket=${escapeShellArg upstreamAgent.socketPath}
+      retry_interval=30
+
+      probe_upstream_svid() {
+        echo "Waiting to verify upstream SPIRE workload SVID issuance"
+
+        while true; do
+          # This is a one-shot probe for the initial upstream agent integration.
+          # SVID persistence and renewal await the final backend requirements.
+          if [ -S "$socket" ] && ${getExe' spire-package "spire-agent"} api fetch x509 \
+            -silent \
+            -socketPath "$socket" \
+            -timeout 5s >/dev/null 2>&1; then
+            echo "Fetched upstream SPIRE workload SVID for spire-server.service"
+            return 0
+          fi
+
+          sleep "$retry_interval"
+        done
+      }
+
+      # Keep retries asynchronous so the optional upstream path cannot delay
+      # the independent local SPIRE server.
+      probe_upstream_svid &
+    '';
+  };
 in
 {
   _file = ./server.nix;
@@ -179,6 +212,10 @@ in
               "${dataDir}"
               "${runtimeDataDir}"
             ];
+          }
+          // optionalAttrs upstreamAgent.enable {
+            ExecStartPost = getExe spireServerUpstreamWorkloadApp;
+            SupplementaryGroups = [ upstreamAgentServiceName ];
           }
           // optionalAttrs (builtins.length x509popVMs > 0) {
             LoadCredential = [

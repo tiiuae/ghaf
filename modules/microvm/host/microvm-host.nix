@@ -158,7 +158,6 @@ in
         security.spire.agents.downstream = {
           inherit (config.ghaf.global-config.spire) enable;
           logLevel = if config.ghaf.global-config.spire.debug then "DEBUG" else "INFO";
-          nodeAttestationMode = "x509pop";
           trustBundlePath = "/persist/common/spire/bundle.pem";
         };
       };
