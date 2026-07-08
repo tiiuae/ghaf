@@ -267,6 +267,21 @@ in
 
     flashScriptOverrides.onlyQSPI = mkEnableOption "to only flash QSPI partitions, i.e. disable flashing of boot and root partitions to eMMC";
 
+    flashScriptOverrides.method = mkOption {
+      description = ''
+        Flash strategy for this configuration:
+          - "initrd"  : two-stage initrd flash to internal eMMC (production).
+          - "sdimage" : sd-image dd'd to external USB/SD storage (dev/CI).
+        The base configuration uses the default; individual flash targets in
+        targets/nvidia-jetson-orin/flake-module.nix select the method.
+      '';
+      type = types.enum [
+        "initrd"
+        "sdimage"
+      ];
+      default = "initrd";
+    };
+
     flashScriptOverrides.preFlashCommands = mkOption {
       description = "Commands to run before the actual flashing";
       type = types.str;

@@ -266,23 +266,26 @@ let
     t: qspiOnly:
     let
       innerName = t.hostConfiguration.config.hardware.nvidia-jetpack.name;
-      noSB =
+      # sd-image flashScript for this target, with any extra modules layered on
+      # top of the shared sd-image module set. noSB/withSB differ only by the
+      # secureboot override.
+      mkFlashScript =
+        extraModules:
         (t.hostConfiguration.extendModules {
           modules = [
+            ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/sdimage.nix
+            ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/partition-template.nix
             {
+              ghaf.hardware.nvidia.orin.flashScriptOverrides.method = "sdimage";
               ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly;
             }
-          ];
+          ]
+          ++ extraModules;
         }).pkgs.nvidia-jetpack.flashScript;
-      withSB =
-        (t.hostConfiguration.extendModules {
-          modules = [
-            {
-              ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkForce true;
-              ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly;
-            }
-          ];
-        }).pkgs.nvidia-jetpack.flashScript;
+      noSB = mkFlashScript [ ];
+      withSB = mkFlashScript [
+        { ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkForce true; }
+      ];
     in
     # Single `*-flash-script` entrypoint that picks between two
     # pre-built QSPI firmware variants at flash time.
@@ -327,9 +330,64 @@ let
       '';
     };
 
-  # Filter verity targets (those with verity-volume enabled) for ghafImage output
+  # Initrd flash script with only-QSPI firmware flashing (no eMMC boot/root).
+  initrdQspi =
+    t:
+    (t.hostConfiguration.extendModules {
+      modules = [
+        { ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = true; }
+      ];
+    }).pkgs.nvidia-jetpack.initrdFlashScript;
+
+  # Partition cross-targets by verity-volume in one pass. Verity targets use
+  # partition-template-verity.nix (LVM-based A/B flash), not
+  # sdimage.nix/partition-template.nix. Extending them with the old sd-image
+  # modules would double-define fileSystems."/boot", so the per-target flash
+  # entrypoints below are emitted only for non-verity targets; verity targets
+  # get the OTA -ghafImage output instead.
   isVerityTarget = t: (t.hostConfiguration.config.ghaf.partitioning.verity.enable or false);
-  verityCrossTargets = builtins.filter isVerityTarget crossTargets;
+  crossTargetsByVerity = lib.partition isVerityTarget crossTargets;
+  verityCrossTargets = crossTargetsByVerity.right;
+  nonVerityCrossTargets = crossTargetsByVerity.wrong;
+
+  # Per-cross-target flash package variants: name suffix -> derivation builder.
+  # Old sd-image flow (dev/CI: dd to external USB/SD storage) + new two-stage
+  # initrd flow (production: flash internal eMMC). Emitted for non-verity only.
+  flashVariants = [
+    {
+      suffix = "flash-script";
+      drv = t: secureTarget t false;
+    }
+    {
+      suffix = "flash-qspi";
+      drv = t: secureTarget t true;
+    }
+    {
+      suffix = "flash-initrd";
+      drv = t: t.hostConfiguration.pkgs.nvidia-jetpack.initrdFlashScript;
+    }
+    {
+      suffix = "flash-initrd-qspi";
+      drv = initrdQspi;
+    }
+    {
+      # ESP + root image set with flash-manifest.json for external CI / hw-test.
+      suffix = "flash-images";
+      drv = t: t.hostConfiguration.config.system.build.ghafFlashImages;
+    }
+  ];
+  flashPackages = builtins.listToAttrs (
+    lib.concatMap (
+      v:
+      map (
+        t:
+        let
+          name = "${t.name}-${v.suffix}";
+        in
+        lib.nameValuePair name (lazyPackage name (v.drv t))
+      ) nonVerityCrossTargets
+    ) flashVariants
+  );
 in
 {
   flake = {
@@ -341,22 +399,8 @@ in
       aarch64-linux = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
       x86_64-linux =
         builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) crossTargets)
-        // builtins.listToAttrs (
-          map (
-            t:
-            #Note: secureTarget does not toggle between secureboot on/off!!
-            lib.nameValuePair "${t.name}-flash-script" (
-              lazyPackage "${t.name}-flash-script" (secureTarget t false)
-            )
-          ) crossTargets
-        )
-        // builtins.listToAttrs (
-          map (
-            t:
-            #Note: secureTarget does not toggle between secureboot on/off!!
-            lib.nameValuePair "${t.name}-flash-qspi" (lazyPackage "${t.name}-flash-qspi" (secureTarget t true))
-          ) crossTargets
-        )
+        # Per-target flash entrypoints: sd-image dev flow + initrd production flow
+        // flashPackages
         # OTA update artifacts for verity targets
         // builtins.listToAttrs (
           map (

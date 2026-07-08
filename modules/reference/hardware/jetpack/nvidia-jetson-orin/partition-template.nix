@@ -275,7 +275,9 @@ in
   config =
     lib.mkIf
       (
-        cfg.enable && !(options ? ghaf.partitioning.verity.enable && config.ghaf.partitioning.verity.enable)
+        cfg.enable
+        && cfg.flashScriptOverrides.method == "sdimage"
+        && !(options ? ghaf.partitioning.verity.enable && config.ghaf.partitioning.verity.enable)
       )
       {
         hardware.nvidia-jetpack.flashScriptOverrides.partitionTemplate = partitionTemplate;
