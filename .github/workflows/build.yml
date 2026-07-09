@@ -69,6 +69,12 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           fetch-depth: 0
           persist-credentials: false
+          # Checking out fork code in a 'pull_request_target' workflow is the
+          # "pwn request" pattern, so actions/checkout v7 refuses it unless we
+          # opt in. The 'authorize' job above gates this one on the PR author
+          # being a tiiuae org member, and runs from the base version of
+          # authorize.yml, so untrusted code never reaches a runner unreviewed.
+          allow-unsafe-pr-checkout: true
       - name: Rebase
         if: ${{ github.base_ref != '' }}
         run: |
