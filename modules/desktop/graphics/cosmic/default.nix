@@ -293,6 +293,8 @@ in
       systemPackages =
         with pkgs;
         [
+          # TODO: Remove when https://github.com/NixOS/nixpkgs/pull/539917 is available
+          cosmic-monitor
           papirus-icon-theme-grey
           adwaita-icon-theme
           ghaf-wallpapers
@@ -361,7 +363,7 @@ in
           Type = "simple";
           Restart = "on-failure";
           RestartSec = "5";
-          Path = [
+          ExecSearchPath = [
             "${pkgs.ghaf-usb-applet}/bin"
           ];
           ExecStart = ''
@@ -455,7 +457,7 @@ in
     hardware.bluetooth.enable = graphicsProfileCfg.bluetooth.enable;
     networking.networkmanager.enable = graphicsProfileCfg.networkManager.enable;
 
-    services.gvfs.enable = lib.mkForce false;
+    # TODO: Revisit below when https://github.com/NixOS/nixpkgs/pull/539810 is available
     services.gnome.gnome-keyring.enable = lib.mkForce false;
     services.power-profiles-daemon.enable = lib.mkForce false;
     # Fails to build in cross-compilation for Orins
