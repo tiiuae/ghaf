@@ -227,7 +227,7 @@ flash_zst_with_bmap() {
   PREBUILT_BMAP="${FILENAME%%.*}.bmap"
   if [ -f "$PREBUILT_BMAP" ]; then
     echo "Flashing with sparse-aware copy..."
-    if ! bmaptool_copy_retry bmaptool copy --bmap "$PREBUILT_BMAP" "$DEVICE"; then
+    if ! bmaptool_copy_retry bmaptool copy --bmap "$PREBUILT_BMAP" "$FILENAME" "$DEVICE"; then
       warn "Sparse-aware flashing failed, likely because the device is still busy."
       return 1
     fi
