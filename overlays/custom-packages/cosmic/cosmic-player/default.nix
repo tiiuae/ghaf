@@ -1,8 +1,7 @@
 # SPDX-FileCopyrightText: 2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-
 # Add missing plugins and path
-
+# TODO: Remove after https://github.com/NixOS/nixpkgs/pull/534694 is merged and available
 { prev }:
 (prev.cosmic-player.overrideAttrs (oldAttrs: {
   dontWrapLibcosmicApp = true;

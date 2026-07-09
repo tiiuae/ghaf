@@ -8,7 +8,4 @@ prev.cosmic-applets.overrideAttrs (oldAttrs: {
   patches = oldAttrs.patches ++ [
     ./0001-Hide-some-panel-buttons.patch
   ];
-  postInstall = oldAttrs.postInstall or "" + ''
-    sed -i 's|^Exec=.*|Exec=env PIPEWIRE_RUNTIME_DIR=/tmp cosmic-applet-audio|' $out/share/applications/com.system76.CosmicAppletAudio.desktop
-  '';
 })
