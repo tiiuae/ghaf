@@ -100,24 +100,30 @@ let
         done
 
         if [ -z "$ESP_DEVICE" ]; then
-          show_warning "ESP partition not found - cannot check for installer marker. Skipping deferred encryption."
+          echo "ESP partition not found - cannot check for installer marker. Skipping deferred encryption."
           exit 0
         fi
 
         mkdir -p /mnt/esp
         if ! mount "$ESP_DEVICE" /mnt/esp; then
-          show_warning "Failed to mount ESP - skipping deferred encryption."
+          echo "Failed to mount ESP - skipping deferred encryption."
           exit 0
         fi
 
         if [ ! -f "/mnt/esp/.ghaf-installer-encrypt" ]; then
-          show_info "Installer marker not found on ESP - skipping deferred encryption."
+          echo "Installer marker not found on ESP - skipping deferred encryption."
           umount /mnt/esp
           exit 0
         fi
 
         # ---------------------------------------------------------------------------
         # Stop Plymouth so GUM can own the framebuffer TTY
+        #
+        # This is the boundary: GUM is only safe to call below this block. Above it
+        # plymouthd still owns the console, and GUM renders through a terminal
+        # library that expects to own the TTY. The two deadlock, and since this
+        # service is ordered Before=sysroot.mount, the boot hangs on the splash
+        # forever. Use plain echo above this point.
         # ---------------------------------------------------------------------------
         if command -v plymouth >/dev/null 2>&1; then
           plymouth quit || true
