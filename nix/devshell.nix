@@ -59,9 +59,9 @@
               category = "linters";
             }
             {
-              help = "Generate changelog";
+              help = "Generate Ghaf changelog since last ghaf-xx.xx tag";
               name = "ghaf-changelog";
-              command = "git cliff --unreleased --config .github/cliff.toml $@";
+              command = "git-cliff --offline -l --unreleased --config .github/cliff.toml $@";
               category = "changelog";
             }
             {
