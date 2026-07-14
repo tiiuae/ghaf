@@ -293,8 +293,6 @@ in
       systemPackages =
         with pkgs;
         [
-          # TODO: Remove when https://github.com/NixOS/nixpkgs/pull/539917 is available
-          cosmic-monitor
           papirus-icon-theme-grey
           adwaita-icon-theme
           ghaf-wallpapers
