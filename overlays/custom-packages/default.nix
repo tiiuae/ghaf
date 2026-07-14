@@ -24,5 +24,10 @@
   osquery-with-hostname = import ./osquery-with-hostname { inherit prev; };
   pipewire = import ./pipewire { inherit prev; };
   spire4ghaf = import ./spire4ghaf { inherit prev; };
+  # keep-sorted end
+
+  pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
+    (import ./pygount)
+    (import ./setuptools-pkg-resources)
+  ];
 })
-# keep-sorted end
