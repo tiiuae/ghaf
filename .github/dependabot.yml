@@ -4,6 +4,12 @@ updates:
       directory: /
       schedule:
           interval: weekly
+      groups:
+          # init/autobuild/analyze share a config file stamped with the action
+          # version; a partial bump makes analyze reject init's config.
+          codeql-action:
+              patterns:
+                  - github/codeql-action*
 
     - package-ecosystem: npm
       directory: /docs
