@@ -1,0 +1,32 @@
+Subject: [PATCH] net: stmmac: dwmac-tegra: fixed stream id for passthrough guests
+
+A vfio-platform passthrough guest has no IOMMU, so
+tegra_dev_iommu_get_stream_id() cannot supply MGBE0's SMMU stream id and the
+driver bails with -EINVAL. Fall back to MGBE0's fixed stream id (6), which is
+the value the MAC's ASID register must carry and what the driver hardcoded
+before commit 426046e2d ("net: stmmac: dwmac-tegra: Read iommu stream id from
+device tree"). This is applied only to the Net-VM guest kernel; the host keeps
+the stock driver.
+
+--- a/drivers/net/ethernet/stmicro/stmmac/dwmac-tegra.c
++++ b/drivers/net/ethernet/stmicro/stmmac/dwmac-tegra.c
+@@ -244,11 +244,14 @@
+ 	if (IS_ERR(mgbe->xpcs))
+ 		return PTR_ERR(mgbe->xpcs);
+ 
+-	/* get controller's stream id from iommu property in device tree */
+-	if (!tegra_dev_iommu_get_stream_id(mgbe->dev, &mgbe->iommu_sid)) {
+-		dev_err(mgbe->dev, "failed to get iommu stream id\n");
+-		return -EINVAL;
+-	}
++	/*
++	 * Get the controller's stream id from the iommu property in the device
++	 * tree. A vfio-platform passthrough guest has no IOMMU, so fall back to
++	 * MGBE0's fixed stream id (6) -- the value the MAC's ASID register must
++	 * carry and what the driver hardcoded before commit 426046e2d.
++	 */
++	if (!tegra_dev_iommu_get_stream_id(mgbe->dev, &mgbe->iommu_sid))
++		mgbe->iommu_sid = 6;
+ 
+ 	res.addr = mgbe->regs;
+ 	res.irq = irq;

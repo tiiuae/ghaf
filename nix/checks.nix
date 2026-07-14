@@ -59,6 +59,8 @@
               excludes = [
                 ".*\\.patch$"
                 ".*\\.dts$"
+                # Vendored verbatim kernel driver sources; keep upstream formatting.
+                ".*/bpmp-virt-common/sources/.*"
               ];
             };
             trim-trailing-whitespace = {
@@ -69,6 +71,8 @@
               excludes = [
                 ".*\\.patch$"
                 ".*\\.dts$"
+                # Vendored verbatim kernel driver sources; keep upstream formatting.
+                ".*/bpmp-virt-common/sources/.*"
               ];
             };
           };

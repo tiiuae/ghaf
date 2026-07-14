@@ -1,0 +1,192 @@
+From: Juan Pablo Ruiz <juanpablo.ruiz@unikie.com>
+Subject: [PATCH] bpmp-virt: hook the Tegra BPMP core for host/guest proxying
+
+Only the in-tree edits. The proxy drivers themselves live as plain source files
+under ../sources/drivers/firmware/tegra/bpmp-{host,guest}-proxy/ and are spliced
+in by bpmp-virt-common/default.nix, so they can be read and reviewed as code
+rather than as a diff.
+
+bpmp.c learns to look for a `virtual-pa` property on the bpmp DT node; when it is
+present the node is a guest's view of BPMP, so tegra_bpmp_transfer is redirected
+through the guest proxy instead of the real shmem/mailbox path.
+
+Derived from https://github.com/tiiuae/ghaf PR #1240.
+---
+diff --git a/drivers/firmware/tegra/Kconfig b/drivers/firmware/tegra/Kconfig
+index cde1ab8bd9d1..72b7680f1cda 100644
+--- a/drivers/firmware/tegra/Kconfig
++++ b/drivers/firmware/tegra/Kconfig
+@@ -25,3 +25,6 @@ config TEGRA_BPMP
+ 	  firmware running on BPMP.
+ 
+ endmenu
++
++source "drivers/firmware/tegra/bpmp-host-proxy/Kconfig"
++source "drivers/firmware/tegra/bpmp-guest-proxy/Kconfig"
+diff --git a/drivers/firmware/tegra/Makefile b/drivers/firmware/tegra/Makefile
+index 620cf3fdd607..ae29c36badcd 100644
+--- a/drivers/firmware/tegra/Makefile
++++ b/drivers/firmware/tegra/Makefile
+@@ -7,3 +7,5 @@ tegra-bpmp-$(CONFIG_ARCH_TEGRA_234_SOC)	+= bpmp-tegra186.o
+ tegra-bpmp-$(CONFIG_DEBUG_FS)	+= bpmp-debugfs.o
+ obj-$(CONFIG_TEGRA_BPMP)	+= tegra-bpmp.o
+ obj-$(CONFIG_TEGRA_IVC)		+= ivc.o
++obj-y	+= bpmp-host-proxy/
++obj-y	+= bpmp-guest-proxy/
+diff --git a/drivers/firmware/tegra/bpmp-tegra186.c b/drivers/firmware/tegra/bpmp-tegra186.c
+index 6f0d0511b486..7a0d83fbc624 100644
+--- a/drivers/firmware/tegra/bpmp-tegra186.c
++++ b/drivers/firmware/tegra/bpmp-tegra186.c
+@@ -33,6 +33,9 @@ struct tegra186_bpmp {
+ 	} mbox;
+ };
+ 
++extern uint64_t bpmp_vpa;
++int tegra_bpmp_guest_init(void);
++
+ static inline struct tegra_bpmp *
+ mbox_client_to_bpmp(struct mbox_client *client)
+ {
+@@ -334,6 +337,16 @@ static int tegra186_bpmp_init(struct tegra_bpmp *bpmp)
+ 	priv->parent = bpmp;
+ 	bpmp->priv = priv;
+ 
++#ifdef CONFIG_TEGRA_BPMP_GUEST_PROXY
++	// If virtual-pa node is defined, it means that we are using a virtual BPMP
++	// then we have to initialize the bpmp-guest
++	err = of_property_read_u64(bpmp->dev->of_node, "virtual-pa", &bpmp_vpa);
++	if(!err){
++		printk("BPMP virtual-pa: 0x%llX", bpmp_vpa);	
++		return tegra_bpmp_guest_init();
++	}
++#endif
++
+ 	err = tegra186_bpmp_setup_channels(bpmp);
+ 	if (err < 0)
+ 		return err;
+@@ -361,6 +374,11 @@ static void tegra186_bpmp_deinit(struct tegra_bpmp *bpmp)
+ {
+ 	struct tegra186_bpmp *priv = bpmp->priv;
+ 
++	// If using BPMP guest proxy, do no deinit the module
++	if(bpmp_vpa){
++		return;
++	}
++
+ 	mbox_free_channel(priv->mbox.channel);
+ 
+ 	tegra186_bpmp_teardown_channels(bpmp);
+diff --git a/drivers/firmware/tegra/bpmp.c b/drivers/firmware/tegra/bpmp.c
+index c3a1dc344961..9f3b362dbd88 100644
+--- a/drivers/firmware/tegra/bpmp.c
++++ b/drivers/firmware/tegra/bpmp.c
+@@ -32,6 +32,19 @@ channel_to_ops(struct tegra_bpmp_channel *channel)
+ 	return bpmp->soc->ops;
+ }
+ 
++
++struct tegra_bpmp *tegra_bpmp_host_device = NULL;
++EXPORT_SYMBOL_GPL(tegra_bpmp_host_device);
++
++int (*tegra_bpmp_transfer_redirect)(struct tegra_bpmp *bpmp,
++			struct tegra_bpmp_message *msg) = NULL;
++int tegra_bpmp_outloud = 0;
++uint64_t bpmp_vpa = 0;
++
++EXPORT_SYMBOL_GPL(tegra_bpmp_transfer_redirect);
++EXPORT_SYMBOL_GPL(tegra_bpmp_outloud);
++EXPORT_SYMBOL_GPL(bpmp_vpa);
++
+ struct tegra_bpmp *tegra_bpmp_get(struct device *dev)
+ {
+ 	struct platform_device *pdev;
+@@ -57,6 +70,7 @@ struct tegra_bpmp *tegra_bpmp_get(struct device *dev)
+ 
+ put:
+ 	of_node_put(np);
++	tegra_bpmp_host_device = bpmp;
+ 	return bpmp;
+ }
+ EXPORT_SYMBOL_GPL(tegra_bpmp_get);
+@@ -333,6 +347,25 @@ int tegra_bpmp_transfer_atomic(struct tegra_bpmp *bpmp,
+ 
+ 	spin_lock(&bpmp->atomic_tx_lock);
+ 
++	// vadikas -- redirect request to virtio module
++	if (tegra_bpmp_transfer_redirect) {
++		if (tegra_bpmp_outloud){
++	        printk("tegra_bpmp_transfer_redirect tx: %x tx.size= %ld \n",
++				msg->mrq, msg->tx.size);
++	        print_hex_dump(KERN_INFO, "tegra_bpmp_transfer_redirect tx:",
++				DUMP_PREFIX_NONE, 16, 1, msg->tx.data, msg->tx.size, false);
++	    }
++		err = (*tegra_bpmp_transfer_redirect)(bpmp, msg);
++
++	    if (tegra_bpmp_outloud){
++	        printk("tegra_bpmp_transfer_redirect rx: err=%d\n msg->rx.ret=%d",
++				err, msg->rx.ret);
++	        print_hex_dump(KERN_INFO, "tegra_bpmp_transfer_redirect rx:" ,
++				DUMP_PREFIX_NONE, 16, 1, msg->rx.data, msg->rx.size, false);
++	    }
++		return err;
++	}
++
+ 	err = tegra_bpmp_channel_write(channel, msg->mrq, MSG_ACK,
+ 				       msg->tx.data, msg->tx.size);
+ 	if (err < 0) {
+@@ -376,8 +409,36 @@ int tegra_bpmp_transfer(struct tegra_bpmp *bpmp,
+ 			return -EAGAIN;
+ 	}
+ 
++	// vadikas -- redirect request to virtio module
++	if (tegra_bpmp_transfer_redirect) {
++		if (tegra_bpmp_outloud && (msg->mrq != 0x4B)){
++			printk("\n");
++	        printk("tegra_bpmp_transfer_redirect tx,msg->mrq: 0x%0X tx.size=%ld \n", 
++				msg->mrq, msg->tx.size);
++	        print_hex_dump(KERN_INFO, "tegra_bpmp_transfer_redirect tx:",
++				DUMP_PREFIX_NONE, 16, 1, msg->tx.data, msg->tx.size, false);
++	    }
++
++		err = (*tegra_bpmp_transfer_redirect)(bpmp, msg);
++	
++	    if (tegra_bpmp_outloud && (msg->mrq != 0x4B)){
++	        printk("tegra_bpmp_transfer_redirect rx: err=%d, msg->rx.ret=%d, msg->rx.size:%ld\n", 
++				err, msg->rx.ret, msg->rx.size);
++	        print_hex_dump(KERN_INFO,"tegra_bpmp_transfer_redirect rx:",
++				DUMP_PREFIX_NONE, 16, 1, msg->rx.data, msg->rx.size, false);
++	    }
++		return err;
++	}
++
+ 	channel = tegra_bpmp_write_threaded(bpmp, msg->mrq, msg->tx.data,
+ 					    msg->tx.size);
++
++	if (tegra_bpmp_outloud){
++	    printk("tegra_bpmp_transfer tx: %x tx.size= %ld \n", msg->mrq, msg->tx.size);
++	    print_hex_dump(KERN_INFO, "tegra_bpmp_transfer tx:" ,DUMP_PREFIX_NONE, 16, 1, msg->tx.data, msg->tx.size, false);
++	}
++
++
+ 	if (IS_ERR(channel))
+ 		return PTR_ERR(channel);
+ 
+@@ -391,8 +452,15 @@ int tegra_bpmp_transfer(struct tegra_bpmp *bpmp,
+ 	if (err == 0)
+ 		return -ETIMEDOUT;
+ 
+-	return tegra_bpmp_channel_read(channel, msg->rx.data, msg->rx.size,
++	err = tegra_bpmp_channel_read(channel, msg->rx.data, msg->rx.size,
+ 				       &msg->rx.ret);
++
++	if(tegra_bpmp_outloud){
++	    printk("tegra_bpmp_transfer rx: err=%d\n msg->rx.ret=%d", err, msg->rx.ret);
++	    print_hex_dump(KERN_INFO,"tegra_bpmp_transfer rx:" ,DUMP_PREFIX_NONE, 16, 1, msg->rx.data, msg->rx.size, false);
++	}
++
++	return err;
+ }
+ EXPORT_SYMBOL_GPL(tegra_bpmp_transfer);
+ 
+-- 
+2.34.1

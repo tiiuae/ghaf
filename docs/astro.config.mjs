@@ -185,6 +185,7 @@ export default defineConfig({
                                 "ghaf/dev/technologies/nvidia_agx_pt_uart",
                                 "ghaf/dev/technologies/nvidia_agx_pt_pcie",
                                 "ghaf/dev/technologies/nvidia_uarti_net_vm",
+                                "ghaf/dev/technologies/nvidia_mgbe0_net_vm",
                               ],
                             },
                             {
