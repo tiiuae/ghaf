@@ -6,4 +6,8 @@ prev.cosmic-comp.overrideAttrs (oldAttrs: {
     ./0001-Add-security-context-indicator.patch
     ./0002-Disable-VRR-by-default.patch
   ];
+
+  cargoPatches = (oldAttrs.cargoPatches or []) ++ [
+    ./0003-Disable-EGL-enumeration.patch
+  ];
 })

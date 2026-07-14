@@ -164,7 +164,7 @@ in
       graphics.cosmic = {
         # Crucial for Orin devices to use the correct render device
         # Also needs 'mesa' to be in hardware.graphics.extraPackages
-        renderDevice = lib.mkDefault "/dev/dri/renderD128";
+        renderDevice = lib.mkDefault "/renderD128";
         # Keep only essential applets for Orin devices
         topPanelApplets.right = [
           "com.system76.CosmicAppletInputSources"
@@ -268,10 +268,42 @@ in
 
     # Cosmic on orin
     environment.sessionVariables = {
-      GBM_BACKEND = "dri";
-      __EGL_VENDOR_LIBRARY_FILENAMES = "/run/opengl-driver/share/glvnd/egl_vendor.d/50_mesa.json";
+      GBM_BACKEND = "nvidia-drm";
+      __GLX_VENDOR_LIBRARY_NAME = "nvidia";
+      __EGL_VENDOR_LIBRARY_FILENAMES = "/run/opengl-driver/share/glvnd/egl_vendor.d/10_nvidia.json";
     };
+    environment.systemPackages = [
+      (pkgs.writeShellApplication {
+        name = "jetson-gl";
+        text = ''
+          export LD_LIBRARY_PATH="${
+            lib.makeLibraryPath [
+              pkgs.libglvnd
+              pkgs.nvidia-jetpack.l4t-3d-core
+              pkgs.vulkan-validation-layers
+            ]
+          }''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
+          export __EGL_VENDOR_LIBRARY_DIRS="${pkgs.nvidia-jetpack.l4t-3d-core}/share/glvnd/egl_vendor.d''${__EGL_VENDOR_LIBRARY_DIRS:+:$__EGL_VENDOR_LIBRARY_DIRS}"
+
+          export __EGL_VENDOR_LIBRARY_FILENAMES="${pkgs.nvidia-jetpack.l4t-3d-core}/share/glvnd/egl_vendor.d/10_nvidia.json"
+
+          export VK_LAYER_PATH="${pkgs.vulkan-validation-layers}/share/vulkan/explicit_layer.d"
+
+          export VK_ICD_FILENAMES="${pkgs.nvidia-jetpack.l4t-3d-core}/share/vulkan/icd.d/nvidia_icd.json''${VK_ICD_FILENAMES:+:$VK_ICD_FILENAMES}"
+
+          export __GLX_VENDOR_LIBRARY_NAME=nvidia
+
+          export GBM_BACKEND=nvidia-drm
+
+          echo "Using NVIDIA EGL:"
+          echo "  __EGL_VENDOR_LIBRARY_FILENAMES=$__EGL_VENDOR_LIBRARY_FILENAMES"
+          echo "  GBM_BACKEND=$GBM_BACKEND"
+
+          exec "$@"
+        '';
+      })
+    ];
     systemd.services.ghaf-ensure-system-profile = {
       description = "Ensure persistent NixOS system profile exists";
       wantedBy = [ "multi-user.target" ];
@@ -284,8 +316,14 @@ in
     };
 
     # Cosmic on orin
-    hardware.graphics.extraPackages = lib.mkAfter [
-      pkgs.mesa
+    hardware.graphics.extraPackages = with pkgs; [
+      mesa
+      vulkan-loader
+      vulkan-validation-layers
+      vulkan-tools
+      vulkan-headers
+      libva
+      libva-utils
     ];
 
     # Cosmic on orin

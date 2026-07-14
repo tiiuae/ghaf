@@ -1,0 +1,37 @@
+diff --git a/src/backend/egl/device.rs b/src/backend/egl/device.rs
+index 0000000..1111111 100644
+--- a/src/backend/egl/device.rs
++++ b/src/backend/egl/device.rs
+@@ -70,17 +70,22 @@ impl EGLDevice {
+     pub fn enumerate() -> Result<impl Iterator<Item = EGLDevice>, Error> {
+         let extensions = ffi::make_sure_egl_is_loaded()?;
+
++        error!("SMITHAY EGL EXTENSIONS: {:?}", extensions);
++
+         if !extensions.iter().any(|s| s == "EGL_EXT_device_base") {
+             return Err(Error::EglExtensionNotSupported(&["EGL_EXT_device_base"]));
+         }
+
+         if !extensions.iter().any(|s| s == "EGL_EXT_device_enumeration") {
+-            return Err(Error::EglExtensionNotSupported(&["EGL_EXT_device_enumeration"]));
++            error!(
++                "SMITHAY: EGL_EXT_device_enumeration missing, trying QueryDevicesEXT anyway"
++            );
+         }
+
+         if !extensions.iter().any(|s| s == "EGL_EXT_device_query") {
+             return Err(Error::EglExtensionNotSupported(&["EGL_EXT_device_query"]));
+         }
+
+         let mut device_amount = 0;
+
+         wrap_egl_call_bool(|| unsafe {
+@@ -101,6 +106,8 @@ impl EGLDevice {
+         })
+         .map_err(Error::QueryDevices)?;
+
++        error!("SMITHAY: QueryDevicesEXT returned {} device(s)", device_amount);
++
+         let mut devices = Vec::with_capacity(device_amount as usize);
+
+         wrap_egl_call_bool(|| unsafe {
