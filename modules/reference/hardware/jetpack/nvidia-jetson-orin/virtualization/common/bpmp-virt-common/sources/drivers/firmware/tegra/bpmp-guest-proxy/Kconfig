@@ -1,0 +1,11 @@
+config TEGRA_BPMP_GUEST_PROXY
+	bool "Tegra BPMP guest proxy driver"
+	depends on TEGRA_BPMP
+	help
+	The Tegra BPMP guest proxy driver, virtualize the BPMP transfer
+	function, allowing the guest to have access to the host BPMP.
+
+	Say Y here to enable this driver and to compile this driver as a module, 
+	choose M here. If unsure, say N
+
+

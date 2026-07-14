@@ -1,0 +1,122 @@
+---
+title: NVIDIA Jetson AGX Orin MGBE0 Ethernet Passthrough to netvm
+sidebar:
+  label: MGBE0 Ethernet Passthrough to netvm
+---
+
+This document describes how the AGX Orin's on-SoC ethernet controller (MGBE0,
+`ethernet@6800000`) is passed through to the netvm, so the network VM drives the
+physical wired interface directly instead of the host.
+
+import { Aside } from "@astrojs/starlight/components";
+
+<Aside>
+  Verified on the NVIDIA Jetson AGX Orin devkit (`p3737-0000 + p3701-0000`). MGBE0
+  is the only enabled on-SoC ethernet controller on this board; `eqos@2310000`
+  and `mgbe1..3` are disabled.
+</Aside>
+
+## Two channels
+
+Unlike PCIe NIC passthrough, MGBE0 is an on-SoC MMIO device, so two independent
+things must reach the guest.
+
+- **Data** — `vfio-platform` hands the MAC's four MMIO windows and its interrupts
+  to the guest. DMA goes through the SMMU with `IOVA = GPA`; MGBE0 is alone in its
+  IOMMU group, so VFIO can take it cleanly. No reserved carveouts are needed.
+- **Control** — every clock, reset and the power domain on the node is a
+  `<&bpmp ...>` reference, and the guest has no BPMP. The guest's `tegra_bpmp`
+  core is redirected, via the `virtual-pa` property on its `/bpmp` node, to a
+  QEMU MMIO bridge device that forwards each request to `/dev/bpmp-host` on the
+  host, where the BPMP host proxy gates it against an allow-list.
+
+```
+netvm: dwmac-tegra ──MMIO/DMA──▶ vfio-platform ──▶ MGBE0 @ 0x6800000
+       │                                            (SMMU SID 6, IOMMU group 8)
+       └─ clk/reset/power ─▶ guest /bpmp (virtual-pa 0x090d0000)
+                                │ MMIO
+                             QEMU nvidia_bpmp_guest device
+                                │ write(2)
+                             /dev/bpmp-host ─▶ bpmp-host-proxy (allow-list) ─▶ real BPMP
+```
+
+## QEMU
+
+`vfio-platform` was **removed from QEMU in 10.2** ("PCIe passthrough shall be the
+mainline solution",
+[`docs/about/removed-features.rst`](https://github.com/qemu/qemu/blob/499039798cdad7d86b787fec0eaf1da4151c0f05/docs/about/removed-features.rst#-device-vfio-platform-removed-in-102)).
+MGBE0 has no PCIe front
+end, so the netvm runs a pinned `ghaf-qemu-bpmp` built from **QEMU 10.1.5**, the
+last release that has the device. Every other VM stays on the nixpkgs QEMU.
+
+The guest device tree is **emitted by QEMU, not hand-written**. `virt` calls
+`exit(1)` for a dynamic sysbus device that has no FDT binding in
+`hw/core/sysbus-fdt.c` — which is why a hand-rolled `-dtb` never worked for
+platform passthrough. `ghaf-qemu-bpmp` therefore carries:
+
+- the `nvidia_bpmp_guest` MMIO bridge and the guest `/bpmp` node (with a
+  `phandle`), and
+- a `VFIO_PLATFORM_BINDING` for compat `nvidia,tegra234-mgbe` that emits MGBE0's
+  ethernet node. Its `reg`/`interrupts` carry the guest addresses and SPIs QEMU
+  assigned; `clocks`/`resets`/`power-domains` are copied from the host node with
+  their phandle rewritten to the guest `/bpmp`.
+
+## Host side
+
+The host must not bind MGBE0, but its DT `compatible` must stay
+`nvidia,tegra234-mgbe`: `vfio-platform` reads that string from the device's
+`of_node/compatible` to choose the FDT emitter, so the usual `nvidia,dummy`
+overlay would make the binding miss and QEMU exit. Instead the host **blacklists
+`nvethernet` and `dwmac-tegra`**, leaving MGBE0 pristine and unbound. A oneshot
+service then attaches it to `vfio-platform` before the netvm starts:
+
+```
+echo vfio-platform > /sys/bus/platform/devices/6800000.ethernet/driver_override
+echo 6800000.ethernet > /sys/bus/platform/drivers/vfio-platform/bind
+```
+
+## The BPMP allow-list is a safety boundary
+
+<Aside type="danger">
+  A guest kernel that can reach arbitrary BPMP clocks will, at `late_initcall`,
+  run `clk_disable_unused()` and switch off clocks the **host** is using — its
+  eMMC controller included — and wedge the host hard enough to require a reflash.
+</Aside>
+
+Two guards, both mandatory:
+
+- The netvm guest boots with `clk_ignore_unused pd_ignore_unused`, so it never
+  issues a disable in the first place.
+- `bpmp_host_overlay.dts` lists **only** MGBE0's clocks, resets and power domain
+  (`ghaf.hardware.nvidia.virtualization.bpmpAllowAllDomains` is `false`). The
+  host proxy refuses everything else.
+
+At guest boot the host proxy logs a stream of `clock not allowed` warnings. These
+are **expected** — the boundary working. They are rate probes and redundant
+parent-PLL enables for clocks the guest does not own; the link comes up at 1Gbps
+regardless. Do not add those ids to silence the warnings, or you reopen the path
+the guards exist to close. The one functional cost is PTP hardware timestamping.
+
+## Guest driver
+
+The netvm guest kernel is pinned to 6.12 and carries a small `dwmac-tegra` patch:
+6.12.95 backported the mainline change that reads MGBE0's SMMU stream id from the
+device tree, which a `virt` guest (no IOMMU) cannot supply. The patch falls back
+to the fixed stream id `6`, matching the host `iommus = <&smmu 6>` that VFIO
+programs the SMMU with.
+
+## Result
+
+Inside the netvm, the passed-through controller probes, attaches its Aquantia
+AQR113C PHY, brings the link up at 1Gbps, and routes traffic over the physical
+wire:
+
+```
+tegra-mgbe c000000.6800000.ethernet eth1: PHY [Aquantia AQR113C]
+tegra-mgbe c000000.6800000.ethernet eth1: Link is Up - 1Gbps/Full
+eth1  UP  48:b0:2d:a5:12:80
+```
+
+The host stays undamaged throughout (`cbb-fabric` errors: 0). Recovery, if the
+netvm ever fails to boot, is over the serial console (`/dev/ttyACM0`,
+`ghaf-host login:`).

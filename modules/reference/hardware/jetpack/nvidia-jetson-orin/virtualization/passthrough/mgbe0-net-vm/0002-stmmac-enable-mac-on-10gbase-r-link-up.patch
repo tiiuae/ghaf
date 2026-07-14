@@ -1,0 +1,30 @@
+Subject: [PATCH] net: stmmac: enable the MAC on link up at 10G on 10GBASE-R
+
+stmmac_mac_link_down() clears the MAC's TE/RE bits; stmmac_mac_link_up()
+should set them again via stmmac_mac_set(..., true), but its generic
+(non-USXGMII/XLGMII) speed switch has no SPEED_10000 case and returns
+early. MGBE0 runs 10GBASE-R into a rate-matching AQR113C, so phylink hands
+the driver the MAC-side speed -- stmmac_mac_link_up(10GBASER, 10000) --
+and the MAC is never re-enabled after a link flap. Carrier still reads 1
+(the PHY is MDIO-polled) and the DMA keeps running, so it looks like "link
+up, no traffic". ndo_open enables the MAC unconditionally, which is why it
+only bites after the cable is pulled.
+
+Handle SPEED_10000 as the USXGMII/XLGMII branches already do; for dwxgmac2
+link.xgmii.speed10000 is XGMAC_CONFIG_SS_10000 (0), correct for 10GBASE-R.
+
+Not passthrough-specific. Still present in mainline as of 2026-07-10; sent
+to netdev the same day.
+
+--- a/drivers/net/ethernet/stmicro/stmmac/stmmac_main.c
++++ b/drivers/net/ethernet/stmicro/stmmac/stmmac_main.c
+@@ -1074,6 +1074,9 @@
+ 		}
+ 	} else {
+ 		switch (speed) {
++		case SPEED_10000:
++			ctrl |= priv->hw->link.xgmii.speed10000;
++			break;
+ 		case SPEED_2500:
+ 			ctrl |= priv->hw->link.speed2500;
+ 			break;

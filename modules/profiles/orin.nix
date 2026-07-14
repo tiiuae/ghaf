@@ -189,10 +189,12 @@ in
 
       hardware.nvidia = {
         virtualization.enable = true;
-        virtualization.host.bpmp.enable = false;
+        # MGBE0 passthrough is AGX-only, so it's enabled per-SoM in the AGX
+        # modules, not in this NX-shared profile: NX has no MGBE0 and would
+        # crash net-vm on `-device vfio-platform,host=6800000.ethernet`.
         passthroughs.host.uarta.enable = false;
-        # TODO: uarti passthrough is currently broken, it will be enabled
-        # later after a further analysis.
+        # uarti passthrough exits(1) in QEMU's add_fdt_node() (dynamic sysbus
+        # device, no FDT binding); needs a binding like mgbe0_net_vm has.
         passthroughs.uarti_net_vm.enable = false;
       };
 

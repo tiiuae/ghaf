@@ -1,0 +1,10 @@
+config TEGRA_BPMP_HOST_PROXY
+    depends on TEGRA_BPMP
+	bool "Tegra BPMP host proxy support"
+	help
+	  Exposes the BPMP capabilities to the user level, in order to support the 
+	  BPMP dependent devices passthrough to the virtual machines.
+
+	  Say Y here to enable this driver and to compile this driver as a module, 
+	  choose M here. If unsure, say N
+

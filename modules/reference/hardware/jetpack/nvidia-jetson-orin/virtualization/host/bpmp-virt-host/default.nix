@@ -25,24 +25,16 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Extend the shared Ghaf QEMU package with Orin bpmp-virt patch.
-    # Use pkgs.ghaf-qemu (the overlay package) instead of
-    # config.ghaf.virtualization.qemu.package to avoid infinite recursion.
-    ghaf.virtualization.qemu.package = pkgs.ghaf-qemu.overrideAttrs (
-      _final: prev: {
-        patches = prev.patches ++ [ ./patches/qemu/0001-qemu-v8.1.3_bpmp-virt.patch ];
-      }
-    );
+    ghaf.hardware.nvidia.virtualization.enable = true;
+
+    # No QEMU override here. The BPMP guest bridge device is needed only by the
+    # VM that receives a BPMP-backed passthrough device, and
+    # ghaf.virtualization.qemu.package is consumed by every VM
+    # (modules/microvm/common/vm-qemu.nix). The patched QEMU opens /dev/bpmp-host
+    # unconditionally in create_virtio_devices(), so admin-vm and gui-vm must not
+    # get it. The consuming module sets microvm.qemu.package in its own scope.
 
     boot.kernelPatches = [
-      {
-        name = "Bpmp virtualization host proxy device tree";
-        patch = ./patches/0001-bpmp-host-proxy-dts.patch;
-      }
-      {
-        name = "Bpmp virtualization host uarta device tree";
-        patch = ./patches/0002-bpmp-host-uarta-dts.patch;
-      }
       {
         name = "Bpmp virtualization host kernel configuration";
         patch = null;
@@ -53,10 +45,17 @@ in
       }
     ];
 
-    # TODO: Consider are these really needed, maybe add only in debug builds?
-    environment.systemPackages = [
-      config.ghaf.virtualization.qemu.package
-      pkgs.dtc
+    # The bpmp_host_proxy node used to be injected by a kernel patch against
+    # tegra234-soc-base.dtsi. A DT overlay does the same without carrying a patch
+    # against NVIDIA's device trees.
+    hardware.deviceTree.enable = true;
+    hardware.deviceTree.overlays = [
+      {
+        name = "bpmp_host_overlay";
+        dtsFile = ./bpmp_host_overlay.dts;
+      }
     ];
+
+    environment.systemPackages = [ pkgs.dtc ];
   };
 }

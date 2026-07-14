@@ -68,7 +68,8 @@ SPDX-FileCopyrightText = [
 ]
 path = [
   "packages/pkgs-by-name/ghaf-qemu/patches/*.patch",
-  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/host/bpmp-virt-host/patches/qemu/0001-qemu-v8.1.3_bpmp-virt.patch"
+  "packages/pkgs-by-name/ghaf-qemu-bpmp/patches/*.patch",
+  "packages/pkgs-by-name/ghaf-qemu-bpmp/**/*"
 ]
 
 [[annotations]]
@@ -117,9 +118,11 @@ SPDX-FileCopyrightText = [
 ]
 path = [
   "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/common/bpmp-virt-common/patches/*.patch",
-  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/host/bpmp-virt-host/patches/*.patch",
+  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/common/bpmp-virt-common/sources/drivers/firmware/tegra/bpmp-guest-proxy/*",
+  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/common/bpmp-virt-common/sources/drivers/firmware/tegra/bpmp-host-proxy/*",
   "modules/reference/hardware/jetpack/*.patch",
   "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/uarti-net-vm/patches/net_vm_dtb_with_uarti.patch",
+  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/mgbe0-net-vm/*.patch",
   "modules/hardware/x86_64-generic/kernel/pkvm/0001-pkvm-enable-pkvm-on-intel-x86-6.1-lts.patch",
   "modules/microvm/sysvms/0001-x86-gpu-Don-t-reserve-stolen-memory-for-GPU-passthro.patch",
   "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/uarti-net-vm/tegra234-netvm.dts"

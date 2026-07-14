@@ -1,0 +1,279 @@
+Subject: [PATCH] hw/arm/virt + sysbus-fdt: NVIDIA BPMP guest bridge and MGBE0 passthrough
+
+Two parts, one patch (both against the QEMU 10.1 tree):
+
+1. hw/arm/virt.c etc: register the nvidia_bpmp_guest sysbus device (source in
+   ../sources) at GPA 0x090d0000, and emit the guest /bpmp node with a phandle
+   so a passed-through platform device can reference it. 0x090c0000 is
+   VIRT_ACPI_PCIHP in >= 10, hence 0x090d0000.
+
+2. hw/core/sysbus-fdt.c: add a VFIO_PLATFORM_BINDING for compat
+   "nvidia,tegra234-mgbe" so QEMU emits MGBE0's guest DT node itself. `virt`
+   exits(1) for a dynamic sysbus device with no binding, so this is mandatory
+   for the ethernet passthrough. The emitted node's reg/interrupts carry the
+   GPAs/SPIs QEMU assigned; clocks/resets/power-domains are copied from the host
+   node with their phandle rewritten to the guest /bpmp.
+
+Rebased from tiiuae/ghaf PR #1240 (QEMU 9.2). The MGBE0 binding is new.
+
+--- a/hw/arm/Kconfig
++++ b/hw/arm/Kconfig
+@@ -39,6 +39,7 @@
+     select VIRTIO_MEM_SUPPORTED
+     select ACPI_CXL
+     select ACPI_HMAT
++    select NVIDIA_BPMP_GUEST
+ 
+ config CUBIEBOARD
+     bool
+--- a/hw/arm/virt.c
++++ b/hw/arm/virt.c
+@@ -88,6 +88,7 @@
+ #include "hw/virtio/virtio-md-pci.h"
+ #include "hw/virtio/virtio-iommu.h"
+ #include "hw/char/pl011.h"
++#include "hw/misc/nvidia_bpmp_guest.h"
+ #include "hw/cxl/cxl.h"
+ #include "hw/cxl/cxl_host.h"
+ #include "qemu/guest-random.h"
+@@ -188,6 +189,7 @@
+     [VIRT_PVTIME] =             { 0x090a0000, 0x00010000 },
+     [VIRT_SECURE_GPIO] =        { 0x090b0000, 0x00001000 },
+     [VIRT_ACPI_PCIHP] =         { 0x090c0000, ACPI_PCIHP_SIZE },
++    [VIRT_NVIDIA_BPMP_GUEST] =  { 0x090d0000, 0x00001000 },
+     [VIRT_MMIO] =               { 0x0a000000, 0x00000200 },
+     /* ...repeating for a total of NUM_VIRTIO_TRANSPORTS, each of that size */
+     [VIRT_PLATFORM_BUS] =       { 0x0c000000, 0x02000000 },
+@@ -1153,12 +1155,48 @@
+     }
+ }
+ 
++/*
++ * NVIDIA BPMP guest bridge.
++ *
++ * Creates the MMIO device that forwards a guest's BPMP messages to the host
++ * proxy through /dev/bpmp-host, and describes it to the guest. The DT node is
++ * emitted here rather than supplied via -dtb so that `virtual-pa` can never
++ * disagree with the address QEMU mapped the bridge at.
++ *
++ * Harmless where /dev/bpmp-host does not exist: instance_init logs and leaves
++ * host_device_fd < 0. Guests without CONFIG_TEGRA_BPMP ignore the node.
++ */
++static void create_nvidia_bpmp_guest(const VirtMachineState *vms)
++{
++    MachineState *ms = MACHINE(vms);
++    hwaddr base = vms->memmap[VIRT_NVIDIA_BPMP_GUEST].base;
++
++    nvidia_bpmp_guest_create(base);
++
++    qemu_fdt_add_subnode(ms->fdt, "/bpmp");
++    /* Only "nvidia,tegra186-bpmp" is matched by tegra_bpmp_match[]. */
++    qemu_fdt_setprop_string(ms->fdt, "/bpmp", "compatible", "nvidia,tegra186-bpmp");
++    qemu_fdt_setprop_u64(ms->fdt, "/bpmp", "virtual-pa", base);
++    qemu_fdt_setprop_cell(ms->fdt, "/bpmp", "#clock-cells", 1);
++    qemu_fdt_setprop_cell(ms->fdt, "/bpmp", "#reset-cells", 1);
++    qemu_fdt_setprop_cell(ms->fdt, "/bpmp", "#power-domain-cells", 1);
++    /*
++     * A phandle so a passed-through platform device's node (emitted later by
++     * add_tegra_mgbe_fdt_node in hw/core/sysbus-fdt.c) can point its clocks,
++     * resets and power-domains at this guest BPMP.
++     */
++    qemu_fdt_setprop_cell(ms->fdt, "/bpmp", "phandle",
++                          qemu_fdt_alloc_phandle(ms->fdt));
++}
++
+ static void create_virtio_devices(const VirtMachineState *vms)
+ {
+     int i;
+     hwaddr size = vms->memmap[VIRT_MMIO].size;
+     MachineState *ms = MACHINE(vms);
+ 
++    create_nvidia_bpmp_guest(vms);
++
+     /* We create the transports in forwards order. Since qbus_realize()
+      * prepends (not appends) new child buses, the incrementing loop below will
+      * create a list of virtio-mmio buses with decreasing base addresses.
+--- a/hw/misc/Kconfig
++++ b/hw/misc/Kconfig
+@@ -11,6 +11,9 @@
+ config ARMSSE_CPU_PWRCTRL
+     bool
+ 
++config NVIDIA_BPMP_GUEST
++    bool
++
+ config ISA_DEBUG
+     bool
+     depends on ISA_BUS
+--- a/hw/misc/meson.build
++++ b/hw/misc/meson.build
+@@ -1,4 +1,5 @@
+ system_ss.add(when: 'CONFIG_APPLESMC', if_true: files('applesmc.c'))
++system_ss.add(when: 'CONFIG_NVIDIA_BPMP_GUEST', if_true: files('nvidia_bpmp_guest.c'))
+ system_ss.add(when: 'CONFIG_EDU', if_true: files('edu.c'))
+ system_ss.add(when: 'CONFIG_FW_CFG_DMA', if_true: files('vmcoreinfo.c'))
+ system_ss.add(when: 'CONFIG_ISA_DEBUG', if_true: files('debugexit.c'))
+--- a/include/hw/arm/virt.h
++++ b/include/hw/arm/virt.h
+@@ -71,6 +71,7 @@
+     VIRT_PCIE_MMIO,
+     VIRT_PCIE_PIO,
+     VIRT_PCIE_ECAM,
++    VIRT_NVIDIA_BPMP_GUEST,
+     VIRT_PLATFORM_BUS,
+     VIRT_GPIO,
+     VIRT_UART1,
+--- a/hw/core/sysbus-fdt.c
++++ b/hw/core/sysbus-fdt.c
+@@ -509,11 +509,151 @@
+ #define TYPE_BINDING(type, add_fn) {(type), NULL, (add_fn), NULL}
+ 
+ /* list of supported dynamic sysbus bindings */
++
++/*
++ * Properties copied verbatim from the host MGBE0 node. The clocks/resets/
++ * power-domains are NOT here: their phandle must be rewritten to the guest
++ * /bpmp, done explicitly below.
++ */
++static HostProperty tegra_mgbe_copied_properties[] = {
++    {"compatible", false},
++    {"reg-names", false},
++    {"interrupt-names", false},
++    {"clock-names", false},
++    {"reset-names", false},
++    {"dma-coherent", true},
++    {"phy-mode", true},
++    {"nvidia,phy-iface-mode", true},
++    {"mac-address", true},
++    {"nvidia,mac-addr-idx", true},
++    {"nvidia,mac-loopback", true},
++    {"nvidia,dma-chans", true},
++    {"nvidia,num-dma-chans", true},
++    {"nvidia,mtl-queues", true},
++    {"nvidia,num-mtl-queues", true},
++    {"nvidia,tc-mapping", true},
++    {"nvidia,rxq_enable_ctrl", true},
++    {"nvidia,dcs-enable", true},
++    {"nvidia,pause_frames", true},
++    {"nvidia,instance_id", true},
++};
++
++/*
++ * Copy a host phandle-list property (clocks/resets/power-domains) to the guest,
++ * rewriting every phandle cell to the guest /bpmp while keeping the id cells.
++ * cells_per_entry is 1 + #<x>-cells; for BPMP all of these are 2 (phandle + id).
++ */
++static void tegra_mgbe_copy_bpmp_prop(void *host_fdt, void *guest_fdt,
++                                      const char *host_node, const char *guest_node,
++                                      const char *prop, uint32_t bpmp_phandle,
++                                      unsigned cells_per_entry)
++{
++    const void *r;
++    int prop_len, i, n;
++    uint32_t *out;
++
++    r = qemu_fdt_getprop(host_fdt, host_node, prop, &prop_len, &error_fatal);
++    n = prop_len / sizeof(uint32_t);
++    out = g_new(uint32_t, n);
++    for (i = 0; i < n; i++) {
++        if ((i % cells_per_entry) == 0) {
++            out[i] = cpu_to_be32(bpmp_phandle);       /* phandle cell */
++        } else {
++            out[i] = ((const uint32_t *)r)[i];        /* id cell(s), already be32 */
++        }
++    }
++    qemu_fdt_setprop(guest_fdt, guest_node, prop, out, prop_len);
++    g_free(out);
++}
++
++static int add_tegra_mgbe_fdt_node(SysBusDevice *sbdev, void *opaque)
++{
++    PlatformBusFDTData *data = opaque;
++    PlatformBusDevice *pbus = data->pbus;
++    VFIOPlatformDevice *vdev = VFIO_PLATFORM_DEVICE(sbdev);
++    VFIODevice *vbasedev = &vdev->vbasedev;
++    const char *parent_node = data->pbus_node_name;
++    char **node_path, *nodename, *dt_name;
++    void *guest_fdt = data->fdt, *host_fdt;
++    uint32_t *irq_attr, *reg_attr, bpmp_phandle;
++    uint64_t mmio_base, irq_number;
++    int i;
++
++    host_fdt = load_device_tree_from_sysfs();
++
++    dt_name = sysfs_to_dt_name(vbasedev->name);
++    if (!dt_name) {
++        error_report("%s incorrect sysfs device name %s", __func__, vbasedev->name);
++        exit(1);
++    }
++    node_path = qemu_fdt_node_path(host_fdt, dt_name, vdev->compat, &error_fatal);
++    if (!node_path || !node_path[0] || node_path[1]) {
++        error_report("%s cannot resolve a unique host node for %s/%s",
++                     __func__, dt_name, vdev->compat);
++        exit(1);
++    }
++    g_free(dt_name);
++
++    bpmp_phandle = qemu_fdt_get_phandle(guest_fdt, "/bpmp");
++    if (!bpmp_phandle) {
++        error_report("%s no /bpmp node in guest fdt; is the BPMP guest bridge on?",
++                     __func__);
++        exit(1);
++    }
++
++    mmio_base = platform_bus_get_mmio_addr(pbus, sbdev, 0);
++    nodename = g_strdup_printf("%s/%s@%" PRIx64, parent_node,
++                               vbasedev->name, mmio_base);
++    qemu_fdt_add_subnode(guest_fdt, nodename);
++
++    copy_properties_from_host(tegra_mgbe_copied_properties,
++                              ARRAY_SIZE(tegra_mgbe_copied_properties),
++                              host_fdt, guest_fdt, node_path[0], nodename);
++
++    /* reg: every VFIO region at the GPA QEMU mapped it to. */
++    reg_attr = g_new(uint32_t, vbasedev->num_initial_regions * 2);
++    for (i = 0; i < vbasedev->num_initial_regions; i++) {
++        mmio_base = platform_bus_get_mmio_addr(pbus, sbdev, i);
++        reg_attr[2 * i] = cpu_to_be32(mmio_base);
++        reg_attr[2 * i + 1] =
++            cpu_to_be32(memory_region_size(vdev->regions[i]->mem));
++    }
++    qemu_fdt_setprop(guest_fdt, nodename, "reg", reg_attr,
++                     vbasedev->num_initial_regions * 2 * sizeof(uint32_t));
++
++    /* interrupts: every VFIO irq at the guest SPI QEMU assigned. */
++    irq_attr = g_new(uint32_t, vbasedev->num_irqs * 3);
++    for (i = 0; i < vbasedev->num_irqs; i++) {
++        irq_number = platform_bus_get_irqn(pbus, sbdev, i) + data->irq_start;
++        irq_attr[3 * i] = cpu_to_be32(GIC_FDT_IRQ_TYPE_SPI);
++        irq_attr[3 * i + 1] = cpu_to_be32(irq_number);
++        irq_attr[3 * i + 2] = cpu_to_be32(GIC_FDT_IRQ_FLAGS_LEVEL_HI);
++    }
++    qemu_fdt_setprop(guest_fdt, nodename, "interrupts", irq_attr,
++                     vbasedev->num_irqs * 3 * sizeof(uint32_t));
++
++    /* clocks/resets/power-domains: re-point at the guest /bpmp. */
++    tegra_mgbe_copy_bpmp_prop(host_fdt, guest_fdt, node_path[0], nodename,
++                              "clocks", bpmp_phandle, 2);
++    tegra_mgbe_copy_bpmp_prop(host_fdt, guest_fdt, node_path[0], nodename,
++                              "resets", bpmp_phandle, 2);
++    tegra_mgbe_copy_bpmp_prop(host_fdt, guest_fdt, node_path[0], nodename,
++                              "power-domains", bpmp_phandle, 2);
++
++    g_free(host_fdt);
++    g_strfreev(node_path);
++    g_free(irq_attr);
++    g_free(reg_attr);
++    g_free(nodename);
++    return 0;
++}
++
+ static const BindingEntry bindings[] = {
+ #ifdef CONFIG_LINUX
+     TYPE_BINDING(TYPE_VFIO_CALXEDA_XGMAC, add_calxeda_midway_xgmac_fdt_node),
+     TYPE_BINDING(TYPE_VFIO_AMD_XGBE, add_amd_xgbe_fdt_node),
+     VFIO_PLATFORM_BINDING("amd,xgbe-seattle-v1a", add_amd_xgbe_fdt_node),
++    VFIO_PLATFORM_BINDING("nvidia,tegra234-mgbe", add_tegra_mgbe_fdt_node),
+ #endif
+ #ifdef CONFIG_TPM
+     TYPE_BINDING(TYPE_TPM_TIS_SYSBUS, add_tpm_tis_fdt_node),
