@@ -1,21 +1,16 @@
 diff --git a/src/backend/egl/device.rs b/src/backend/egl/device.rs
-index 0000000..1111111 100644
 --- a/src/backend/egl/device.rs
 +++ b/src/backend/egl/device.rs
-@@ -70,17 +70,22 @@ impl EGLDevice {
-     pub fn enumerate() -> Result<impl Iterator<Item = EGLDevice>, Error> {
-         let extensions = ffi::make_sure_egl_is_loaded()?;
-
-+        error!("SMITHAY EGL EXTENSIONS: {:?}", extensions);
-+
+@@ -75,9 +75,11 @@ impl EGLDevice {
          if !extensions.iter().any(|s| s == "EGL_EXT_device_base") {
              return Err(Error::EglExtensionNotSupported(&["EGL_EXT_device_base"]));
          }
 
-         if !extensions.iter().any(|s| s == "EGL_EXT_device_enumeration") {
+-        if !extensions.iter().any(|s| s == "EGL_EXT_device_enumeration") {
 -            return Err(Error::EglExtensionNotSupported(&["EGL_EXT_device_enumeration"]));
-+            error!(
-+                "SMITHAY: EGL_EXT_device_enumeration missing, trying QueryDevicesEXT anyway"
++        if !extensions.iter().any(|s| s == "EGL_EXT_device_enumeration") {
++            warn!(
++                "Ignoring missing EGL_EXT_device_enumeration extension"
 +            );
          }
 
@@ -23,15 +18,25 @@ index 0000000..1111111 100644
              return Err(Error::EglExtensionNotSupported(&["EGL_EXT_device_query"]));
          }
 
-         let mut device_amount = 0;
+diff --git a/src/backend/egl/display.rs b/src/backend/egl/display.rs
+--- a/src/backend/egl/display.rs
++++ b/src/backend/egl/display.rs
+@@ -194,13 +194,11 @@ unsafe fn select_platform_display<N: EGLNativeDisplay + 'static>(
+-        let display = wrap_egl_call_ptr(|| unsafe {
+-            ffi::egl::GetPlatformDisplayEXT(
+-                platform.platform,
+-                platform.native_display,
+-                platform.attrib_list.as_ptr(),
+-            )
+-        })
+-        .map_err(Error::DisplayCreationError);
++        let display = wrap_egl_call_ptr(|| unsafe {
++            ffi::egl::GetDisplay(
++                platform.native_display as *mut _
++            )
++        })
++        .map_err(Error::DisplayCreationError);
 
-         wrap_egl_call_bool(|| unsafe {
-@@ -101,6 +106,8 @@ impl EGLDevice {
-         })
-         .map_err(Error::QueryDevices)?;
-
-+        error!("SMITHAY: QueryDevicesEXT returned {} device(s)", device_amount);
-+
-         let mut devices = Vec::with_capacity(device_amount as usize);
-
-         wrap_egl_call_bool(|| unsafe {
+         let display = match display {
+             Ok(display) => {
+                 if display == ffi::egl::NO_DISPLAY {
