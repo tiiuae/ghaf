@@ -48,16 +48,18 @@ in
     systemd.services.set-dynamic-hostname = {
       description = "Set hostname from hardware-based identity";
       wantedBy = [ "network-pre.target" ];
+      unitConfig.DefaultDependencies = false;
       after = [
         "sysinit.target"
         "local-fs.target"
-        "systemd-hostnamed.service"
       ];
       before = [
         "network-pre.target"
         "network.target"
         "NetworkManager.service"
+        "shutdown.target"
       ];
+      conflicts = [ "shutdown.target" ];
       serviceConfig =
         let
           setDynamicHostname = pkgs.writeShellApplication {
