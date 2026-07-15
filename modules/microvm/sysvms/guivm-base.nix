@@ -39,6 +39,17 @@
 }:
 let
   vmName = "gui-vm";
+  guiSessionShareEnabled = hostConfig.users.profile.ad-users.enable or false;
+  guiSessionUidFile = "/run/ghaf/session/gui-vm-user.uid";
+  activeDirectoryDomains = lib.mapAttrs (
+    _: domain:
+    domain
+    // {
+      # This is a read-only option in the AD domain module, so forwarding
+      # evaluated host config verbatim would redefine the module default.
+      ldap = removeAttrs (domain.ldap or { }) [ "enableSasl" ];
+    }
+  ) (hostConfig.users.active-directory.domains or { });
   fprintEnabled = lib.ghaf.features.isEnabledFor globalConfig "fprint" vmName;
   yubikeyEnabled = lib.ghaf.features.isEnabledFor globalConfig "yubikey" vmName;
   brightnessEnabled = lib.ghaf.features.isEnabledFor globalConfig "brightness" vmName;
@@ -63,6 +74,50 @@ let
       }";
     }
   ) virtualApps;
+
+  sync-active-gui-user = pkgs.writeShellApplication {
+    name = "sync-active-gui-user";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.systemd
+    ];
+    text = ''
+      set -euo pipefail
+
+      uid_file=${lib.escapeShellArg guiSessionUidFile}
+      uid_dir="$(dirname "$uid_file")"
+      tmp_file=""
+
+      cleanup() {
+        if [ -n "$tmp_file" ]; then
+          rm -f "$tmp_file"
+        fi
+      }
+
+      clear_uid_file() {
+        rm -f "$uid_file"
+      }
+
+      trap cleanup EXIT
+
+      active_session="$(loginctl show-seat seat0 -p ActiveSession --value 2>/dev/null || true)"
+      user_id="$(loginctl show-session "$active_session" -p User --value 2>/dev/null || true)"
+      seat="$(loginctl show-session "$active_session" -p Seat --value 2>/dev/null || true)"
+      session_class="$(loginctl show-session "$active_session" -p Class --value 2>/dev/null || true)"
+
+      if [[ ! "$user_id" =~ ^[0-9]+$ ]] || [ "$user_id" -eq 0 ] || [ -z "$seat" ] || [ "$session_class" != "user" ]; then
+        clear_uid_file
+        exit 0
+      fi
+
+      install -d -m 0750 "$uid_dir"
+      tmp_file="$(mktemp "$uid_dir/.gui-vm-user.uid.XXXXXX")"
+      printf '%s\n' "$user_id" > "$tmp_file"
+      chmod 0640 "$tmp_file"
+      mv -f "$tmp_file" "$uid_file"
+      tmp_file=""
+    '';
+  };
 in
 {
   _file = ./guivm-base.nix;
@@ -91,6 +146,7 @@ in
       profile = hostConfig.users.profile or { };
       admin = hostConfig.users.admin or { };
       managed = hostConfig.users.managed or [ ];
+      active-directory.domains = activeDirectoryDomains;
       adUsers = {
         enable = hostConfig.users.profile.ad-users.enable or false;
       };
@@ -329,6 +385,41 @@ in
           ExecStart = "${keygenScript}/bin/waypipe-ssh-keygen";
         };
       };
+
+    services."sync-active-gui-user" = lib.mkIf guiSessionShareEnabled {
+      description = "Export the active GUI login UID to the host runtime share";
+      wantedBy = [ "multi-user.target" ];
+      after = [
+        "local-fs.target"
+        "systemd-logind.service"
+      ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = lib.getExe sync-active-gui-user;
+      };
+    };
+
+    paths."sync-active-gui-user" = lib.mkIf guiSessionShareEnabled {
+      description = "Watch GUI login state changes and refresh the exported login UID";
+      wantedBy = [ "multi-user.target" ];
+      wants = [ "sync-active-gui-user.service" ];
+      pathConfig = {
+        PathChanged = [
+          "/run/systemd/seats/seat0"
+          "/run/systemd/sessions"
+        ];
+        Unit = "sync-active-gui-user.service";
+      };
+    };
+  };
+
+  fileSystems = lib.optionalAttrs guiSessionShareEnabled {
+    "/run/ghaf/session".options = [
+      "rw"
+      "nodev"
+      "nosuid"
+      "noexec"
+    ];
   };
 
   environment = {
@@ -383,6 +474,14 @@ in
         tag = "ghaf-common";
         source = "/persist/common";
         mountPoint = "/etc/common";
+        proto = "virtiofs";
+      }
+    ]
+    ++ lib.optionals guiSessionShareEnabled [
+      {
+        tag = "ghaf-session";
+        source = "/run/ghaf/session";
+        mountPoint = "/run/ghaf/session";
         proto = "virtiofs";
       }
     ]

@@ -165,6 +165,7 @@ export default defineConfig({
                         "ghaf/dev/guides/extending-targets",
                         "ghaf/dev/guides/downstream-setup",
                         "ghaf/dev/guides/migration",
+                        "ghaf/dev/guides/ad-login",
                       ],
                     },
                     {
