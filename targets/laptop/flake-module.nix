@@ -290,7 +290,10 @@ let
       extraModules = commonModules ++ [
         {
           # Add system76 and system76-io kernel modules to host
-          hardware.system76.kernel-modules.enable = true;
+          hardware.system76 = {
+            kernel-modules.enable = true;
+            firmware-daemon.enable = true;
+          };
         }
       ];
       extraConfig = {
@@ -324,7 +327,10 @@ let
       variant = "debug";
       extraModules = commonModules ++ [
         {
-          hardware.system76.kernel-modules.enable = true;
+          hardware.system76 = {
+            kernel-modules.enable = true;
+            firmware-daemon.enable = true;
+          };
         }
       ];
       extraConfig = {
@@ -564,7 +570,10 @@ let
       variant = "release";
       extraModules = commonModules ++ [
         {
-          hardware.system76.kernel-modules.enable = true;
+          hardware.system76 = {
+            kernel-modules.enable = true;
+            firmware-daemon.enable = true;
+          };
         }
       ];
       extraConfig = {
@@ -595,7 +604,10 @@ let
       variant = "release";
       extraModules = commonModules ++ [
         {
-          hardware.system76.kernel-modules.enable = true;
+          hardware.system76 = {
+            kernel-modules.enable = true;
+            firmware-daemon.enable = true;
+          };
         }
       ];
       extraConfig = {
