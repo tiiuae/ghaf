@@ -104,6 +104,11 @@ in
 
     boot.kernelParams = [
       "audit_backlog_limit=${toString config.security.audit.backlogLimit}"
+      # A full backlog blocks audit-triggering syscalls for wait_time (kernel
+      # default 60s). A heavy first boot refills even 32k before auditd drains
+      # it, so auditd's own startup syscalls block and its start job times out.
+      # 0 = drop events instead of stalling; the large backlog keeps drops rare.
+      "audit_backlog_wait_time=0"
     ];
 
     systemd = {
