@@ -54,11 +54,11 @@ in
   config = lib.mkIf cfg.enable {
 
     hardware = {
-      graphics.extraPackages = [
+      graphics.extraPackages = lib.mkForce( [
         pkgs.egl-wayland
         # some vulkan stuff
         #pkgs.libvdpau-va-gl
-      ];
+      ]);
 
       nvidia = {
         modesetting.enable = lib.mkDefault true;

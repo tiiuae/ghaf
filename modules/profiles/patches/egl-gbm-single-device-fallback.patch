@@ -1,0 +1,19 @@
+--- a/src/gbm-display.c	2026-07-17 14:50:24.098600957 +0000
++++ b/src/gbm-display.c	2026-07-17 14:50:24.111415944 +0000
+@@ -119,6 +119,16 @@
+         }
+     }
+ 
++    if (dev == EGL_NO_DEVICE_EXT && numDevs == 1) {
++        /*
++         * Tegra: the display DRM node (nvidia-drm) differs from the EGL
++         * device DRM/render node (tegra-drm on host1x), so the path match
++         * above cannot succeed. With a single EGL device there is no
++         * ambiguity -- use it.
++         */
++        dev = devs[0];
++    }
++
+ done:
+     free(devs);
+ 

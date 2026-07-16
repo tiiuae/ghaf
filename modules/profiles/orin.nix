@@ -61,6 +61,21 @@ let
       ln -sfn system-1-link "$profile"
     '';
   };
+
+  # Same shim kmscube uses (gpu-vm/sources): forces every gbm_surface_create*
+  # to a plain no-modifier surface. On this L4T guest the NVIDIA EGL exposes
+  # only the GBM/Wayland/X11/Surfaceless platforms (no EGL device platform), and
+  # the modifier GBM path EGL_BAD_ALLOCs. cosmic-comp (smithay udev backend)
+  # must go through GBM, so it needs this preloaded to create scanout surfaces.
+  gbm-nomod-shim = pkgs.runCommandCC "gbm-nomod-shim" { } ''
+    mkdir -p $out/lib
+    $CC -O2 -fPIC -shared -o $out/lib/gbm-nomod-shim.so \
+      ${./sources/gbm-nomod-shim.c} -ldl
+  '';
+  # cosmic-comp needs the no-modifier GBM path (modifier surfaces BAD_ALLOC on
+  # this L4T EGL); EGL device-enumeration is handled compositor-side by the
+  # cosmic-comp-egl-device-optional patch (overlay above), not a preload.
+  cosmicPreload = "${gbm-nomod-shim}/lib/gbm-nomod-shim.so";
 in
 {
   _file = ./orin.nix;
@@ -162,9 +177,16 @@ in
       services.power-manager.suspend.enable = false;
 
       graphics.cosmic = {
-        # Crucial for Orin devices to use the correct render device
-        # Also needs 'mesa' to be in hardware.graphics.extraPackages
-        renderDevice = lib.mkDefault "/renderD128";
+        # Pin cosmic-comp to the GA10B render node. This cosmic-comp (1.1.0)
+        # PREPENDS /dev/dri/ to COSMIC_RENDER_DEVICE, so it needs the BARE node name
+        # ("renderD128"), not an absolute path -- an absolute value doubles to
+        # /dev/dri//dev/dri/renderD128 -> "not found" -> software renderer -> no
+        # output. But `ghaf.graphics.cosmic.renderDevice` is typed as an absolute
+        # path (and cosmic/default.nix assigns it verbatim to COSMIC_RENDER_DEVICE),
+        # so it can't carry a bare name. Set the option null (module skips the env)
+        # and export the bare name directly. renderD128 = card0/nvgpu's render node
+        # (card1, the host1x tegra-drm, is dropped from seat0 below).
+        renderDevice = lib.mkForce null;
         # Keep only essential applets for Orin devices
         topPanelApplets.right = [
           "com.system76.CosmicAppletInputSources"
@@ -267,43 +289,21 @@ in
     );
 
     # Cosmic on orin
+
+    # libEGL_nvidia.so.0 discovers its EGL platform modules here.
+    environment.etc."egl/egl_external_platform.d".source =
+      "${pkgs.addDriverRunpath.driverLink}/share/egl/egl_external_platform.d/";
+
     environment.sessionVariables = {
+      COSMIC_RENDER_DEVICE = "renderD128";
+      COSMIC_POLL_DMABUF_FENCES = "1";
+      LIBSEAT_BACKEND = "seatd";
+      LD_PRELOAD = cosmicPreload;
       GBM_BACKEND = "nvidia-drm";
       __GLX_VENDOR_LIBRARY_NAME = "nvidia";
       __EGL_VENDOR_LIBRARY_FILENAMES = "/run/opengl-driver/share/glvnd/egl_vendor.d/10_nvidia.json";
     };
-    environment.systemPackages = [
-      (pkgs.writeShellApplication {
-        name = "jetson-gl";
-        text = ''
-          export LD_LIBRARY_PATH="${
-            lib.makeLibraryPath [
-              pkgs.libglvnd
-              pkgs.nvidia-jetpack.l4t-3d-core
-              pkgs.vulkan-validation-layers
-            ]
-          }''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
-          export __EGL_VENDOR_LIBRARY_DIRS="${pkgs.nvidia-jetpack.l4t-3d-core}/share/glvnd/egl_vendor.d''${__EGL_VENDOR_LIBRARY_DIRS:+:$__EGL_VENDOR_LIBRARY_DIRS}"
-
-          export __EGL_VENDOR_LIBRARY_FILENAMES="${pkgs.nvidia-jetpack.l4t-3d-core}/share/glvnd/egl_vendor.d/10_nvidia.json"
-
-          export VK_LAYER_PATH="${pkgs.vulkan-validation-layers}/share/vulkan/explicit_layer.d"
-
-          export VK_ICD_FILENAMES="${pkgs.nvidia-jetpack.l4t-3d-core}/share/vulkan/icd.d/nvidia_icd.json''${VK_ICD_FILENAMES:+:$VK_ICD_FILENAMES}"
-
-          export __GLX_VENDOR_LIBRARY_NAME=nvidia
-
-          export GBM_BACKEND=nvidia-drm
-
-          echo "Using NVIDIA EGL:"
-          echo "  __EGL_VENDOR_LIBRARY_FILENAMES=$__EGL_VENDOR_LIBRARY_FILENAMES"
-          echo "  GBM_BACKEND=$GBM_BACKEND"
-
-          exec "$@"
-        '';
-      })
-    ];
     systemd.services.ghaf-ensure-system-profile = {
       description = "Ensure persistent NixOS system profile exists";
       wantedBy = [ "multi-user.target" ];
@@ -315,19 +315,90 @@ in
       };
     };
 
+    services.seatd.enable = true;
+
+    systemd.services.seatd.environment.SEATD_VTBOUND = "0";
+    systemd.services.greetd = {
+      environment = {
+        COSMIC_RENDER_DEVICE = "renderD128";
+        COSMIC_POLL_DMABUF_FENCES = "1";
+        LD_PRELOAD = cosmicPreload;
+      };
+      serviceConfig = { 
+        ExecStartPre = [
+          "${pkgs.kbd}/bin/kbd_mode -f -d -C /dev/tty1"
+        ];
+        ExecStopPost = [
+          "${pkgs.kbd}/bin/kbd_mode -f -u -C /dev/tty1"
+        ];
+      };
+    };
+
     # Cosmic on orin
-    hardware.graphics.extraPackages = with pkgs; [
-      mesa
-      vulkan-loader
-      vulkan-validation-layers
-      vulkan-tools
-      vulkan-headers
-      libva
-      libva-utils
+    hardware.graphics = {
+      package = lib.mkForce (pkgs.symlinkJoin {
+        name = "l4t-3d-core-egl-gbm-1.1.3";
+        paths = [
+          # single-device fallback: on Tegra the EGL device's DRM node
+          # (tegra-drm) never path-matches the gbm fd (nvidia-drm), so
+          # stock matching always fails eglInitialize on GBM.
+          (pkgs.egl-gbm.overrideAttrs (o: {
+            patches = (o.patches or [ ]) ++ [
+              ./patches/egl-gbm-single-device-fallback.patch
+            ];
+          }))
+          pkgs.nvidia-jetpack.l4t-3d-core
+        ];
+        postBuild = ''
+          rm -f $out/share/egl/egl_external_platform.d/nvidia_gbm.json
+        '';
+      });
+      extraPackages = lib.mkForce( 
+        (with pkgs.nvidia-jetpack; [
+          l4t-core
+          l4t-cuda
+          l4t-nvsci
+          l4t-wayland
+        ])
+        ++ [
+          # l4t-gbm minus its bundled libnvidia-egl-gbm 1.1.0 (and its
+          # platform json): the nixpkgs egl-gbm 1.1.3 in `package`
+          # provides that library; keep only the nvidia-drm_gbm backend.
+          (pkgs.symlinkJoin {
+            name = "l4t-gbm-sans-egl-gbm";
+            paths = [ pkgs.nvidia-jetpack.l4t-gbm ];
+            postBuild = ''
+              rm -f $out/lib/libnvidia-egl-gbm.so*
+              rm -f $out/lib64/libnvidia-egl-gbm.so*
+              rm -f $out/share/egl/egl_external_platform.d/nvidia_gbm.json
+            '';
+          })
+        ]);
+    };
+
+    #security.pam.services.greetd.rules.auth.unix.settings.use_first_pass = lib.mkForce false;
+    #security.pam.services.cosmic-greeter.rules.auth.unix.settings.use_first_pass = lib.mkForce false;
+    #ghaf.services.user-provisioning.enable = lib.mkForce false;
+    services.udev.extraRules = ''
+      KERNEL=="nvmap", GROUP="video", MODE="0660"
+      KERNEL=="nvhost-*", GROUP="video", MODE="0660"
+      KERNEL=="nvgpu*", GROUP="video", MODE="0660"
+      ENV{DEVNAME}=="/dev/nvgpu/*", GROUP="video", MODE="0660"
+      SUBSYSTEM=="drm", DEVPATH=="*/66010000.host1x/*", ENV{ID_SEAT}="seat-unused"
+      SUBSYSTEM=="input", ENV{ID_INPUT}=="1", TAG+="uaccess"
+    '';
+
+    # Cosmic on orin
+    users.users.cosmic-greeter.extraGroups = [ "seat" ];
+    users.users.ghaf.extraGroups = [
+      "seat"
+      "video"
+      # The GIVC TLS material under /run/givc (a storagevm mount) is root:users
+      # 0750; the App VM launchers shell out to givc-cli as the graphical ghaf
+      # user, which has a private primary group. Without "users" the client
+      # cannot read the cert/key and every App VM launch fails "Permission
+      # denied (os error 13)" -- no window ever appears.
+      "users"
     ];
-
-    # Cosmic on orin
-    users.users.ghaf.extraGroups = [ "video" ];
-
   };
 }

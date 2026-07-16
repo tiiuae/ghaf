@@ -1,0 +1,16 @@
+diff --git a/src/backend/kms/device.rs b/src/backend/kms/device.rs
+--- a/src/backend/kms/device.rs
++++ b/src/backend/kms/device.rs
+@@ -1,5 +1,11 @@
+ pub fn init_egl(gbm: &GbmDevice<DrmDeviceFd>) -> Result<EGLInternals> {
+     let path = gbm.dev_path();
+
++    if let Some(path) = path.as_ref() {
++        if path != Path::new("/dev/dri/card0") {
++            anyhow::bail!("Ignoring non-primary DRM node: {}", path.display());
++        }
++    }
++
+     let display = unsafe { EGLDisplay::new(gbm.clone()) }.with_context(|| {
+         format!(
+             "Failed to create EGLDisplay for device: {:?}",

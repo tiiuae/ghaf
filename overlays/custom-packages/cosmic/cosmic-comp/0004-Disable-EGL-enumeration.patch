@@ -21,22 +21,12 @@ diff --git a/src/backend/egl/device.rs b/src/backend/egl/device.rs
 diff --git a/src/backend/egl/display.rs b/src/backend/egl/display.rs
 --- a/src/backend/egl/display.rs
 +++ b/src/backend/egl/display.rs
-@@ -194,13 +194,11 @@ unsafe fn select_platform_display<N: EGLNativeDisplay + 'static>(
--        let display = wrap_egl_call_ptr(|| unsafe {
--            ffi::egl::GetPlatformDisplayEXT(
--                platform.platform,
--                platform.native_display,
--                platform.attrib_list.as_ptr(),
--            )
--        })
--        .map_err(Error::DisplayCreationError);
-+        let display = wrap_egl_call_ptr(|| unsafe {
-+            ffi::egl::GetDisplay(
-+                platform.native_display as *mut _
-+            )
-+        })
-+        .map_err(Error::DisplayCreationError);
+@@ -172,6 +172,8 @@ unsafe fn select_platform_display<N: EGLNativeDisplay + 'static>(
+ ) -> Result<(*const c_void, &'static str), Error> {
 
-         let display = match display {
-             Ok(display) => {
-                 if display == ffi::egl::NO_DISPLAY {
++    panic!("SMITHAY: SELECT_PLATFORM_DISPLAY");
++
+     for platform in native.supported_platforms() {
+         debug!("Trying EGL platform: {}", platform.platform_name);
+
+         let missing_extensions = platform
