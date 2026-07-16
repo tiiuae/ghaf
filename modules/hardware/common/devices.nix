@@ -8,9 +8,9 @@
 }:
 let
   inherit (lib)
-    concatMapStringsSep
     imap1
     getExe
+    nameValuePair
     mkOption
     types
     optionalAttrs
@@ -49,6 +49,23 @@ let
   nicPciDevices = lib.filter (
     d: d.path != "" || (d.vendorId != null && d.productId != null)
   ) config.ghaf.hardware.definition.network.pciDevices;
+  namedNicDevices = lib.filter (d: d.name != null) config.ghaf.hardware.definition.network.pciDevices;
+  nicLinkMatch =
+    d:
+    if d.vendorId != null && d.productId != null then
+      {
+        Property = "ID_VENDOR_ID=0x${d.vendorId} ID_MODEL_ID=0x${d.productId}";
+      }
+    else if d.path != "" then
+      {
+        Path = "pci-${d.path}";
+      }
+    else
+      {
+        # Generic laptop targets discover the passed-through network device at runtime
+        # So, no stable PCI identity is available in their definition.
+        Type = "wlan";
+      };
   gpuPciDevices = config.ghaf.hardware.definition.gpu.pciDevices;
   sndPciDevices = config.ghaf.hardware.definition.audio.pciDevices;
   evdevDevices = config.ghaf.hardware.definition.input.misc.evdev;
@@ -115,10 +132,18 @@ in
           };
         }) nicPciDevices;
 
-        services.udev.extraRules = concatMapStringsSep "\n" (
-          d:
-          ''SUBSYSTEM=="net", ACTION=="add", ATTRS{vendor}=="0x${d.vendorId}", ATTRS{device}=="0x${d.productId}", NAME="${d.name}"''
-        ) nicPciDevices;
+        systemd.network.links = builtins.listToAttrs (
+          imap1 (
+            i: d:
+            nameValuePair "10-ghaf-nic-${toString i}" {
+              matchConfig = nicLinkMatch d;
+              linkConfig = {
+                NamePolicy = "";
+                Name = d.name;
+              };
+            }
+          ) namedNicDevices
+        );
       };
 
       gpus.microvm.devices = imap1 (i: d: {
