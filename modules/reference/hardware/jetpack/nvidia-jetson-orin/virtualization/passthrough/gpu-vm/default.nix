@@ -110,8 +110,21 @@ let
   # under ./nv-dt-bindings.
   gpuvm-dtb = pkgs.stdenv.mkDerivation {
     name = "gpuvm-dtb";
-    src = ./tegra234-gpuvm.dts;
-    dontUnpack = true;
+    # Composition root + component .dtsi fragments (see the include list in
+    # tegra234-gpuvm.dts); generated/ holds the pinned stock-derived DCB.
+    src = lib.fileset.toSource {
+      root = ./.;
+      fileset = lib.fileset.unions [
+        ./tegra234-gpuvm.dts
+        ./tegra234-gpuvm-base.dtsi
+        ./tegra234-gpuvm-memory.dtsi
+        ./tegra234-gpuvm-proxies.dtsi
+        ./tegra234-gpuvm-display.dtsi
+        ./tegra234-gpuvm-engines.dtsi
+        ./tegra234-gpuvm-dummies.dtsi
+        ./generated
+      ];
+    };
     # Build-platform tools: preprocesses + compiles a device tree (arch-agnostic
     # text) at build time, so it runs on the builder -- buildPackages makes `gcc`
     # the native compiler in a cross build.
@@ -123,16 +136,41 @@ let
       let
         kernel = config.boot.kernelPackages.kernel;
         mainInc = "${kernel.dev}/lib/modules/${kernel.modDirVersion}/source/include";
+        # Stock R36.5 P3737/P3701 AGX DCB pin (full payload, not just the
+        # embedded version string -- a wrong-board blob can carry a
+        # valid-looking version with foreign SOR/connector routing).
+        dcbSha256 = "e0d92e6dbf1ffef266cfd2e192847e76f8d88c19c55430f2f5d4aaf69494a2fc";
+        dcbBytes = "8407";
       in
       ''
-        cp $src tegra234-gpuvm.dts
         # $CC = stdenv's compiler (triple-prefixed under cross); -E only
         # preprocesses, so the target triple is irrelevant to the text output.
         $CC -E -nostdinc -undef -D__DTS__ -x assembler-with-cpp \
           -I${mainInc} \
           -I${./nv-dt-bindings} \
+          -I. \
           tegra234-gpuvm.dts > preprocessed.dts
         dtc -I dts -O dtb -o tegra234-gpuvm.dtb preprocessed.dts
+
+        # Verify the DCB payload that actually landed in the DTB against the
+        # pinned stock AGX blob; fail the build on any drift. Skipped in the
+        # host1x-experiment modes that drop the display node (EXP_DROP_DISPLAY):
+        # no display node -> no DCB to check. The guard keeps this a no-op for
+        # `off` (display present) so the baseline DTB stays byte-identical.
+        if fdtget tegra234-gpuvm.dtb \
+             /platform-bus@70000000/display@13800000 nvidia,dcb-image >/dev/null 2>&1; then
+          fdtget -t bx tegra234-gpuvm.dtb \
+            /platform-bus@70000000/display@13800000 nvidia,dcb-image \
+            | tr ' ' '\n' | grep . > dcb.hex
+          dcbLen=$(wc -l < dcb.hex)
+          while read -r b; do printf "\x$(printf %02x "0x$b")"; done < dcb.hex > dcb.bin
+          dcbHash=$(sha256sum dcb.bin | cut -d' ' -f1)
+          if [ "$dcbLen" != "${dcbBytes}" ] || [ "$dcbHash" != "${dcbSha256}" ]; then
+            echo "DCB payload drifted: $dcbLen bytes, sha256 $dcbHash" >&2
+            echo "expected ${dcbBytes} bytes, sha256 ${dcbSha256}" >&2
+            exit 1
+          fi
+        fi
       '';
     installPhase = ''
       mkdir -p $out

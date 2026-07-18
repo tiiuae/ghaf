@@ -1,0 +1,190 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// SPDX-FileCopyrightText: Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+// nvdisplay node driven through the host-owned DCE R5 (see
+// docs: nvidia_gpu_vm_display). DCB payload is included from
+// generated/agx-p3737-p3701-dcb.dtsi and hash-verified at build.
+
+/ {
+	platform-bus@70000000 {
+/* Host1x-ownership experiment: display/nvdisplay (incl. the DCB payload
+ * #included below) is dropped in both compute VMs. */
+#ifndef EXP_DROP_DISPLAY
+		display: display@13800000 {
+			compatible = "nvidia,tegra234-display";
+			power-domains = <&bpmp TEGRA234_POWER_DOMAIN_DISP>;
+			nvidia,num-dpaux-instance = <1>;
+			reg-names = "nvdisplay", "dpaux0", "hdacodec", "mipical";
+			reg = <0x0 0x13800000 0x0 0xEFFFF    /* nvdisplay */
+				0x0 0x155C0000 0x0 0xFFFF     /* dpaux0 */
+				0x0 0x0242c000 0x0 0x1000     /* hdacodec */
+				0x0 0x03990000 0x0 0x10000>;  /* mipical */
+			interrupt-names = "nvdisplay", "dpaux0", "hdacodec";
+			interrupts = <0 128 4
+				0 129 4
+				0 130 4>;
+			nvidia,bpmp = <&bpmp>;
+			clocks = <&bpmp TEGRA234_CLK_HUB>,
+				<&bpmp TEGRA234_CLK_DISP>,
+				<&bpmp TEGRA234_CLK_NVDISPLAY_P0>,
+				<&bpmp TEGRA234_CLK_NVDISPLAY_P1>,
+				<&bpmp TEGRA234_CLK_DPAUX>,
+				<&bpmp TEGRA234_CLK_FUSE>,
+				<&bpmp TEGRA234_CLK_DSIPLL_VCO>,
+				<&bpmp TEGRA234_CLK_DSIPLL_CLKOUTPN>,
+				<&bpmp TEGRA234_CLK_DSIPLL_CLKOUTA>,
+				<&bpmp TEGRA234_CLK_SPPLL0_VCO>,
+				<&bpmp TEGRA234_CLK_SPPLL0_CLKOUTPN>,
+				<&bpmp TEGRA234_CLK_SPPLL0_CLKOUTA>,
+				<&bpmp TEGRA234_CLK_SPPLL0_CLKOUTB>,
+				<&bpmp TEGRA234_CLK_SPPLL0_DIV10>,
+				<&bpmp TEGRA234_CLK_SPPLL0_DIV25>,
+				<&bpmp TEGRA234_CLK_SPPLL0_DIV27PN>,
+				<&bpmp TEGRA234_CLK_SPPLL1_VCO>,
+				<&bpmp TEGRA234_CLK_SPPLL1_CLKOUTPN>,
+				<&bpmp TEGRA234_CLK_SPPLL1_DIV27PN>,
+				<&bpmp TEGRA234_CLK_VPLL0_REF>,
+				<&bpmp TEGRA234_CLK_VPLL0>,
+				<&bpmp TEGRA234_CLK_VPLL1>,
+				<&bpmp TEGRA234_CLK_NVDISPLAY_P0_REF>,
+				<&bpmp TEGRA234_CLK_RG0>,
+				<&bpmp TEGRA234_CLK_RG1>,
+				<&bpmp TEGRA234_CLK_DISPPLL>,
+				<&bpmp TEGRA234_CLK_DISPHUBPLL>,
+				<&bpmp TEGRA234_CLK_DSI_LP>,
+				<&bpmp TEGRA234_CLK_DSI_CORE>,
+				<&bpmp TEGRA234_CLK_DSI_PIXEL>,
+				<&bpmp TEGRA234_CLK_PRE_SOR0>,
+				<&bpmp TEGRA234_CLK_PRE_SOR1>,
+				<&bpmp TEGRA234_CLK_DP_LINK_REF>,
+				<&bpmp TEGRA234_CLK_SOR_LINKA_INPUT>,
+				<&bpmp TEGRA234_CLK_SOR_LINKA_AFIFO>,
+				<&bpmp TEGRA234_CLK_SOR_LINKA_AFIFO_M>,
+				<&bpmp TEGRA234_CLK_RG0_M>,
+				<&bpmp TEGRA234_CLK_RG1_M>,
+				<&bpmp TEGRA234_CLK_SOR0_M>,
+				<&bpmp TEGRA234_CLK_SOR1_M>,
+				<&bpmp TEGRA234_CLK_PLLHUB>,
+				<&bpmp TEGRA234_CLK_SOR0>,
+				<&bpmp TEGRA234_CLK_SOR1>,
+				<&bpmp TEGRA234_CLK_SOR_PAD_INPUT>,
+				<&bpmp TEGRA234_CLK_PRE_SF0>,
+				<&bpmp TEGRA234_CLK_SF0>,
+				<&bpmp TEGRA234_CLK_SF1>,
+				<&bpmp TEGRA234_CLK_DSI_PAD_INPUT>,
+				<&bpmp TEGRA234_CLK_PRE_SOR0_REF>,
+				<&bpmp TEGRA234_CLK_PRE_SOR1_REF>,
+				<&bpmp TEGRA234_CLK_SOR0_PLL_REF>,
+				<&bpmp TEGRA234_CLK_SOR1_PLL_REF>,
+				<&bpmp TEGRA234_CLK_SOR0_REF>,
+				<&bpmp TEGRA234_CLK_SOR1_REF>,
+				<&bpmp TEGRA234_CLK_OSC>,
+				<&bpmp TEGRA234_CLK_DSC>,
+				<&bpmp TEGRA234_CLK_MAUD>,
+				<&bpmp TEGRA234_CLK_AZA_2XBIT>,
+				<&bpmp TEGRA234_CLK_AZA_BIT>,
+				<&bpmp TEGRA234_CLK_MIPI_CAL>,
+				<&bpmp TEGRA234_CLK_UART_FST_MIPI_CAL>,
+				<&bpmp TEGRA234_CLK_SOR0_DIV>;
+			clock-names = "nvdisplayhub_clk",
+				"nvdisplay_disp_clk",
+				"nvdisplay_p0_clk",
+				"nvdisplay_p1_clk",
+				"dpaux0_clk",
+				"fuse_clk",
+				"dsipll_vco_clk",
+				"dsipll_clkoutpn_clk",
+				"dsipll_clkouta_clk",
+				"sppll0_vco_clk",
+				"sppll0_clkoutpn_clk",
+				"sppll0_clkouta_clk",
+				"sppll0_clkoutb_clk",
+				"sppll0_div10_clk",
+				"sppll0_div25_clk",
+				"sppll0_div27_clk",
+				"sppll1_vco_clk",
+				"sppll1_clkoutpn_clk",
+				"sppll1_div27_clk",
+				"vpll0_ref_clk",
+				"vpll0_clk",
+				"vpll1_clk",
+				"nvdisplay_p0_ref_clk",
+				"rg0_clk",
+				"rg1_clk",
+				"disppll_clk",
+				"disphubpll_clk",
+				"dsi_lp_clk",
+				"dsi_core_clk",
+				"dsi_pixel_clk",
+				"pre_sor0_clk",
+				"pre_sor1_clk",
+				"dp_link_ref_clk",
+				"sor_linka_input_clk",
+				"sor_linka_afifo_clk",
+				"sor_linka_afifo_m_clk",
+				"rg0_m_clk",
+				"rg1_m_clk",
+				"sor0_m_clk",
+				"sor1_m_clk",
+				"pllhub_clk",
+				"sor0_clk",
+				"sor1_clk",
+				"sor_pad_input_clk",
+				"pre_sf0_clk",
+				"sf0_clk",
+				"sf1_clk",
+				"dsi_pad_input_clk",
+				"pre_sor0_ref_clk",
+				"pre_sor1_ref_clk",
+				"sor0_ref_pll_clk",
+				"sor1_ref_pll_clk",
+				"sor0_ref_clk",
+				"sor1_ref_clk",
+				"osc_clk",
+				"dsc_clk",
+				"maud_clk",
+				"aza_2xbit_clk",
+				"aza_bit_clk",
+				"mipi_cal_clk",
+				"uart_fst_mipi_cal_clk",
+				"sor0_div_clk";
+			resets = <&bpmp TEGRA234_RESET_NVDISPLAY>,
+				<&bpmp TEGRA234_RESET_DPAUX>,
+				<&bpmp TEGRA234_RESET_DSI_CORE>,
+				<&bpmp TEGRA234_RESET_MIPI_CAL>;
+			reset-names = "nvdisplay_reset",
+				"dpaux0_reset",
+				"dsi_core_reset",
+				"mipi_cal_reset";
+			// hdcp_enabled OMITTED: HDCP handshake invokes the host OP-TEE HDCP/display TA whose supplicant (optee_supp_thrd_req) UAF corrupts the host heap (slub_debug-confirmed); also HPD-glitches DP->HDMI adapters on R36.5.0. Not needed for a plain desktop.
+			status = "okay";
+			// Scanout surface is allocated from the 1:1 GPA=HPA carveout so
+			// the host-owned DCE R5 can DMA it at the same physical address
+			// (patch 0003 forces page phys=bus for this device).
+			memory-region = <&dce_scanout>;
+			nvidia,disp-sw-soc-chip-id = <0x2350>;
+	// 		interconnects = <&mc TEGRA234_MEMORY_CLIENT_NVDISPLAYR &emc>,
+	// 			      <&mc TEGRA234_MEMORY_CLIENT_NVDISPLAYR1 &emc>;
+	// 		interconnect-names = "dma-mem", "read-1";
+			//iommus = <&smmu_iso TEGRA234_SID_ISO_NVDISPLAY>;
+			non-coherent;
+
+#include "generated/agx-p3737-p3701-dcb.dtsi"
+
+			/* nvdisplay RM requires this child at probe or it bails
+			 * with "no nvdisplay-niso child node" -> no crtc/format.
+			 * Mirrors NVIDIA's tegra234 display node (dummy niso). */
+			/* Stock identity + coherency for the NISO DMA child; iommus
+			 * intentionally omitted (no guest IOMMU -- the host SMMU
+			 * phandle must not be copied). The previous
+			 * "nvidia,nvidia,dummy" + empty iommus form made
+			 * of_dma_configure() set the NISO DMA device NON-coherent
+			 * while nvkms allocates NISO surfaces WRITE_BACK assuming
+			 * IO-coherence. */
+			nvdisplay-niso {
+				compatible = "nvidia,tegra234-display-niso";
+				dma-coherent;
+			};
+		};
+#endif
+	};
+};

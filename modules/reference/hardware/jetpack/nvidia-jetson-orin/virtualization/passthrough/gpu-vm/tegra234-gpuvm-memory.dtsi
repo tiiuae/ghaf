@@ -1,0 +1,129 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// SPDX-FileCopyrightText: Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+// Guest memory layout: passthrough RAM regions, reserved-memory
+// carveouts, and the tegra-carveouts consumer node.
+
+/ {
+	// QEMU adds the main memory here (6GB), but we have to define the
+	// passthrough memory regions.
+	memory@80000000 {
+#ifdef EXP_SHRINK_BANK1
+		// Concurrent GPU VM (compute-with-host1x): bank1 ends at 0xb0000000, so
+		// the guest no longer spans the scanout carveout -> scanout_p is dropped
+		// and 0xb0000000 is released to the GUI VM. (bank2 GPU VRAM unchanged.)
+		reg = <0x00 0x80000000 0x00 0x30000000>,  // 0x80000000..0xb0000000 (no scanout tail)
+		      <0x01 0x00000000 0x01 0x00000000>;  // For GPU VRAM
+#else
+		reg = <0x00 0x80000000 0x00 0x38000000>,  // For CMA regions + 128MB scanout tail
+		      <0x01 0x00000000 0x01 0x00000000>;  // For GPU VRAM
+#endif
+		device_type = "memory";
+	};
+
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		// Reserve the passthrough CMA ram region as CMA for the VM
+		linux,cma {
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0x00 0x88000000 0x00 0x04000000>; // 64MB
+			linux,cma-default;
+			status = "okay";
+		};
+
+		// Dedicated CMA region for the GPU
+		nvgpu_dma_carveout:  nvgpu_dma_carveout{
+			compatible = "removed-dma-pool";
+			no-map;
+			reg = <0x00 0x80000000 0x00 0x08000000>; // 128MB
+			status = "okay";
+		};
+
+		// Carveout needed by the NVMAP driver
+		vpr: vpr-carveout {
+			compatible = "removed-dma-pool";
+			reg = <0x00 0x8C000000 0x00 0x01000000>; // 16MB
+			status = "okay";
+		};
+
+		// Carveout needed by the NVMAP driver
+		fsi_reserved: fsi-carveout {
+			compatible = "removed-dma-pool";
+			reg = <0x00 0x8D000000 0x00 0x01000000>; // 16MB
+			no-map;
+			status = "okay";
+		};
+
+		// Carveout for GPU VRAM.
+		// EXPERIMENT (accel graphics): moved from 4GB@0x100000000 to
+		// 256MB@0xA0000000. EGL/nvmap scanout surfaces allocate here, and
+		// the display FE's ISO address space is 39-bit: hi-IOVA
+		// 0x7f00000000+pa only works for pa < 4GB (0x8000000000 truncates
+		// to the in-frame offset -> white screen + smmu_iso faults).
+		// 0xA0000000..0xB0000000 is plain guest RAM, 1:1 vfio-backed by
+		// vm_cma_p and already inside the anchor's ISO hi map.
+		// The 4GB VFIO-backed region must STAY reserved even without the
+		// nvmap compatible: it is declared in the memory node, and without
+		// a no-map cover the kernel allocates from it at early boot and
+		// hangs before the console (learned the hard way, twice).
+		vram_reserved: vram_reserved@100000000 {
+			reg = <0x01 0x00000000 0x01 0x00000000>; // 4GB
+			no-map;
+			status = "okay";
+		};
+
+		// (0xA0000000 attempt hung the guest silently; 0xB2000000 sits in
+		// the scanout vfio region, untouched by the loader.)
+		generic_reserved: generic_carveout {
+			compatible = "nvidia,generic_carveout";
+			reg = <0x00 0x98000000 0x00 0x18000000>; // 384MB
+			// Sizing: EGLStream GBM clients allocate ~3 contiguous frames
+			// (3440x1440x4 ~ 21MB each) from this heap, the plane pins the
+			// last scanned-out buffer of an exited client, and contiguous
+			// carveout allocation fragments across client churn -- 96/112MB
+			// proved too small in practice. Covers the former gpu_carveout
+			// (unused) plus the plain-RAM stretch 0xA0000000..0xB0000000.
+			no-map;
+			status = "okay";
+		};
+
+		// Carveout needed by the NVMAP driver
+		vidmem_reserved: vidmem-carveout {
+			compatible = "nvidia,vidmem-carveout";
+			reg = <0x00 0x90000000 0x00 0x08000000>; // 128MB
+			no-map;
+			status = "okay";
+		};
+
+		// (gpu_carveout dropped: it sat fully unused at 0x98000000 and
+		// its 128MB + the plain-RAM stretch above it were needed to give
+		// the generic carveout real headroom.)
+
+		// 1:1 GPA=HPA scanout carveout. nvdisplay allocates the scanout
+		// surface here (referenced by the display node's memory-region);
+		// patch 0003 forces phys=bus so the host-owned DCE R5 DMAs it at
+		// the same physical address. Backed 1:1 by scanout_p in
+		// gpu_passthrough_overlay.dts (host removed-dma-pool + vfio
+		// mmio-base=0xb0000000). Sits in the 128MB tail of the extended
+		// memory@80000000 region (0xb0000000..0xb8000000).
+/* Host1x-ownership experiment: the display scanout pool drops with display. */
+#ifndef EXP_DROP_DISPLAY
+		dce_scanout: dce_scanout@b0000000 {
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0x00 0xB0000000 0x00 0x01000000>; // 16MB (rest given to generic_carveout)
+			status = "okay";
+		};
+#endif
+	};
+
+	// Define the carveouts regions for the carveouts driver
+	tegra-carveouts {
+		compatible = "nvidia,carveouts";
+		memory-region = <&generic_reserved &vpr &fsi_reserved &vidmem_reserved>;
+		status = "okay";
+	};
+};

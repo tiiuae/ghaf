@@ -1,0 +1,187 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// SPDX-FileCopyrightText: Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+// Passed-through compute/media engines: GA10B GPU, interconnect
+// provider, host1x and its VIC/NVDEC/NVJPG children.
+
+/ {
+	platform-bus@70000000 {
+/* Host1x-ownership experiment: GA10B is dropped in the display-only VM. */
+#ifndef EXP_DROP_GPU
+		ga10b: gpu@17000000 {
+			compatible = "nvidia,ga10b";
+			reg = <0x0 0x17000000 0x0 0x01000000>,
+			      <0x0 0x18000000 0x0 0x01000000>,
+			      <0x0 0x03b41000 0x0 0x00001000>;
+			interrupt-parent = <0x8005>;
+			interrupts = <GIC_SPI 112 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 113 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 114 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 115 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "stall0", "stall1", "stall2", "nonstall";
+			power-domains = <&bpmp TEGRA234_POWER_DOMAIN_GPU>;
+			//interconnects = <&mc TEGRA234_MEMORY_CLIENT_NVL1R &emc>,
+			//		<&mc TEGRA234_MEMORY_CLIENT_NVL1W &emc>;
+			//interconnect-names = "dma-mem", "write";
+			clocks = <&bpmp TEGRA234_CLK_GPUSYS>,
+				 <&bpmp TEGRA234_CLK_GPC0CLK>,
+				 <&bpmp TEGRA234_CLK_GPC1CLK>;
+			clock-names = "sysclk", "gpc0clk", "gpc1clk";
+			resets = <&bpmp TEGRA234_RESET_GPU>;
+			dma-coherent;
+			nvidia,bpmp = <&bpmp>;
+
+			status = "okay";
+		};
+
+		tegra_icc: icc {
+			#interconnect-cells = <1>;
+			clocks = <&bpmp TEGRA234_CLK_EMC>;
+			clock-names = "emc";
+			compatible = "nvidia,tegra23x-icc";
+			nvidia,bpmp = <&bpmp>;
+			status = "okay";
+		};
+#endif
+
+/* host1x + its VIC/NVDEC/NVJPG children + the 64MiB syncpoint shim move as one
+ * unit; dropped in both host1x-ownership experiments. */
+#ifndef EXP_DROP_HOST1X
+		host1x: host1x@13e00000 {
+			compatible = "nvidia,tegra234-host1x";
+			reg = <0x0 0x13e00000 0x0 0x10000>,
+			      <0x0 0x13e10000 0x0 0x10000>,
+			      <0x0 0x13e40000 0x0 0x10000>,
+			      <0x0 0x13ef0000 0x0 0x60000>;
+			reg-names = "common", "hypervisor", "vm", "actmon";
+
+			clocks = <&bpmp TEGRA234_CLK_HOST1X>,
+				 <&bpmp TEGRA234_CLK_ACTMON>;
+			clock-names = "host1x", "actmon";
+			assigned-clocks = <&bpmp TEGRA234_CLK_HOST1X>;
+			assigned-clock-rates = <204000000>;
+
+			interrupts = <GIC_SPI 116 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 117 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 118 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 119 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 120 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 121 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 122 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 123 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 124 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "syncpt0", "syncpt1", "syncpt2", "syncpt3", "syncpt4",
+					  "syncpt5", "syncpt6", "syncpt7", "host1x";
+
+
+			#address-cells = <2>;
+			#size-cells = <2>;
+
+			// IOMMUs and interconnects are needed for nvdec, in order to avoid error
+			// tegra-nvdec 15480000.nvdec: multiqueue0:src: job submission failed: host1x job submission failed: -1
+			//interconnects = <&mc TEGRA234_MEMORY_CLIENT_HOST1XDMAR &emc>;
+			//interconnect-names = "dma-mem";
+			//iommus = <&smmu_niso1 TEGRA234_SID_HOST1X>;
+			//dma-coherent;
+
+			//interrupt-parent = <&gic>;
+
+			ranges = <0x0 0x14800000 0x0 0x14800000 0x0 0x02000000>,
+				 <0x0 0x24700000 0x0 0x24700000 0x0 0x00080000>;
+
+			status = "okay";
+
+			/* Context isolation domains */
+			// iommu-map = <0 &smmu_niso0 TEGRA234_SID_HOST1X_CTX0 1>,
+			// 	    <1 &smmu_niso0 TEGRA234_SID_HOST1X_CTX1 1>,
+			// 	    <2 &smmu_niso0 TEGRA234_SID_HOST1X_CTX2 1>,
+			// 	    <3 &smmu_niso0 TEGRA234_SID_HOST1X_CTX3 1>,
+			// 	    <4 &smmu_niso0 TEGRA234_SID_HOST1X_CTX4 1>,
+			// 	    <5 &smmu_niso0 TEGRA234_SID_HOST1X_CTX5 1>,
+			// 	    <6 &smmu_niso0 TEGRA234_SID_HOST1X_CTX6 1>,
+			// 	    <7 &smmu_niso0 TEGRA234_SID_HOST1X_CTX7 1>,
+			// 	    <8 &smmu_niso1 TEGRA234_SID_HOST1X_CTX0 1>,
+			// 	    <9 &smmu_niso1 TEGRA234_SID_HOST1X_CTX1 1>,
+			// 	    <10 &smmu_niso1 TEGRA234_SID_HOST1X_CTX2 1>,
+			// 	    <11 &smmu_niso1 TEGRA234_SID_HOST1X_CTX3 1>,
+			// 	    <12 &smmu_niso1 TEGRA234_SID_HOST1X_CTX4 1>,
+			// 	    <13 &smmu_niso1 TEGRA234_SID_HOST1X_CTX5 1>,
+			// 	    <14 &smmu_niso1 TEGRA234_SID_HOST1X_CTX6 1>,
+			// 	    <15 &smmu_niso1 TEGRA234_SID_HOST1X_CTX7 1>;
+
+			vic@15340000 {
+				compatible = "nvidia,tegra234-vic";
+				reg = <0x0 0x15340000 0x0 0x00040000>;
+				interrupts = <GIC_SPI 125 IRQ_TYPE_LEVEL_HIGH>;
+				clocks = <&bpmp TEGRA234_CLK_VIC>;
+				clock-names = "vic";
+				resets = <&bpmp TEGRA234_RESET_VIC>;
+				reset-names = "vic";
+
+				power-domains = <&bpmp TEGRA234_POWER_DOMAIN_VIC>;
+				// interconnects = <&mc TEGRA234_MEMORY_CLIENT_VICSRD &emc>,
+				// 		<&mc TEGRA234_MEMORY_CLIENT_VICSWR &emc>;
+				// interconnect-names = "dma-mem", "write";
+				//iommus = <&smmu_niso1 TEGRA234_SID_VIC>;
+				//dma-coherent;
+				status = "okay";
+			};
+
+			nvdec@15480000 {
+				compatible = "nvidia,tegra234-nvdec";
+				reg = <0x0 0x15480000 0x0 0x00040000>;
+				clocks = <&bpmp TEGRA234_CLK_NVDEC>,
+					 <&bpmp TEGRA234_CLK_FUSE>,
+					 <&bpmp TEGRA234_CLK_TSEC_PKA>;
+				clock-names = "nvdec", "fuse", "tsec_pka";
+				resets = <&bpmp TEGRA234_RESET_NVDEC>;
+				reset-names = "nvdec";
+				power-domains = <&bpmp TEGRA234_POWER_DOMAIN_NVDEC>;
+				// interconnects = <&mc TEGRA234_MEMORY_CLIENT_NVDECSRD &emc>,
+				// 		<&mc TEGRA234_MEMORY_CLIENT_NVDECSWR &emc>;
+				// interconnect-names = "dma-mem", "write";
+				//iommus = <&smmu_niso1 TEGRA234_SID_NVDEC>;
+				//dma-coherent;
+
+				// nvidia,memory-controller = <&mc>;
+
+				/*
+				 * Placeholder values that firmware needs to update with the real
+				 * offsets parsed from the microcode headers.
+				 */
+				// nvidia,bl-manifest-offset = <0>;
+				// nvidia,bl-data-offset = <0>;
+				// nvidia,bl-code-offset = <0>;
+				// nvidia,os-manifest-offset = <0>;
+				// nvidia,os-data-offset = <0>;
+				// nvidia,os-code-offset = <0>;
+
+				/*
+				 * Firmware needs to set this to "okay" once the above values have
+				 * been updated.
+				 */
+				status = "disabled";
+			};
+
+			nvjpg@15540000 {
+				compatible = "nvidia,tegra234-nvjpg";
+				reg = <0x0 0x15540000 0x0 0x00040000>;
+				clocks = <&bpmp TEGRA234_CLK_NVJPG1>;
+				clock-names = "nvjpg";
+				resets = <&bpmp TEGRA234_RESET_NVJPG1>;
+				reset-names = "nvjpg";
+
+				power-domains = <&bpmp TEGRA234_POWER_DOMAIN_NVJPGB>;
+				// interconnects = <&mc TEGRA234_MEMORY_CLIENT_NVJPG1SRD &emc>,
+				// 		<&mc TEGRA234_MEMORY_CLIENT_NVJPG1SWR &emc>;
+				// interconnect-names = "dma-mem", "write";
+				//iommus = <&smmu_niso0 TEGRA234_SID_NVJPG1>;
+				//dma-coherent;
+
+				// Need to be enable in order that GPU interrupts works
+				nvidia,host1x-class = <0x07>;
+				status = "okay";
+			};
+		};
+#endif
+	};
+};
