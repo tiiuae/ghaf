@@ -1,0 +1,46 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// SPDX-FileCopyrightText: Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+// Virtual providers backed by QEMU bridges: BPMP guest transport and
+// the synthetic DCE node + dce-guest-proxy relay window.
+
+/ {
+	bpmp: bpmp {
+		compatible = "nvidia,tegra234-bpmp", "nvidia,tegra186-bpmp";
+		// Must match QEMU's VIRT_NVIDIA_BPMP_GUEST base (hw/arm/virt.c). QEMU >= 10
+		// uses 0x090d0000 because 0x090c0000 is now VIRT_ACPI_PCIHP; a stale
+		// 0x090c0000 here points every BPMP transfer at the PCI-hotplug region, so
+		// all MRQs return empty and genpd/clocks/resets never come up.
+		virtual-pa = <0x0 0x090d0000>;
+		#clock-cells = <1>;
+		#reset-cells = <1>;
+		#power-domain-cells = <1>;
+		status = "okay";
+	};
+
+	platform-bus@70000000 {
+		// Synthetic DCE node bound by the guest tegra-dce in proxy mode.
+		// NO real reg: the dce-virt-hooks patch skips of_iomap, the local
+		// HW IRQ request and the R5 bootstrap handshake when a
+		// "dce-virtual-pa" prop is present, and asserts readiness directly
+		// so display-RM (CPU_RM) client registration proceeds. The DCE R5
+		// is host-owned; every synchronous client send is forwarded through
+		// the shared MMIO window at dce-virtual-pa by the dce-guest-proxy
+		// .ko. 0x090e0000 == QEMU VIRT_NVIDIA_DCE_GUEST (the DCE bridge).
+		// No unit-address: the node has no reg (avoids a dtc unit-name
+		// warning); tegra-dce matches purely on compatible.
+		dce {
+			compatible = "nvidia,tegra234-dce";
+			dce-virtual-pa = <0x0 0x090e0000>;
+			status = "okay";
+		};
+
+		// The dce-guest-proxy .ko binds this node, ioremaps dce-virtual-pa
+		// and installs tegra_dce_ipc_send_redirect so tegra-dce's client
+		// sends are relayed through the shared window to the host DCE.
+		dce_guest_proxy {
+			compatible = "nvidia,dce-guest-proxy";
+			dce-virtual-pa = <0x0 0x090e0000>;
+			status = "okay";
+		};
+	};
+};

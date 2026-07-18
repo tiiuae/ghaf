@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// SPDX-FileCopyrightText: Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+// Required NVIDIA nodes kept disabled/dummy for driver probe paths.
+
+/ {
+	platform-bus@70000000 {
+		// We need to keep fuse here disable without passing
+		// through in order the display works
+		fuse@3810000 {
+			compatible = "nvidia,tegra234-efuse";
+			reg = <0x0 0x03810000 0x0 0x10000>;
+			clocks = <&bpmp TEGRA234_CLK_FUSE>;
+			clock-names = "fuse";
+			status = "disabled";
+		};
+	};
+};
