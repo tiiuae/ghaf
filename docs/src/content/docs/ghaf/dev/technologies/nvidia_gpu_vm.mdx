@@ -1,0 +1,173 @@
+---
+title: NVIDIA Jetson AGX Orin GPU Passthrough to gpu-vm
+sidebar:
+  label: GPU Passthrough to gpu-vm
+---
+
+The AGX Orin's integrated GPU (`ga10b`, `gpu@17000000`) and its host1x
+multimedia engines are passed through to a dedicated `gpu-vm` microVM, so CUDA
+compute runs in an isolated guest instead of on the host. It coexists with the
+MGBE0 ethernet passthrough (`net-vm`), sharing the same BPMP-virtualisation and
+`ghaf-qemu-bpmp` infrastructure.
+
+import { Aside } from "@astrojs/starlight/components";
+
+<Aside>
+  Verified on the NVIDIA Jetson AGX Orin devkit. The guest binds `gk20a`,
+  creates `/dev/nvgpu/igpu0`, and CUDA `cuInit` succeeds —
+  `__nvcc_device_query` returns `87` (sm_87 / ga10b). AGX Orin only: the GPU is
+  enabled per-SoM, never in the shared `orin.nix`.
+</Aside>
+
+<Aside type="caution">
+  Display controller passthrough is intentionally **not** wired — there is no
+  video output from the guest. Only GPU compute is supported.
+</Aside>
+
+## Architecture
+
+The GPU is a platform (MMIO) device, not PCIe, so this uses `vfio-platform`
+rather than `vfio-pci`. Five things must line up for the guest driver to bind
+and for CUDA to initialise.
+
+```
+            HOST (Jetson L4T kernel 6.6)                 GUEST gpu-vm (vanilla 6.12 + nvidia-oot)
+  +---------------------------------------+   +------------------------------------------------+
+  |  GPU/host1x/vic/nvdec/nvjpg           |   |  gk20a (nvgpu) + nvhost + nvmap  -> /dev/nvgpu  |
+  |    released from host, bound to       |   |        ^            ^                           |
+  |    vfio-platform                      |   |        | MMIO       | clocks/resets/power       |
+  |        | MMIO regions                 |   |   (ranges-xlated)   | (MRQ over BPMP)           |
+  |        v                              |   |        |            v                           |
+  |   QEMU (ghaf-qemu-bpmp-gpu) ----------+---+--> guest DTB (-dtb tegra234-gpuvm.dtb)          |
+  |        |  -device vfio-platform       |   |        |                                        |
+  |        |  BPMP bridge @0x090d0000     |<--+-- bpmp-guest-proxy  (virtual-pa = 0x090d0000)   |
+  |        v                              |   |                                                |
+  |   /dev/bpmp-host (bpmp-host-proxy)    |   |  CUDA userspace: l4t-cuda driver stack         |
+  |        |  closed allow-list (clk/rst/pd)   |  (libcuda + libnvcucompat + libnvrm_*)         |
+  |        v                              |   |                                                |
+  |   real Tegra BPMP firmware            |   |                                                |
+  +---------------------------------------+   +------------------------------------------------+
+```
+
+### MMIO passthrough and address translation
+
+The GPU's real MMIO lives at `0x17000000`. QEMU's platform bus places
+passed-through devices from `0x0c000000` upward, so the guest device tree
+(`tegra234-gpuvm.dts`) uses a `ranges` translation to map the real address to
+the QEMU platform-bus address the guest actually sees (`0x64000000` for the
+GPU). Reserved-memory carveouts must sit at or above the platform-bus base. The
+DTB is delivered with QEMU's `-dtb` flag rather than the microVM-generated one,
+because the passed-through nodes, their `ranges`, and the reserved-memory
+carveouts have to be described exactly.
+
+### BPMP virtualisation
+
+The GPU cannot do anything without clocks, resets, and power domains, all owned
+by the **BPMP** co-processor. The guest cannot talk to the BPMP directly, so
+requests are proxied:
+
+1. The guest `bpmp-guest-proxy` writes each MRQ into a shared MMIO window (the
+   "virtual-pa"), which QEMU's BPMP guest bridge traps.
+2. QEMU forwards it to `/dev/bpmp-host` on the host.
+3. The host `bpmp-host-proxy` checks the request against a **closed allow-list**
+   of clock/reset/power-domain IDs, then forwards permitted ones to the real
+   BPMP.
+
+<Aside type="danger">
+  `virtual-pa` in the guest DTB **must** equal QEMU's `VIRT_NVIDIA_BPMP_GUEST`
+  base (`0x090d0000` on QEMU >= 10; `0x090c0000` is now `VIRT_ACPI_PCIHP`). A
+  mismatch sends every MRQ into the wrong device and the GPU silently never
+  powers up — `gk20a` then times out at `-110` with no error logged.
+</Aside>
+
+The allow-list is a union contributed by each passthrough: `net-vm` adds
+MGBE0's IDs, `gpu-vm` adds the GPU/engine IDs. Never use `bpmpAllowAllDomains` —
+an over-broad guest could gate the host's own clocks. `clk_ignore_unused
+pd_ignore_unused` on the guest keeps probe-time churn from disabling shared
+resources. See also
+[BPMP Virtualization](/ghaf/dev/technologies/nvidia_virtualization_bpmp/).
+
+### Guest kernel (bring-your-own-kernel)
+
+The guest runs vanilla `linuxPackages_6_12` extended with
+`nvidia-jetpack.kernelPackagesOverlay`, which provides the out-of-tree
+`nvidia-oot-modules` (v36.5.0). The OOT tree compiles cleanly on 6.12 (its
+`conftest` absorbs the kernel-API churn). `nvgpu`/`nvmap`/`host1x`/`nvhost`
+don't autoload, so they are forced via `boot.kernelModules` and
+`boot.extraModulePackages`.
+
+### CUDA userspace
+
+`gpuvm-base.nix` ships the Jetson CUDA userspace (`l4t-cuda`, `l4t-tools`,
+`cuda_cudart`, `cuda_nvcc`). The desktop `cudaPackages` pull in `cuda_compat`,
+whose `libcuda.so.1` wins the `system-path` collision over `l4t-cuda`'s native
+driver but cannot locate the full native L4T driver stack (`libnvcucompat` plus
+the `libnvrm_*` libraries), so `cuInit` fails with error 999. The fix puts
+`l4t-cuda`'s lib output — which bundles the native libcuda **and** the whole
+driver stack — first on the loader path.
+
+### Host must yield the GPU
+
+The host COSMIC desktop uses the same GPU. With `gpu_vm` enabled the module
+forces `ghaf.profiles.graphics.enable = false` and blacklists
+`nvgpu`/`nvidia*`/`tegra_drm`/`host1x` on the host, so `vfio-platform` binds
+pristine devices. Leaving host graphics on faults the host the instant the GPU
+is handed to vfio.
+
+## Use
+
+### Enable (per-SoM, AGX only)
+
+Set in the AGX SoM files (`orin-agx.nix`, `orin-agx64.nix`,
+`orin-agx-industrial.nix`):
+
+```nix
+ghaf.hardware.nvidia.passthroughs.gpu_vm.enable = true;
+```
+
+### Build and flash
+
+```bash
+# always cross-build; never build on the device
+nix build .#packages.x86_64-linux.nvidia-jetson-orin-agx-debug-from-x86_64
+
+# board in recovery (sudo reboot forced-recovery, or the FORCE_RECOVERY button)
+sudo -E $(which nix) run \
+  '.#nvidia-jetson-orin-agx-debug-from-x86_64-flash-script'
+```
+
+### Verify GPU compute
+
+From the host, reach the guest (`ssh ghaf@gpu-vm`, `192.168.100.3`):
+
+Run everything as the unprivileged `ghaf` user. Do **not** use `sudo`: the
+boot service group-grants the GPU nodes so no privilege is needed, and `sudo`
+drops the `LD_LIBRARY_PATH` that selects the native L4T driver stack.
+
+```bash
+# device nodes present -> gk20a bound
+ls /dev/nvgpu/igpu0 /dev/nvhost-ctrl-gpu
+
+# CUDA Driver-API smoke test (prebuilt, no nvcc needed).
+# Prints "GPU compute capability: sm_87" and "GPU_LOAD_OK".
+gpu-vm-load 15
+
+# while it runs, watch utilisation climb to ~99% (permille, 0-1000)
+cat /sys/devices/platform/64000000.gpu/load
+```
+
+<Aside>
+  Use `ssh gpu-vm 'bash -c "..."'`; a **login** shell (`bash -lc`) hangs in the
+  NVIDIA CDI profile hook.
+</Aside>
+
+## Debugging notes
+
+- `gk20a` deferring to `-110` with no supplier message means the BPMP window is
+  dead (check `virtual-pa`); the guest genpd table (`pm_genpd_summary`) is empty
+  when BPMP transfers are not landing, and populated when they are.
+- `cuInit` failures are userspace: `strace -e openat,ioctl` the CUDA binary. A
+  wall of `ENOENT` on driver `.so` files (no `EINVAL`/`ENOTTY`) means a
+  library-path problem, not an ABI mismatch.
+- Over serial, quiet host kernel-log interleave with `sudo dmesg -n 1` so guest
+  command output is readable.

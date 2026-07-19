@@ -34,6 +34,7 @@
       # AGX has the on-SoC MGBE0 ethernet controller (Aquantia PHY on the
       # p3737 carrier); pass it through to net-vm. Orin NX has no MGBE0.
       nvidia.passthroughs.mgbe0_net_vm.enable = true;
+      nvidia.passthroughs.gpu_vm.enable = true;
 
       # Net VM hardware-specific modules - use hardware.definition for composition model
       definition.netvm.extraModules = [

@@ -12,10 +12,19 @@
 # The pin is a security liability: net-vm is network-facing and won't get QEMU
 # fixes past 10.1.x. Revisit if upstream restores platform passthrough.
 #
-{ ghaf-qemu, fetchurl, ... }:
+# extraPatches/variantName let a variant (see ../ghaf-qemu-bpmp-gpu) add patches
+# and rename the binary. pkgs-by-name auto-calls with {}, so both default to the
+# net-vm build -- pkgs.ghaf-qemu-bpmp is byte-identical to before.
+{
+  ghaf-qemu,
+  fetchurl,
+  extraPatches ? [ ],
+  variantName ? "",
+  ...
+}:
 ghaf-qemu.overrideAttrs (
   _final: prev: rec {
-    pname = "ghaf-qemu-bpmp";
+    pname = "ghaf-qemu-bpmp${variantName}";
     version = "10.1.5";
 
     src = fetchurl {
@@ -23,7 +32,7 @@ ghaf-qemu.overrideAttrs (
       hash = "sha256-HxIJtNuC5sRBfq9ufgsHNWNXKgQtn7dJKwhLplqcBpM=";
     };
 
-    patches = (prev.patches or [ ]) ++ [ ./patches/0001-nvidia-bpmp-guest-hooks.patch ];
+    patches = (prev.patches or [ ]) ++ [ ./patches/0001-nvidia-bpmp-guest-hooks.patch ] ++ extraPatches;
 
     # The device is carried as source rather than as ~180 lines of `+` in a diff.
     postPatch = (prev.postPatch or "") + ''
