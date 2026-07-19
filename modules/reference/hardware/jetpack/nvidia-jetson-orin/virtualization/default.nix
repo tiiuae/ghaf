@@ -8,5 +8,6 @@
     ./passthrough/uarti-net-vm
     ./passthrough/mgbe0-net-vm
     ./passthrough/gpu-vm
+    ./passthrough/disp-vm
   ];
 }

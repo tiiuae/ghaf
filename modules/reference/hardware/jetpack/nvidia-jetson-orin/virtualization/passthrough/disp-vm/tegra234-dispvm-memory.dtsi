@@ -1,0 +1,98 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+//
+// disp-vm guest memory: split-RAM (LOW 0xb8000000..0xe6000000, HIGH
+// 0x200000000..0x21a000000) with its own reserved-memory carveouts, icc, and
+// the carveouts consumer. Distinct from gpu-vm memory.dtsi (0x80000000-based);
+// disp-vm reuses base/proxies/display/dummies from ../gpu-vm/ unchanged.
+
+/ {
+	// disp-vm guest RAM = 1:1 GPA=HPA carveout, like gpu-vm's vm_cma. QEMU -m does
+	// not reliably back the guest in this tegra passthrough setup (virt -m base !=
+	// DTB memory@), so RAM comes from a reserved host carveout mapped 1:1 via vfio
+	// mmio-base. 0xb8000000..0x100000000 sits between disp-vm's scanout (0xb0..0xb8)
+	// and gpu-vm's vram (0x100000000+), disjoint from every gpu-vm carveout. No GPU
+	// VRAM bank (no GPU here). Split: LOW bank (0xb8000000..0xe6000000, 736MB =
+	// 672MB normal + 64MB CMA) holds kernel/initrd + working set; HIGH bank
+	// (0x200000000..0x21a000000, 416MB) holds GPU-style carveouts (generic/vpr/fsi).
+	// DMA32 hole 0xe6000000..0x100000000 left to the host for PCIe MSI / WLAN.
+	memory@b8000000 {
+		reg = <0x00 0xb8000000 0x00 0x2e000000>,
+		      <0x02 0x00000000 0x00 0x1a000000>;
+		device_type = "memory";
+	};
+
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		// All carveouts sit in disp-vm's backed carveout RAM (not gpu-vm's bank1
+		// 0x80..0xb0, unbacked here and overlapping the GPU VM). All backed by
+		// dispram_p; below-4GB DMA32 host RAM left untouched so PCIe MSI works.
+		// CMA in the LOW bank (backed, cma-default) for dumb buffers.
+		linux,cma {
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0x00 0xE2000000 0x00 0x04000000>; // 64MB @ 0xe2000000 (low bank top)
+			linux,cma-default;
+			status = "okay";
+		};
+
+		// GPU-style carveouts in the HIGH bank (0x200000000..0x21a000000).
+		generic_reserved: generic_carveout {
+			compatible = "nvidia,generic_carveout";
+			reg = <0x02 0x00000000 0x00 0x18000000>; // 384MB @ 0x200000000..0x218000000
+			no-map;
+			status = "okay";
+		};
+
+		vpr: vpr-carveout {
+			compatible = "removed-dma-pool";
+			reg = <0x02 0x18000000 0x00 0x01000000>; // 16MB @ 0x218000000
+			status = "okay";
+		};
+
+		fsi_reserved: fsi-carveout {
+			compatible = "removed-dma-pool";
+			reg = <0x02 0x19000000 0x00 0x01000000>; // 16MB @ 0x219000000
+			no-map;
+			status = "okay";
+		};
+
+		// 1:1 GPA=HPA scanout carveout. nvdisplay allocates the scanout surface
+		// here; the host-owned DCE R5 DMAs it at the same physical address. Backed
+		// 1:1 by scanout_p in gpu_passthrough_overlay.dts (host removed-dma-pool +
+		// vfio mmio-base=0xb0000000), reused here -- disp-vm is sole owner in
+		// compute-with-host1x mode, where the GPU VM drops its scanout claim.
+		// Sits OUTSIDE every guest RAM bank.
+		dce_scanout: dce_scanout@b0000000 {
+			// NOT reusable: this carveout is OUTSIDE every guest RAM bank.
+			// "reusable" would make it CMA, and cma_init_reserved_areas walks
+			// pfn_valid(0xb0000) -> faults on out-of-System-RAM pages -> early
+			// kill-init. Plain shared-dma-pool = dedicated coherent DMA pool (no
+			// CMA pfn walk); dma_alloc_coherent still returns 0xb0000000-range addrs.
+			compatible = "shared-dma-pool";
+			reg = <0x00 0xB0000000 0x00 0x01000000>; // 16MB (rest unclaimed)
+			status = "okay";
+		};
+	};
+
+	tegra_icc: icc {
+		#interconnect-cells = <1>;
+		clocks = <&bpmp TEGRA234_CLK_EMC>;
+		clock-names = "emc";
+		compatible = "nvidia,tegra23x-icc";
+		nvidia,bpmp = <&bpmp>;
+		status = "okay";
+	};
+
+
+	// Carveout regions for the carveouts driver (no vidmem_reserved: GPU-only,
+	// dropped for disp-vm).
+	tegra-carveouts {
+		compatible = "nvidia,carveouts";
+		memory-region = <&generic_reserved &vpr &fsi_reserved>;
+		status = "okay";
+	};
+};

@@ -408,6 +408,13 @@ static ssize_t write(struct file *filep, const char *buffer, size_t len, loff_t 
 		goto out_nomem;
 	}
 
+	/* Short write -> kbuf->iface/tx.size/rx.size below read past kmalloc(len). */
+	if (len < sizeof(*kbuf)) {
+		deb_error("count %zu shorter than message header, aborting write\n", len);
+		ret = -EINVAL;
+		goto out_nomem;
+	}
+
 	ret = -ENOMEM;
 	kbuf = kmalloc(len, GFP_KERNEL);
 

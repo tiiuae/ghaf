@@ -86,10 +86,12 @@ Four cooperating pieces:
    `tegra_dce_client_ipc_inject` — identical to native IVC delivery from the
    driver's point of view.
 2. **QEMU DCE bridge** (`nvidia_dce_guest` device in `ghaf-qemu-bpmp`) traps
-   the window. A doorbell write runs the forward round-trip synchronously:
-   packages the request and `write()`s it to `/dev/dce-host`, which returns
-   only when the real DCE has answered. A pump thread `poll()`s the same fd
-   for asynchronous events and publishes them into the reverse window.
+   the window. Bridge creation is opt-in through `GHAF_DCE_GUEST=1`; only the
+   VM that owns the display path may set it and open `/dev/dce-host`. A
+   doorbell write runs the forward round-trip synchronously: it packages the
+   request and `write()`s it to `/dev/dce-host`, which returns only when the
+   real DCE has answered. A pump thread `poll()`s the same fd for asynchronous
+   events and publishes them into the reverse window.
 3. **`dce-host-proxy.ko` (host)** registers as a tegra-dce client (`CPU_RM`
    interface) and relays each guest request to the real DCE via
    `tegra_dce_client_ipc_send_recv`. Unsolicited DCE notifications (channel
@@ -119,6 +121,10 @@ The reverse window is single-slot with a sequence/ack handshake: the bridge
 publishes one event and bumps `EVT_SEQ`; the guest consumes it and writes the
 sequence back to `EVT_ACK`; the bridge holds the next event (buffered in the
 host ring) until the ack catches up. Slow guest ⇒ delayed events, never lost.
+
+The host event ring is single-consumer. Do not enable the DCE bridge in a
+compute-only GPU VM, NetVM, or AdminVM. Multiple QEMU readers race after
+`poll()`, produce `EAGAIN`, and can consume a display event in the wrong VM.
 
 <Aside type="caution">
   Every word moved through this window is a trapping MMIO access (~µs each,
@@ -153,6 +159,10 @@ the display engine's ISO/NISO SMMU streams.
   scanout readers `NVDISPLAYR`/`NVDISPLAYR1` to ISO SID 1 through stock
   `interconnects` entries (memory-controller SID override registers).
   Boot-lifetime by design: unloading could not restore the MC SID overrides.
+- **Split display-VM CMA.** The two-VM display guest allocates display memory
+  from `0xe2000000..0xe6000000`. Both anchor domains therefore include
+  `0x7fe2000000 -> 0xe2000000` for 64 MiB. Without this mapping, SID-7 context
+  faults and host EMEM decode errors leave an active DP modeset black.
 - **39-bit ISO limit.** The display frontend truncates ISO addresses at bit
   39, so scanout surfaces must be allocated below 4GB: the guest's nvmap
   *generic* carveout (384MB at `0x98000000`) keeps EGL surface allocations
@@ -261,3 +271,18 @@ started manually to drive the modeset (no auto-modeset service yet).
 - A dark panel with a live mode usually means an address-translation problem
   (check host `smmu_iso`/`smmu_niso` faults and `EMEM address decode error`),
   not a mode-set failure: the DCE reports success while scanout reads garbage.
+
+## Two-VM ownership split (experiment)
+
+The `experiment/orin-two-vm-host1x` branch splits ownership across two VMs:
+
+| Owner | Devices |
+| --- | --- |
+| GPU VM | GA10B, physical host1x, syncpoint shim, media engines |
+| Display VM | nvdisplay, DCE proxy, display keyholes, scanout, connector |
+
+Chosen from hardware measurement: nvgpu probes without physical host1x but CUDA
+rejects it (`cuInit` 801), while the display VM drives color bars host1x-free by
+forcing NVKMS's no-syncpoint path. Both then run concurrently with disjoint VFIO
+ownership — CUDA on `sm_87` alongside a held 3440x1440 DP-1 modeset. Not yet
+validated: the GUI compositor, AppVM presentation, explicit-fence behavior.
