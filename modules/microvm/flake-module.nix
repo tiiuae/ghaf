@@ -13,6 +13,7 @@ _: {
       ./host/microvm-host.nix
       ./sysvms/netvm.nix
       ./sysvms/gpuvm.nix
+      ./sysvms/dispvm.nix
       ./sysvms/adminvm.nix
       ./appvm.nix
       ./sysvms/guivm.nix
@@ -90,6 +91,13 @@ _: {
     #   lib.nixosSystem { modules = [ inputs.self.nixosModules.gpuvm-base ]; ... }
     #     .extendModules { modules = [ ... ]; }
     gpuvm-base = ./sysvms/gpuvm-base.nix;
+
+    # Disp VM base module for layered composition (Orin AGX display
+    # passthrough, experiment/orin-two-vm-host1x concurrent build).
+    # Use with extendModules pattern:
+    #   lib.nixosSystem { modules = [ inputs.self.nixosModules.dispvm-base ]; ... }
+    #     .extendModules { modules = [ ... ]; }
+    dispvm-base = ./sysvms/dispvm-base.nix;
 
     # App VM base module for layered composition
     # Unlike singleton VMs, App VMs are instantiated multiple times using mkAppVm.

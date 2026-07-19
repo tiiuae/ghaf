@@ -46,6 +46,11 @@ static const struct { u64 pa; u64 size; } dce_hi_ranges[] = {
 	{ 0x60000000, 0x04000000 },  /* vm_hs */
 	{ 0x80000000, 0x30000000 },  /* vm_cma */
 	{ 0xb0000000, 0x08000000 },  /* scanout */
+	{ 0xe2000000, 0x04000000 },  /* disp-vm CMA (split-RAM low bank): NVKMS
+				      * allocates 3440x1440 scanout from here, not
+				      * from 0xb0 scanout pool. Inside 1:1 dispram_lo
+				      * (0xb8..0xe6), stops before the DMA32/WLAN hole.
+				      * Without this, SID-7 faults on 0x7fe2xxxxxx. */
 };
 
 static int ovcs_id;
@@ -55,6 +60,7 @@ static struct platform_device *niso_anchor_pdev;
 static int dce_iso_anchor_probe(struct platform_device *pdev)
 {
 	struct iommu_domain *dom = iommu_get_domain_for_dev(&pdev->dev);
+	bool mapped[ARRAY_SIZE(dce_hi_ranges)] = { false };
 	int i, ret;
 
 	if (!dom) {
@@ -77,10 +83,19 @@ static int dce_iso_anchor_probe(struct platform_device *pdev)
 		dev_info(&pdev->dev, "iso map 0x%llx -> 0x%llx sz 0x%llx = %d\n",
 			 iova, dce_hi_ranges[i].pa, dce_hi_ranges[i].size, ret);
 		if (ret)
-			return ret;
+			goto err_unmap;
+		mapped[i] = true;
 	}
 
 	return 0;
+
+err_unmap:
+	/* Undo only what this probe mapped; leave pre-existing maps intact. */
+	while (--i >= 0)
+		if (mapped[i])
+			iommu_unmap(dom, DCE_HI_BASE + dce_hi_ranges[i].pa,
+				    dce_hi_ranges[i].size);
+	return ret;
 }
 
 static const struct of_device_id dce_iso_anchor_of_match[] = {

@@ -1,0 +1,42 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// SPDX-FileCopyrightText: Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+//
+// disp-vm guest device tree (display-only, no host1x/gpu/media). Composed from
+// the shared gpu-vm .dtsi built with EXP_DROP_HOST1X + EXP_DROP_GPU (drops the
+// engine ranges/nodes), plus disp-vm's own split-RAM memory. base/proxies/
+// display/dummies are reused verbatim from ../gpu-vm so the two VMs share one
+// source of truth; only tegra234-dispvm-memory.dtsi is disp-vm-specific.
+
+#include <dt-bindings/clock/tegra234-clock.h>
+#include <dt-bindings/reset/tegra234-reset.h>
+#include <dt-bindings/mailbox/tegra186-hsp.h>
+#include <dt-bindings/memory/tegra234-mc.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/interrupt/tegra234-irq.h>
+#include <dt-bindings/gpio/tegra234-gpio.h>
+#include <dt-bindings/p2u/tegra234-p2u.h>
+#include <dt-bindings/power/tegra234-powergate.h>
+#include <dt-bindings/pinctrl/pinctrl-tegra.h>
+
+/dts-v1/;
+
+/ {
+	interrupt-parent = <0x8005>;
+	model = "linux,dummy-virt";
+	#size-cells = <0x02>;
+	#address-cells = <0x02>;
+
+	// Some drivers need the root node to carry this compatible.
+	compatible = "nvidia,tegra234";
+
+	// No host1x alias: physical host1x stays with the GPU VM.
+	aliases {
+	};
+};
+
+#include "tegra234-gpuvm-base.dtsi"
+#include "tegra234-dispvm-memory.dtsi"
+#include "tegra234-gpuvm-proxies.dtsi"
+#include "tegra234-gpuvm-display.dtsi"
+#include "tegra234-gpuvm-dummies.dtsi"

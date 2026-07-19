@@ -1,0 +1,25 @@
+From: Ghaf contributors <ghaf@tii.ae>
+Subject: [PATCH] nvkms: force no-syncpt support (host1x-ownership experiment)
+
+experiment/orin-two-vm-host1x, display-no-host1x direction. Without a
+physical host1x assigned to the GUI VM, pDevEvo->supportsSyncpts must be
+false or NVKMS's mandatory per-window post-syncpoint allocation fails.
+Force the no-syncpt path so the software compositor drives display with
+CPU buffers and no explicit fences.
+---
+diff --git a/nvdisplay/kernel-open/nvidia-modeset/nvidia-modeset-linux.c b/nvdisplay/kernel-open/nvidia-modeset/nvidia-modeset-linux.c
+--- a/nvdisplay/kernel-open/nvidia-modeset/nvidia-modeset-linux.c
++++ b/nvdisplay/kernel-open/nvidia-modeset/nvidia-modeset-linux.c
+@@ -100,6 +100,12 @@
+ }
+ 
+ NvBool nvkms_kernel_supports_syncpts(void)
+ {
++    /*
++     * experiment/orin-two-vm-host1x (display-no-host1x): force the NVKMS
++     * no-syncpt path so post-syncpoint allocation is skipped when no
++     * physical host1x is assigned to this GUI VM.
++     */
++    return NV_FALSE;
+ /*
+  * Note this only checks that the kernel has the prerequisite

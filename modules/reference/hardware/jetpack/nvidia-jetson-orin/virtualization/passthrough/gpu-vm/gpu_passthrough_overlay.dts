@@ -13,6 +13,12 @@
 #include <dt-bindings/interrupt-controller/irq.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 
+/*
+ * StreamID for the disp-vm-owned wrapper nodes. Disjoint SMMU group from the
+ * GPU: 0x7d is unassigned on T234 (SIDs jump 0x72 -> 0x7f in tegra234-mc.h) and
+ * != TEGRA234_SID_PASSTHROUGH (0x7f), so gpu-vm and disp-vm never share a stream.
+ */
+#define GHAF_SID_DISPVM 0x7d
 
 / {
     overlay-name = "BPMP host proxy 2";
@@ -44,6 +50,21 @@
                 scanout: scanout@b0000000 {
                     compatible = "removed-dma-pool";
                     reg = <0x0 0xB0000000 0x0 0x08000000>;				// 128MB
+                    status = "okay";
+                };
+                // disp-vm guest RAM = SPLIT carveout (1:1 GPA=HPA). LOW bank:
+                // kernel/initrd + 672MB RAM + 64MB CMA (QEMU -M virt loads kernel
+                // low; all-high -> init killed; <672MB -> init SIGSEGV). HIGH bank
+                // (>4GB): GPU-style carveouts. DMA32 hole 0xe6000000..0x100000000
+                // (416MB) left to host so 14100000.pcie MSI page allocates (WLAN/net-vm).
+                dispram_lo: dispram_lo@b8000000 {
+                    compatible = "removed-dma-pool";
+                    reg = <0x0 0xB8000000 0x0 0x2E000000>;				// 736MB (0xb8..0xe6)
+                    status = "okay";
+                };
+                dispram_hi: dispram_hi@200000000 {
+                    compatible = "removed-dma-pool";
+                    reg = <0x2 0x00000000 0x0 0x1A000000>;				// 416MB @ 8GB (0x200..0x21a)
                     status = "okay";
                 };
             };
@@ -78,8 +99,25 @@
             // (mmio-base=0xb0000000) into the guest for the nvdisplay scanout.
             scanout_p: scanout_p@b0000000 {
                 compatible = "nvidia,dummy";
-                iommus = <&smmu_niso0 TEGRA234_SID_PASSTHROUGH>;
+                iommus = <&smmu_niso0 GHAF_SID_DISPVM> /* concurrent: distinct group from GPU, DMA-less wrapper */;
                 reg = <0x0 0xB0000000 0x0 0x08000000>;				// 128MB
+                dma-coherent;
+                status = "okay";
+            };
+            // disp-vm RAM carveout, 1:1 vfio (mmio-base=0x200000000).
+            // GHAF_SID_DISPVM -> same IOMMU group as the other disp-vm wrappers,
+            // disjoint from GPU.
+            dispram_lo_p: dispram_lo_p@b8000000 {
+                compatible = "nvidia,dummy";
+                iommus = <&smmu_niso0 GHAF_SID_DISPVM>;
+                reg = <0x0 0xB8000000 0x0 0x2E000000>;				// 736MB
+                dma-coherent;
+                status = "okay";
+            };
+            dispram_hi_p: dispram_hi_p@200000000 {
+                compatible = "nvidia,dummy";
+                iommus = <&smmu_niso0 GHAF_SID_DISPVM>;
+                reg = <0x2 0x00000000 0x0 0x1A000000>;				// 416MB @ 8GB
                 dma-coherent;
                 status = "okay";
             };
@@ -87,15 +125,14 @@
     };
 
     // Passthrough devices: set dummy driver + iommus + dma-coherent.
-    // fragment@1 (display@13800000 dummy override) removed: display is NOT
-    // passed through, so the host keeps the REAL display node (stock compatible +
-    // SID_NVDISPLAY). Rewriting it to dummy at DT-parse (before vfio) halts the
-    // host DCE R5 at dce_ss_set (DCE_HALTED @18s, before any vfio bind @28s).
-    // Guest reaches the panel via the DCE host-proxy, never this node.
+    // fragment@1 (display@13800000 dummy override) removed: display NOT passed
+    // through; host keeps the REAL display node (stock compatible + SID_NVDISPLAY).
+    // Rewriting it to dummy halts the host DCE R5 at dce_ss_set. Guest reaches the
+    // panel via the DCE host-proxy.
 
-    // fragment@2 (dce@d800000 dummy override) removed: DCE is NOT passed
-    // through. Host keeps the REAL dce node so host tegra-dce bootstraps and
-    // owns the R5; guest drives the panel via the DCE host-proxy.
+    // fragment@2 (dce@d800000 dummy override) removed: DCE NOT passed through.
+    // Host keeps the REAL dce node so host tegra-dce owns the R5; guest drives the
+    // panel via the DCE host-proxy.
 
     // Dummy framebuffer compatible so UEFI doesn't enable the host framebuffer.
     fragment@3 {
@@ -166,8 +203,7 @@
         };
     };
     
-    // Recreated from scratch: DT can't remove properties from a node, and we
-    // need some of the originals gone.
+    // Recreated from scratch: DT can't remove properties, and some originals must go.
     fragment@7 {
         target-path = "/bus@0";
         __overlay__ {
@@ -268,42 +304,38 @@
         };
     };
 
-    // Keyhole: expose ONLY the 4KB read-only EVO display-capabilities strap page
+    // Keyhole: expose ONLY the 4KB RO EVO display-capabilities strap page
     // (display + 0x30000 = 0x13830000). Guest nvdisplay reads caps here
-    // (NVC673_DISP_CAPABILITIES) at EvoGetCapabilities3; unbacked -> nvidia_modeset
-    // takes a synchronous external abort. Only this RO page, not the whole display
-    // aperture (full passthrough kills the host DCE R5). Straps are RO and not in
-    // DCE's live control plane, so dual-mapping alongside the R5 is safe. Isolated
-    // SID_PASSTHROUGH (group 15, with the carveouts); node does no DMA so SID is inert.
+    // (NVC673_DISP_CAPABILITIES); unbacked -> nvidia_modeset takes a synchronous
+    // external abort. Not the whole display aperture (full passthrough kills the
+    // host DCE R5). Straps are RO, outside DCE's live control plane, so dual-mapping
+    // alongside the R5 is safe. Isolated SID_PASSTHROUGH; node does no DMA so SID is inert.
     fragment@9 {
         target-path = "/";
         __overlay__ {
             disp_caps_pt: disp_caps_pt@13830000 {
                 compatible = "nvidia,dummy";
                 reg = <0x0 0x13830000 0x0 0x1000>;
-                iommus = <&smmu_niso0 TEGRA234_SID_PASSTHROUGH>;
+                iommus = <&smmu_niso0 GHAF_SID_DISPVM> /* concurrent: distinct group */;
                 dma-coherent;
                 status = "okay";
             };
         };
     };
 
-    // Second keyhole: EVO channel DOORBELL registers (PUT/GET). Guest nvkms maps
-    // each DMA channel's control page and writes PUT to tell the DCE R5 to fetch
-    // the pushbuffer. UDISP FE channel-assembly region: core at 0x13870000, window
-    // channels from 0x13880000, 4KB pages. Unbacked -> PUT writes never reach HW,
-    // R5 never fetches, GET stays 0 (nvidia-modeset: waiting for GPU progress,
-    // NVC67E). These are CPU-RM user doorbells (guest IS the CPU RM); R5 owns
-    // core/control -> intended CPU-RM/DCE split. Map the whole region
-    // 0x13870000..0x1388ffff (core + windows + cursor/IMM). Isolated
-    // SID_PASSTHROUGH, no reset -> R5-safe, like the caps page.
+    // Second keyhole: EVO channel DOORBELL registers (PUT/GET). Guest nvkms writes
+    // PUT to tell the DCE R5 to fetch the pushbuffer. Unbacked -> PUT never reaches
+    // HW, R5 never fetches, GET stays 0 (nvidia-modeset: waiting for GPU progress).
+    // CPU-RM user doorbells (guest IS the CPU RM); R5 owns core/control. Map the
+    // whole region 0x13870000..0x1388ffff (core + windows + cursor/IMM). Isolated
+    // SID_PASSTHROUGH, no reset -> R5-safe.
     fragment@10 {
         target-path = "/";
         __overlay__ {
             disp_chan_pt: disp_chan_pt@13870000 {
                 compatible = "nvidia,dummy";
                 reg = <0x0 0x13870000 0x0 0x20000>;
-                iommus = <&smmu_niso0 TEGRA234_SID_PASSTHROUGH>;
+                iommus = <&smmu_niso0 GHAF_SID_DISPVM> /* concurrent: distinct group */;
                 dma-coherent;
                 status = "okay";
             };

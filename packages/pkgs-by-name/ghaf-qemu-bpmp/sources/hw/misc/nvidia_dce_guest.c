@@ -170,11 +170,14 @@ static uint64_t nvidia_dce_guest_read(void *opaque, hwaddr addr, unsigned int si
 {
 	NvidiaDceGuestState *s = opaque;
 
-	if (addr >= MEM_SIZE)
+	// Bound the full width, not just addr: a tail read must not leak adjacent
+	// NvidiaDceGuestState fields.
+	if (addr > MEM_SIZE - size)
 		return 0xDEADBEEF;
 
-	// Cast buffer location as uint64_t
-	return *(uint64_t*)&s->mem[addr];
+	uint64_t val = 0;
+	memcpy(&val, &s->mem[addr], size); // honor size, not a fixed u64 deref
+	return val;
 }
 
 static void nvidia_dce_guest_write(void *opaque, hwaddr addr, uint64_t data, unsigned int size)
@@ -186,8 +189,10 @@ static void nvidia_dce_guest_write(void *opaque, hwaddr addr, uint64_t data, uns
 
 	memset(&messg, 0, sizeof(messg));
 
-	if (addr >= MEM_SIZE){
-		qemu_log_mask(LOG_UNIMP, "qemu: Error addr >= MEM_SIZE in 0x%lX data: 0x%lX\n", addr, data);
+	// Bound the full width: a tail write must not clobber adjacent
+	// NvidiaDceGuestState fields (host_device_fd, thread state, evt_seq).
+	if (addr > MEM_SIZE - size){
+		qemu_log_mask(LOG_UNIMP, "qemu: Error addr+size > MEM_SIZE in 0x%lX data: 0x%lX\n", addr, data);
 		return;
 	}
 
@@ -225,6 +230,16 @@ static const MemoryRegionOps nvidia_dce_guest_ops = {
 	.read = nvidia_dce_guest_read,
 	.write = nvidia_dce_guest_write,
 	.endianness = DEVICE_NATIVE_ENDIAN,
+	// QEMU clamps to 1..8-byte aligned accesses before the handlers run.
+	.valid = {
+		.min_access_size = 1,
+		.max_access_size = 8,
+		.unaligned = false,
+	},
+	.impl = {
+		.min_access_size = 1,
+		.max_access_size = 8,
+	},
 };
 
 static void nvidia_dce_guest_instance_init(Object *obj)

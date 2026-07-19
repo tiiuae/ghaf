@@ -46,7 +46,7 @@ the MMIO at the address the DTS hardcodes.
      [VIRT_NVIDIA_BPMP_GUEST] =  { 0x090d0000, 0x00001000 },
      [VIRT_MMIO] =               { 0x0a000000, 0x00000200 },
      /* ...repeating for a total of NUM_VIRTIO_TRANSPORTS, each of that size */
-@@ -1188,14 +1190,34 @@
+@@ -1188,14 +1190,49 @@
      qemu_fdt_setprop_cell(ms->fdt, "/bpmp", "phandle",
                            qemu_fdt_alloc_phandle(ms->fdt));
  }
@@ -66,6 +66,21 @@ the MMIO at the address the DTS hardcodes.
 +static void create_nvidia_dce_guest(const VirtMachineState *vms)
 +{
 +    hwaddr base = vms->memmap[VIRT_NVIDIA_DCE_GUEST].base;
++
++    /*
++     * Exclusive DCE ownership (opt-in). The host proxy has a single global
++     * event ring; only ONE guest may bridge to it. But EVERY ghaf VM runs this
++     * QEMU, so an unconditional bridge made net-vm/admin-vm/compute-GPU-VM all
++     * open /dev/dce-host and run a reverse-doorbell pump -- racing disp-vm for
++     * that ring (host proxy returns -EAGAIN) and stealing DCE events destined
++     * for disp-vm, holding them forever (they never ack the reverse window) ->
++     * disp-vm scanout starves (black panel). Create the bridge ONLY for the VM
++     * the launcher marks as the display owner via GHAF_DCE_GUEST=1 (disp-vm,
++     * or a display-capable GPU-VM). All other VMs never touch /dev/dce-host.
++     */
++    if (g_strcmp0(getenv("GHAF_DCE_GUEST"), "1") != 0) {
++        return;
++    }
 +
 +    nvidia_dce_guest_create(base);
 +}
