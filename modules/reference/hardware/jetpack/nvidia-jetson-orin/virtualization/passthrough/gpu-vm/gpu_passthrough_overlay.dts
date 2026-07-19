@@ -1,0 +1,315 @@
+/*
+ * Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+ * SPDX-License-Identifier: CC-BY-SA-4.0
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/clock/tegra234-clock.h>
+#include <dt-bindings/reset/tegra234-reset.h>
+#include <dt-bindings/power/tegra234-powergate.h>
+#include <dt-bindings/memory/tegra234-mc.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+
+
+/ {
+    overlay-name = "BPMP host proxy 2";
+    compatible = "nvidia,tegra234";
+    
+    fragment@0 {
+        target-path = "/";
+        __overlay__ {
+            reserved-memory {
+                // Reserved CMA for VM CMA
+                vm_cma: vm_cma@80000000 {
+                    compatible = "removed-dma-pool";
+                    reg = <0x0 0x80000000 0x0 0x30000000>;				// 768MB
+                    status = "okay";
+                };
+                // Reserved CMA for VM GPU VRAM
+                vm_cma_vram: vm_cma_vram@100000000 {
+                    compatible = "removed-dma-pool";
+                    reg = <0x01 0x00000000 0x01 0x00000000>;            // 4GB
+                };
+                // Reserved CMA for VM host1x sem-syncpt-shim
+                vm_hs: vm_hs@60000000 {
+                    compatible = "removed-dma-pool";
+                    reg = <0x0 0x60000000 0x0 0x04000000>;				// host1x 64MB sem-syncpt-shim
+                    status = "okay";
+                };
+            };
+
+            // Assign the reserved memory for the VM to a dummy driver in host
+            // in order that we can bound those regions to the vfio-platform driver
+            vm_cma_p: vm_cma_p@80000000 {
+                compatible = "nvidia,dummy";
+                iommus = <&smmu_niso0 TEGRA234_SID_PASSTHROUGH>;
+                reg = <0x0 0x80000000 0x0 0x30000000>;              	// 768MB
+                dma-coherent;
+                status = "okay";
+            };
+
+            vm_cma_vram_p: vm_cma_vram_p@100000000 {
+                compatible = "nvidia,dummy";
+                iommus = <&smmu_niso0 TEGRA234_SID_PASSTHROUGH>;
+                reg = <0x01 0x00000000 0x01 0x00000000>;                // 4GB
+                dma-coherent;
+                status = "okay";
+            };
+
+            vm_hs_p: vm_hs_p@60000000 {
+                compatible = "nvidia,dummy";
+                iommus = <&smmu_niso0 TEGRA234_SID_PASSTHROUGH>;
+                reg = <0x0 0x60000000 0x0 0x04000000>;				// host1x sem-syncpt-shimZ
+                dma-coherent;
+                status = "okay";
+            };
+        };
+    };
+
+    // In the following fragments we modify the devices to passthrough by:
+    // 1. Assign a dummy driver to the device
+    // 2. Assign a iommus to the device
+    // 3. Add dma-coherent property to the device
+    fragment@1 {
+        target-path = "/";
+        __overlay__ {
+            display@13800000 {
+                compatible = "nvidia,dummy";
+                iommus = <&smmu_niso0 TEGRA234_SID_NVDISPLAY>;
+                dma-coherent;
+                status = "okay";
+                reg-names = "nvdisplay", "dpaux0", "hdacodec", "mipical";
+                reg = <0x0 0x13800000 0x0 0xEFFFF    /* nvdisplay */
+                    0x0 0x155C0000 0x0 0xFFFF     /* dpaux0 */
+                    0x0 0x0242c000 0x0 0x1000     /* hdacodec */
+                    0x0 0x03990000 0x0 0x10000>;  /* mipical */
+                interrupt-names = "nvdisplay", "dpaux0", "hdacodec";
+                interrupts = <0 416 4
+                    0 419 4
+                    0  61 4>;
+                memory-region = <>;
+		        nvdisplay-niso {
+          			compatible = "nvidia,nvidia,dummy";
+		        	iommus = <>;
+                };
+            };
+        };
+    };
+
+    fragment@2 {
+        target-path = "/";
+        __overlay__ {
+            dce@d800000 {
+                compatible = "nvidia,dummy";
+                iommus = <&smmu_niso0 TEGRA234_SID_DCE>;
+                dma-coherent;
+                status = "okay";
+                reg = <0x0 0x0d800000 0x0 0x00800000>;
+                interrupts =
+                    <0 376 0x4>,
+                    <0 377 0x4>;
+                interrupt-names = "wdt-remote",
+                    "dce-sm0";
+            };
+        };
+    };
+
+    // Put framebuffer compatible to dummy to avoid the UEFI
+    // to enable the framebuffer for the host
+    fragment@3 {
+        target-path = "/chosen";
+        __overlay__ {
+            framebuffer {
+                compatible = "dummy";
+                status = "okay";
+            };
+        };
+    };
+
+
+    fragment@4 {
+        target-path = "/bus@0";
+        __overlay__ {
+            gpu@17000000 {
+                compatible = "nvidia,dummy";
+                iommus = <&smmu_niso0 TEGRA234_SID_PASSTHROUGH>;
+                reg = <0x0 0x17000000 0x0 0x01000000>,
+                    <0x0 0x18000000 0x0 0x01000000>,
+                    <0x0 0x03b41000 0x0 0x00001000>;
+                interrupt-parent = <&gic>;
+                interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>,
+                        <GIC_SPI 70 IRQ_TYPE_LEVEL_HIGH>,
+                        <GIC_SPI 71 IRQ_TYPE_LEVEL_HIGH>,
+                        <GIC_SPI 67 IRQ_TYPE_LEVEL_HIGH>;
+                interrupt-names = "stall0", "stall1", "stall2", "nonstall";
+                power-domains = <&bpmp TEGRA234_POWER_DOMAIN_GPU>;
+                interconnects = <&mc TEGRA234_MEMORY_CLIENT_NVL1R &emc>,
+                        <&mc TEGRA234_MEMORY_CLIENT_NVL1W &emc>;
+                interconnect-names = "dma-mem", "write";
+                clocks = <&bpmp TEGRA234_CLK_GPUSYS>,
+                    <&bpmp TEGRA234_CLK_GPC0CLK>,
+                    <&bpmp TEGRA234_CLK_GPC1CLK>;
+                clock-names = "sysclk", "gpc0clk", "gpc1clk";
+                resets = <&bpmp TEGRA234_RESET_GPU>;
+                dma-coherent;
+                nvidia,bpmp = <&bpmp>;
+                status = "okay";
+            };
+        };
+    };
+
+    // Disable the host1x to use a new host1x created later: host1x_pt@13e00000 
+    fragment@5 {
+        target-path = "/bus@0";
+        __overlay__ {
+            host1x@13e00000 {
+                status = "disabled";
+            };
+        };
+    };
+
+    // Disable these devices to use the ones created later.
+    fragment@6 {
+        target-path = "/bus@0/host1x@13e00000";
+        __overlay__ {
+            vic@15340000  {
+                status = "disabled";
+            };
+            nvdec@15480000 {
+                status = "disabled";
+            };
+            nvjpg@15540000 {
+                status = "disabled";
+            };
+        };
+    };
+    
+    // Created new device nodes from zero because we want to remove some properties
+    // from the original, and the device tree does not allow to remove properties
+    // from a node.
+    fragment@7 {
+        target-path = "/bus@0";
+        __overlay__ {
+            host1x_pt@13e00000 {
+                compatible = "nvidia,dummy";
+                reg = <0x0 0x13e00000 0x0 0x10000>,
+                    <0x0 0x13e10000 0x0 0x10000>,
+                    <0x0 0x13e40000 0x0 0x10000>,
+                    <0x0 0x13ef0000 0x0 0x60000>;
+                reg-names = "common", "hypervisor", "vm", "actmon";
+
+                clocks = <&bpmp TEGRA234_CLK_HOST1X>,
+                    <&bpmp TEGRA234_CLK_ACTMON>;
+                clock-names = "host1x", "actmon";
+                assigned-clocks = <&bpmp TEGRA234_CLK_HOST1X>;
+                assigned-clock-rates = <204000000>;
+
+                interrupts = <GIC_SPI 448 IRQ_TYPE_LEVEL_HIGH>,
+                        <GIC_SPI 449 IRQ_TYPE_LEVEL_HIGH>,
+                        <GIC_SPI 450 IRQ_TYPE_LEVEL_HIGH>,
+                        <GIC_SPI 451 IRQ_TYPE_LEVEL_HIGH>,
+                        <GIC_SPI 452 IRQ_TYPE_LEVEL_HIGH>,
+                        <GIC_SPI 453 IRQ_TYPE_LEVEL_HIGH>,
+                        <GIC_SPI 454 IRQ_TYPE_LEVEL_HIGH>,
+                        <GIC_SPI 455 IRQ_TYPE_LEVEL_HIGH>,
+                        <GIC_SPI 263 IRQ_TYPE_LEVEL_HIGH>;
+                interrupt-names = "syncpt0", "syncpt1", "syncpt2", "syncpt3", "syncpt4",
+                        "syncpt5", "syncpt6", "syncpt7", "host1x";
+                #address-cells = <2>;
+                #size-cells = <2>;
+                iommus = <&smmu_niso1 TEGRA234_SID_HOST1X>;
+                dma-coherent;
+
+                interrupt-parent = <&gic>;
+
+                ranges = <0x0 0x14800000 0x0 0x14800000 0x0 0x02000000>,
+                    <0x0 0x24700000 0x0 0x24700000 0x0 0x00080000>;
+
+                status = "okay";
+            };
+		
+		vic@15340000 {
+			compatible = "nvidia,dummy";
+			reg = <0x0 0x15340000 0x0 0x00040000>;
+			interrupts = <GIC_SPI 206 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&bpmp TEGRA234_CLK_VIC>;
+			clock-names = "vic";
+			resets = <&bpmp TEGRA234_RESET_VIC>;
+			reset-names = "vic";
+			power-domains = <&bpmp TEGRA234_POWER_DOMAIN_VIC>;
+			iommus = <&smmu_niso1 TEGRA234_SID_VIC>;
+			dma-coherent;
+			status = "okay";
+		};
+
+        nvdec@15480000 {
+                compatible = "nvidia,dummy";
+                reg = <0x0 0x15480000 0x0 0x00040000>;
+                clocks = <&bpmp TEGRA234_CLK_NVDEC>,
+                        <&bpmp TEGRA234_CLK_FUSE>,
+                        <&bpmp TEGRA234_CLK_TSEC_PKA>;
+                clock-names = "nvdec", "fuse", "tsec_pka";
+                resets = <&bpmp TEGRA234_RESET_NVDEC>;
+                reset-names = "nvdec";
+                power-domains = <&bpmp TEGRA234_POWER_DOMAIN_NVDEC>;
+                iommus = <&smmu_niso1 TEGRA234_SID_NVDEC>;
+                dma-coherent;
+                status = "okay";
+            };
+
+        nvjpg@15540000 {
+                compatible = "nvidia,dummy";
+                reg = <0x0 0x15540000 0x0 0x00040000>;
+                clocks = <&bpmp TEGRA234_CLK_NVJPG1>;
+                clock-names = "nvjpg";
+                resets = <&bpmp TEGRA234_RESET_NVJPG1>;
+                reset-names = "nvjpg";
+
+                power-domains = <&bpmp TEGRA234_POWER_DOMAIN_NVJPGB>;
+                // interconnects = <&mc TEGRA234_MEMORY_CLIENT_NVJPG1SRD &emc>,
+                // 		<&mc TEGRA234_MEMORY_CLIENT_NVJPG1SWR &emc>;
+                // interconnect-names = "dma-mem", "write";
+                iommus = <&smmu_niso0 TEGRA234_SID_NVJPG1>;
+                dma-coherent;
+
+                nvidia,host1x-class = <0x07>;
+                status = "okay";
+            };
+        };
+    };
+
+    // Disabled to avoid this issue
+    // [  522.695005] WARNING: CPU: 0 PID: 963 at drivers/soc/tegra/cbb/tegra234-cbb.c:577 tegra234_cbb_isr+0x130/0x170
+    // [  522.709378] ---[ end trace 4c1e09d24a524cb3 ]---
+    // [  522.717079] CPU:0, Error: cbb-fabric@0x13a00000, irq=22
+    // [  522.725373] **************************************
+    // [  522.733235] CPU:0, Error:cbb-fabric, Errmon:2
+    // [  522.740681] 	  Error Code		: PWRDOWN_ERR
+    // [  522.747687] 	  Overflow		: Multiple PWRDOWN_ERR
+    // [  522.755374] 
+    // [  522.759874] 	  Error Code		: PWRDOWN_ERR
+    // [  522.766961] 	  MASTER_ID		: CCPLEX
+    // [  522.773513] 	  Address		: 0x351804c
+    // [  522.780172] 	  Cache			: 0x1 -- Bufferable 
+    // [  522.787537] 	  Protection		: 0x2 -- Unprivileged, Non-Secure, Data Access
+    // [  522.797600] 	  Access_Type		: Read
+    // [  522.803996] 	  Access_ID		: 0x11
+    // [  522.804006] 	  Fabric		: cbb-fabric
+    // [  522.816589] 	  Slave_Id		: 0x37
+    // [  522.822601] 	  Burst_length		: 0x0
+    // [  522.828849] 	  Burst_type		: 0x1
+    // [  522.834934] 	  Beat_size		: 0x2
+    // [  522.840851] 	  VQC			: 0x0
+    // [  522.846300] 	  GRPSEC		: 0x7e
+    // [  522.852012] 	  FALCONSEC		: 0x0
+    // [  522.857896] 	**************************************
+    fragment@8 {
+        target-path = "/bus@0/hda@3510000";
+        __overlay__ {
+            status = "disabled";
+        };
+    };
+};

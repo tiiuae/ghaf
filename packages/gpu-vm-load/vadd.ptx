@@ -1,0 +1,56 @@
+//
+// SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+// SPDX-License-Identifier: Apache-2.0
+//
+// Burn kernel for the gpu-vm compute-load smoke test, hand-written PTX so the
+// build needs no CUDA toolkit (the Jetson nvcc cannot run on the x86 builder).
+// Targets sm_80; the driver JIT-compiles it to sm_87 (ga10b) at module load.
+// Equivalent C (see runner.c / former vadd.cu):
+//   __global__ void burn(float *out, int n) {
+//     int i = blockIdx.x*blockDim.x + threadIdx.x;
+//     float a = 1.0f, b = 1.0001f;
+//     for (int k = 0; k < 200000; k++) a = a*b + b;
+//     if (i < n) out[i] = a;
+//   }
+//
+.version 7.0
+.target sm_80
+.address_size 64
+
+.visible .entry burn(
+    .param .u64 burn_param_0,
+    .param .u32 burn_param_1
+)
+{
+    .reg .pred  %p<2>;
+    .reg .f32   %f<3>;
+    .reg .b32   %r<7>;
+    .reg .b64   %rd<5>;
+
+    ld.param.u64    %rd1, [burn_param_0];
+    ld.param.u32    %r1,  [burn_param_1];
+    cvta.to.global.u64 %rd2, %rd1;
+
+    mov.u32         %r2, %ntid.x;
+    mov.u32         %r3, %ctaid.x;
+    mov.u32         %r4, %tid.x;
+    mad.lo.s32      %r5, %r3, %r2, %r4;      // i = blockIdx*blockDim + threadIdx
+
+    mov.f32         %f1, 0f3F800000;         // a = 1.0
+    mov.f32         %f2, 0f3F800347;         // b ~= 1.0001
+    mov.u32         %r6, 0;                  // k = 0
+
+$L_loop:
+    fma.rn.f32      %f1, %f1, %f2, %f2;      // a = a*b + b
+    add.s32         %r6, %r6, 1;
+    setp.lt.s32     %p1, %r6, 200000;
+    @%p1 bra        $L_loop;
+
+    setp.ge.s32     %p1, %r5, %r1;           // if (i >= n) skip store
+    @%p1 bra        $L_end;
+    mul.wide.s32    %rd3, %r5, 4;
+    add.s64         %rd4, %rd2, %rd3;
+    st.global.f32   [%rd4], %f1;
+$L_end:
+    ret;
+}

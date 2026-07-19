@@ -12,6 +12,7 @@ _: {
     microvm.imports = [
       ./host/microvm-host.nix
       ./sysvms/netvm.nix
+      ./sysvms/gpuvm.nix
       ./sysvms/adminvm.nix
       ./appvm.nix
       ./sysvms/guivm.nix
@@ -83,6 +84,12 @@ _: {
     #     .extendModules { modules = [ ... ]; }
     # Note: Jetson and other non-laptop platforms continue to use netvm.extraModules
     netvm-base = ./sysvms/netvm-base.nix;
+
+    # GPU VM base module for layered composition (Orin AGX GPU passthrough).
+    # Use with extendModules pattern:
+    #   lib.nixosSystem { modules = [ inputs.self.nixosModules.gpuvm-base ]; ... }
+    #     .extendModules { modules = [ ... ]; }
+    gpuvm-base = ./sysvms/gpuvm-base.nix;
 
     # App VM base module for layered composition
     # Unlike singleton VMs, App VMs are instantiated multiple times using mkAppVm.

@@ -32,6 +32,34 @@ in
     # The guest can only bring MGBE0 up through the BPMP host proxy.
     ghaf.hardware.nvidia.virtualization.host.bpmp.enable = true;
 
+    ghaf.hardware.nvidia.virtualization.host.bpmp.allow = {
+      # MGBE0 (ethernet@6800000) clocks, resets, power domain -- raw BPMP ids
+      # read from the device's live DT (not TEGRA234_CLK_* macros; NVIDIA's DT
+      # has drifted from mainline). "clock not allowed" denials at guest boot are
+      # the boundary working, not a bug -- see bpmp-host-proxy.c.
+      clocks = [
+        357
+        361
+        369
+        373
+        374
+        375
+        376
+        377
+        378
+        379
+        380
+        381
+        248
+      ];
+      resets = [
+        45
+        46
+        47
+      ];
+      powerDomains = [ 18 ];
+    };
+
     services.udev.extraRules = ''
       # QEMU opens /dev/bpmp-host in instance_init, and microvm.nix runs it as
       # user microvm, group kvm. The char device is otherwise 0600 root:root.

@@ -441,5 +441,32 @@ in
           '';
         };
       };
+
+      gpuvm = {
+        extraModules = mkOption {
+          description = ''
+            Hardware-specific NixOS modules for GPU VM configuration.
+
+            This option allows hardware definitions to provide VM-specific
+            configuration that will be merged with the base GPU VM config.
+
+            Use this ONLY for hardware-specific settings like:
+            - GPU device passthrough (vfio-platform, BPMP guest proxy)
+            - Guest kernel/kernel parameters required by the passthrough
+            - Custom qemu arguments (device tree, machine args)
+
+            For resource allocation (memory, vCPUs) or profile-specific modules,
+            use ghaf.virtualization.vmConfig.sysvms.gpuvm instead.
+          '';
+          type = types.listOf types.unspecified;
+          default = [ ];
+          example = literalExpression ''
+            [
+              ./gpu-config.nix
+              { microvm.qemu.extraArgs = [ ... ]; }
+            ]
+          '';
+        };
+      };
     };
 }
