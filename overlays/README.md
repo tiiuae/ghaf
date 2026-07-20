@@ -40,6 +40,7 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
 [qemu: Battery, lid, power](https://github.com/blochl/qemu/pull/3)
 [gjs - cross](https://github.com/NixOS/nixpkgs/pull/461666)
 [oculante: Generated Nix Path Changed](https://github.com/NixOS/nixpkgs/pull/502921)
+[systemd: BPF framework cross-compilation](https://github.com/NixOS/nixpkgs/pull/540766) - merged to staging, tracked by [issue #540381](https://github.com/NixOS/nixpkgs/issues/540381). Drop the `systemd` entry in `cross-compilation` once this reaches the nixpkgs pin.
 
 ## carried in tiiuae/nixpkgs/...
 
