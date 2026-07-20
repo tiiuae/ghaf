@@ -102,7 +102,6 @@ let
   hostPersistentJournalPath = "/persist/var/log/journal";
   fssBasePath =
     if config.ghaf.type == "host" then "/persist/common/journal-fss" else "/etc/common/journal-fss";
-  verifyClassifierLib = builtins.readFile ./fss-verify-classifier.sh;
   fssTriagePackage =
     pkgs.fss-triage or (pkgs.callPackage ../../../packages/pkgs-by-name/fss-triage/package.nix { });
 
@@ -127,13 +126,13 @@ let
       gnugrep
       util-linux
     ];
-    # The shared classifier library is sourced for fss_log and receipt helpers;
-    # its verify-only functions are intentionally unused here.
-    excludeShellChecks = [ "SC2329" ];
+    # /etc/fss-verify-classifier.sh is populated at runtime (see environment.etc
+    # below); shellcheck cannot follow it statically.
+    excludeShellChecks = [ "SC1091" ];
     text = ''
       export LC_ALL=C
 
-      ${verifyClassifierLib}
+      source /etc/fss-verify-classifier.sh
 
       KEY_DIR="${cfg.keyPath}"
       INIT_FILE="$KEY_DIR/initialized"
@@ -705,10 +704,6 @@ let
           && [ "$(activation_state_boot_id)" = "$(current_boot_id)" ]
       }
 
-      activation_state_active_current_boot() {
-        activation_state_record_current_boot
-      }
-
       activation_boundary_complete_current_boot() {
         activation_state_record_current_boot \
           && boot_baseline_current
@@ -918,6 +913,7 @@ let
       # archives this run spills out and never a pre-existing (possibly tampered)
       # one.
       SETUP_ARCHIVES_BEFORE=$(mktemp)
+      # shellcheck disable=SC2329  # invoked indirectly via the EXIT trap below
       cleanup_setup_tmp() {
         rm -f "$SETUP_ARCHIVES_BEFORE"
       }
@@ -1041,10 +1037,11 @@ let
       gnugrep
       gawk
     ];
-    # Shared classifier library: some helper functions are unused in this consumer.
-    excludeShellChecks = [ "SC2329" ];
+    # /etc/fss-verify-classifier.sh is populated at runtime (see environment.etc
+    # above); shellcheck cannot follow it statically.
+    excludeShellChecks = [ "SC1091" ];
     text = ''
-            ${verifyClassifierLib}
+            source /etc/fss-verify-classifier.sh
 
             audit_log() {
               printf '%s\n' "$2" | systemd-cat -t journal-fss -p "$1"
@@ -1456,6 +1453,11 @@ in
     environment.systemPackages = [
       fssTriagePackage
     ];
+
+    # Single on-disk copy of the verification/receipt classifier, sourced at
+    # runtime by journal-fss-setup, journal-fss-verify, fss-triage, and
+    # fss-test instead of each embedding its own build-time inlined copy.
+    environment.etc."fss-verify-classifier.sh".source = ./fss-verify-classifier.sh;
 
     # FSS is only meaningful for persistent journals. The journald sealing key
     # lives beside the journal files and is advanced by journald over time.

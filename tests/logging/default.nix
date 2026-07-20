@@ -74,8 +74,7 @@ pkgs.testers.nixosTest {
 
         networking.hostName = "test-host";
 
-        environment.etc."fss-verify-classifier.sh".text =
-          builtins.readFile ../../modules/common/logging/fss-verify-classifier.sh;
+        # /etc/fss-verify-classifier.sh is provided by modules/common/logging/fss.nix.
 
         # Create required directories
         systemd.tmpfiles.rules = [
