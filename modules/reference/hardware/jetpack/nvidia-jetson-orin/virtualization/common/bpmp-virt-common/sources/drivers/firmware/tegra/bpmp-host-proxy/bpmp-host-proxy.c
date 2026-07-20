@@ -297,6 +297,29 @@ static ssize_t read(struct file *filep, char *buffer, size_t len, loff_t *offset
  * Checks if the msg that wants to transmit through the
  * bpmp-host is allowed by the device tree configuration
  */
+/*
+ * Host-critical shared clock roots the host TCB depends on (always-on). The
+ * guest's display clock tree parents up to these, so they must be allow-listed
+ * -- but MRQ_CLK is gated by id, not command, so a guest could otherwise
+ * DISABLE/reparent/rerate them and destabilise the host. Enable (a BPMP
+ * refcount no-op on always-on roots) and reads stay permitted; mutating
+ * commands on these ids are denied in check_if_allowed().
+ */
+static const uint32_t protected_clk_roots[] = {
+	14,  /* TEGRA234_CLK_CLK_M */
+	102, /* TEGRA234_CLK_PLLP_OUT0 */
+};
+
+static bool clk_root_is_protected(uint32_t clk_id)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(protected_clk_roots); i++)
+		if (protected_clk_roots[i] == clk_id)
+			return true;
+	return false;
+}
+
 static bool check_if_allowed(struct tegra_bpmp_message *msg)
 {
 	struct mrq_reset_request *reset_req = NULL;
@@ -334,15 +357,24 @@ static bool check_if_allowed(struct tegra_bpmp_message *msg)
 	}
 	else if (msg->mrq == MRQ_CLK){
 		clock_req = (struct mrq_clk_request*) msg->tx.data;
+		clk_cmd = (clock_req->cmd_and_id >> 24) & 0x000F;
 
 		for(i = 0; i < bpmp_ares.clocks_size; i++){
 			// bits[23..0] are the clock id
 			if(bpmp_ares.clock[i] == (clock_req->cmd_and_id & 0x0FFF)){
+				// A guest may enable/read an allowed clock, but must never
+				// disable, reparent or rerate a host-critical shared root.
+				if(clk_root_is_protected(clock_req->cmd_and_id & 0x0FFF) &&
+				   (clk_cmd == CMD_CLK_DISABLE ||
+				    clk_cmd == CMD_CLK_SET_RATE ||
+				    clk_cmd == CMD_CLK_SET_PARENT)){
+					deb_warn("Warning, protected clock root %d: command %d denied",
+						clock_req->cmd_and_id & 0x0FFF, clk_cmd);
+					return false;
+				}
 				return true;
 			}
 		}
-
-		clk_cmd = (clock_req->cmd_and_id >> 24) & 0x000F;
 
 		// If there is a get info command, allow it no matters the ID
 		if(clk_cmd == CMD_CLK_GET_MAX_CLK_ID ||
@@ -376,7 +408,16 @@ static bool check_if_allowed(struct tegra_bpmp_message *msg)
 		return false;
 	}
 
-	deb_warn("Warning, msg->mrq %d not allowed", msg->mrq);
+	/* DIAGNOSTIC: log EVERY rejected MRQ with its command/payload so a display
+	 * bring-up that needs a display-specific MRQ (e.g. MRQ_UPHY) the proxy does
+	 * not relay is visible. tx.data[0] is the MRQ sub-command for most MRQs. */
+	{
+		const u32 *d = (const u32 *)msg->tx.data;
+		deb_warn("REJECTED mrq=%u tx_size=%zu data0=0x%08x data1=0x%08x",
+			 msg->mrq, msg->tx.size,
+			 (d && msg->tx.size >= 4) ? d[0] : 0u,
+			 (d && msg->tx.size >= 8) ? d[1] : 0u);
+	}
 
 	return false;
 }

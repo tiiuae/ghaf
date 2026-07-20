@@ -1,0 +1,263 @@
+---
+title: NVIDIA Jetson AGX Orin Display to gpu-vm Plumbing
+sidebar:
+  label: Display to gpu-vm Plumbing
+---
+
+How a physical display is plumbed to the `gpu-vm` microVM on the Jetson AGX
+Orin: the guest renders with the passed-through GPU and drives a real panel,
+while the display hardware never leaves the host. Builds on
+[GPU Passthrough to gpu-vm](/ghaf/dev/technologies/nvidia_gpu_vm/) and shares
+its BPMP-virtualisation and `ghaf-qemu-bpmp` infrastructure.
+
+import { Aside } from "@astrojs/starlight/components";
+
+<Aside>
+  Verified on the NVIDIA Jetson AGX Orin devkit: the guest lights a physical
+  panel over DisplayPort (3440x1440@60, also via a passive DP-&gt;HDMI adapter
+  at up to 3440x1440@30). The modules, anchors and connector come up
+  automatically at cold boot, but the panel stays dark until a DRM client is
+  started **manually** (`modetest` here; there is no auto-modeset service yet —
+  a persistent KMS master / compositor is future work). Once a mode is held, a
+  cable replug relights it automatically. GPU-rendered frames present at a
+  locked 60Hz (`modetest -v` page-flip rate; `kmscube` at 57fps vsynced).
+</Aside>
+
+## Why not plain vfio passthrough
+
+On Tegra234 the display controller is not an independent device like the GPU.
+Mode setting, plane programming, and hotplug are owned by the **DCE** (Display
+Controller Engine), an R5 coprocessor running NVIDIA firmware. The CPU-side
+driver (`nvdisplay`, i.e. nvkms/nvidia-drm) does not program display registers
+directly for these — it sends **DISPRM** RPCs to the DCE over IPC (tegra-dce
+IVC channels), and the DCE touches the hardware.
+
+That breaks both naive approaches:
+
+- **Passing the display MMIO through** (`display@13800000` bound to
+  `vfio-platform`) resets the unit under the R5's feet and halts the DCE:
+  host loses display, R5 never recovers without a full reboot.
+- **Running the DCE stack in the guest** would require the guest to own DCE
+  boot, its carveouts, and its IPC — all tightly coupled to host-owned early
+  boot firmware.
+
+So the split: **host keeps the display hardware and the DCE; the guest's
+display driver stack is plumbed to the host's DCE over a relay.** The guest
+runs the full `nvdisplay` OOT stack and *believes* it owns the display; every
+DISPRM RPC and asynchronous DCE event crosses the VM boundary instead.
+
+## Architecture
+
+```
+        GUEST gpu-vm (vanilla 6.12 + nvidia-oot)          HOST (Jetson L4T kernel 6.6)
+  +--------------------------------------------+   +----------------------------------------+
+  |  nvidia-drm / nvkms (nvdisplay OOT,        |   |                                        |
+  |  patched: address policy, flip completion) |   |                                        |
+  |        | DISPRM RPCs (sync)                |   |                                        |
+  |        v                                   |   |                                        |
+  |  tegra-dce (ipc_send redirect hook)        |   |                                        |
+  |        v                                   |   |                                        |
+  |  dce-guest-proxy.ko                        |   |                                        |
+  |    forward:  MMIO window write ------------+---+--> QEMU DCE bridge (nvidia_dce_guest)  |
+  |    reverse:  poll EVT_SEQ <----------------+---+--     |         ^                      |
+  |        |                                   |   |       v         | ch3 events           |
+  |        v                                   |   |  /dev/dce-host (dce-host-proxy.ko)     |
+  |  tegra_dce_client_ipc_inject               |   |       |         ^                      |
+  |    -> nvkms RM_EVENT callback              |   |       v         |                      |
+  |  (vblank, flip, hotplug delivered          |   |  tegra-dce client API (CPU_RM)         |
+  |   as if from the IVC channel)              |   |       |         |                      |
+  |                                            |   |       v         |                      |
+  |  scanout surfaces in identity carveouts    |   |     DCE R5 firmware  ==> display HW    |
+  |  (GPA == HPA), high-IOVA offset            |   |                                        |
+  +--------------------------------------------+   |  dce-iso-anchor.ko: SMMU domains for   |
+                                                   |  display ISO (SID 1) / NISO (SID 7),   |
+                                                   |  high-IOVA -> carveout maps, MC SID    |
+                                                   |  retag of scanout readers              |
+                                                   +----------------------------------------+
+```
+
+Four cooperating pieces:
+
+1. **`dce-guest-proxy.ko` (guest)** installs the `tegra_dce_ipc_send_redirect`
+   hook exported by the patched guest `tegra-dce`, so every synchronous DCE
+   client IPC goes into a shared MMIO window instead of a (non-existent) guest
+   IVC channel. It also polls the reverse window and injects asynchronous
+   events back into `tegra-dce`'s client callbacks via
+   `tegra_dce_client_ipc_inject` — identical to native IVC delivery from the
+   driver's point of view.
+2. **QEMU DCE bridge** (`nvidia_dce_guest` device in `ghaf-qemu-bpmp`) traps
+   the window. A doorbell write runs the forward round-trip synchronously:
+   packages the request and `write()`s it to `/dev/dce-host`, which returns
+   only when the real DCE has answered. A pump thread `poll()`s the same fd
+   for asynchronous events and publishes them into the reverse window.
+3. **`dce-host-proxy.ko` (host)** registers as a tegra-dce client (`CPU_RM`
+   interface) and relays each guest request to the real DCE via
+   `tegra_dce_client_ipc_send_recv`. Unsolicited DCE notifications (channel
+   type 3: hotplug, vblank, RM events) are queued into an event ring exposed
+   over the same char device with peek-then-pop reads, so a failed copy never
+   loses an event.
+4. **`dce-iso-anchor.ko` (host)** owns the SMMU/memory-controller plumbing
+   that makes the DCE's and the display engine's DMA agree with the guest's
+   view of memory (next section).
+
+### The relay window
+
+A single 0x5000-byte MMIO region, one transaction at a time (serialized by a
+guest spinlock — DCE IPC can be issued from atomic context):
+
+| Offset | Field | Purpose |
+| ------ | ----- | ------- |
+| 0x0000 | TX buffer | request payload (up to 4KB, DCE frames are opaque) |
+| 0x1000 | RX buffer | response payload |
+| 0x2000/0x2008 | TX/RX size | `u64` sizes; host writes actual RX length back |
+| 0x2010 | return code | `s32` from the host `send_recv` |
+| 0x2018 | interface | DCE channel type |
+| 0x2100 | doorbell | write triggers the synchronous forward round-trip |
+| 0x3000+ | reverse window | `EVT_SEQ`/`EVT_IFACE`/`EVT_SIZ`/`EVT_ACK` + payload |
+
+The reverse window is single-slot with a sequence/ack handshake: the bridge
+publishes one event and bumps `EVT_SEQ`; the guest consumes it and writes the
+sequence back to `EVT_ACK`; the bridge holds the next event (buffered in the
+host ring) until the ack catches up. Slow guest ⇒ delayed events, never lost.
+
+<Aside type="caution">
+  Every word moved through this window is a trapping MMIO access (~µs each,
+  serviced by QEMU), so the guest proxy copies **only the live payload** per
+  RPC. An earlier version bulk-copied the full 12KB forward window both ways
+  (~3000 vmexits ≈ 10ms per RPC); because nvkms issues DISPRM RPCs from its
+  flip path *while holding the display RM lock*, that 10ms serialized async
+  event delivery and capped real present at ~50Hz. Payload-only copies are what
+  make a locked 60Hz possible.
+</Aside>
+
+## Memory and SMMU architecture
+
+The DCE and display engine DMA into guest-allocated memory. Three address
+spaces must be reconciled: the guest's CPU/physical view, the R5's view, and
+the display engine's ISO/NISO SMMU streams.
+
+- **Identity carveouts (GPA == HPA).** All guest memory the display path
+  touches (instance memory, pushbuffers, notifiers, scanout surfaces) lives in
+  fixed reserved-memory carveouts placed 1:1 (guest PA == host PA), removing
+  one translation layer.
+- **High-IOVA address policy (guest nvdisplay patch).** Natively nvkms hands
+  the R5 display-SMMU IOVAs in a high window (`0x7f_xxxx_xxxx`). The guest
+  mirrors this: every address handed to the DCE (ctxdma descriptors,
+  pushbuffers, instance memory) is the CPU PA offset by the high-IOVA base,
+  and the absolute ctxdma limit is computed **after** the offset. The host
+  installs matching translations.
+- **`dce-iso-anchor.ko`** creates DMA-less anchor devices via a runtime DT
+  overlay that (a) claim the display **ISO** (`smmu_iso`, stream ID 1) and
+  **NISO** (`smmu_niso0`, stream ID 7) SMMU streams with translating domains
+  carrying the high-IOVA → carveout mappings, and (b) retag the physical
+  scanout readers `NVDISPLAYR`/`NVDISPLAYR1` to ISO SID 1 through stock
+  `interconnects` entries (memory-controller SID override registers).
+  Boot-lifetime by design: unloading could not restore the MC SID overrides.
+- **39-bit ISO limit.** The display frontend truncates ISO addresses at bit
+  39, so scanout surfaces must be allocated below 4GB: the guest's nvmap
+  *generic* carveout (384MB at `0x98000000`) keeps EGL surface allocations
+  inside the ISO-mapped range. A higher-placed carveout scans out from a
+  bit-truncated address — an `smmu_iso` fault storm and a white panel.
+- **Notifiers are plain `WRITE`.** The core-channel completion notifier is
+  forced to `WRITE` mode: the `WRITE_AWAKEN` variant makes the R5 abort
+  completions the guest can never receive (the awaken interrupt path does not
+  cross the relay).
+
+## Asynchronous events: hotplug and vblank
+
+The DCE pushes unsolicited notifications (channel type 3) for hotplug, vblank
+and RM events. Two guest-visible consequences needed handling:
+
+- **Boot hotplug long-pulse.** A panel already connected at boot produces no
+  HPD edge, so the guest would never mode-set. A synthetic long-pulse is
+  injected once at guest display bring-up.
+- **DP++ dual-mode detection** falls through to the TMDS partner using the RM
+  connect state rather than the DP-lib HPD guess, lighting passive DP-&gt;HDMI
+  adapters (at TMDS-limited rates).
+
+## GPU-accelerated present
+
+With the display path in place, the guest renders on the passed-through GA10B
+and presents through it:
+
+- **Graphics userspace** is wired via `hardware.graphics`
+  (`l4t-3d-core` + runtime dependencies, `egl_external_platform.d`), because
+  the guest's bring-your-own 6.12 kernel cannot enable
+  `hardware.nvidia-jetpack`. `eglinfo` reports renderer
+  `NVIDIA Tegra Orin (nvgpu)`, GLES 3.2 / GL 4.6.
+- **GBM path**: nixpkgs `egl-gbm` 1.1.3 replaces the L4T-bundled 1.1.0 (which
+  heap-corrupts `eglInitialize` under mesa 26's libgbm), patched with a
+  single-device fallback — on Tegra the EGL device's DRM node (`tegra-drm` on
+  host1x) never path-matches a GBM device opened on the display node
+  (`nvidia-drm`), so the stock strict device match always failed. Stock
+  `kmscube -D /dev/dri/card0` runs via a small `LD_PRELOAD` shim forcing
+  no-modifier GBM surfaces (the EGLStream producer rejects modifier surfaces
+  on this guest).
+- **Present rate — locked 60Hz.** Two fixes compound:
+  1. *Flip completion decoupled from the R5.* nvkms normally waits for the
+     R5's async flip-completion event before releasing the next flip; through
+     the proxy it arrives ~130ms after kickoff, capping present at ~8-11Hz.
+     The guest instead delivers the flip-occurred from the nvkms timer one
+     ~60Hz frame after each kickoff. (~11Hz → ~50Hz)
+  2. *Payload-only relay copies* (see the window section above) collapse each
+     DISPRM RPC from ~10ms to well under a millisecond, ending the RM-lock
+     contention that serialized event delivery. (~50Hz → steady 60Hz)
+
+## Use
+
+Display plumbing is part of the gpu-vm passthrough; enable it per-SoM as in
+[GPU Passthrough to gpu-vm](/ghaf/dev/technologies/nvidia_gpu_vm/), build and
+flash the same target, and boot with a DP monitor connected.
+
+### Verify
+
+On the host:
+
+```bash
+# proxy + anchors loaded
+lsmod | grep dce            # tegra_dce, dce_host_proxy, dce_iso_anchor
+# anchor carveout maps installed (ISO SID 1 + NISO SID 7), result "= 0"
+dmesg | grep -E 'dce_iso_anchor|dce_niso_anchor'
+```
+
+The scanout readers' MC SID retag (`NVDISPLAYR`/`NVDISPLAYR1` → ISO SID 1) is
+confirmed functionally by the health check below: a failed retag shows up as
+`EMEM address decode error`s in the host log. (Raw MC registers aren't read
+back with `devmem` — the release build keeps `CONFIG_STRICT_DEVMEM=y`, blocking
+`/dev/mem` access.)
+
+In gpu-vm:
+
+```bash
+# list outputs first: in the Connectors table, use the `connected` row's
+# id as <connector> and one of its mode names as <mode> (e.g. 32:3440x1440)
+modetest -M nvidia-drm
+
+# hold a modeset: panel shows the SMPTE pattern
+sh -c 'sleep 7200 | modetest -M nvidia-drm -s <connector>:<mode>'
+
+# GPU-accelerated present: spinning cube on the physical panel
+eglinfo -B                  # renderer: NVIDIA Tegra Orin (nvgpu)
+kmscube -D /dev/dri/card0
+
+# real page-flip rate: steady ~60Hz
+modetest -M nvidia-drm -s <connector>:<mode> -v
+```
+
+Health checks: zero `Lost display notification` in guest dmesg, zero
+`nvdisplayr ... EMEM address decode error` in host dmesg. A held mode survives
+cable replug (relit automatically by the hotplug relay); at cold boot the
+modules, anchors and connector come up automatically, but a DRM client must be
+started manually to drive the modeset (no auto-modeset service yet).
+
+## Debugging notes
+
+- **The R5 accepts one guest display init per host boot.** Restarting gpu-vm
+  without rebooting the host wedges the next init: reboot the host to iterate
+  on the guest display stack.
+- The host proxy's event ring uses peek-then-pop reads: a QEMU bridge event
+  read failure retries and sees the same event again — investigate, but
+  nothing was dropped.
+- A dark panel with a live mode usually means an address-translation problem
+  (check host `smmu_iso`/`smmu_niso` faults and `EMEM address decode error`),
+  not a mode-set failure: the DCE reports success while scanout reads garbage.

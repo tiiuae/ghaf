@@ -1,0 +1,29 @@
+From: Ghaf contributors <ghaf@tii.ae>
+Subject: [PATCH] dce passthrough: core notifier plain WRITE, never WRITE_AWAKEN
+
+The awaken rides the DCE async event path the guest cannot receive, and
+the R5 aborts the whole completion write when the awaken cannot be
+delivered -- core channel completions never land and every modeset times
+out. nvkms polls the notifier memory anyway, so plain WRITE suffices.
+---
+diff --git a/nvdisplay/src/nvidia-modeset/src/nvkms-evo3.c b/nvdisplay/src/nvidia-modeset/src/nvkms-evo3.c
+index 529ec40..dec6c95 100644
+--- a/nvdisplay/src/nvidia-modeset/src/nvkms-evo3.c
++++ b/nvdisplay/src/nvidia-modeset/src/nvkms-evo3.c
+@@ -3229,9 +3229,13 @@ void nvEvoSetNotifierC3(NVDevEvoRec *pDevEvo,
+      */
+     ASSERT_DRF_NUM(C37D, _SET_NOTIFIER_CONTROL, _OFFSET, notifier);
+ 
+-    ctrlVal = (awaken ?
+-               DRF_DEF(C37D, _SET_NOTIFIER_CONTROL, _MODE, _WRITE_AWAKEN) :
+-               DRF_DEF(C37D, _SET_NOTIFIER_CONTROL, _MODE, _WRITE));
++    /* DCE host-proxy passthrough: force plain WRITE, never WRITE_AWAKEN.
++     * The awaken rides the DCE async event path the guest cannot receive,
++     * and the R5 aborts the whole completion write when the awaken cannot
++     * be delivered. nvkms polls the notifier memory anyway, so the awaken
++     * is not needed for the wait to succeed. */
++    (void)awaken;
++    ctrlVal = DRF_DEF(C37D, _SET_NOTIFIER_CONTROL, _MODE, _WRITE);
+     ctrlVal |= (notify ?
+                 DRF_DEF(C37D, _SET_NOTIFIER_CONTROL, _NOTIFY, _ENABLE) :
+                 DRF_DEF(C37D, _SET_NOTIFIER_CONTROL, _NOTIFY, _DISABLE));

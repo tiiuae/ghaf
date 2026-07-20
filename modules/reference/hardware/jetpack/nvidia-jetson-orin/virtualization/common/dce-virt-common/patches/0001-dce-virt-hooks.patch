@@ -1,0 +1,208 @@
+From: vadik likholetov <vadikas@gmail.com>
+Subject: [PATCH] dce-virt: hook the nvidia-oot DCE driver for guest proxying
+
+Mirror of the bpmp-virt hooks, for the out-of-tree tegra-dce driver.
+
+Adds a redirect fn-ptr (tegra_dce_ipc_send_redirect, default NULL) that
+short-circuits dce_ipc_send_message_sync() -- the choke point every client
+send funnels through -- so a dce-guest-proxy .ko can forward sends through a
+shared MMIO window to the host-owned DCE. Reading "dce-virtual-pa" off the
+guest dce@ node (dce_vpa) skips the local HW IRQ request and R5 bootstrap
+handshake; tegra_dce_guest_ready() binds the KMD channels and marks bootstrap
+done so display-RM client registration proceeds. Inert on real hardware: no
+prop -> dce_vpa == 0, redirect == NULL, normal path unchanged.
+
+The dce-guest-proxy source is carried under
+../sources/drivers/platform/tegra/dce-guest-proxy/ and enabled (obj-m) by the
+controller's postPatch, matching dce-host-proxy.
+--- a/drivers/platform/tegra/dce/dce-ipc.c	2026-07-11 22:07:51.626170494 +0300
++++ b/drivers/platform/tegra/dce/dce-ipc.c	2026-07-11 22:08:08.048721010 +0300
+@@ -736,6 +736,51 @@
+ 	return ret;
+ }
+ 
++/*
++ * Virtual DCE support. When a dce-guest-proxy .ko installs this redirect,
++ * the R5 is host-owned and every synchronous client send is forwarded
++ * through a shared MMIO window instead of the local (absent) IVC/HSP path.
++ * Default NULL: on real hardware the normal path runs unchanged.
++ */
++int (*tegra_dce_ipc_send_redirect)(u32 ch_type,
++				   struct dce_ipc_message *msg) = NULL;
++EXPORT_SYMBOL(tegra_dce_ipc_send_redirect);
++
++/* Shared-window base PA read from the guest dce@ node's "dce-virtual-pa". */
++u64 dce_vpa;
++
++/*
++ * tegra_dce_guest_ready - bring the DCE driver up in guest-proxy mode.
++ *
++ * The guest has no local R5 and never runs the IVC/HSP bootstrap, so the
++ * per-interface channels are never brought up by dce_ipc_channel_init().
++ * Bind each KMD channel to @d so dce_ipc_get_dce_from_ch() resolves during
++ * client registration, then mark bootstrap complete. Every send funnels
++ * through tegra_dce_ipc_send_redirect() into the shared window, so the IVC
++ * frame state is intentionally left unconfigured.
++ */
++int tegra_dce_guest_ready(struct tegra_dce *d)
++{
++	u32 ch_type;
++	int ret;
++
++	for (ch_type = 0; ch_type < DCE_IPC_CH_KMD_TYPE_MAX; ch_type++) {
++		struct dce_ipc_channel *ch = &ivc_channels[ch_type];
++
++		ret = dce_mutex_init(&ch->lock);
++		if (ret)
++			return ret;
++		ch->d = d;
++		d->d_ipc.ch[ch_type] = ch;
++	}
++
++	d->boot_status |= DCE_FW_BOOT_DONE;
++	dce_set_boot_complete(d, true);
++	dce_cond_broadcast_interruptible(&d->dce_bootstrap_done);
++
++	return 0;
++}
++
+ /**
+  * dce_ipc_send_message_sync - Sends messages on a channel
+  *				synchronously and waits for an ack.
+@@ -750,7 +795,12 @@
+ 				struct dce_ipc_message *msg)
+ {
+ 	int ret = 0;
+-	struct dce_ipc_channel *ch = d->d_ipc.ch[ch_type];
++	struct dce_ipc_channel *ch;
++
++	if (tegra_dce_ipc_send_redirect)
++		return tegra_dce_ipc_send_redirect(ch_type, msg);
++
++	ch = d->d_ipc.ch[ch_type];
+ 
+ 	ret = dce_ipc_send_message(d, ch_type, msg->tx.data, msg->tx.size);
+ 	if (ret) {
+--- a/drivers/platform/tegra/dce/dce-init-deinit.c	2026-07-11 22:07:51.629617539 +0300
++++ b/drivers/platform/tegra/dce/dce-init-deinit.c	2026-07-11 22:08:20.088663893 +0300
+@@ -53,7 +53,13 @@
+ 		goto err_fsm_init;
+ 	}
+ 
+-	dce_fsm_start(d);
++	/*
++	 * Virtual DCE (guest): no local R5 to bootstrap. dce_fsm_start() kicks
++	 * the mailbox/IVC bootstrap handshake, which must be skipped; readiness
++	 * is asserted directly by tegra_dce_guest_ready() from probe.
++	 */
++	if (!dce_vpa)
++		dce_fsm_start(d);
+ 
+ 	return ret;
+ 
+--- a/drivers/platform/tegra/dce/dce-module.c	2026-07-11 22:07:51.632688215 +0300
++++ b/drivers/platform/tegra/dce/dce-module.c	2026-07-11 22:08:40.802565498 +0300
+@@ -85,9 +85,18 @@
+ 	d_dev->dev = dev;
+ 	d_dev->pdata = pdata;
+-	d_dev->regs = of_iomap(dev->of_node, 0);
+-	if (!d_dev->regs) {
+-		dev_err(dev, "failed to map dce cluster IO space\n");
+-		return -EINVAL;
+-	}
++	/*
++	 * Virtual DCE guest: the dce@ node carries only "dce-virtual-pa" and no
++	 * real register aperture. Skip the mapping (bootstrap/mailbox/AST code
++	 * that derefs d_dev->regs is skipped in guest mode too).
++	 */
++	if (dce_vpa) {
++		d_dev->regs = NULL;
++	} else {
++		d_dev->regs = of_iomap(dev->of_node, 0);
++		if (!d_dev->regs) {
++			dev_err(dev, "failed to map dce cluster IO space\n");
++			return -EINVAL;
++		}
++	}
+ 
+ 	dev_set_drvdata(dev, d_dev);
+@@ -208,6 +208,17 @@
+ 		goto err_get_pdata;
+ 	}
+ 
++	/*
++	 * Virtual DCE: a "dce-virtual-pa" prop on the guest dce@ node means the
++	 * R5 is host-owned and already bootstrapped. Record the shared-window PA;
++	 * when set, the local HW IRQ path and the R5 bootstrap handshake are
++	 * skipped below and the dce-guest-proxy .ko forwards every client send
++	 * through the window. Absent on real hardware -> dce_vpa stays 0.
++	 */
++	(void)of_property_read_u64(dev->of_node, "dce-virtual-pa", &dce_vpa);
++	if (dce_vpa)
++		dev_info(dev, "DCE virtual-pa: 0x%llX\n", dce_vpa);
++
+ 	err = dce_init_dev_data(pdev, pdata);
+ 	if (err) {
+ 		dev_err(dev, "failed to init device data with err = %d\n",
+@@ -215,11 +226,14 @@
+ 		goto os_init_err;
+ 	}
+ 
+-	err = dce_req_interrupts(pdev);
+-	if (err) {
+-		dev_err(dev, "failed to get interrupts with err = %d\n",
+-			err);
+-		goto req_intr_err;
++	/* Guest has no real DCE HW interrupts to request. */
++	if (!dce_vpa) {
++		err = dce_req_interrupts(pdev);
++		if (err) {
++			dev_err(dev, "failed to get interrupts with err = %d\n",
++				err);
++			goto req_intr_err;
++		}
+ 	}
+ 
+ 	d = dce_get_pdata_dce(pdev);
+@@ -236,7 +250,21 @@
+ 		goto err_driver_init;
+ 	}
+ 
+-	dce_set_irqs(pdev, true);
++	if (dce_vpa) {
++		/*
++		 * No HW IRQs and no R5 bootstrap in the guest: assert DCE
++		 * readiness directly so display-RM client registration
++		 * (tegra_dce_register_ipc_client) proceeds and its sends are
++		 * routed to the proxy redirect.
++		 */
++		err = tegra_dce_guest_ready(d);
++		if (err) {
++			dce_err(d, "DCE guest ready failed");
++			goto err_driver_init;
++		}
++	} else {
++		dce_set_irqs(pdev, true);
++	}
+ 
+ #ifdef CONFIG_DEBUG_FS
+ 	dce_init_debug(d);
+--- a/drivers/platform/tegra/dce/include/dce-ipc.h	2026-07-11 22:07:51.635732247 +0300
++++ b/drivers/platform/tegra/dce/include/dce-ipc.h	2026-07-11 22:08:15.114687495 +0300
+@@ -156,6 +156,16 @@
+ int dce_ipc_send_message_sync(struct tegra_dce *d,
+ 		u32 ch_type, struct dce_ipc_message *msg);
+ 
++/*
++ * Virtual DCE (guest proxy) hooks. tegra_dce_ipc_send_redirect is installed
++ * by the dce-guest-proxy .ko; dce_vpa carries the shared-window PA read from
++ * the guest dce@ node. Both are inert (NULL / 0) on real hardware.
++ */
++extern int (*tegra_dce_ipc_send_redirect)(u32 ch_type,
++					  struct dce_ipc_message *msg);
++extern u64 dce_vpa;
++int tegra_dce_guest_ready(struct tegra_dce *d);
++
+ int dce_ipc_get_channel_info(struct tegra_dce *d,
+ 		struct dce_ipc_queue_info *q_info, u32 ch_index);
+ 
