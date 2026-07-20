@@ -263,7 +263,13 @@ let
       gnugrep
       systemd
     ];
+    # /etc/fss-verify-classifier.sh is populated at runtime by fss.nix
+    # (unconditionally, since this consumer runs even when FSS is disabled);
+    # shellcheck cannot follow it statically.
+    excludeShellChecks = [ "SC1091" ];
     text = ''
+      source /etc/fss-verify-classifier.sh
+
       machine_id="$(cat /etc/machine-id)"
       state_dir="/var/log/journal/$machine_id"
       recovery_receipts_file="$state_dir/fss-recovery-receipts"
@@ -295,10 +301,6 @@ let
         done | sort -u
       }
 
-      current_boot_id() {
-        cat /proc/sys/kernel/random/boot_id 2>/dev/null || echo unknown-boot
-      }
-
       fss_activation_complete_current_boot() {
         local state=""
         local state_boot=""
@@ -312,63 +314,15 @@ let
         state="$(awk -F '\t' 'NR == 1 { print $1 }' "$activation_state_file")"
         state_boot="$(awk -F '\t' 'NR == 1 { print $2 }' "$activation_state_file")"
         baseline_boot="$(tr -d '[:space:]' < "$activation_baseline_file")"
-        boot="$(current_boot_id)"
+        boot="$(fss_current_boot_id)"
 
         [ "$state" = "active" ] \
           && [ "$state_boot" = "$boot" ] \
           && [ "$baseline_boot" = "$boot" ]
       }
 
-      valid_sha256() {
-        printf '%s' "$1" | grep -Eq '^[0-9a-f]{64}$'
-      }
-
       record_recovery_receipt() {
-        local archive_path="$1"
-        local inode size mtime sha boot event
-
-        [ -n "$archive_path" ] || return 0
-        [ -f "$archive_path" ] || return 0
-
-        inode=$(stat -c %i "$archive_path" 2>/dev/null || true)
-        size=$(stat -c %s "$archive_path" 2>/dev/null || true)
-        mtime=$(stat -c %Y "$archive_path" 2>/dev/null || true)
-        sha=$(sha256sum "$archive_path" 2>/dev/null | cut -d' ' -f1 || true)
-        boot="$(current_boot_id)"
-        event="''${INVOCATION_ID:-$boot}"
-
-        if [ -z "$inode" ] || [ -z "$size" ] || [ -z "$mtime" ] || ! valid_sha256 "$sha"; then
-          echo "Could not record FSS recovery receipt for $archive_path: missing stat or sha256 evidence"
-          return 0
-        fi
-
-        if [ -f "$recovery_receipts_file" ] \
-          && awk -F '\t' -v p="$archive_path" -v i="$inode" -v s="$size" \
-            '$2 == p && $3 == i && $4 == s { found = 1 } END { exit found ? 0 : 1 }' \
-            "$recovery_receipts_file"; then
-          return 0
-        fi
-
-        printf 'v1\t%s\t%s\t%s\t%s\t%s\t%s\tclock-jump-recovery\t%s\n' \
-          "$archive_path" "$inode" "$size" "$boot" "$mtime" "$sha" "$event" \
-          >> "$recovery_receipts_file"
-        chmod 0644 "$recovery_receipts_file"
-        echo "Recorded FSS recovery archive receipt: $archive_path"
-      }
-
-      prune_recovery_receipts() {
-        local total excess tmp
-
-        [ -f "$recovery_receipts_file" ] || return 0
-        total=$(wc -l < "$recovery_receipts_file" 2>/dev/null || echo 0)
-        [ "$total" -gt "$max_recovery_receipts" ] || return 0
-
-        excess=$((total - max_recovery_receipts))
-        tmp=$(mktemp)
-        tail -n "$max_recovery_receipts" "$recovery_receipts_file" > "$tmp"
-        mv "$tmp" "$recovery_receipts_file"
-        chmod 0644 "$recovery_receipts_file"
-        echo "Recovery receipts exceeded $max_recovery_receipts; evicted $excess oldest record(s)"
+        fss_write_receipt "$recovery_receipts_file" "$1" "clock-jump-recovery" info "Recorded FSS recovery archive receipt"
       }
 
       record_recovery_archives() {
@@ -390,7 +344,7 @@ let
         done < "$after_file"
 
         rm -f "$after_file"
-        prune_recovery_receipts
+        fss_prune_receipt_file "$recovery_receipts_file" "$max_recovery_receipts" "Recovery"
       }
 
       trap cleanup EXIT

@@ -178,38 +178,8 @@ writeShellApplication {
       fi
     }
 
-    journald_effective_seal() {
-      systemd-analyze cat-config systemd/journald.conf 2>/dev/null \
-        | awk -F= '
-          /^[[:space:]]*[#;]/ { next }
-          /^[[:space:]]*Seal[[:space:]]*=/ {
-            value = $2
-            sub(/^[[:space:]]*/, "", value)
-            sub(/[[:space:]]*[#;].*$/, "", value)
-            sub(/[[:space:]]*$/, "", value)
-            seal = tolower(value)
-          }
-          END { print seal }
-        '
-    }
-
     journald_config_has_seal_no() {
-      systemd-analyze cat-config systemd/journald.conf 2>/dev/null \
-        | awk -F= '
-          /^[[:space:]]*[#;]/ { next }
-          /^[[:space:]]*Seal[[:space:]]*=/ {
-            value = $2
-            sub(/^[[:space:]]*/, "", value)
-            sub(/[[:space:]]*[#;].*$/, "", value)
-            sub(/[[:space:]]*$/, "", value)
-            if (tolower(value) == "no") found = 1
-          }
-          END { exit found ? 0 : 1 }
-        '
-    }
-
-    sealing_active_in_config() {
-      [ "$(journald_effective_seal)" = "yes" ]
+      [ "$(fss_journald_effective_seal)" = "no" ]
     }
 
     activation_state_value() {
@@ -268,7 +238,7 @@ writeShellApplication {
           FSS_VERDICT_TAGS="ACTIVATION_STALE"
           FSS_VERDICT_REASON="FSS activation state is not active for current boot"
           exit_code=1
-        elif ! sealing_active_in_config; then
+        elif ! fss_sealing_active_in_config; then
           FSS_VERDICT=fail
           FSS_VERDICT_TAGS="ACTIVATION_FAILED"
           FSS_VERDICT_REASON="effective journald Seal setting is not yes"
@@ -472,7 +442,7 @@ writeShellApplication {
       warn "Cannot read /etc/machine-id"
       MACHINE_ID="unknown-machine-id"
     fi
-    CURRENT_BOOT_ID="$(cat /proc/sys/kernel/random/boot_id 2>/dev/null || echo unknown-boot)"
+    CURRENT_BOOT_ID="$(fss_current_boot_id)"
 
     STATE_DIR="/var/log/journal/$MACHINE_ID"
     RUNTIME_STATE_DIR="/run/log/journal/$MACHINE_ID"
@@ -525,7 +495,7 @@ writeShellApplication {
       else
         printf 'activation_mode=disabled\n'
       fi
-      printf 'journald_effective_seal=%s\n' "$(journald_effective_seal)"
+      printf 'journald_effective_seal=%s\n' "$(fss_journald_effective_seal)"
       activation_state_raw="$(read_file_if_present "$ACTIVATION_STATE_FILE")"
       printf 'activation_state=%s\n' "$(printf '%s\n' "$activation_state_raw" | awk -F '\t' 'NR == 1 { print $1 }')"
       printf 'activation_boot_id=%s\n' "$(printf '%s\n' "$activation_state_raw" | awk -F '\t' 'NR == 1 { print $2 }')"

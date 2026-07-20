@@ -184,6 +184,99 @@ fss_valid_sha256() {
   printf '%s' "$1" | grep -Eq '^[0-9a-f]{64}$'
 }
 
+fss_current_boot_id() {
+  cat /proc/sys/kernel/random/boot_id 2>/dev/null || echo unknown-boot
+}
+
+# journald's effective Seal= setting, parsed from the merged config (last
+# matching directive wins, matching journald's own override semantics).
+fss_journald_effective_seal() {
+  systemd-analyze cat-config systemd/journald.conf 2>/dev/null |
+    awk -F= '
+      /^[[:space:]]*[#;]/ { next }
+      /^[[:space:]]*Seal[[:space:]]*=/ {
+        value = $2
+        sub(/^[[:space:]]*/, "", value)
+        sub(/[[:space:]]*[#;].*$/, "", value)
+        sub(/[[:space:]]*$/, "", value)
+        seal = tolower(value)
+      }
+      END { print seal }
+    '
+}
+
+fss_sealing_active_in_config() {
+  [ "$(fss_journald_effective_seal)" = "yes" ]
+}
+
+# Bound a receipt store by capping it to the newest max_lines records (the
+# file is append-ordered oldest-first). A receipt is NOT dropped merely
+# because its archive is currently absent: a receipt for a vanished archive
+# is harmless (fss_filter_valid_receipts ignores it, and a deleted archive
+# never appears as a verify failure), and dropping on transient absence
+# would lose coverage for an archive that returns. The cap is the growth
+# backstop; content substitution is caught at verify time.
+fss_prune_receipt_file() {
+  local receipt_file="$1"
+  local max_lines="$2"
+  local label="$3"
+  local tmp total excess
+
+  [ -f "$receipt_file" ] || return 0
+
+  total=$(wc -l <"$receipt_file" 2>/dev/null || echo 0)
+  [ "$total" -gt "$max_lines" ] || return 0
+
+  excess=$((total - max_lines))
+  tmp=$(mktemp)
+  tail -n "$max_lines" "$receipt_file" >"$tmp"
+  mv "$tmp" "$receipt_file"
+  chmod 0644 "$receipt_file"
+  fss_log warn "$label receipts exceeded $max_lines; evicted $excess oldest record(s)"
+}
+
+# Append a content-bound lifecycle receipt (schema: FSS_RECEIPT_SCHEMA_VERSION
+# above) for archive_path to receipt_file, deduped on physical archive
+# identity (path + inode + size). log_level/log_message are passed to
+# fss_log on a successful write; callers pass "" for either to stay silent.
+fss_write_receipt() {
+  local receipt_file="$1"
+  local archive_path="$2"
+  local reason="$3"
+  local log_level="${4-}"
+  local log_message="${5-}"
+  local inode size mtime sha boot event
+
+  [ -n "$archive_path" ] && [ -f "$archive_path" ] || return 0
+
+  inode=$(stat -c %i "$archive_path" 2>/dev/null || true)
+  size=$(stat -c %s "$archive_path" 2>/dev/null || true)
+  mtime=$(stat -c %Y "$archive_path" 2>/dev/null || true)
+  sha=$(sha256sum "$archive_path" 2>/dev/null | cut -d' ' -f1 || true)
+  boot=$(fss_current_boot_id)
+  event="${INVOCATION_ID:-$boot}"
+
+  if [ -z "$inode" ] || [ -z "$size" ] || [ -z "$mtime" ] || ! fss_valid_sha256 "$sha"; then
+    fss_log warn "Could not record lifecycle receipt for $archive_path: missing stat or sha256 evidence"
+    return 0
+  fi
+
+  # Dedupe on the physical archive identity (path + inode + size).
+  if [ -f "$receipt_file" ] &&
+    awk -F '\t' -v p="$archive_path" -v i="$inode" -v s="$size" \
+      '$2 == p && $3 == i && $4 == s { found = 1 } END { exit found ? 0 : 1 }' \
+      "$receipt_file"; then
+    return 0
+  fi
+
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+    "$FSS_RECEIPT_SCHEMA_VERSION" "$archive_path" "$inode" "$size" \
+    "$boot" "$mtime" "$sha" "$reason" "$event" \
+    >>"$receipt_file"
+  chmod 0644 "$receipt_file"
+  [ -n "$log_level" ] && [ -n "$log_message" ] && fss_log "$log_level" "$log_message: $archive_path"
+}
+
 # Read receipt records from a state file, dropping blank lines.
 fss_read_receipts() {
   local state_file="$1"
