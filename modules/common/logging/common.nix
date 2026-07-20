@@ -132,7 +132,7 @@ let
       done
 
       # NTP synchronization is intentionally NOT awaited here. This barrier runs
-      # early (before systemd-journal-flush, which requires it, and before
+      # early (before systemd-journal-flush, which wants it, and before
       # sysinit.target), so networking/timesyncd has not started yet and the NTP
       # check could only ever hit its full timeout, stalling the journal flush on
       # every boot. The sync wait is handled later by ghaf-clock-sync.service,
@@ -651,9 +651,12 @@ in
         };
       };
 
+      # Wants, not Requires: an IO error in the best-effort clock-readiness
+      # barrier (e.g. the anchor-file write) must not dependency-fail the
+      # journal flush and leave logs volatile for the boot.
       services.systemd-journal-flush = mkIf clockReadyEnabled {
         after = [ "ghaf-clock-ready.service" ];
-        requires = [ "ghaf-clock-ready.service" ];
+        wants = [ "ghaf-clock-ready.service" ];
       };
 
       # Watcher: detects realtime jumps by comparing realtime vs monotonic progression
