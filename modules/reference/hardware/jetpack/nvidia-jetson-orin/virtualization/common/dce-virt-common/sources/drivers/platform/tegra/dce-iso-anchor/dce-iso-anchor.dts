@@ -1,0 +1,43 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+// Runtime overlay applied by dce-iso-anchor.ko: a DMA-less anchor on the
+// nvdisplay ISO SMMU stream (smmu_iso StreamID 1). &smmu_iso resolves against
+// the live tree's __symbols__.
+/dts-v1/;
+/plugin/;
+/ {
+    fragment@0 {
+        target-path = "/";
+        __overlay__ {
+            dce_iso_anchor {
+                compatible = "nvidia,dce-iso-anchor";
+                iommus = <&smmu_iso 1>;
+                // iommus alone only creates SID 1's translating domain -- it
+                // does NOT retag the physical scanout readers. The MC SID
+                // overrides for NVDISPLAYR (0x92, MC+0x490) and NVDISPLAYR1
+                // (0xa1, MC+0x508) stay at default 0x7f (PASSTHROUGH), so
+                // scanout fetches bypass smmu_iso and the high IOVA hits EMEM
+                // raw (decode-error storm, white panel). MC's probe_device
+                // walks these interconnects entries and writes the device's
+                // SMMU SID into each client's override register -- that routes
+                // the real scanout reads through the SID-1 domain. Numeric
+                // client IDs: dtc runs without cpp, dt-binding headers absent.
+                interconnects = <&mc 0x92 &emc>,
+                                <&mc 0xa1 &emc>;
+                interconnect-names = "dma-mem", "read-1";
+                status = "okay";
+            };
+            // Stock display NISO traffic (pushbuffer/instmem/semaphore/
+            // notifier) is TEGRA234_SID_NVDISPLAY = 7 on smmu_niso0 -- NOT the
+            // disp_chan_pt keyhole's PASSTHROUGH SID 0x7f that dce_himap covers.
+            // Claim it with the same anchor driver so the high-IOVA aliases
+            // exist in the domain the FE's NISO writes actually traverse.
+            dce_niso_anchor {
+                compatible = "nvidia,dce-iso-anchor";
+                iommus = <&smmu_niso0 7>;
+                dma-coherent;
+                status = "okay";
+            };
+        };
+    };
+};

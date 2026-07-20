@@ -19,9 +19,11 @@ import { Aside } from "@astrojs/starlight/components";
   enabled per-SoM, never in the shared `orin.nix`.
 </Aside>
 
-<Aside type="caution">
-  Display controller passthrough is intentionally **not** wired — there is no
-  video output from the guest. Only GPU compute is supported.
+<Aside>
+  The display controller itself is **not** passed through (it cannot be — see
+  [Display to gpu-vm Plumbing](/ghaf/dev/technologies/nvidia_gpu_vm_display/)),
+  but the guest can still drive a physical panel: its display stack is plumbed
+  to the host-owned DCE over a relay, with GPU-accelerated present at 60Hz.
 </Aside>
 
 ## Architecture

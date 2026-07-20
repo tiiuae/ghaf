@@ -1,0 +1,103 @@
+Subject: [PATCH] hw/arm/virt: NVIDIA DCE guest bridge
+
+Registers the nvidia_dce_guest sysbus device (source in ../sources) at GPA
+0x090e0000, mirroring 0001's BPMP bridge -- same sync-forward MMIO shape,
+different backing device (/dev/dce-host) and frame layout (DCE_MEM_SIZE 0x3000
+vs BPMP's 0x600).
+
+Applied after 0001. 0x090e0000 sits in the untouched gap between BPMP's end
+(0x090d1000) and VIRT_MMIO (0x0a000000); the 0x10000 window (vs BPMP's 0x1000)
+leaves room for the reverse RM_NOTIFY window Task 1e adds later. The array
+entry is inserted *before* [VIRT_NVIDIA_BPMP_GUEST] so it stays outside the
+hunk 0002-vfio-platform-mmio-base.patch edits; element order need not match
+address order (designated initializers), so this is cosmetic.
+
+No DT node is emitted (unlike create_nvidia_bpmp_guest): the GPU-VM's
+hand-written DTS carries dce-virtual-pa directly (Task 1d), so QEMU only maps
+the MMIO at the address the DTS hardcodes.
+
+--- a/hw/arm/Kconfig
++++ b/hw/arm/Kconfig
+@@ -39,7 +39,8 @@
+     select VIRTIO_MEM_SUPPORTED
+     select ACPI_CXL
+     select ACPI_HMAT
+     select NVIDIA_BPMP_GUEST
++    select NVIDIA_DCE_GUEST
+ 
+ config CUBIEBOARD
+     bool
+--- a/hw/arm/virt.c
++++ b/hw/arm/virt.c
+@@ -88,7 +88,8 @@
+ #include "hw/virtio/virtio-md-pci.h"
+ #include "hw/virtio/virtio-iommu.h"
+ #include "hw/char/pl011.h"
+ #include "hw/misc/nvidia_bpmp_guest.h"
++#include "hw/misc/nvidia_dce_guest.h"
+ #include "hw/cxl/cxl.h"
+ #include "hw/cxl/cxl_host.h"
+ #include "qemu/guest-random.h"
+@@ -189,6 +190,7 @@
+     [VIRT_PVTIME] =             { 0x090a0000, 0x00010000 },
+     [VIRT_SECURE_GPIO] =        { 0x090b0000, 0x00001000 },
+     [VIRT_ACPI_PCIHP] =         { 0x090c0000, ACPI_PCIHP_SIZE },
++    [VIRT_NVIDIA_DCE_GUEST] =   { 0x090e0000, 0x00010000 },
+     [VIRT_NVIDIA_BPMP_GUEST] =  { 0x090d0000, 0x00001000 },
+     [VIRT_MMIO] =               { 0x0a000000, 0x00000200 },
+     /* ...repeating for a total of NUM_VIRTIO_TRANSPORTS, each of that size */
+@@ -1188,14 +1190,34 @@
+     qemu_fdt_setprop_cell(ms->fdt, "/bpmp", "phandle",
+                           qemu_fdt_alloc_phandle(ms->fdt));
+ }
+ 
++/*
++ * NVIDIA DCE guest bridge.
++ *
++ * Creates the MMIO device that forwards a guest's DCE display IPC to the
++ * host proxy through /dev/dce-host. Unlike the BPMP bridge above, no DT node
++ * is emitted: the GPU-VM's hand-written guest DTS carries dce-virtual-pa at
++ * this same base directly (see the dce-guest-proxy device-tree binding), so
++ * QEMU only needs to back that address with the MMIO device.
++ *
++ * Harmless where /dev/dce-host does not exist: instance_init logs and leaves
++ * host_device_fd < 0.
++ */
++static void create_nvidia_dce_guest(const VirtMachineState *vms)
++{
++    hwaddr base = vms->memmap[VIRT_NVIDIA_DCE_GUEST].base;
++
++    nvidia_dce_guest_create(base);
++}
++
+ static void create_virtio_devices(const VirtMachineState *vms)
+ {
+     int i;
+     hwaddr size = vms->memmap[VIRT_MMIO].size;
+     MachineState *ms = MACHINE(vms);
+ 
+     create_nvidia_bpmp_guest(vms);
++    create_nvidia_dce_guest(vms);
+ 
+     /* We create the transports in forwards order. Since qbus_realize()
+      * prepends (not appends) new child buses, the incrementing loop below will
+--- a/hw/misc/meson.build
++++ b/hw/misc/meson.build
+@@ -1,5 +1,6 @@
+ system_ss.add(when: 'CONFIG_APPLESMC', if_true: files('applesmc.c'))
+ system_ss.add(when: 'CONFIG_NVIDIA_BPMP_GUEST', if_true: files('nvidia_bpmp_guest.c'))
++system_ss.add(when: 'CONFIG_NVIDIA_DCE_GUEST', if_true: files('nvidia_dce_guest.c'))
+ system_ss.add(when: 'CONFIG_EDU', if_true: files('edu.c'))
+ system_ss.add(when: 'CONFIG_FW_CFG_DMA', if_true: files('vmcoreinfo.c'))
+ system_ss.add(when: 'CONFIG_ISA_DEBUG', if_true: files('debugexit.c'))
+--- a/include/hw/arm/virt.h
++++ b/include/hw/arm/virt.h
+@@ -71,7 +71,8 @@
+     VIRT_PCIE_MMIO,
+     VIRT_PCIE_PIO,
+     VIRT_PCIE_ECAM,
+     VIRT_NVIDIA_BPMP_GUEST,
++    VIRT_NVIDIA_DCE_GUEST,
+     VIRT_PLATFORM_BUS,
+     VIRT_GPIO,
+     VIRT_UART1,

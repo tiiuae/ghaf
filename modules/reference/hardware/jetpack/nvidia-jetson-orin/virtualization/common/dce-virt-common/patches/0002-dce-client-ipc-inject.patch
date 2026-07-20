@@ -1,0 +1,206 @@
+From: Ghaf contributors <ghaf@tii.ae>
+Subject: [PATCH] dce: export tegra_dce_client_ipc_inject for the guest proxy
+
+Reverse-doorbell stage 2: dce-guest-proxy consumes DCE RM_NOTIFY (ch3) events
+relayed from the host and delivers them to the client nvdisplay registered
+(DCE_CLIENT_IPC_TYPE_RM_EVENT), as dce_client_process_event_ipc() does.
+
+Running the RM client callback synchronously on the guest poll thread blocks
+~18ms on the global RM event locks, stalling the reverse relay, backing up the
+host's bounded event ring, and dropping a completion under load (EBUSY + a
+wedged flip queue). Instead, copy the event into an owned bounded FIFO and
+queue an ordered workqueue that drains it and runs the callback outside the
+FIFO lock (mirroring the native dce-async-ipc-wq boundary); the poll thread
+ACKs immediately. A full FIFO returns -ENOSPC so the caller leaves the event
+un-acked and retries -- never silently dropped. Inert on real hardware (the
+injector is never called there).
+---
+diff --git a/drivers/platform/tegra/dce/dce-client-ipc.c b/drivers/platform/tegra/dce/dce-client-ipc.c
+--- a/drivers/platform/tegra/dce/dce-client-ipc.c	2026-07-15 17:02:41.583943334 +0300
++++ b/drivers/platform/tegra/dce/dce-client-ipc.c	2026-07-18 00:00:00.000000000 +0300
+@@ -211,6 +211,159 @@
+ }
+ EXPORT_SYMBOL(tegra_dce_unregister_ipc_client);
+ 
++/*
++ * DCE passthrough (guest proxy) virtual-event delivery. The reverse doorbell
++ * hands us opaque host RM_EVENT frames. We must NOT run the RM client callback
++ * from the guest poll thread: it takes the global RM event locks and has been
++ * measured blocking ~18ms, which would stall the reverse relay and back up the
++ * host ring. Instead copy the event into an owned bounded FIFO, queue an
++ * ordered worker, and let the poll thread ACK immediately. The worker drains
++ * the FIFO in arrival order and runs the client callback outside the FIFO lock,
++ * mirroring the native dce-async-ipc-wq ownership boundary. Inert on real
++ * hardware (the injector is never called there).
++ */
++#define DCE_VIRT_EVT_MAX     0x1000		/* == EVT_MAX in the proxy/QEMU */
++#define DCE_VIRT_FIFO_DEPTH  32			/* head==tail => empty; 31 usable */
++
++struct dce_virt_event {
++	u32 type;
++	u32 len;
++	u8  data[DCE_VIRT_EVT_MAX];
++};
++
++static struct dce_virt_event dce_virt_fifo[DCE_VIRT_FIFO_DEPTH];
++static struct dce_virt_event dce_virt_scratch;	/* single-threaded wq: safe */
++static u32 dce_virt_head, dce_virt_tail;
++static bool dce_virt_stopping = true;
++static DEFINE_SPINLOCK(dce_virt_fifo_lock);
++static struct workqueue_struct *dce_virt_wq;
++static struct work_struct dce_virt_work;
++
++/* Counters (exposed via debugfs by the guest proxy). */
++static atomic_t dce_virt_enqueued   = ATOMIC_INIT(0);
++static atomic_t dce_virt_full       = ATOMIC_INIT(0);
++static atomic_t dce_virt_delivered  = ATOMIC_INIT(0);
++static atomic_t dce_virt_noclient   = ATOMIC_INIT(0);
++static u32      dce_virt_hiwater;		/* under dce_virt_fifo_lock */
++
++atomic_t *tegra_dce_virt_counter(int which)
++{
++	switch (which) {
++	case 0: return &dce_virt_enqueued;
++	case 1: return &dce_virt_full;
++	case 2: return &dce_virt_delivered;
++	case 3: return &dce_virt_noclient;
++	default: return NULL;
++	}
++}
++EXPORT_SYMBOL(tegra_dce_virt_counter);
++
++static void dce_virt_event_worker(struct work_struct *w)
++{
++	unsigned long flags;
++
++	for (;;) {
++		struct tegra_dce_client_ipc *cl = NULL;
++		u32 i;
++
++		spin_lock_irqsave(&dce_virt_fifo_lock, flags);
++		if (dce_virt_head == dce_virt_tail) {		/* empty */
++			spin_unlock_irqrestore(&dce_virt_fifo_lock, flags);
++			return;
++		}
++		dce_virt_scratch = dce_virt_fifo[dce_virt_tail];
++		dce_virt_tail = (dce_virt_tail + 1) % DCE_VIRT_FIFO_DEPTH;
++		spin_unlock_irqrestore(&dce_virt_fifo_lock, flags);
++
++		for (i = 0; i < DCE_CLIENT_IPC_TYPE_MAX; i++) {
++			if (client_handles[i].valid &&
++			    client_handles[i].type == dce_virt_scratch.type &&
++			    client_handles[i].callback_fn != NULL) {
++				cl = &client_handles[i];
++				break;
++			}
++		}
++		if (cl)
++			cl->callback_fn(cl->handle, cl->type,
++					dce_virt_scratch.len,
++					dce_virt_scratch.data, cl->data);
++		else
++			atomic_inc(&dce_virt_noclient);
++		atomic_inc(&dce_virt_delivered);
++	}
++}
++
++int tegra_dce_client_ipc_inject(u32 type, u32 msg_length, void *msg_data)
++{
++	unsigned long flags;
++	u32 next, used;
++
++	if (msg_length > DCE_VIRT_EVT_MAX)
++		return -EINVAL;
++
++	spin_lock_irqsave(&dce_virt_fifo_lock, flags);
++	if (dce_virt_stopping) {
++		spin_unlock_irqrestore(&dce_virt_fifo_lock, flags);
++		return -ESHUTDOWN;
++	}
++	next = (dce_virt_head + 1) % DCE_VIRT_FIFO_DEPTH;
++	if (next == dce_virt_tail) {				/* full */
++		atomic_inc(&dce_virt_full);
++		spin_unlock_irqrestore(&dce_virt_fifo_lock, flags);
++		return -ENOSPC;		/* caller must NOT ack; retry same slot */
++	}
++	dce_virt_fifo[dce_virt_head].type = type;
++	dce_virt_fifo[dce_virt_head].len  = msg_length;
++	memcpy(dce_virt_fifo[dce_virt_head].data, msg_data, msg_length);
++	dce_virt_head = next;
++	used = (dce_virt_head - dce_virt_tail + DCE_VIRT_FIFO_DEPTH)
++	       % DCE_VIRT_FIFO_DEPTH;
++	if (used > dce_virt_hiwater)
++		dce_virt_hiwater = used;
++	/* queue under the lock: stopping is false here and _stop() sets it
++	 * under this same lock before destroying dce_virt_wq, so the handle
++	 * cannot be freed nor this entry orphaned by a concurrent teardown. */
++	atomic_inc(&dce_virt_enqueued);
++	queue_work(dce_virt_wq, &dce_virt_work);
++	spin_unlock_irqrestore(&dce_virt_fifo_lock, flags);
++	return 0;
++}
++EXPORT_SYMBOL(tegra_dce_client_ipc_inject);
++
++int tegra_dce_virt_event_start(void)
++{
++	unsigned long flags;
++
++	INIT_WORK(&dce_virt_work, dce_virt_event_worker);
++	dce_virt_wq = alloc_ordered_workqueue("dce-virt-evt", 0);
++	if (!dce_virt_wq)
++		return -ENOMEM;
++
++	spin_lock_irqsave(&dce_virt_fifo_lock, flags);
++	dce_virt_head = dce_virt_tail = 0;
++	dce_virt_hiwater = 0;
++	dce_virt_stopping = false;
++	spin_unlock_irqrestore(&dce_virt_fifo_lock, flags);
++	return 0;
++}
++EXPORT_SYMBOL(tegra_dce_virt_event_start);
++
++void tegra_dce_virt_event_stop(void)
++{
++	unsigned long flags;
++
++	spin_lock_irqsave(&dce_virt_fifo_lock, flags);
++	dce_virt_stopping = true;
++	spin_unlock_irqrestore(&dce_virt_fifo_lock, flags);
++
++	if (dce_virt_wq) {
++		flush_workqueue(dce_virt_wq);
++		destroy_workqueue(dce_virt_wq);
++		dce_virt_wq = NULL;
++	}
++}
++EXPORT_SYMBOL(tegra_dce_virt_event_stop);
++
+ int tegra_dce_client_ipc_send_recv(u32 handle, struct dce_ipc_message *msg)
+ {
+ 	int ret;
+diff --git a/include/linux/platform/tegra/dce/dce-client-ipc.h b/include/linux/platform/tegra/dce/dce-client-ipc.h
+--- a/include/linux/platform/tegra/dce/dce-client-ipc.h	2026-07-15 17:02:41.584582971 +0300
++++ b/include/linux/platform/tegra/dce/dce-client-ipc.h	2026-07-18 00:00:00.000000000 +0300
+@@ -67,6 +67,22 @@
+ int tegra_dce_unregister_ipc_client(u32 handle);
+ 
++/*
++ * Virtual DCE (guest proxy) hook: copy an async event into a bounded FIFO and
++ * queue the ordered worker that delivers it to the registered client of @type,
++ * as if it had arrived on the IVC channel. Inert on real hardware.
++ * Returns 0 on enqueue, -ENOSPC when the FIFO is full (caller must NOT ack and
++ * must retry the same event), -EINVAL on oversize, -ESHUTDOWN when stopping.
++ */
++int tegra_dce_client_ipc_inject(u32 type, u32 msg_length, void *msg_data);
++
++/* Start/stop the virtual-event ordered workqueue (guest proxy owns lifetime). */
++int tegra_dce_virt_event_start(void);
++void tegra_dce_virt_event_stop(void);
++
++/* which: 0=enqueued 1=full 2=delivered 3=noclient; NULL if out of range. */
++atomic_t *tegra_dce_virt_counter(int which);
++
+ /*
+  * tegra_dce_client_ipc_send_recv() - used by clients to send rpcs to dce
+  * @client_id : client_id registered with dce driver
+  * @msg : message to be sent and received

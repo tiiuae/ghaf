@@ -1,0 +1,35 @@
+From: Ghaf contributors <ghaf@tii.ae>
+Subject: [PATCH] synthesize the initial hotplug long-pulse at boot
+ 
+On passthrough the host-owned DCE R5 emits the hotplug RM_EVENT only on a
+real HPD edge. A panel already connected at gpu-vm boot generates no edge, and
+any earlier event fired before the guest's RM_EVENT client registered -- so
+nvDPNotifyLongPulse(TRUE) never runs, no SOR binds to the connector, and the
+head has no output engine until the cable is physically replugged.
+
+The event carries no payload: ReceiveHotplugEvent just schedules
+nvHandleHotplugEventDeferredWork, which re-detects every connector. So schedule
+that same deferred work once, right after the hotplug callback is armed.
+Spurious pulses are normal on native (handler no-ops on no change), so this is
+unconditional.
+---
+diff --git a/nvdisplay/src/nvidia-modeset/src/nvkms-rm.c b/nvdisplay/src/nvidia-modeset/src/nvkms-rm.c
+--- a/nvdisplay/src/nvidia-modeset/src/nvkms-rm.c
++++ b/nvdisplay/src/nvidia-modeset/src/nvkms-rm.c
+@@ -1786,6 +1786,16 @@
+                         "Failed to register display hotplug "
+                         "handler: 0x%x\n", ret);
+         }
++
++        /* Passthrough: the host-owned DCE only sends hotplug events on a
++         * real HPD edge, so a panel already connected at boot never
++         * produces one. Deliver the initial long-pulse ourselves: same
++         * deferred work a real event schedules, delayed so device init
++         * finishes first. */
++        (void) nvkms_alloc_timer_with_ref_ptr(
++            nvHandleHotplugEventDeferredWork,
++            pDispEvo->ref_ptr,
++            0, 2000000 /* 2s */);
+     }
+ 
+     // Allocate a handler for the DisplayPort "IRQ" event, which is signaled

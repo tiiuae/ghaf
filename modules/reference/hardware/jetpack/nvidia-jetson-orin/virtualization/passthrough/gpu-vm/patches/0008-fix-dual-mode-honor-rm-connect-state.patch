@@ -1,0 +1,44 @@
+From: Ghaf contributors <ghaf@tii.ae>
+Subject: [PATCH] fix: honor RM connect state over DP-lib HPD on dual-mode connectors
+
+On the AGX Orin the DisplayPort connector is DP++ dual-mode: displayId 0x100
+(SOR_DP_A) and 0x200 (SINGLE_TMDS_A) are the same physical DP_EXT connector,
+DDC partners sharing one DRM connector with two encoders.
+
+A passive HDMI adapter presents a TMDS sink but still asserts HPD, so the DP
+library reports the DP displayId connected. DRM detect stops at that first
+connected encoder, never probing the TMDS partner; EDID reads then go to the
+DP displayId over AUX where no sink answers (NV_ERR_GENERIC), leaving no EDID
+and no modes.
+
+RM DDC/LOAD detection (GET_CONNECT_STATE) gets this right. Trust it: if RM
+says the DP displayId is not connected, don't let the DP-lib HPD guess override
+that, so detection falls through to the partner. A real DP sink reports
+connected on both, so native DP is unaffected.
+---
+diff --git a/nvdisplay/src/nvidia-modeset/src/nvkms-dpy.c b/nvdisplay/src/nvidia-modeset/src/nvkms-dpy.c
+index c94a9cd..0aec8e3 100644
+--- a/nvdisplay/src/nvidia-modeset/src/nvkms-dpy.c
++++ b/nvdisplay/src/nvidia-modeset/src/nvkms-dpy.c
+@@ -2873,6 +2873,21 @@ NvBool nvDpyGetDynamicData(
+     } else if (nvConnectorUsesDPLib(pConnectorEvo)) {
+         connectedList = nvDPLibDpyIsConnected(pDpyEvo) ?
+             oneDpyIdList : nvEmptyDpyIdList();
++        /*
++         * DP++ dual-mode: on a dual-mode DisplayPort connector a passive
++         * HDMI adapter asserts HPD but presents no DP sink, so the DP
++         * library -- which only sees HPD -- reports the DP displayId as
++         * connected, and its AUX probes then fail forever. RM's DDC/LOAD
++         * detection can tell the difference and reports the sink on the
++         * TMDS DDC-partner displayId instead. If RM says this displayId is
++         * not connected, believe RM, so detection falls through to the
++         * partner. A real DP sink is reported connected by both, so the
++         * native DP path is unaffected.
++         */
++        if (!nvDpyIdListIsEmpty(connectedList) &&
++            nvDpyIdListIsEmpty(nvRmGetConnectedDpys(pDispEvo, oneDpyIdList))) {
++            connectedList = nvEmptyDpyIdList();
++        }
+     } else if (nvConnectorIsDPSerializer(pConnectorEvo)) {
+         if (pConnectorEvo->dpSerializerCaps.supportsMST &&
+             !nvDpyEvoIsDPMST(pDpyEvo)) {

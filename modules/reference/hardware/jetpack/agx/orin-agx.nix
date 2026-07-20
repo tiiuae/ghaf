@@ -7,7 +7,16 @@
 {
   _file = ./orin-agx.nix;
 
-  imports = [ ../../../../common/services/hwinfo ];
+  imports = [
+    ../../../../common/services/hwinfo
+    # DCE display-proxy HOST integration (AGX only). Keeps gpu_vm
+    # enabled, runs the host headless, force-loads tegra-dce so the host owns
+    # the real DCE R5, and builds + loads the dce-host-proxy .ko (with an
+    # injected nvidia,dce-host-proxy DT node) so the guest can drive the panel
+    # through the host-owned DCE. AGX-only on purpose -- do not hoist into a
+    # shared orin.nix.
+    ../nvidia-jetson-orin/virtualization/common/dce-virt-common/dce-probe-host.nix
+  ];
 
   ghaf = {
     # Enable hardware info generation on host
@@ -101,16 +110,6 @@
       };
       firmware.uefi = {
         logo = "${pkgs.ghaf-artwork}/1600px-Ghaf_logo.svg";
-        edk2NvidiaPatches = [
-          # This effectively disables EFI FB Simple Framebuffer, which does
-          # not work properly but causes kernel panic during the boot if the
-          # HDMI cable is connected during boot time.
-          #
-          # The patch reverts back to old behavior, which is to always reset
-          # the display when exiting UEFI, instead of doing handoff, when
-          # means not to reset anything.
-          # ./edk2-nvidia-always-reset-display.patch
-        ];
       };
     };
   };

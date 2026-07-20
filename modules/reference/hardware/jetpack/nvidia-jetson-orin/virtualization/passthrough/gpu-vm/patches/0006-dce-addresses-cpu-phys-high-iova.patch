@@ -1,0 +1,83 @@
+From: Ghaf contributors <ghaf@tii.ae>
+Subject: [PATCH] dce passthrough: hand the R5 CPU physical addresses in the display high-IOVA range
+
+The host-owned DCE R5 and display FE resolve addresses through the native
+display SMMU domains, not the guest display IOMMU. For every address handed
+to the R5 (instance memory, pushbuffers, ctxdma descriptors): use the CPU
+physical address (guest carveout mapped 1:1 GPA=HPA), offset into the display
+high-IOVA range (DCE_HI_BASE 0x7f00000000; the R5 aborts UPDATEs on raw
+physical ctxdma addresses), and compute the absolute ctxdma Limit AFTER the
+offset (base > limit is an illegal descriptor the FE refuses). The host maps
+DCE_HI_BASE+carveout -> carveout in the ISO SID-1 and NISO SID-7 display SMMU
+domains (dce-iso-anchor) and retags the scanout readers' MC stream IDs to ISO.
+DCE_HI_BASE and the carveout ranges are defined canonically in dce-iso-anchor.c;
+the offset literals below must stay in sync with it (separate build domains, no
+shared header) -- a drift is a silent DMA-isolation bug.
+
+Replaces the 0006/0007/0019/0022/0023/0025/0029 iteration series.
+---
+diff --git a/nvdisplay/src/nvidia/src/kernel/gpu/disp/disp_channel.c b/nvdisplay/src/nvidia/src/kernel/gpu/disp/disp_channel.c
+index 9a2afb1..fa29589 100644
+--- a/nvdisplay/src/nvidia/src/kernel/gpu/disp/disp_channel.c
++++ b/nvdisplay/src/nvidia/src/kernel/gpu/disp/disp_channel.c
+@@ -771,7 +771,12 @@ kdispSetPushBufferParamsToPhysical_IMPL
+             return NV_ERR_GENERIC;
+         }
+         // Generate PUSHBUFFER_ADDR. Shift the addr to get the size in 4KB
+-        pushBufferParams.physicalAddr = memdescGetPhysAddr(memdescGetMemDescFromGpu(pBufferContextDma->pMemDesc, pGpu), AT_GPU, 0);
++        // DCE host-proxy: hand the host-owned DCE R5 the true CPU physical
++        // address (AT_CPU), not the GPU IOVA (AT_GPU). The R5 fetches the
++        // pushbuffer from host physical memory (1:1 GPA=HPA carveout); a guest
++        // display-IOMMU IOVA is unreadable to it, so the window channel GET
++        // pointer never advances (nvidia-modeset: waiting for GPU progress).
++        pushBufferParams.physicalAddr = memdescGetPhysAddr(memdescGetMemDescFromGpu(pBufferContextDma->pMemDesc, pGpu), AT_CPU, 0) + 0x7f00000000ULL;
+         pushBufferParams.cacheSnoop= pBufferContextDma->CacheSnoop;
+         pushBufferParams.valid = NV_TRUE;
+     }
+diff --git a/nvdisplay/src/nvidia/src/kernel/gpu/disp/inst_mem/arch/v03/disp_inst_mem_0300.c b/nvdisplay/src/nvidia/src/kernel/gpu/disp/inst_mem/arch/v03/disp_inst_mem_0300.c
+index 0bc361d..758eecc 100644
+--- a/nvdisplay/src/nvidia/src/kernel/gpu/disp/inst_mem/arch/v03/disp_inst_mem_0300.c
++++ b/nvdisplay/src/nvidia/src/kernel/gpu/disp/inst_mem/arch/v03/disp_inst_mem_0300.c
+@@ -165,9 +165,17 @@ instmemCommitContextDma_v03_00
+     instoffset = pContextDma->Instance[gpumgrGetSubDeviceInstanceFromGpu(pGpu)] << 4;
+     NV_ASSERT_OR_RETURN(instoffset, NV_ERR_INVALID_OBJECT);
+ 
+-    FrameAddr = memdescGetPhysAddr(pMemDesc, AT_GPU, 0);
+-    Limit     = FrameAddr + pContextDma->Limit;
+-
++    /* DCE host-proxy passthrough: hand the R5 the CPU physical address
++     * (1:1 GPA=HPA carveout), not the guest display-IOMMU IOVA (AT_GPU),
++     * offset into the native display high-IOVA range: the R5 aborts the
++     * whole UPDATE on a raw physical ctxdma address (no completion, no
++     * raster). The host maps DCE_HI_BASE+carveout -> carveout in the
++     * display SMMU domains (dce-iso-anchor). The absolute Limit must be
++     * computed AFTER the offset -- a high base with a low limit is an
++     * illegal descriptor the FE refuses to access. */
++    FrameAddr = memdescGetPhysAddr(pMemDesc, AT_CPU, 0);
++    FrameAddr += 0x7f00000000ULL;
++    Limit = FrameAddr + pContextDma->Limit;
+     kind = memdescGetPteKindForGpu(pMemDesc, pGpu);
+ 
+     // Cannot bind a Z surface to display.  Bug 439965.
+diff --git a/nvdisplay/src/nvidia/src/kernel/gpu/disp/inst_mem/disp_inst_mem.c b/nvdisplay/src/nvidia/src/kernel/gpu/disp/inst_mem/disp_inst_mem.c
+index 6cc52a4..8d2a5cb 100644
+--- a/nvdisplay/src/nvidia/src/kernel/gpu/disp/inst_mem/disp_inst_mem.c
++++ b/nvdisplay/src/nvidia/src/kernel/gpu/disp/inst_mem/disp_inst_mem.c
+@@ -312,7 +312,7 @@ instmemInitMemDesc
+                     memdescAlloc(pInstMem->pAllocedInstMemDesc),
+                     exit);
+ 
+-                base = memdescGetPhysAddr(pInstMem->pAllocedInstMemDesc, AT_GPU, 0);
++                base = memdescGetPhysAddr(pInstMem->pAllocedInstMemDesc, AT_CPU, 0);
+                 offset = RM_ALIGN_UP(base, DISP_INST_MEM_ALIGN) - base;
+ 
+                 NV_CHECK_OK_OR_GOTO(status, LEVEL_ERROR,
+@@ -385,7 +385,7 @@ instmemStateInitLocked_IMPL
+     // Make internal RPC to write the instance memory register
+     ctrlParams.instMemAddrSpace = memdescGetAddressSpace(pInstMem->pInstMemDesc);
+     ctrlParams.instMemCpuCacheAttr = memdescGetCpuCacheAttrib(pInstMem->pInstMemDesc);
+-    ctrlParams.instMemPhysAddr = memdescGetPhysAddr(pInstMem->pInstMemDesc, AT_GPU, 0);
++    ctrlParams.instMemPhysAddr = memdescGetPhysAddr(pInstMem->pInstMemDesc, AT_CPU, 0) + 0x7f00000000ULL;
+     ctrlParams.instMemSize = memdescGetSize(pInstMem->pInstMemDesc);
+ 
+     NV_CHECK_OK_OR_GOTO(status, LEVEL_ERROR,

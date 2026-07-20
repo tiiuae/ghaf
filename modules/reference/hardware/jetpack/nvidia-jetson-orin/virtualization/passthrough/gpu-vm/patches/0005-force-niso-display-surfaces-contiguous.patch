@@ -1,0 +1,35 @@
+From: Ghaf contributors <ghaf@tii.ae>
+Subject: [PATCH] nvkms: allocate NISO display surfaces contiguous for DCE proxy
+
+The host-owned DCE R5 fetches NISO surfaces (pushbuffer, notifier,
+semaphores) by physical address. nvRmAllocSysmem allocates them
+PHYSICALITY=_NONCONTIGUOUS, giving a scattered guest IOVA the R5 cannot
+resolve, so the window channel stalls (nvidia-modeset: waiting for GPU
+progress, NVC67E). Force NISO contiguous so they take the physical
+1:1-carveout path (at->flags.physical) the scanout surface uses.
+---
+diff --git a/nvdisplay/src/nvidia-modeset/src/nvkms-rm.c b/nvdisplay/src/nvidia-modeset/src/nvkms-rm.c
+index fc5fb48..e16f6ec 100644
+--- a/nvdisplay/src/nvidia-modeset/src/nvkms-rm.c
++++ b/nvdisplay/src/nvidia-modeset/src/nvkms-rm.c
+@@ -2411,6 +2411,20 @@ NvBool nvRmAllocSysmem(NVDevEvoPtr pDevEvo, NvU32 memoryHandle,
+                           DRF_DEF(OS32, _ATTR, _PHYSICALITY, _NONCONTIGUOUS) |
+                           DRF_DEF(OS32, _ATTR, _FORMAT, _PITCH);
+ 
++    /*
++     * DCE host-proxy: the host-owned DCE R5 fetches NISO display surfaces
++     * (pushbuffer, notifier, semaphores) from memory by physical address.
++     * Non-contiguous sysmem gives them a scattered IOVA the R5 cannot resolve,
++     * so the window channel never advances ("waiting for GPU progress"). Force
++     * NISO surfaces contiguous so they take the physical 1:1-carveout path
++     * (nv_alloc_contig_pages, forced at->flags.physical) the scanout surface
++     * already uses.
++     */
++    if (isoType == NVKMS_MEMORY_NISO) {
++        memAllocParams.attr = FLD_SET_DRF(OS32, _ATTR, _PHYSICALITY, _CONTIGUOUS,
++                                          memAllocParams.attr);
++    }
++
+     if (pIOCoherencyModes->noncoherent) {
+         // Model (3)
+         // - allocate USWC system memory

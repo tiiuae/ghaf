@@ -39,10 +39,17 @@
                     reg = <0x0 0x60000000 0x0 0x04000000>;				// host1x 64MB sem-syncpt-shim
                     status = "okay";
                 };
+                // 1:1 scanout carveout (GPA=HPA) for the guest nvdisplay
+                // surface; host-owned DCE R5 DMAs it at the same PA (scanout_p).
+                scanout: scanout@b0000000 {
+                    compatible = "removed-dma-pool";
+                    reg = <0x0 0xB0000000 0x0 0x08000000>;				// 128MB
+                    status = "okay";
+                };
             };
 
-            // Assign the reserved memory for the VM to a dummy driver in host
-            // in order that we can bound those regions to the vfio-platform driver
+            // Bind the VM reserved-memory regions to a dummy driver so they can
+            // attach to vfio-platform.
             vm_cma_p: vm_cma_p@80000000 {
                 compatible = "nvidia,dummy";
                 iommus = <&smmu_niso0 TEGRA234_SID_PASSTHROUGH>;
@@ -66,59 +73,31 @@
                 dma-coherent;
                 status = "okay";
             };
-        };
-    };
 
-    // In the following fragments we modify the devices to passthrough by:
-    // 1. Assign a dummy driver to the device
-    // 2. Assign a iommus to the device
-    // 3. Add dma-coherent property to the device
-    fragment@1 {
-        target-path = "/";
-        __overlay__ {
-            display@13800000 {
+            // Bind scanout to vfio-platform so QEMU maps it 1:1
+            // (mmio-base=0xb0000000) into the guest for the nvdisplay scanout.
+            scanout_p: scanout_p@b0000000 {
                 compatible = "nvidia,dummy";
-                iommus = <&smmu_niso0 TEGRA234_SID_NVDISPLAY>;
+                iommus = <&smmu_niso0 TEGRA234_SID_PASSTHROUGH>;
+                reg = <0x0 0xB0000000 0x0 0x08000000>;				// 128MB
                 dma-coherent;
                 status = "okay";
-                reg-names = "nvdisplay", "dpaux0", "hdacodec", "mipical";
-                reg = <0x0 0x13800000 0x0 0xEFFFF    /* nvdisplay */
-                    0x0 0x155C0000 0x0 0xFFFF     /* dpaux0 */
-                    0x0 0x0242c000 0x0 0x1000     /* hdacodec */
-                    0x0 0x03990000 0x0 0x10000>;  /* mipical */
-                interrupt-names = "nvdisplay", "dpaux0", "hdacodec";
-                interrupts = <0 416 4
-                    0 419 4
-                    0  61 4>;
-                memory-region = <>;
-		        nvdisplay-niso {
-          			compatible = "nvidia,nvidia,dummy";
-		        	iommus = <>;
-                };
             };
         };
     };
 
-    fragment@2 {
-        target-path = "/";
-        __overlay__ {
-            dce@d800000 {
-                compatible = "nvidia,dummy";
-                iommus = <&smmu_niso0 TEGRA234_SID_DCE>;
-                dma-coherent;
-                status = "okay";
-                reg = <0x0 0x0d800000 0x0 0x00800000>;
-                interrupts =
-                    <0 376 0x4>,
-                    <0 377 0x4>;
-                interrupt-names = "wdt-remote",
-                    "dce-sm0";
-            };
-        };
-    };
+    // Passthrough devices: set dummy driver + iommus + dma-coherent.
+    // fragment@1 (display@13800000 dummy override) removed: display is NOT
+    // passed through, so the host keeps the REAL display node (stock compatible +
+    // SID_NVDISPLAY). Rewriting it to dummy at DT-parse (before vfio) halts the
+    // host DCE R5 at dce_ss_set (DCE_HALTED @18s, before any vfio bind @28s).
+    // Guest reaches the panel via the DCE host-proxy, never this node.
 
-    // Put framebuffer compatible to dummy to avoid the UEFI
-    // to enable the framebuffer for the host
+    // fragment@2 (dce@d800000 dummy override) removed: DCE is NOT passed
+    // through. Host keeps the REAL dce node so host tegra-dce bootstraps and
+    // owns the R5; guest drives the panel via the DCE host-proxy.
+
+    // Dummy framebuffer compatible so UEFI doesn't enable the host framebuffer.
     fragment@3 {
         target-path = "/chosen";
         __overlay__ {
@@ -161,7 +140,7 @@
         };
     };
 
-    // Disable the host1x to use a new host1x created later: host1x_pt@13e00000 
+    // Disable host1x; replaced by host1x_pt@13e00000 below.
     fragment@5 {
         target-path = "/bus@0";
         __overlay__ {
@@ -187,9 +166,8 @@
         };
     };
     
-    // Created new device nodes from zero because we want to remove some properties
-    // from the original, and the device tree does not allow to remove properties
-    // from a node.
+    // Recreated from scratch: DT can't remove properties from a node, and we
+    // need some of the originals gone.
     fragment@7 {
         target-path = "/bus@0";
         __overlay__ {
@@ -281,35 +259,57 @@
         };
     };
 
-    // Disabled to avoid this issue
-    // [  522.695005] WARNING: CPU: 0 PID: 963 at drivers/soc/tegra/cbb/tegra234-cbb.c:577 tegra234_cbb_isr+0x130/0x170
-    // [  522.709378] ---[ end trace 4c1e09d24a524cb3 ]---
-    // [  522.717079] CPU:0, Error: cbb-fabric@0x13a00000, irq=22
-    // [  522.725373] **************************************
-    // [  522.733235] CPU:0, Error:cbb-fabric, Errmon:2
-    // [  522.740681] 	  Error Code		: PWRDOWN_ERR
-    // [  522.747687] 	  Overflow		: Multiple PWRDOWN_ERR
-    // [  522.755374] 
-    // [  522.759874] 	  Error Code		: PWRDOWN_ERR
-    // [  522.766961] 	  MASTER_ID		: CCPLEX
-    // [  522.773513] 	  Address		: 0x351804c
-    // [  522.780172] 	  Cache			: 0x1 -- Bufferable 
-    // [  522.787537] 	  Protection		: 0x2 -- Unprivileged, Non-Secure, Data Access
-    // [  522.797600] 	  Access_Type		: Read
-    // [  522.803996] 	  Access_ID		: 0x11
-    // [  522.804006] 	  Fabric		: cbb-fabric
-    // [  522.816589] 	  Slave_Id		: 0x37
-    // [  522.822601] 	  Burst_length		: 0x0
-    // [  522.828849] 	  Burst_type		: 0x1
-    // [  522.834934] 	  Beat_size		: 0x2
-    // [  522.840851] 	  VQC			: 0x0
-    // [  522.846300] 	  GRPSEC		: 0x7e
-    // [  522.852012] 	  FALCONSEC		: 0x0
-    // [  522.857896] 	**************************************
+    // Disabled to avoid a cbb-fabric PWRDOWN_ERR fault (tegra234-cbb.c
+    // tegra234_cbb_isr WARNING): CCPLEX read of 0x351804c, Slave_Id 0x37.
     fragment@8 {
         target-path = "/bus@0/hda@3510000";
         __overlay__ {
             status = "disabled";
         };
     };
+
+    // Keyhole: expose ONLY the 4KB read-only EVO display-capabilities strap page
+    // (display + 0x30000 = 0x13830000). Guest nvdisplay reads caps here
+    // (NVC673_DISP_CAPABILITIES) at EvoGetCapabilities3; unbacked -> nvidia_modeset
+    // takes a synchronous external abort. Only this RO page, not the whole display
+    // aperture (full passthrough kills the host DCE R5). Straps are RO and not in
+    // DCE's live control plane, so dual-mapping alongside the R5 is safe. Isolated
+    // SID_PASSTHROUGH (group 15, with the carveouts); node does no DMA so SID is inert.
+    fragment@9 {
+        target-path = "/";
+        __overlay__ {
+            disp_caps_pt: disp_caps_pt@13830000 {
+                compatible = "nvidia,dummy";
+                reg = <0x0 0x13830000 0x0 0x1000>;
+                iommus = <&smmu_niso0 TEGRA234_SID_PASSTHROUGH>;
+                dma-coherent;
+                status = "okay";
+            };
+        };
+    };
+
+    // Second keyhole: EVO channel DOORBELL registers (PUT/GET). Guest nvkms maps
+    // each DMA channel's control page and writes PUT to tell the DCE R5 to fetch
+    // the pushbuffer. UDISP FE channel-assembly region: core at 0x13870000, window
+    // channels from 0x13880000, 4KB pages. Unbacked -> PUT writes never reach HW,
+    // R5 never fetches, GET stays 0 (nvidia-modeset: waiting for GPU progress,
+    // NVC67E). These are CPU-RM user doorbells (guest IS the CPU RM); R5 owns
+    // core/control -> intended CPU-RM/DCE split. Map the whole region
+    // 0x13870000..0x1388ffff (core + windows + cursor/IMM). Isolated
+    // SID_PASSTHROUGH, no reset -> R5-safe, like the caps page.
+    fragment@10 {
+        target-path = "/";
+        __overlay__ {
+            disp_chan_pt: disp_chan_pt@13870000 {
+                compatible = "nvidia,dummy";
+                reg = <0x0 0x13870000 0x0 0x20000>;
+                iommus = <&smmu_niso0 TEGRA234_SID_PASSTHROUGH>;
+                dma-coherent;
+                status = "okay";
+            };
+        };
+    };
+
+    // No dpaux0/MIPI_CAL keyhole: inert on T234D -- CPU-side RM never instantiates
+    // OBJDPAUX, EDID/AUX go RmControl -> DCE-RPC (R5 owns the pads).
 };
