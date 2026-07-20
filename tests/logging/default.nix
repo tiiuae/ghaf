@@ -184,16 +184,89 @@ pkgs.testers.nixosTest {
       };
     };
 
+  # Every other node overrides ghaf.logging.recovery.clockReady.{stableSeconds,
+  # maxWaitSeconds} down to a fast path (1s/5s) so the suite doesn't spend
+  # tens of seconds per node waiting on the barrier. This node deliberately
+  # does NOT override them, so ghaf-clock-ready runs at the real production
+  # defaults (20s/90s) at least once, closing the "untested at real defaults"
+  # gap -- the algorithm itself is unchanged, this only adds coverage.
+  nodes.clockReadyProdDefaults =
+    { ... }:
+    {
+      imports = [
+        ../../modules/common/logging/common.nix
+        ../../modules/common/logging/fss.nix
+        ../../modules/common/storage-persistence.nix
+      ];
+
+      options.ghaf = {
+        type = lib.mkOption {
+          type = lib.types.str;
+          default = "host";
+        };
+
+        security.audit = {
+          enable = lib.mkOption {
+            type = lib.types.bool;
+            default = false;
+          };
+          extraRules = lib.mkOption {
+            type = lib.types.listOf lib.types.str;
+            default = [ ];
+          };
+        };
+      };
+
+      config = {
+        ghaf.logging.enable = true;
+        ghaf.logging.fss = {
+          enable = true;
+          sealInterval = "1min";
+          verifyOnBoot = true;
+          activation.syncWaitSeconds = 1;
+        };
+
+        networking.hostName = "clock-ready-prod-defaults";
+
+        systemd.tmpfiles.rules = [
+          "d /persist/common/journal-fss 0755 root root - -"
+          "d /persist/common/journal-fss/clock-ready-prod-defaults 0700 root root - -"
+        ];
+      };
+    };
+
   testScript = _: ''
     machine = fss
     fss_only = fssOnly
     stateless_vm = statelessVm
+    clock_ready_prod = clockReadyProdDefaults
     machine.start(allow_reboot=True)
     fss_only.start()
     stateless_vm.start()
+    clock_ready_prod.start()
     machine.wait_for_unit("multi-user.target")
     fss_only.wait_for_unit("multi-user.target")
     stateless_vm.wait_for_unit("multi-user.target")
+
+    with subtest("Clock readiness completes and unblocks FSS at production defaults"):
+        # TimeoutStartSec = maxWaitSeconds (90) + 30 = 120s; the default
+        # wait_for_unit timeout comfortably covers that plus boot.
+        clock_ready_prod.wait_for_unit("ghaf-clock-ready.service")
+        clock_ready_prod.succeed("""
+          bash -lc '
+            set -euo pipefail
+            systemctl show ghaf-clock-ready.service --property=Result --value | grep -Fx success
+            # ready_established=1 means the barrier converged via genuine
+            # stability, not the maxWaitSeconds (90s) fallback -- confirms the
+            # 20s stableSeconds default is actually reachable, not just bounded.
+            grep -Fx "ready_established=1" /run/ghaf-clock-ready-state
+          '
+        """)
+        clock_ready_prod.wait_for_unit("systemd-journal-flush.service")
+        clock_ready_prod.wait_for_unit("journal-fss-setup.service")
+        clock_ready_prod.succeed(
+          "systemctl show journal-fss-setup.service --property=Result --value | grep -Fx success"
+        )
 
     with subtest("FSS stays disabled for stateless VMs"):
         stateless_vm.succeed("test ! -e /etc/systemd/system/journal-fss-setup.service")
