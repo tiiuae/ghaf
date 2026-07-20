@@ -1031,15 +1031,20 @@ in
                     ExecStop =
                       let
                         sysvm-stop = pkgs.writeShellScript "sysvm-stop" ''
-                          # During ghaf-rebuild switch activation, affected system
-                          # VMs may be restarted as part of host service changes.
-                          # That path runs inside a named detached activation unit;
-                          # only skip guest poweroff for that narrow case. Ordinary
-                          # manual stops/restarts must still use graceful shutdown.
+                          # During switch-to-configuration activation (local nixos-rebuild
+                          # switch or the remote ghaf-build-helper path), affected system VMs
+                          # may be restarted as part of host service changes. switch-to-
+                          # configuration restarts changed units synchronously, one at a time,
+                          # so its process is guaranteed to still be alive on this host for the
+                          # entire time this ExecStop script blocks that restart -- regardless
+                          # of how activation was invoked. Detect that directly instead of
+                          # keying off one hardcoded remote-only unit name. Ordinary manual
+                          # stops/restarts (no activation in progress) still use graceful
+                          # shutdown.
                           jobs=$(${getExe' pkgs.systemd "systemctl"} list-jobs 2>/dev/null || true)
                           if ! echo "$jobs" | grep -qiE '(sleep|suspend|poweroff|reboot|halt)\.target.*start' \
-                            && ${getExe' pkgs.systemd "systemctl"} is-active --quiet ghaf-rebuild-switch.service; then
-                            echo "ghaf-rebuild switch activation in progress, skipping guest poweroff for '${vmName}'"
+                            && ${getExe' pkgs.procps "pgrep"} -f 'bin/switch-to-configuration (switch|test)' >/dev/null 2>&1; then
+                            echo "switch-to-configuration activation in progress, skipping guest poweroff for '${vmName}'"
                             kill -15 $MAINPID 2>/dev/null
                             while kill -0 $MAINPID 2>/dev/null; do
                               sleep 1
@@ -1090,14 +1095,17 @@ in
                           "${config.microvm.stateDir}/${vmName}/${vmConfig.microvm.socket}"
                         else
                           "";
+                      # Half of TimeoutStopSec: how long to wait for the guest to respond to
+                      # ACPI before logging that it hasn't, so an eventual SIGKILL from
+                      # systemd's stop timeout isn't a silent surprise in the unit's journal.
+                      qmpAcpiGraceSec = 15;
                       qmp-stop = pkgs.writeShellScript "qmp-stop" ''
-                        # ghaf-rebuild switch activation restarts (not shuts down) the VM as
-                        # part of host service changes; skip the graceful poweroff only for
-                        # that narrow case and SIGTERM for a fast restart.
+                        # See sysvm-stop for why this checks for a live switch-to-configuration
+                        # process instead of one hardcoded remote-only unit name.
                         jobs=$(${getExe' pkgs.systemd "systemctl"} list-jobs 2>/dev/null || true)
                         if ! echo "$jobs" | grep -qiE '(sleep|suspend|poweroff|reboot|halt)\.target.*start' \
-                          && ${getExe' pkgs.systemd "systemctl"} is-active --quiet ghaf-rebuild-switch.service; then
-                          echo "ghaf-rebuild switch activation in progress, SIGTERM '${vmName}'"
+                          && ${getExe' pkgs.procps "pgrep"} -f 'bin/switch-to-configuration (switch|test)' >/dev/null 2>&1; then
+                          echo "switch-to-configuration activation in progress, SIGTERM '${vmName}'"
                           kill -15 $MAINPID 2>/dev/null
                           while kill -0 $MAINPID 2>/dev/null; do
                             sleep 1
@@ -1120,8 +1128,15 @@ in
                         fi
 
                         echo "Waiting for VM '${vmName}' with QEMU PID=$MAINPID to stop"
+                        waited=0
+                        acpi_timeout_logged=0
                         while kill -0 $MAINPID 2>/dev/null; do
                           sleep 1
+                          waited=$((waited + 1))
+                          if [ "$acpi_timeout_logged" = 0 ] && [ "$waited" -ge ${toString qmpAcpiGraceSec} ]; then
+                            acpi_timeout_logged=1
+                            echo "WARN: guest '${vmName}' has not responded to ACPI poweroff after ''${waited}s; will be forced by stop timeout if it does not exit" >&2
+                          fi
                         done
                         echo "VM '${vmName}' with QEMU PID=$MAINPID stopped"
                       '';
