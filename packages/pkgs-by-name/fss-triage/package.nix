@@ -167,7 +167,8 @@ writeShellApplication {
     run_shell_capture() {
       local name="$1"
       local script="$2"
-      run_capture "$name" "$BASH" -lc "$script"
+      shift 2
+      run_capture "$name" "$BASH" -lc "$script" bash "$@"
     }
 
     read_file_if_present() {
@@ -552,9 +553,18 @@ writeShellApplication {
     run_shell_capture "journald-cat-config" "systemd-analyze cat-config systemd/journald.conf"
     run_shell_capture "journald-config-snippets" "for d in /etc/systemd/journald.conf.d /run/systemd/journald.conf.d /usr/lib/systemd/journald.conf.d; do [ -d \"\$d\" ] && find \"\$d\" -maxdepth 1 -type f -print -exec sed -n '1,120p' {} \\;; done"
     run_shell_capture "clocksource" "for p in /sys/devices/system/clocksource/clocksource0/current_clocksource /sys/devices/system/clocksource/clocksource0/available_clocksource; do [ -r \"\$p\" ] && printf '%s: %s\\n' \"\$p\" \"\$(cat \"\$p\")\"; done"
-    run_shell_capture "journal-files-stat" "for d in '$STATE_DIR' '$RUNTIME_STATE_DIR'; do [ -d \"\$d\" ] || continue; find \"\$d\" -maxdepth 1 -type f -printf '%p\\t%i\\t%s\\t%TY-%Tm-%TdT%TH:%TM:%TS%TZ\\t%m\\t%u\\t%g\\n' | sort; done"
-    run_shell_capture "fss-state-files" "for p in '$STATE_DIR/fss' '$RUNTIME_STATE_DIR/fss' '$STATE_DIR/fss-rotated' '$STATE_DIR/fss-baseline-boot' '$STATE_DIR/fss-pre-fss-archive' '$STATE_DIR/fss-recovery-archives' '$STATE_DIR/fss-recovery-receipts' '$STATE_DIR/fss-pre-activation-receipts' '$STATE_DIR/fss-unclean-shutdown-receipts' '$STATE_DIR/fss-activation-state' '$FSS_CONFIG' '$KEY_DIR/initialized' '$VERIFY_KEY_PATH' /run/ghaf-clock-ready /run/ghaf-clock-ready-state /run/ghaf-clock-synced /run/ghaf-clock-sync-state /var/lib/ghaf/clock-ready/last-good-realtime; do [ -n \"\$p\" ] && [ -e \"\$p\" ] && stat -c '%n\\t%i\\t%s\\t%Y\\t%F\\t%m\\t%U\\t%G\\t%A' \"\$p\"; done"
-    run_shell_capture "fss-state-content" "for p in '$STATE_DIR/fss-pre-fss-archive' '$STATE_DIR/fss-recovery-archives' '$STATE_DIR/fss-recovery-receipts' '$STATE_DIR/fss-pre-activation-receipts' '$STATE_DIR/fss-unclean-shutdown-receipts' '$STATE_DIR/fss-activation-state' /run/ghaf-clock-ready-state /run/ghaf-clock-sync-state /var/lib/ghaf/clock-ready/last-good-realtime; do [ -r \"\$p\" ] && { printf '===== %s =====\\n' \"\$p\"; sed -n '1,200p' \"\$p\"; }; done"
+    # shellcheck disable=SC2016  # single-quoted: expands in the run_shell_capture subshell, not here
+    run_shell_capture "journal-files-stat" \
+      'for d in "$@"; do [ -d "$d" ] || continue; find "$d" -maxdepth 1 -type f -printf "%p\t%i\t%s\t%TY-%Tm-%TdT%TH:%TM:%TS%TZ\t%m\t%u\t%g\n" | sort; done' \
+      "$STATE_DIR" "$RUNTIME_STATE_DIR"
+    # shellcheck disable=SC2016  # single-quoted: expands in the run_shell_capture subshell, not here
+    run_shell_capture "fss-state-files" \
+      'for p in "$@" /run/ghaf-clock-ready /run/ghaf-clock-ready-state /run/ghaf-clock-synced /run/ghaf-clock-sync-state /var/lib/ghaf/clock-ready/last-good-realtime; do [ -n "$p" ] && [ -e "$p" ] && stat -c "%n\t%i\t%s\t%Y\t%F\t%m\t%U\t%G\t%A" "$p"; done' \
+      "$STATE_DIR/fss" "$RUNTIME_STATE_DIR/fss" "$STATE_DIR/fss-rotated" "$STATE_DIR/fss-baseline-boot" "$STATE_DIR/fss-pre-fss-archive" "$STATE_DIR/fss-recovery-archives" "$STATE_DIR/fss-recovery-receipts" "$STATE_DIR/fss-pre-activation-receipts" "$STATE_DIR/fss-unclean-shutdown-receipts" "$STATE_DIR/fss-activation-state" "$FSS_CONFIG" "$KEY_DIR/initialized" "$VERIFY_KEY_PATH"
+    # shellcheck disable=SC2016  # single-quoted: expands in the run_shell_capture subshell, not here
+    run_shell_capture "fss-state-content" \
+      'for p in "$@" /run/ghaf-clock-ready-state /run/ghaf-clock-sync-state /var/lib/ghaf/clock-ready/last-good-realtime; do [ -r "$p" ] && { printf "===== %s =====\n" "$p"; sed -n "1,200p" "$p"; }; done' \
+      "$STATE_DIR/fss-pre-fss-archive" "$STATE_DIR/fss-recovery-archives" "$STATE_DIR/fss-recovery-receipts" "$STATE_DIR/fss-pre-activation-receipts" "$STATE_DIR/fss-unclean-shutdown-receipts" "$STATE_DIR/fss-activation-state"
 
     capture_boot_logs() {
       local label="$1"
