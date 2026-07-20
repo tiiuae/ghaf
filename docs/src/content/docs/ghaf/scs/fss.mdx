@@ -248,6 +248,17 @@ systemctl show journal-fss-setup --property=ConditionResult
 - Deletion of entire journal files (mitigated by remote log forwarding)
 - Real-time tampering before sealing (mitigated by short seal intervals)
 - Denial of service against logging
+- Local-root forgery of the on-host verification verdict. The setup and verify services trust
+  unauthenticated plaintext "receipt" and activation-state files under
+  `/var/log/journal/<machine-id>/` (root-owned, mode `0644`). A local-root attacker who tampers a
+  sealed archive can append a matching receipt line (its recorded `sha256` equals the tampered
+  content) to convert the on-host verdict from `AUDIT_LOG_INTEGRITY_FAIL` into a silent pass.
+  Authoritative tamper detection therefore requires **offline** `journalctl --verify --verify-key=`
+  against an exported archive using an off-host verification-key backup (see
+  [Offline Verification](#offline-verification)), which this attack cannot defeat.
+- The per-boot pre-activation window. Sealing is now activated at runtime, after the
+  clock-readiness barrier, rather than statically at journald start, so entries logged before
+  activation completes on each boot are collected but not yet FSS-trusted.
 
 ### Audit Integration
 
