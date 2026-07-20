@@ -37,10 +37,11 @@
 # Caveats (per-boot activation boundary, ghaf.logging.fss.activation):
 # - Unsealed boot window: With activation enabled (default), entries written
 #   before sealing is activated after clock readiness are collected but NOT
-#   FSS-trusted. They are recorded as content-bound lifecycle receipts and pass
-#   verification as "verified-with-exception" only for the current boot; a
-#   pre-activation archive failing verification for an earlier boot is a warning,
-#   while one whose content no longer matches its receipt fails closed.
+#   FSS-trusted. They are recorded as content-bound lifecycle receipts and
+#   verification surfaces a matching current-boot receipt as a warning (never
+#   a silent pass, since receipts are unauthenticated root-writable files); a
+#   pre-activation archive failing verification for an earlier boot is also a
+#   warning, while one whose content no longer matches its receipt fails closed.
 # - Clock readiness is a boot gate and mitigation, not a trusted/authoritative
 #   time source. On offline devices activation occurs on an unsynchronised clock.
 # - FSS is a local primitive: it does not by itself defend against whole-file
@@ -1072,14 +1073,6 @@ let
       EOF
               exit 0
               ;;
-            verified-with-exception)
-              audit_log notice "AUDIT_LOG_VERIFY_COMPLETED: Journal integrity verified with recorded exception [$FSS_VERDICT_TAGS]"
-              fss_log pass "Journal integrity verification: VERIFIED WITH EXCEPTION ($FSS_VERDICT_REASON)"
-              if [ "$VERIFY_EXIT" -ne 0 ]; then
-                fss_log info "Note: journalctl --verify returned exit $VERIFY_EXIT without critical errors [$FSS_VERDICT_TAGS]"
-              fi
-              exit 0
-              ;;
             verified)
               audit_log info "AUDIT_LOG_VERIFY_COMPLETED: Journal integrity verification passed"
               fss_log pass "Journal integrity verification: VERIFIED"
@@ -1126,10 +1119,10 @@ in
           before that point are treated as collected but not FSS-trusted.
 
           Entries written before activation land in archives that are recorded as
-          content-bound lifecycle receipts (see activation.maxReceipts) and pass
-          verification as "verified-with-exception" for the current boot. An
-          earlier-boot receipt is downgraded to "warning"; a content mismatch
-          fails closed.
+          content-bound lifecycle receipts (see activation.maxReceipts) and
+          surface as "warning" during verification, whether the matching
+          receipt is from the current boot or an earlier one; a content
+          mismatch fails closed.
 
           Security note: enabling this trades a per-boot window of unsealed logs
           (between journald start and activation) for resilience against the

@@ -281,9 +281,6 @@ writeShellApplication {
           pass "Journal verification verified"
         fi
         ;;
-      verified-with-exception)
-        pass "Journal verification verified with recorded exception [$FSS_VERDICT_TAGS] ($FSS_VERDICT_REASON)"
-        ;;
       warning)
         warn "Journal verification WARNING [$FSS_VERDICT_TAGS] ($FSS_VERDICT_REASON)"
         print_verification_warning_summary

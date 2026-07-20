@@ -580,19 +580,22 @@ fss_classification_tags() {
 #   $4 = current boot_id (optional; distinguishes this boot's boundary from stale)
 #   $5 = journalctl --verify exit code (optional; nonzero unclassified exits fail)
 # Outputs (as globals):
-#   FSS_VERDICT        = verified | verified-with-exception | warning | fail
+#   FSS_VERDICT        = verified | warning | fail
 #   FSS_VERDICT_REASON = short human-readable reason
 #   FSS_VERDICT_TAGS   = classification tags augmented with PRE_FSS_ARCHIVE /
 #                        RECOVERY_ARCHIVE / PRE_ACTIVATION_ARCHIVE / PRE_ACTIVATION_STALE
 # Verdict semantics (per .idea/ Layer-5 policy states):
-#   verified                 - all journals verify, no exceptions.
-#   verified-with-exception  - only evidence-backed exceptions for THIS boot
-#                              (pre-FSS / recovery / current-boot insecure boot logs).
-#   warning                  - exceptions evidenced but from an earlier boot, or
-#                              user/temp/filesystem-only issues.
-#   fail                     - active-system failure, key defect, unclassified
-#                              failure, or an archived failure with no matching
-#                              receipt (unrecorded or content-substituted).
+#   verified  - all journals verify, no exceptions.
+#   warning   - an evidence-backed exception was excused: either a current-boot
+#               pre-FSS/recovery/insecure-boot-logs receipt, or one from an
+#               earlier boot, or user/temp/filesystem-only issues. Receipts are
+#               unauthenticated root-writable files, so even a current-boot
+#               match is capped at warning rather than a silent pass -- offline
+#               verification against an off-host key is the authoritative
+#               backstop (see fss.mdx "does not protect against").
+#   fail      - active-system failure, key defect, unclassified failure, or an
+#               archived failure with no matching receipt (unrecorded or
+#               content-substituted).
 # Receipt matching is content-bound: callers should pass receipts already filtered
 # against disk (see fss_filter_valid_receipts) so a substituted archive presents
 # as unmatched and fails closed. Requires fss_classify_verify_output first.
@@ -738,16 +741,16 @@ fss_verify_policy_decision() {
       FSS_VERDICT=warning
       FSS_VERDICT_REASON="unclean-shutdown journal from an earlier boot"
     elif [ "$pre_activation_seen" = 1 ]; then
-      FSS_VERDICT=verified-with-exception
+      FSS_VERDICT=warning
       FSS_VERDICT_REASON="recorded insecure boot logs (current boot)"
     elif [ "$recovery_seen" = 1 ]; then
-      FSS_VERDICT=verified-with-exception
+      FSS_VERDICT=warning
       FSS_VERDICT_REASON="recorded recovery archive (current boot)"
     elif [ "$unclean_seen" = 1 ]; then
-      FSS_VERDICT=verified-with-exception
+      FSS_VERDICT=warning
       FSS_VERDICT_REASON="recorded unclean-shutdown journal (current boot)"
     else
-      FSS_VERDICT=verified-with-exception
+      FSS_VERDICT=warning
       FSS_VERDICT_REASON="recorded archived-system exceptions only"
     fi
     return 0
@@ -797,14 +800,14 @@ fss_verify_policy_decision() {
 
   if fss_pre_activation_receipts_contain_boot "$pre_activation_receipts" "$current_boot"; then
     FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "PRE_ACTIVATION_ARCHIVE")
-    FSS_VERDICT=verified-with-exception
+    FSS_VERDICT=warning
     FSS_VERDICT_REASON="recorded insecure boot logs (current boot)"
     return 0
   fi
 
   if fss_unclean_shutdown_receipts_contain_boot "$unclean_shutdown_receipts" "$current_boot"; then
     FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "UNCLEAN_SHUTDOWN")
-    FSS_VERDICT=verified-with-exception
+    FSS_VERDICT=warning
     FSS_VERDICT_REASON="recorded unclean-shutdown journal (current boot)"
     return 0
   fi
