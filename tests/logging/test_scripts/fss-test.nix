@@ -32,9 +32,6 @@
   gnugrep,
   gawk,
 }:
-let
-  verifyClassifierLib = builtins.readFile ../../../modules/common/logging/fss-verify-classifier.sh;
-in
 writeShellApplication {
   name = "fss-test";
   runtimeInputs = [
@@ -43,10 +40,11 @@ writeShellApplication {
     gnugrep
     gawk
   ];
-  # Shared classifier library: some helper functions are unused in this consumer.
-  excludeShellChecks = [ "SC2329" ];
+  # /etc/fss-verify-classifier.sh is populated at runtime by fss.nix; shellcheck
+  # cannot follow it statically.
+  excludeShellChecks = [ "SC1091" ];
   text = ''
-    ${verifyClassifierLib}
+    source /etc/fss-verify-classifier.sh
 
     PASSED=0
     FAILED=0

@@ -16,9 +16,6 @@
   systemd,
   util-linux,
 }:
-let
-  verifyClassifierLib = builtins.readFile ../../../modules/common/logging/fss-verify-classifier.sh;
-in
 writeShellApplication {
   name = "fss-triage";
   runtimeInputs = [
@@ -30,8 +27,11 @@ writeShellApplication {
     systemd
     util-linux
   ];
+  # /etc/fss-verify-classifier.sh is populated at runtime by fss.nix; shellcheck
+  # cannot follow it statically.
+  excludeShellChecks = [ "SC1091" ];
   text = ''
-    ${verifyClassifierLib}
+    source /etc/fss-verify-classifier.sh
 
     usage() {
       cat <<'EOF'
