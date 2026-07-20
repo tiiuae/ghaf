@@ -113,7 +113,7 @@ _: ''
           assert_verdict fail "FAIL: $ACTIVE (Bad message)"
           [ -n "$FSS_ACTIVE_SYSTEM_FAILURES" ]
 
-          assert_verdict verified-with-exception \
+          assert_verdict warning \
             "$(printf "FAIL: %s (Bad message)\nPASS: %s" "$PRE_ACTIVATION_ARCHIVE" "$ACTIVE")" \
             "" "" "$(mkreceipt "$PRE_ACTIVATION_ARCHIVE" "$CURBOOT")" "$CURBOOT"
           [ "$FSS_VERDICT_REASON" = "recorded insecure boot logs (current boot)" ]
@@ -132,7 +132,7 @@ _: ''
           [ -n "$FSS_USER_FAILURES" ]
           [ -z "$FSS_ACTIVE_SYSTEM_FAILURES" ]
 
-          assert_verdict verified-with-exception \
+          assert_verdict warning \
             "$(printf "FAIL: %s (Bad message)\nPASS: %s" "$ARCHIVED_TEMP_JOURNAL" "$ACTIVE")" \
             "" "" "" "$CURBOOT" 1 "$(mkuncleanreceipt "$ARCHIVED_TEMP_JOURNAL" "$CURBOOT")"
           [ "$FSS_VERDICT_REASON" = "recorded unclean-shutdown journal (current boot)" ]
@@ -153,10 +153,10 @@ _: ''
           # Clean output → verified
           assert_verdict verified "PASS: $ACTIVE"
 
-          # Clean output with current-boot pre-activation receipt still means
-          # verified-with-exception: those entries were structurally readable but
-          # not FSS-trusted.
-          assert_verdict verified-with-exception \
+          # Clean output with a current-boot pre-activation receipt still means
+          # warning: those entries were structurally readable but not FSS-trusted,
+          # and the receipt backing the exception is itself unauthenticated.
+          assert_verdict warning \
             "PASS: $ACTIVE" \
             "" "" "$(mkreceipt "$PRE_ACTIVATION_ARCHIVE" "$CURBOOT")" "$CURBOOT"
           [ "$FSS_VERDICT_REASON" = "recorded insecure boot logs (current boot)" ]
@@ -181,8 +181,8 @@ _: ''
           [ "$FSS_VERDICT_REASON" = "insecure boot logs from an earlier boot" ]
           printf "%s" "$FSS_VERDICT_TAGS" | grep -F "PRE_ACTIVATION_STALE"
 
-          # Allowed archive only → verified-with-exception (matches pre-FSS allowlist)
-          assert_verdict verified-with-exception \
+          # Allowed archive only → warning (matches pre-FSS allowlist)
+          assert_verdict warning \
             "$(printf "FAIL: %s (Input/output error)\nPASS: %s" "$ALLOWED_ARCHIVE" "$ACTIVE")" \
             "$ALLOWED_ARCHIVE"
           [ "$FSS_REASON_TAGS" = "INPUT_OUTPUT_ERROR" ]
@@ -195,8 +195,8 @@ _: ''
             "$(printf "FAIL: %s (Bad message)\nPASS: %s" "$RECOVERY_ARCHIVE" "$ACTIVE")" \
             "" "$(printf "%s\n%s" "$RECOVERY_ARCHIVE" "$RECOVERY_ARCHIVE")"
 
-          # Current-boot recovery receipt → verified-with-exception
-          assert_verdict verified-with-exception \
+          # Current-boot recovery receipt → warning
+          assert_verdict warning \
             "$(printf "FAIL: %s (Bad message)\nPASS: %s" "$RECOVERY_ARCHIVE" "$ACTIVE")" \
             "" "$(mkreceipt "$RECOVERY_ARCHIVE" "$CURBOOT")" "" "$CURBOOT"
           [ "$FSS_VERDICT_REASON" = "recorded recovery archive (current boot)" ]
@@ -209,8 +209,8 @@ _: ''
           [ "$FSS_VERDICT_REASON" = "recovery archive from an earlier boot" ]
           printf "%s" "$FSS_VERDICT_TAGS" | grep -F "RECOVERY_STALE"
 
-          # Current-boot pre-activation receipt → verified-with-exception
-          assert_verdict verified-with-exception \
+          # Current-boot pre-activation receipt → warning
+          assert_verdict warning \
             "$(printf "FAIL: %s (Bad message)\nPASS: %s" "$PRE_ACTIVATION_ARCHIVE" "$ACTIVE")" \
             "" "" "$(mkreceipt "$PRE_ACTIVATION_ARCHIVE" "$CURBOOT")" "$CURBOOT"
           [ "$FSS_VERDICT_REASON" = "recorded insecure boot logs (current boot)" ]
@@ -234,8 +234,8 @@ _: ''
             "$(printf "FAIL: %s (Input/output error)\nPASS: %s" "$UNEXPECTED_ARCHIVE" "$ACTIVE")" \
             "$ALLOWED_ARCHIVE" "$(mkreceipt "$RECOVERY_ARCHIVE" "$CURBOOT")" "" "$CURBOOT"
 
-          # Allowed + recovery archives together → verified-with-exception
-          assert_verdict verified-with-exception \
+          # Allowed + recovery archives together → warning
+          assert_verdict warning \
             "$(printf "FAIL: %s (Bad message)\nFAIL: %s (Bad message)" "$ALLOWED_ARCHIVE" "$RECOVERY_ARCHIVE")" \
             "$ALLOWED_ARCHIVE" "$(mkreceipt "$RECOVERY_ARCHIVE" "$CURBOOT")" "" "$CURBOOT"
 
@@ -293,7 +293,7 @@ _: ''
           # Unclean-shutdown receipting (journald-attested, content-bound). An
           # archived .journal~ corpse with a current-boot unclean receipt is an
           # expected exception, not a hard fail.
-          assert_verdict verified-with-exception \
+          assert_verdict warning \
             "$(printf "FAIL: %s (Bad message)\nPASS: %s" "$ARCHIVED_TEMP_JOURNAL" "$ACTIVE")" \
             "" "" "" "$CURBOOT" 1 "$(mkuncleanreceipt "$ARCHIVED_TEMP_JOURNAL" "$CURBOOT")"
           [ "$FSS_VERDICT_REASON" = "recorded unclean-shutdown journal (current boot)" ]
@@ -301,7 +301,7 @@ _: ''
 
           # The active system.journal~ corpse is carved out of the fatal active-system
           # set only with a matching content-bound receipt.
-          assert_verdict verified-with-exception \
+          assert_verdict warning \
             "$(printf "FAIL: %s (Bad message)\nPASS: %s" "$ACTIVE_TEMP_JOURNAL" "$ACTIVE")" \
             "" "" "" "$CURBOOT" 1 "$(mkuncleanreceipt "$ACTIVE_TEMP_JOURNAL" "$CURBOOT")"
 
@@ -322,8 +322,8 @@ _: ''
             "" "" "" "$CURBOOT" 1 "$(mkuncleanreceipt "$ARCHIVED_TEMP_JOURNAL" "boot-earlier")"
           printf "%s" "$FSS_VERDICT_TAGS" | grep -F "UNCLEAN_SHUTDOWN_STALE"
 
-          # Clean output + current-boot unclean receipt → verified-with-exception.
-          assert_verdict verified-with-exception \
+          # Clean output + current-boot unclean receipt → warning.
+          assert_verdict warning \
             "PASS: $ACTIVE" \
             "" "" "" "$CURBOOT" 0 "$(mkuncleanreceipt "$ARCHIVED_TEMP_JOURNAL" "$CURBOOT")"
 
