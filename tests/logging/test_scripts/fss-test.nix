@@ -72,31 +72,12 @@ writeShellApplication {
     UNCLEAN_SHUTDOWN_RECEIPTS_FILE="/var/log/journal/$MACHINE_ID/fss-unclean-shutdown-receipts"
     ACTIVATION_STATE_FILE="/var/log/journal/$MACHINE_ID/fss-activation-state"
     FSS_BOOT_BASELINE_FILE="/var/log/journal/$MACHINE_ID/fss-baseline-boot"
-    CURRENT_BOOT_ID="$(cat /proc/sys/kernel/random/boot_id 2>/dev/null || echo unknown-boot)"
+    CURRENT_BOOT_ID="$(fss_current_boot_id)"
     ACTIVATION_MODE=0
     if systemd-analyze cat-config systemd/journald.conf 2>/dev/null |
       grep -iqE '^[[:space:]]*Seal[[:space:]]*=[[:space:]]*no'; then
       ACTIVATION_MODE=1
     fi
-
-    journald_effective_seal() {
-      systemd-analyze cat-config systemd/journald.conf 2>/dev/null \
-        | awk -F= '
-          /^[[:space:]]*[#;]/ { next }
-          /^[[:space:]]*Seal[[:space:]]*=/ {
-            value = $2
-            sub(/^[[:space:]]*/, "", value)
-            sub(/[[:space:]]*[#;].*$/, "", value)
-            sub(/[[:space:]]*$/, "", value)
-            seal = tolower(value)
-          }
-          END { print seal }
-        '
-    }
-
-    sealing_active_in_config() {
-      [ "$(journald_effective_seal)" = "yes" ]
-    }
 
     print_verification_warning_summary() {
       echo "   Warning summary:"
@@ -262,7 +243,7 @@ writeShellApplication {
           FSS_VERDICT=fail
           FSS_VERDICT_TAGS="ACTIVATION_STALE"
           FSS_VERDICT_REASON="FSS activation state is not active for current boot"
-        elif ! sealing_active_in_config; then
+        elif ! fss_sealing_active_in_config; then
           FSS_VERDICT=fail
           FSS_VERDICT_TAGS="ACTIVATION_FAILED"
           FSS_VERDICT_REASON="effective journald Seal setting is not yes"

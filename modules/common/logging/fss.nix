@@ -88,6 +88,7 @@
 let
   inherit (lib)
     mkIf
+    mkMerge
     mkOption
     types
     getExe
@@ -193,44 +194,6 @@ let
         receipt_file_has_path "$PRE_ACTIVATION_RECEIPTS_FILE" "$needle"
       }
 
-      record_lifecycle_receipt() {
-        local receipt_file="$1"
-        local archive_path="$2"
-        local reason="$3"
-        local log_level="$4"
-        local log_message="$5"
-        local inode size mtime sha boot event
-
-        [ -n "$archive_path" ] && [ -f "$archive_path" ] || return 0
-
-        inode=$(stat -c %i "$archive_path" 2>/dev/null || true)
-        size=$(stat -c %s "$archive_path" 2>/dev/null || true)
-        mtime=$(stat -c %Y "$archive_path" 2>/dev/null || true)
-        sha=$(sha256sum "$archive_path" 2>/dev/null | cut -d' ' -f1 || true)
-        boot=$(current_boot_id)
-        event="''${INVOCATION_ID:-$boot}"
-
-        if [ -z "$inode" ] || [ -z "$size" ] || [ -z "$mtime" ] || ! fss_valid_sha256 "$sha"; then
-          fss_log warn "Could not record lifecycle receipt for $archive_path: missing stat or sha256 evidence"
-          return 0
-        fi
-
-        # Dedupe on the physical archive identity (path + inode + size).
-        if [ -f "$receipt_file" ] \
-          && awk -F '\t' -v p="$archive_path" -v i="$inode" -v s="$size" \
-            '$2 == p && $3 == i && $4 == s { found = 1 } END { exit found ? 0 : 1 }' \
-            "$receipt_file"; then
-          return 0
-        fi
-
-        printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
-          "$FSS_RECEIPT_SCHEMA_VERSION" "$archive_path" "$inode" "$size" \
-          "$boot" "$mtime" "$sha" "$reason" "$event" \
-          >> "$receipt_file"
-        chmod 0644 "$receipt_file"
-        fss_log "$log_level" "$log_message: $archive_path"
-      }
-
       record_recovery_receipt() {
         local archive_path="$1"
         local reason="''${2:-clock-jump-recovery}"
@@ -244,7 +207,7 @@ let
           return 0
         fi
 
-        record_lifecycle_receipt \
+        fss_write_receipt \
           "$RECOVERY_RECEIPTS_FILE" \
           "$archive_path" \
           "$reason" \
@@ -259,7 +222,7 @@ let
       record_pre_activation_receipt() {
         local archive_path="$1"
         local reason="''${2:-pre-activation-rotation}"
-        record_lifecycle_receipt \
+        fss_write_receipt \
           "$PRE_ACTIVATION_RECEIPTS_FILE" \
           "$archive_path" \
           "$reason" \
@@ -271,12 +234,12 @@ let
       # "corrupted or uncleanly shut down" in the current boot's log and renamed to
       # <path>~. That message is journald's own attestation of a prior unclean kill
       # (host crash, power loss, stop-timeout SIGKILL) — the unpreventable residual.
-      # The verifier treats a content-matched unclean receipt as
-      # verified-with-exception; an unmatched .journal~ or the live system.journal
-      # still fails closed. See fss-verify-classifier.sh policy.
+      # The verifier treats a content-matched unclean receipt as a warning; an
+      # unmatched .journal~ or the live system.journal still fails closed. See
+      # fss-verify-classifier.sh policy.
       record_unclean_shutdown_receipt() {
         local archive_path="$1"
-        record_lifecycle_receipt \
+        fss_write_receipt \
           "$UNCLEAN_SHUTDOWN_RECEIPTS_FILE" \
           "$archive_path" \
           "unclean-shutdown" \
@@ -307,59 +270,16 @@ let
         done < <(unclean_shutdown_named_paths)
       }
 
-      # Bound the receipt store by capping to the newest PRE_ACTIVATION_MAX_RECEIPTS
-      # records (the file is append-ordered oldest-first). Receipts are NOT dropped
-      # merely because an archive is currently absent: a receipt for a vanished
-      # archive is harmless (the verifier's fss_filter_valid_receipts ignores it,
-      # and a deleted archive never appears as a verify failure), and dropping on
-      # transient absence would lose coverage for an archive that returns. The cap
-      # is the growth backstop; content substitution is caught at verify time.
       prune_pre_activation_receipts() {
-        local tmp total excess
-
-        [ -f "$PRE_ACTIVATION_RECEIPTS_FILE" ] || return 0
-
-        total=$(wc -l < "$PRE_ACTIVATION_RECEIPTS_FILE" 2>/dev/null || echo 0)
-        [ "$total" -gt "$PRE_ACTIVATION_MAX_RECEIPTS" ] || return 0
-
-        excess=$((total - PRE_ACTIVATION_MAX_RECEIPTS))
-        tmp=$(mktemp)
-        tail -n "$PRE_ACTIVATION_MAX_RECEIPTS" "$PRE_ACTIVATION_RECEIPTS_FILE" > "$tmp"
-        mv "$tmp" "$PRE_ACTIVATION_RECEIPTS_FILE"
-        chmod 0644 "$PRE_ACTIVATION_RECEIPTS_FILE"
-        fss_log warn "Pre-activation receipts exceeded $PRE_ACTIVATION_MAX_RECEIPTS; evicted $excess oldest record(s)"
+        fss_prune_receipt_file "$PRE_ACTIVATION_RECEIPTS_FILE" "$PRE_ACTIVATION_MAX_RECEIPTS" "Pre-activation"
       }
 
       prune_recovery_receipts() {
-        local tmp total excess
-
-        [ -f "$RECOVERY_RECEIPTS_FILE" ] || return 0
-
-        total=$(wc -l < "$RECOVERY_RECEIPTS_FILE" 2>/dev/null || echo 0)
-        [ "$total" -gt "$RECOVERY_MAX_RECEIPTS" ] || return 0
-
-        excess=$((total - RECOVERY_MAX_RECEIPTS))
-        tmp=$(mktemp)
-        tail -n "$RECOVERY_MAX_RECEIPTS" "$RECOVERY_RECEIPTS_FILE" > "$tmp"
-        mv "$tmp" "$RECOVERY_RECEIPTS_FILE"
-        chmod 0644 "$RECOVERY_RECEIPTS_FILE"
-        fss_log warn "Recovery receipts exceeded $RECOVERY_MAX_RECEIPTS; evicted $excess oldest record(s)"
+        fss_prune_receipt_file "$RECOVERY_RECEIPTS_FILE" "$RECOVERY_MAX_RECEIPTS" "Recovery"
       }
 
       prune_unclean_shutdown_receipts() {
-        local tmp total excess
-
-        [ -f "$UNCLEAN_SHUTDOWN_RECEIPTS_FILE" ] || return 0
-
-        total=$(wc -l < "$UNCLEAN_SHUTDOWN_RECEIPTS_FILE" 2>/dev/null || echo 0)
-        [ "$total" -gt "$UNCLEAN_SHUTDOWN_MAX_RECEIPTS" ] || return 0
-
-        excess=$((total - UNCLEAN_SHUTDOWN_MAX_RECEIPTS))
-        tmp=$(mktemp)
-        tail -n "$UNCLEAN_SHUTDOWN_MAX_RECEIPTS" "$UNCLEAN_SHUTDOWN_RECEIPTS_FILE" > "$tmp"
-        mv "$tmp" "$UNCLEAN_SHUTDOWN_RECEIPTS_FILE"
-        chmod 0644 "$UNCLEAN_SHUTDOWN_RECEIPTS_FILE"
-        fss_log warn "Unclean-shutdown receipts exceeded $UNCLEAN_SHUTDOWN_MAX_RECEIPTS; evicted $excess oldest record(s)"
+        fss_prune_receipt_file "$UNCLEAN_SHUTDOWN_RECEIPTS_FILE" "$UNCLEAN_SHUTDOWN_MAX_RECEIPTS" "Unclean-shutdown"
       }
 
       record_fss_archive_metadata() {
@@ -389,22 +309,18 @@ let
         find "$journal_dir" -maxdepth 1 -type f -name 'system@*.journal' -print 2>/dev/null | sort
       }
 
-      current_boot_id() {
-        cat /proc/sys/kernel/random/boot_id 2>/dev/null || echo unknown-boot
-      }
-
       boot_start_epoch() {
         awk -v now="$(date +%s)" '{printf "%d\n", now - $1}' /proc/uptime
       }
 
       write_boot_baseline_record() {
-        printf '%s\n' "$(current_boot_id)" > "$FSS_BOOT_BASELINE_FILE"
+        printf '%s\n' "$(fss_current_boot_id)" > "$FSS_BOOT_BASELINE_FILE"
         chmod 0644 "$FSS_BOOT_BASELINE_FILE"
       }
 
       boot_baseline_current() {
         [ -s "$FSS_BOOT_BASELINE_FILE" ] || return 1
-        [ "$(tr -d '[:space:]' < "$FSS_BOOT_BASELINE_FILE")" = "$(current_boot_id)" ]
+        [ "$(tr -d '[:space:]' < "$FSS_BOOT_BASELINE_FILE")" = "$(fss_current_boot_id)" ]
       }
 
       current_boot_time_jump_epochs() {
@@ -680,7 +596,7 @@ let
       }
 
       write_activation_state() {
-        printf '%s\t%s\n' "$1" "$(current_boot_id)" > "$ACTIVATION_STATE_FILE"
+        printf '%s\t%s\n' "$1" "$(fss_current_boot_id)" > "$ACTIVATION_STATE_FILE"
         chmod 0644 "$ACTIVATION_STATE_FILE"
       }
 
@@ -701,7 +617,7 @@ let
 
       activation_state_record_current_boot() {
         [ "$(activation_state_value)" = "active" ] \
-          && [ "$(activation_state_boot_id)" = "$(current_boot_id)" ]
+          && [ "$(activation_state_boot_id)" = "$(fss_current_boot_id)" ]
       }
 
       activation_boundary_complete_current_boot() {
@@ -726,27 +642,7 @@ let
         runtime_fss_activation_config_present \
           && activation_state_record_current_boot \
           && rotation_marker_present \
-          && sealing_active_in_config
-      }
-
-      sealing_active_in_config() {
-        local effective_seal
-
-        effective_seal=$(
-          systemd-analyze cat-config systemd/journald.conf 2>/dev/null \
-            | awk -F= '
-              /^[[:space:]]*[#;]/ { next }
-              /^[[:space:]]*Seal[[:space:]]*=/ {
-                value = $2
-                sub(/^[[:space:]]*/, "", value)
-                sub(/[[:space:]]*[#;].*$/, "", value)
-                sub(/[[:space:]]*$/, "", value)
-                seal = tolower(value)
-              }
-              END { print seal }
-            '
-        )
-        [ "$effective_seal" = "yes" ]
+          && fss_sealing_active_in_config
       }
 
       # Restart journald so it loads the FSS sealing key, and (when activation is
@@ -786,7 +682,7 @@ let
           return 0
         fi
 
-        if [ "$restart_ok" = 1 ] && sealing_active_in_config; then
+        if [ "$restart_ok" = 1 ] && fss_sealing_active_in_config; then
           ACTIVATION_RESTARTED_THIS_RUN=1
           write_activation_state active
           fss_log info "Confirmed journald sealing is active after restart"
@@ -806,7 +702,7 @@ let
         [ "$ACTIVATION_FAILED" = 0 ] || return 1
         [ -s "$VERIFY_KEY_FILE" ] && [ -r "$VERIFY_KEY_FILE" ] || return 0
 
-        marker="FSS activation live sealing probe $(current_boot_id) $$"
+        marker="FSS activation live sealing probe $(fss_current_boot_id) $$"
         logger -t journal-fss "$marker" 2>/dev/null || true
         journalctl --sync 2>/dev/null || true
 
@@ -1047,25 +943,6 @@ let
               printf '%s\n' "$2" | systemd-cat -t journal-fss -p "$1"
             }
 
-            journald_effective_seal() {
-              systemd-analyze cat-config systemd/journald.conf 2>/dev/null \
-                | awk -F= '
-                  /^[[:space:]]*[#;]/ { next }
-                  /^[[:space:]]*Seal[[:space:]]*=/ {
-                    value = $2
-                    sub(/^[[:space:]]*/, "", value)
-                    sub(/[[:space:]]*[#;].*$/, "", value)
-                    sub(/[[:space:]]*$/, "", value)
-                    seal = tolower(value)
-                  }
-                  END { print seal }
-                '
-            }
-
-            sealing_active_in_config() {
-              [ "$(journald_effective_seal)" = "yes" ]
-            }
-
             fss_log info "Verifying journal integrity with Forward Secure Sealing..."
 
             if ! journalctl --list-boots >/dev/null 2>&1; then
@@ -1087,7 +964,7 @@ let
             UNCLEAN_SHUTDOWN_RECEIPTS_FILE="/var/log/journal/$MACHINE_ID/fss-unclean-shutdown-receipts"
             ACTIVATION_STATE_FILE="/var/log/journal/$MACHINE_ID/fss-activation-state"
             FSS_BOOT_BASELINE_FILE="/var/log/journal/$MACHINE_ID/fss-baseline-boot"
-            CURRENT_BOOT_ID=$(cat /proc/sys/kernel/random/boot_id 2>/dev/null || echo unknown-boot)
+            CURRENT_BOOT_ID=$(fss_current_boot_id)
             ACTIVATION_ENABLED="${if activationEnabled then "1" else "0"}"
             VERIFY_KEY=$(tr -d '[:space:]' < "$VERIFY_KEY_FILE")
 
@@ -1117,7 +994,7 @@ let
                 exit 1
               fi
 
-              if ! sealing_active_in_config; then
+              if ! fss_sealing_active_in_config; then
                 audit_log crit "AUDIT_LOG_INTEGRITY_FAIL: FSS activation failed; effective journald Seal setting is not yes [ACTIVATION_FAILED]"
                 fss_log fail "Journal integrity verification: FAILED (effective journald Seal setting is not yes)"
                 exit 1
@@ -1436,219 +1313,223 @@ in
     };
   };
 
-  config = mkIf cfg.enable {
-    assertions = [
-      {
-        assertion = hasPersistentJournalStorage;
-        message = "FSS on VMs requires ghaf.storagevm.enable so /var/log/journal and the journald sealing key are persisted.";
-      }
-    ];
-
-    # Enable audit subsystem for FSS monitoring
-    # This provides auditctl and enables the audit rules defined below
-    # FSS requires audit to be enabled, so we use mkForce to ensure it's on
-    # regardless of profile settings (audit is fundamental to FSS functionality)
-    ghaf.security.audit.enable = lib.mkForce true;
-
-    environment.systemPackages = [
-      fssTriagePackage
-    ];
+  config = mkMerge [
 
     # Single on-disk copy of the verification/receipt classifier, sourced at
-    # runtime by journal-fss-setup, journal-fss-verify, fss-triage, and
-    # fss-test instead of each embedding its own build-time inlined copy.
-    environment.etc."fss-verify-classifier.sh".source = ./fss-verify-classifier.sh;
+    # runtime by journal-fss-setup, journal-fss-verify, fss-triage, fss-test,
+    # and common.nix's clock-jump recovery -- unconditional (not gated by
+    # cfg.enable) since that last consumer runs even when FSS itself is off.
+    { environment.etc."fss-verify-classifier.sh".source = ./fss-verify-classifier.sh; }
 
-    # FSS is only meaningful for persistent journals. The journald sealing key
-    # lives beside the journal files and is advanced by journald over time.
-    services.journald.extraConfig = lib.mkAfter ''
-      Storage=persistent
-      Seal=${if cfg.staticSealEnabled then "yes" else "no"}
-    '';
-
-    ghaf.storagevm.preserveLogs = mkIf (config.ghaf.type != "host") true;
-
-    # Create key directory and journal directory via tmpfiles
-    # Note: In VMs, ${cfg.keyPath} is a virtiofs mount point, so we only create it on host
-    systemd = {
-      tmpfiles.rules =
-        lib.optionals (config.ghaf.type == "host") [
-          "d /persist/common/journal-fss 0755 root root - -"
-          "d ${cfg.keyPath} 0700 root root - -"
-          "d /persist/var 0755 root root - -"
-          "d /persist/var/log 0755 root root - -"
-          "d ${hostPersistentJournalPath} 2755 root systemd-journal - -"
-        ]
-        ++ [
-          "d /var/log/journal 2755 root systemd-journal - -"
-        ];
-
-      mounts = lib.optionals (config.ghaf.type == "host") [
+    (mkIf cfg.enable {
+      assertions = [
         {
-          what = hostPersistentJournalPath;
-          where = "/var/log/journal";
-          type = "none";
-          options = "bind";
-          wantedBy = [ "local-fs.target" ];
-          requiredBy = [ "journal-fss-setup.service" ];
-          requires = [ "journal-fss-prepare-persistent-journal.service" ];
-          after = [
-            "journal-fss-prepare-persistent-journal.service"
-            "persist.mount"
-          ];
-          before = [
-            "systemd-journal-flush.service"
-            "journal-fss-setup.service"
-          ];
-          unitConfig.DefaultDependencies = false;
+          assertion = hasPersistentJournalStorage;
+          message = "FSS on VMs requires ghaf.storagevm.enable so /var/log/journal and the journald sealing key are persisted.";
         }
       ];
 
-      services = {
-        journal-fss-prepare-persistent-journal = mkIf (config.ghaf.type == "host") {
-          description = "Prepare persistent journal storage for FSS";
+      # Enable audit subsystem for FSS monitoring
+      # This provides auditctl and enables the audit rules defined below
+      # FSS requires audit to be enabled, so we use mkForce to ensure it's on
+      # regardless of profile settings (audit is fundamental to FSS functionality)
+      ghaf.security.audit.enable = lib.mkForce true;
 
-          after = [
-            "local-fs-pre.target"
-            "persist.mount"
-          ];
-          before = [
-            "var-log-journal.mount"
-            "systemd-journal-flush.service"
-            "journal-fss-setup.service"
+      environment.systemPackages = [
+        fssTriagePackage
+      ];
+
+      # FSS is only meaningful for persistent journals. The journald sealing key
+      # lives beside the journal files and is advanced by journald over time.
+      services.journald.extraConfig = lib.mkAfter ''
+        Storage=persistent
+        Seal=${if cfg.staticSealEnabled then "yes" else "no"}
+      '';
+
+      ghaf.storagevm.preserveLogs = mkIf (config.ghaf.type != "host") true;
+
+      # Create key directory and journal directory via tmpfiles
+      # Note: In VMs, ${cfg.keyPath} is a virtiofs mount point, so we only create it on host
+      systemd = {
+        tmpfiles.rules =
+          lib.optionals (config.ghaf.type == "host") [
+            "d /persist/common/journal-fss 0755 root root - -"
+            "d ${cfg.keyPath} 0700 root root - -"
+            "d /persist/var 0755 root root - -"
+            "d /persist/var/log 0755 root root - -"
+            "d ${hostPersistentJournalPath} 2755 root systemd-journal - -"
+          ]
+          ++ [
+            "d /var/log/journal 2755 root systemd-journal - -"
           ];
 
-          unitConfig = {
-            DefaultDependencies = false;
-            RequiresMountsFor = [ "/persist" ];
+        mounts = lib.optionals (config.ghaf.type == "host") [
+          {
+            what = hostPersistentJournalPath;
+            where = "/var/log/journal";
+            type = "none";
+            options = "bind";
+            wantedBy = [ "local-fs.target" ];
+            requiredBy = [ "journal-fss-setup.service" ];
+            requires = [ "journal-fss-prepare-persistent-journal.service" ];
+            after = [
+              "journal-fss-prepare-persistent-journal.service"
+              "persist.mount"
+            ];
+            before = [
+              "systemd-journal-flush.service"
+              "journal-fss-setup.service"
+            ];
+            unitConfig.DefaultDependencies = false;
+          }
+        ];
+
+        services = {
+          journal-fss-prepare-persistent-journal = mkIf (config.ghaf.type == "host") {
+            description = "Prepare persistent journal storage for FSS";
+
+            after = [
+              "local-fs-pre.target"
+              "persist.mount"
+            ];
+            before = [
+              "var-log-journal.mount"
+              "systemd-journal-flush.service"
+              "journal-fss-setup.service"
+            ];
+
+            unitConfig = {
+              DefaultDependencies = false;
+              RequiresMountsFor = [ "/persist" ];
+            };
+
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+              ExecStart = getExe preparePersistentJournalScript;
+            };
           };
 
-          serviceConfig = {
-            Type = "oneshot";
-            RemainAfterExit = true;
-            ExecStart = getExe preparePersistentJournalScript;
+          # One-shot service to generate FSS keys on first boot
+          # Runs after journald is ready, then restarts journald to enable sealing
+          journal-fss-setup = {
+            description = "Setup Forward Secure Sealing keys for systemd journal";
+            documentation = [ "man:journalctl(1)" ];
+
+            wantedBy = [ "multi-user.target" ];
+            after = [
+              "systemd-journald.service"
+              "systemd-journal-flush.service"
+            ]
+            ++ lib.optionals clockReadyEnabled [
+              "ghaf-clock-ready.service"
+              # Wait for the time-sync barrier (after networking) before activating
+              # sealing, without making the early journal flush wait on it.
+              "ghaf-clock-sync.service"
+            ]
+            ++ lib.optionals (config.ghaf.type == "host") [
+              "var-log-journal.mount"
+            ];
+            wants = [
+              "systemd-journald.service"
+              "systemd-journal-flush.service"
+            ]
+            ++ lib.optionals clockReadyEnabled [
+              "ghaf-clock-ready.service"
+              "ghaf-clock-sync.service"
+            ];
+            requires = lib.optionals clockReadyEnabled [
+              "ghaf-clock-ready.service"
+            ];
+
+            unitConfig = {
+              RequiresMountsFor = [
+                cfg.keyPath
+                "/var/log/journal"
+              ];
+              StartLimitIntervalSec = "0";
+            };
+
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+              ExecStart = getExe setupScript;
+            };
+          };
+
+          # Service to verify journal integrity
+          journal-fss-verify = {
+            description = "Verify systemd journal integrity using Forward Secure Sealing";
+            documentation = [ "man:journalctl(1)" ];
+
+            after = [
+              "systemd-journald.service"
+              "journal-fss-setup.service"
+            ]
+            ++ lib.optionals clockReadyEnabled [
+              "ghaf-clock-ready.service"
+            ];
+            wants = [
+              "systemd-journald.service"
+              "journal-fss-setup.service"
+            ]
+            ++ lib.optionals clockReadyEnabled [
+              "ghaf-clock-ready.service"
+            ];
+            requires = lib.optionals clockReadyEnabled [
+              "ghaf-clock-ready.service"
+            ];
+
+            unitConfig = {
+              # Only run if FSS setup has completed successfully
+              ConditionPathExists = "${cfg.keyPath}/initialized";
+              StartLimitIntervalSec = "0";
+            };
+
+            serviceConfig = {
+              Type = "oneshot";
+              ExecStart = getExe verifyScript;
+              WorkingDirectory = "/";
+
+              # File system access required for journal verification
+              # journalctl --verify needs write access to create verification metadata
+              # Also needs read access to verification key for sealed journal validation
+              ReadWritePaths = [
+                "/var/log/journal"
+                "/run/log/journal"
+                cfg.keyPath
+              ];
+            };
           };
         };
 
-        # One-shot service to generate FSS keys on first boot
-        # Runs after journald is ready, then restarts journald to enable sealing
-        journal-fss-setup = {
-          description = "Setup Forward Secure Sealing keys for systemd journal";
+        # Timer for periodic verification
+        timers.journal-fss-verify = {
+          description = "Timer for periodic journal integrity verification";
           documentation = [ "man:journalctl(1)" ];
 
-          wantedBy = [ "multi-user.target" ];
-          after = [
-            "systemd-journald.service"
-            "systemd-journal-flush.service"
-          ]
-          ++ lib.optionals clockReadyEnabled [
-            "ghaf-clock-ready.service"
-            # Wait for the time-sync barrier (after networking) before activating
-            # sealing, without making the early journal flush wait on it.
-            "ghaf-clock-sync.service"
-          ]
-          ++ lib.optionals (config.ghaf.type == "host") [
-            "var-log-journal.mount"
-          ];
-          wants = [
-            "systemd-journald.service"
-            "systemd-journal-flush.service"
-          ]
-          ++ lib.optionals clockReadyEnabled [
-            "ghaf-clock-ready.service"
-            "ghaf-clock-sync.service"
-          ];
-          requires = lib.optionals clockReadyEnabled [
-            "ghaf-clock-ready.service"
-          ];
+          wantedBy = [ "timers.target" ];
 
-          unitConfig = {
-            RequiresMountsFor = [
-              cfg.keyPath
-              "/var/log/journal"
-            ];
-            StartLimitIntervalSec = "0";
-          };
-
-          serviceConfig = {
-            Type = "oneshot";
-            RemainAfterExit = true;
-            ExecStart = getExe setupScript;
-          };
-        };
-
-        # Service to verify journal integrity
-        journal-fss-verify = {
-          description = "Verify systemd journal integrity using Forward Secure Sealing";
-          documentation = [ "man:journalctl(1)" ];
-
-          after = [
-            "systemd-journald.service"
-            "journal-fss-setup.service"
-          ]
-          ++ lib.optionals clockReadyEnabled [
-            "ghaf-clock-ready.service"
-          ];
-          wants = [
-            "systemd-journald.service"
-            "journal-fss-setup.service"
-          ]
-          ++ lib.optionals clockReadyEnabled [
-            "ghaf-clock-ready.service"
-          ];
-          requires = lib.optionals clockReadyEnabled [
-            "ghaf-clock-ready.service"
-          ];
-
-          unitConfig = {
-            # Only run if FSS setup has completed successfully
-            ConditionPathExists = "${cfg.keyPath}/initialized";
-            StartLimitIntervalSec = "0";
-          };
-
-          serviceConfig = {
-            Type = "oneshot";
-            ExecStart = getExe verifyScript;
-            WorkingDirectory = "/";
-
-            # File system access required for journal verification
-            # journalctl --verify needs write access to create verification metadata
-            # Also needs read access to verification key for sealed journal validation
-            ReadWritePaths = [
-              "/var/log/journal"
-              "/run/log/journal"
-              cfg.keyPath
-            ];
+          timerConfig = {
+            OnCalendar = cfg.verifySchedule;
+            Persistent = true;
+            RandomizedDelaySec = "5min";
+          }
+          // optionalAttrs cfg.verifyOnBoot {
+            OnBootSec = "10min";
           };
         };
       };
 
-      # Timer for periodic verification
-      timers.journal-fss-verify = {
-        description = "Timer for periodic journal integrity verification";
-        documentation = [ "man:journalctl(1)" ];
-
-        wantedBy = [ "timers.target" ];
-
-        timerConfig = {
-          OnCalendar = cfg.verifySchedule;
-          Persistent = true;
-          RandomizedDelaySec = "5min";
-        }
-        // optionalAttrs cfg.verifyOnBoot {
-          OnBootSec = "10min";
-        };
-      };
-    };
-
-    # Audit rules to monitor FSS key and journal access
-    ghaf.security.audit.extraRules = [
-      # Monitor shared FSS key tree.
-      "-w ${fssBasePath} -p wa -k journal_fss_keys"
-      # Monitor sealed journal logs for tampering attempts
-      "-w /var/log/journal -p wa -k journal_sealed_logs"
-      # Monitor machine-id reads (critical for journal path resolution)
-      "-w /etc/machine-id -p r -k machine_id_read"
-    ];
-  };
+      # Audit rules to monitor FSS key and journal access
+      ghaf.security.audit.extraRules = [
+        # Monitor shared FSS key tree.
+        "-w ${fssBasePath} -p wa -k journal_fss_keys"
+        # Monitor sealed journal logs for tampering attempts
+        "-w /var/log/journal -p wa -k journal_sealed_logs"
+        # Monitor machine-id reads (critical for journal path resolution)
+        "-w /etc/machine-id -p r -k machine_id_read"
+      ];
+    })
+  ];
 }
