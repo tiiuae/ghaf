@@ -291,8 +291,11 @@ in
           };
 
           idsvm = {
-            enable = false;
-            mitmproxy.enable = false;
+            enable = true;
+            passiveMonitor = {
+              enable = true;
+              external = true;
+            };
           };
 
           guivm = {

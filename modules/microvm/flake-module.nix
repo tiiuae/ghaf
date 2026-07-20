@@ -19,6 +19,7 @@ _: {
       ./sysvms/audiovm.nix
       ./sysvms/idsvm/idsvm.nix
       ./common/microvm-store-mode.nix
+      ./host/traffic-mirror.nix
       ./sysvm-registry.nix
       ./vm-config.nix
     ];
@@ -39,6 +40,7 @@ _: {
       ./common/xdghandlers.nix
       ./common/xdgitems.nix
       ./common/sni.nix
+      ./common/traffic-mirror.nix
     ];
 
     # GUI VM base module for layered composition

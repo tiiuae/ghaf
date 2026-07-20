@@ -20,11 +20,9 @@ let
   inherit (config.ghaf.networking) hosts;
   inherit (config.ghaf.common.extraNetworking) enableStaticArp;
 
-  isIdsvmEnabled = lib.hasAttr "ids-vm" hosts;
   netVmAddress = hosts."net-vm".ipv4;
-  idsVmAddress = hosts."ids-vm".ipv4;
-  gateway = if isIdsvmEnabled && (cfg.vmName != "ids-vm") then [ idsVmAddress ] else [ netVmAddress ];
   useNetVmDns = cfg.vmName != "net-vm";
+  gateway = [ netVmAddress ];
 in
 {
   _file = ./vm-networking.nix;
@@ -80,11 +78,16 @@ in
       allowedUDPPorts = [ 67 ];
     };
 
+    services.udev.extraRules = ''
+      SUBSYSTEM=="net", ACTION=="add", DRIVERS=="usb", \
+        NAME="${config.ghaf.common.hardware.usbEthernetPrefix}%E{IFINDEX}"
+    '';
+
     microvm.interfaces = [
       {
         type = "tap";
         # The interface names must have maximum length of 15 characters
-        id = "tap-${cfg.vmName}";
+        id = "${config.ghaf.networking.vmTapPrefix}-${cfg.vmName}";
         inherit (hosts.${cfg.vmName}) mac;
       }
     ];
@@ -112,7 +115,7 @@ in
           '') hosts
         );
       }
-      // lib.optionalAttrs ((!cfg.isGateway) || (cfg.vmName == "ids-vm")) { inherit gateway; };
+      // lib.optionalAttrs (!cfg.isGateway) { inherit gateway; };
     };
   };
 }

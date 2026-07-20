@@ -41,6 +41,13 @@
       # Propagate host storeOnDisk setting to global-config for VMs
       storage.storeOnDisk = config.ghaf.virtualization.microvm.storeOnDisk;
 
+      # Propagate IDS-VM passive monitoring flags so VMs can check globalConfig.idsvm.passiveMonitor.*
+      idsvm.passiveMonitor = {
+        enable = lib.mkDefault config.ghaf.virtualization.microvm.idsvm.passiveMonitor.enable;
+        external = lib.mkDefault config.ghaf.virtualization.microvm.idsvm.passiveMonitor.external;
+        internal = lib.mkDefault config.ghaf.virtualization.microvm.idsvm.passiveMonitor.internal;
+      };
+
       # Auto-populate logging listener address from admin-vm IP
       # The logging listener always runs on admin-vm, so derive the address
       # from hosts.nix rather than requiring each profile to set it manually.

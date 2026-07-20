@@ -23,6 +23,7 @@ let
   inherit (config.networking) hostName;
   inherit (config.ghaf.common.extraNetworking) enableStaticArp;
   hasNetvm = lib.hasAttr "net-vm" config.microvm.vms;
+  vmTapPrefix = config.ghaf.networking.vmTapPrefix;
 in
 {
   _file = ./networking.nix;
@@ -100,7 +101,7 @@ in
           };
           # Connect VM tun/tap device to the bridge
           "11-vm-network" = {
-            matchConfig.Name = "tap-*";
+            matchConfig.Name = "${vmTapPrefix}-*";
             networkConfig.Bridge = "${cfg.bridgeNicName}";
           };
           # USB ethernet adapters are hot-plugged into VMs by vhotplug.
