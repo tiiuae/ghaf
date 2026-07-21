@@ -74,6 +74,14 @@ in
         inherit (policycfg) storePath updater;
         policies = groupedPolicies;
       };
+      accessControl.adminRules = config.ghaf.common.adminRules ++ [
+        {
+          from = config.ghaf.common.vms;
+          permittedRequests = [
+            "RegisterService"
+          ];
+        }
+      ];
     };
 
     # Sysvm agent so admin-vm receives timezone/locale propagation
