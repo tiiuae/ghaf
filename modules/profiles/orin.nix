@@ -362,6 +362,16 @@ in
           guivm = {
             enable = lib.mkDefault false;
             # fprint/yubikey/brightness now controlled via ghaf.global-config.features
+            # Here we only provide the evaluatedConfig, extending guivmBase with
+            # hardware.definition.guivm.extraModules (DTB, vfio, guest kernel).
+            # Desktop feature bundle (services/programs/personalize) is deferred
+            # to the hw-bringup plan's Phase 6, not wired here.
+            evaluatedConfig = config.ghaf.profiles.orin.guivmBase.extendModules {
+              modules = lib.ghaf.vm.applyVmConfig {
+                inherit config;
+                vmName = "guivm";
+              };
+            };
           };
 
           audiovm = {
