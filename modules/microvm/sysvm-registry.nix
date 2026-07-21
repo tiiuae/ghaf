@@ -64,5 +64,60 @@ in
     };
   };
 
-  config.ghaf.virtualization.microvm.sysvm.enabledVms = lib.filterAttrs (_: vm: vm.enable) cfg.vms;
+  config =
+    let
+      sysvms = cfg.enabledVms;
+    in
+    {
+      ghaf.virtualization.microvm.sysvm.enabledVms = lib.filterAttrs (_: vm: vm.enable) cfg.vms;
+
+      ghaf.common = {
+        extraNetworking.hosts = lib.mapAttrs' (_name: vm: {
+          name = vm.vmName;
+          value = vm.extraNetworking or { };
+        }) sysvms;
+
+        policies = lib.concatMapAttrs (
+          _name: vm:
+          let
+            vmPolicyClient =
+              if vm.evaluatedConfig != null then vm.evaluatedConfig.config.ghaf.givc.policyClient or { } else { };
+          in
+          lib.optionalAttrs (vmPolicyClient.enable or false) {
+            "${vm.vmName}" = vmPolicyClient.policies;
+          }
+        ) sysvms;
+
+        spire.agents = lib.foldr lib.recursiveUpdate { } (
+          lib.mapAttrsToList (
+            _name: vm:
+            let
+              spireAgent =
+                if vm.evaluatedConfig != null then
+                  vm.evaluatedConfig.config.ghaf.security.spire.agents.downstream or null
+                else
+                  null;
+            in
+            if spireAgent != null && spireAgent.enable then
+              {
+                "${vm.vmName}" = {
+                  inherit (spireAgent) nodeAttestationMode workloads;
+                };
+              }
+            else
+              { }
+          ) sysvms
+        );
+
+        adminRules = lib.concatLists (
+          lib.mapAttrsToList (
+            _name: vm:
+            if vm.evaluatedConfig != null then
+              vm.evaluatedConfig.config.ghaf.givc.accessControl.adminRules or [ ]
+            else
+              [ ]
+          ) sysvms
+        );
+      };
+    };
 }
