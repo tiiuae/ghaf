@@ -365,6 +365,7 @@ in
         borderColor = "#FFA500";
         ghafAudio.enable = lib.mkDefault true;
         vtpm.enable = lib.mkDefault true;
+        permitStartApplication = lib.mkDefault true;
         applications =
           let
             flatpakManagerApp = action: {

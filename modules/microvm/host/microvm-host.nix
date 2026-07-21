@@ -182,6 +182,7 @@ in
               inherit (config.ghaf.security.spire.agents.downstream) nodeAttestationMode workloads;
             };
           };
+          adminRules = config.ghaf.givc.accessControl.adminRules or [ ];
         };
 
         security.spire.agents.downstream = {

@@ -131,6 +131,12 @@ in
       readOnly = true;
       description = "The VM definition with merged applications. Exposed for host-side access.";
     };
+
+    permitStartApplication = lib.mkOption {
+      type = lib.types.either lib.types.bool (lib.types.listOf lib.types.str);
+      default = unwrap (vm.permitStartApplication or false);
+      description = "Emit StartApplication admin rule for this AppVM. If true, all app hosts are permitted targets. If a list of strings, only those hosts are permitted targets.";
+    };
   };
 
   config =
@@ -308,6 +314,33 @@ in
             logLevel = if globalConfig.spire.debug then "DEBUG" else "INFO";
           };
         };
+        givc.accessControl.adminRules =
+          lib.optionals (vm.yubiProxy or false) [
+            {
+              from = [ vmName ];
+              permittedRequests = [
+                "Ctap"
+              ];
+            }
+          ]
+          ++
+            lib.optionals
+              (
+                config.ghaf.appvm.permitStartApplication != false && config.ghaf.appvm.permitStartApplication != [ ]
+              )
+              [
+                {
+                  from = [ vmName ];
+                  to =
+                    if builtins.isBool config.ghaf.appvm.permitStartApplication then
+                      config.ghaf.common.appHosts
+                    else
+                      config.ghaf.appvm.permitStartApplication;
+                  permittedRequests = [
+                    "StartApplication"
+                  ];
+                }
+              ];
       };
 
       # Combined udev rules (yubikey + passthrough)

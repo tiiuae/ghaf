@@ -39,6 +39,7 @@ in
         borderColor = "#337aff";
         ghafAudio.enable = lib.mkDefault true;
         vtpm.enable = lib.mkDefault true;
+        permitStartApplication = lib.mkDefault true;
         applications = [
           {
             name = "electron";

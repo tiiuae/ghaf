@@ -85,6 +85,7 @@ in
         ghafAudio.enable = lib.mkDefault true;
         vtpm.enable = lib.mkDefault true;
         yubiProxy = true;
+        permitStartApplication = lib.mkDefault true;
         applications = [
           {
             # The SPKI fingerprint is calculated like this:
