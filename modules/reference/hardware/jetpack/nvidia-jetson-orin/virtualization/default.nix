@@ -9,6 +9,7 @@
     ./passthrough/mgbe0-net-vm
     ./passthrough/gpu-vm
     ./passthrough/disp-vm
+    ./passthrough/gui-vm
     ./ownership-assertions.nix
   ];
 }
