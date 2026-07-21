@@ -52,6 +52,29 @@ in
   options.ghaf.givc = {
     enable = mkEnableOption "gRPC inter-vm communication (GIVC)";
     debug = mkEnableOption "GIVC debug mode";
+    accessControl = {
+      enable = mkEnableOption "access control for GIVC";
+      adminRules = mkOption {
+        description = ''
+          Defines access control policies for the GIVC Admin server.
+          Direct agent-to-agent communication is generally discouraged,
+          so the Admin server primarily functions as a proxy routing requests
+          between agents. This option defines admin rules, which a non admin VM can push to the admin.
+          The config in example allows `gui-vm` to start an application on `chrome-vm`
+        '';
+        example = [
+          {
+            from = [
+              "gui-vm"
+            ];
+            to = [ "chrome-vm" ];
+            permittedRequests = [ "StartApplication" ];
+          }
+        ];
+        type = types.listOf types.adminRulesType;
+        default = [ ];
+      };
+    };
     enableTls = mkOption {
       description = "Enable TLS for gRPC communication globally, or disable for debugging.";
       type = types.bool;
@@ -93,6 +116,20 @@ in
         assertion = cfg.debug -> (!config.ghaf.logging.enable);
         message = "Do not enable givc debug and logging simultaneously, you may leak private information.";
       }
+      {
+        # Guard against the fail-open-by-omission class: when access control is
+        # on, every GIVC service enabled on this VM must also enable its own
+        # accessControl, or its Cedar interceptor is never installed (allow-all).
+        assertion =
+          cfg.accessControl.enable
+          -> lib.all (svc: svc.enable -> svc.accessControl.enable) [
+            config.givc.sysvm
+            config.givc.appvm
+            config.givc.host
+            config.givc.admin
+          ];
+        message = "ghaf.givc.accessControl.enable is set but an enabled GIVC service on this VM left its own accessControl disabled (fail-open). Set givc.<type>.accessControl.enable = config.ghaf.givc.accessControl.enable.";
+      }
     ];
 
     # Build admin address here (inside config block) to defer hosts evaluation
@@ -128,5 +165,46 @@ in
           ];
         };
       };
+
+    givc = {
+      sysvm = mkIf config.givc.sysvm.enable {
+        accessControl = {
+          enable = cfg.accessControl.enable;
+          agentRules = [
+            {
+              permittedVms = [ cfg.adminConfig.name ];
+              permittedModules = [ "stats" ];
+            }
+          ];
+        };
+      };
+      appvm = mkIf config.givc.appvm.enable {
+        accessControl = {
+          enable = cfg.accessControl.enable;
+          agentRules = [
+            {
+              permittedVms = [ cfg.adminConfig.name ];
+              permittedModules = [ "stats" ];
+            }
+          ];
+        };
+      };
+      host = mkIf config.givc.host.enable {
+        accessControl = {
+          enable = cfg.accessControl.enable;
+          agentRules = [
+            {
+              permittedVms = [ cfg.adminConfig.name ];
+              permittedModules = [ "stats" ];
+            }
+          ];
+        };
+      };
+      admin = mkIf config.givc.admin.enable {
+        accessControl = {
+          enable = cfg.accessControl.enable;
+        };
+      };
+    };
   };
 }
