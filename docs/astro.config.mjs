@@ -63,6 +63,7 @@ export default defineConfig({
                         "ghaf/overview/arch/stack",
                         "ghaf/overview/arch/guest-tpm",
                         "ghaf/overview/arch/policy",
+                        "ghaf/overview/arch/access-control",
                       ],
                     },
                     {
