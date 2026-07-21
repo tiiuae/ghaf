@@ -7,7 +7,16 @@
 {
   _file = ./orin-agx-industrial.nix;
 
-  imports = [ ../../../../common/services/hwinfo ];
+  imports = [
+    ../../../../common/services/hwinfo
+    # DCE display-proxy HOST integration (AGX only). Keeps gpu_vm
+    # enabled, runs the host headless, force-loads tegra-dce so the host owns
+    # the real DCE R5, and builds + loads the dce-host-proxy .ko (with an
+    # injected nvidia,dce-host-proxy DT node) so the guest can drive the panel
+    # through the host-owned DCE. AGX-only on purpose -- do not hoist into a
+    # shared orin.nix.
+    ../nvidia-jetson-orin/virtualization/common/dce-virt-common/dce-probe-host.nix
+  ];
 
   ghaf = {
     # Enable hardware info generation on host
@@ -34,7 +43,13 @@
       # AGX has the on-SoC MGBE0 ethernet controller (Aquantia PHY on the
       # p3737 carrier); pass it through to net-vm. Orin NX has no MGBE0.
       nvidia.passthroughs.mgbe0_net_vm.enable = true;
+      # gpu_vm is the compute capability (keeps host1x/gpu/media, drops
+      # display, releases scanout for disp-vm); paired with disp_vm.enable
+      # below (two-VM build).
       nvidia.passthroughs.gpu_vm.enable = true;
+      # Display-only microvm for the two-VM split; owns scanout_p/disp_caps_pt/
+      # disp_chan_pt disjoint from gpu_vm.
+      nvidia.passthroughs.disp_vm.enable = true;
 
       # Net VM hardware-specific modules - use hardware.definition for composition model
       definition.netvm.extraModules = [

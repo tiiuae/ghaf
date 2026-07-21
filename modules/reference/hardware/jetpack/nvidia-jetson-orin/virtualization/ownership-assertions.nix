@@ -66,5 +66,12 @@ in
         (displayOn && (lib.length displayOwners == 1)) || (!displayOn && displayOwners == [ ]);
       message = "Orin: exactly one active VM must set GHAF_DCE_GUEST when display is enabled, and none when it is disabled.";
     }
+    {
+      # A compute gpu-vm releases the display scanout carveout (EXP_SHRINK_BANK1);
+      # something must own it. Forbid a standalone gpu-vm with no display owner so
+      # the "scanout released to nobody" regression can't ship silently again.
+      assertion = !gpuOn || dispOn || guiOn;
+      message = "Orin: gpu-vm (compute) releases the display scanout carveout and requires a display owner on the same host (enable disp-vm, or use the accelerated gui-vm). A standalone gpu-vm leaves scanout unowned.";
+    }
   ];
 }
