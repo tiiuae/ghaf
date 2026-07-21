@@ -12,6 +12,10 @@
 # is the last release that has it. Only the VM receiving such a device uses this
 # QEMU (set via microvm.qemu.package); everything else stays on pkgs.ghaf-qemu.
 #
+# 11.0.1 still lacks vfio-platform (checked 2026-07-21), so the pin holds. When
+# base ghaf-qemu bumps QEMU its patches may stop applying here -- fix the
+# prev.patches filter below, don't drop the pin.
+#
 # The pin is a security liability: net-vm is network-facing and won't get QEMU
 # fixes past 10.1.x. Revisit if upstream restores platform passthrough.
 #
@@ -19,11 +23,13 @@
 # and rename the binary. pkgs-by-name auto-calls with {}, so both default to the
 # net-vm build -- pkgs.ghaf-qemu-bpmp is byte-identical to before.
 {
+  lib,
   ghaf-qemu,
   fetchurl,
-  lib,
   extraPatches ? [ ],
   variantName ? "",
+  # validated on MGBE0 only; the GPU variant opts out
+  withIrqfdFastPath ? true,
   ...
 }:
 ghaf-qemu.overrideAttrs (
@@ -40,11 +46,25 @@ ghaf-qemu.overrideAttrs (
     # series (extended-GPE / Battery / AC-adapter / lid-button) no longer applies
     # to the pinned 10.1.5 and is irrelevant to the Orin aarch64 microvm. Drop it
     # so the package builds; keep everything else.
+    #
+    # 0004-0006 fix vfio-platform's irqfd fast path on GICv3 (the GICv3 model never
+    # registered the qemu_irq->GSI map, so every IRQ trapped to userspace). One unit,
+    # do not split: 0004 alone kills the NIC. With 0001's AXI config: 76 -> 944 Mbit/s.
+    # net-vm only; the GPU variant sets withIrqfdFastPath = false.
+    # The hw-acpi- series is x86-only in base ghaf-qemu (isx86_64-guarded), so on
+    # the aarch64 Orin guest prev.patches carries none and this filter is a no-op;
+    # it only bites if base ever makes them cross-platform. No count assert: the
+    # expected number is 0 here and 4 on x86, so a fixed check would be wrong.
     patches =
       (lib.filter (p: !(lib.hasInfix "hw-acpi-" (baseNameOf p))) (prev.patches or [ ]))
       ++ [
         ./patches/0001-nvidia-bpmp-guest-hooks.patch
         ./patches/0002-nvidia-dce-guest-hooks.patch
+      ]
+      ++ lib.optionals withIrqfdFastPath [
+        ./patches/0004-arm-gicv3-kvm-register-qemuirq-gsi.patch
+        ./patches/0005-vfio-platform-unmask-after-resamplefd.patch
+        ./patches/0006-vfio-platform-rearm-automasked-lines.patch
       ]
       ++ extraPatches;
 

@@ -125,7 +125,7 @@ Rebased from tiiuae/ghaf PR #1240 (QEMU 9.2). The MGBE0 binding is new.
      VIRT_UART1,
 --- a/hw/core/sysbus-fdt.c
 +++ b/hw/core/sysbus-fdt.c
-@@ -509,11 +509,151 @@
+@@ -509,11 +509,172 @@
  #define TYPE_BINDING(type, add_fn) {(type), NULL, (add_fn), NULL}
  
  /* list of supported dynamic sysbus bindings */
@@ -259,6 +259,27 @@ Rebased from tiiuae/ghaf PR #1240 (QEMU 9.2). The MGBE0 binding is new.
 +                              "resets", bpmp_phandle, 2);
 +    tegra_mgbe_copy_bpmp_prop(host_fdt, guest_fdt, node_path[0], nodename,
 +                              "power-domains", bpmp_phandle, 2);
++
++    /*
++     * snps,axi-config: mainline stmmac skips DMA burst/osr programming without
++     * this child. Synthesize a guest-local one (the host phandle is meaningless
++     * here). snps,blen is 7 cells: mainline reads it with AXI_BLEN=7 and drops
++     * the whole property (-EOVERFLOW) on fewer.
++     */
++    {
++        char *axi_node = g_strdup_printf("%s/stmmac-axi-config", nodename);
++        uint32_t axi_phandle = qemu_fdt_alloc_phandle(guest_fdt);
++
++        qemu_fdt_add_subnode(guest_fdt, axi_node);
++        qemu_fdt_setprop_cell(guest_fdt, axi_node, "phandle", axi_phandle);
++        qemu_fdt_setprop_cells(guest_fdt, axi_node, "snps,blen",
++                               256, 128, 64, 32, 16, 8, 4);
++        qemu_fdt_setprop_cell(guest_fdt, axi_node, "snps,rd_osr_lmt", 63);
++        qemu_fdt_setprop_cell(guest_fdt, axi_node, "snps,wr_osr_lmt", 63);
++        qemu_fdt_setprop_cell(guest_fdt, nodename, "snps,axi-config",
++                              axi_phandle);
++        g_free(axi_node);
++    }
 +
 +    g_free(host_fdt);
 +    g_strfreev(node_path);

@@ -20,6 +20,9 @@
 { ghaf-qemu-bpmp }:
 ghaf-qemu-bpmp.override {
   variantName = "-gpu";
+  # irqfd fast path was validated on MGBE0 only; the GPU/host1x/display devices have
+  # not been tried on it and the display bring-up depends on their interrupt behaviour.
+  withIrqfdFastPath = false;
   extraPatches = [
     ../ghaf-qemu-bpmp/patches/0002-vfio-platform-mmio-base.patch
     ../ghaf-qemu-bpmp/patches/0003-nop-predefined-dtb-memory.patch

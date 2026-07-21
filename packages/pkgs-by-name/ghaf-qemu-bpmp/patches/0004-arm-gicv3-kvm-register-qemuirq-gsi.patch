@@ -1,0 +1,55 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ghaf contributors <ghaf@tii.ae>
+Date: Mon, 20 Jul 2026 12:00:00 +0300
+Subject: [PATCH] hw/intc/arm_gicv3_kvm: register qemu_irq -> GSI mapping
+
+kvm_irqchip_add_irqfd_notifier() resolves a qemu_irq to a KVM GSI via
+KVMState->gsimap, which is populated only by kvm_irqchip_set_qemuirq_gsi().
+Its sole caller is the GICv2 KVM model (hw/intc/arm_gic_kvm.c); the GICv3
+model never registered its lines. On a GICv3 machine the lookup therefore
+always misses and the notifier returns -ENXIO.
+
+vfio-platform reacts to that failure by falling back from the irqfd fast
+path to userspace eventfd injection (hw/vfio/platform.c:382). In that mode
+vfio_intp_interrupt() calls vfio_mmap_set_enabled(vdev, false) on every
+interrupt so the guest's status-register clear can be trapped and treated as
+EOI, and it re-arms the mmap timer unconditionally on each interrupt. Under
+sustained load the timeout (default 1100 ms) is refreshed faster than it can
+expire, so the device MMIO is never re-mapped and every register access in
+the guest's interrupt path becomes a userspace exit.
+
+Measured on a Jetson AGX Orin passing the on-SoC MGBE0 ethernet controller
+to a guest: ~12 userspace MMIO exits per interrupt, ~60% of a vCPU in
+hard-IRQ context, and throughput pinned at ~100 Mbit/s on a 1 Gbps link.
+
+arm64 KVM has advertised KVM_CAP_IRQFD_RESAMPLE since commit 52882b9c7a76,
+and the vGICv3 signals EOI for level-triggered SPIs via kvm_notify_acked_irq,
+so the resampling irqfd path works once the mapping exists.
+---
+--- a/hw/intc/arm_gicv3_kvm.c
++++ b/hw/intc/arm_gicv3_kvm.c
+@@ -823,6 +823,22 @@
+ 
+     gicv3_init_irqs_and_mmio(s, kvm_arm_gicv3_set_irq, NULL);
+ 
++    /*
++     * Register the qemu_irq -> GSI mapping for every SPI. Devices that inject
++     * interrupts via an irqfd (notably vfio-platform) look their line up here
++     * through kvm_irqchip_add_irqfd_notifier(); without an entry that call
++     * fails with -ENXIO and the device silently falls back to routing every
++     * interrupt through userspace. For vfio-platform that fallback also
++     * disables the MMIO mmap on each interrupt to infer EOI, so a busy device
++     * traps every register access and loses most of its throughput.
++     *
++     * The GICv2 KVM model has always done this (hw/intc/arm_gic_kvm.c); the
++     * GICv3 model never did, leaving the fast path unreachable on GICv3.
++     */
++    for (i = 0; i < s->num_irq - GIC_INTERNAL; i++) {
++        kvm_irqchip_set_qemuirq_gsi(kvm_state, qdev_get_gpio_in(dev, i), i);
++    }
++
+     for (i = 0; i < s->num_cpu; i++) {
+         ARMCPU *cpu = ARM_CPU(qemu_get_cpu(i));
+ 
+-- 
+2.49.0
