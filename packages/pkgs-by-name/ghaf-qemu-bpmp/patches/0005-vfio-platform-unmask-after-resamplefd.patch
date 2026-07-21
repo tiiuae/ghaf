@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ghaf contributors <ghaf@tii.ae>
+Date: Mon, 20 Jul 2026 17:00:00 +0300
+Subject: [PATCH] hw/vfio/platform: unmask the line after arming the resamplefd
+
+vfio enables the IRQ inside vfio_start_irqfd_injection() (from
+sysbus_connect_irq() during device connect), before the guest installs a
+handler for the SPI. An assertion in that window is auto-masked, and on the
+irqfd path only the resamplefd re-arms the line - which needs a guest EOI for
+an interrupt it never got, so it stays masked forever. (Measured on an AGX
+Orin: host vfio IRQ fires once, guest SPI stays 0, NIC receives nothing.) The
+userspace path self-heals via vfio_platform_eoi() on any MMIO.
+
+Unmask once after the resamplefd is armed, opt-in via the "startup-rearm"
+property so no other vfio-platform device is affected. This patch carries the
+struct field + property so it is independently buildable and bisectable; the
+bounded retry loop (next patch) builds on top of it.
+---
+--- a/hw/vfio/platform.c
++++ b/hw/vfio/platform.c
+@@ -403,6 +403,15 @@
+         if (vfio_set_resample_eventfd(intp) < 0) {
+             goto fail_vfio;
+         }
++
++        /*
++         * The line is armed during device connect, before the guest installs
++         * its SPI handler; a stale assertion then wedges it (only the resamplefd
++         * re-arms on irqfd, and it needs a guest EOI). Opt-in unmask once here.
++         */
++        if (vdev->startup_rearm) {
++            vfio_device_irq_unmask(&vdev->vbasedev, intp->pin);
++        }
+         trace_vfio_platform_start_level_irqfd_injection(intp->pin,
+                                     event_notifier_get_fd(intp->interrupt),
+                                     event_notifier_get_fd(intp->unmask));
+@@ -653,6 +662,7 @@
+     DEFINE_PROP_UINT32("mmap-timeout-ms", VFIOPlatformDevice,
+                        mmap_timeout, 1100),
+     DEFINE_PROP_BOOL("x-irqfd", VFIOPlatformDevice, irqfd_allowed, true),
++    DEFINE_PROP_BOOL("startup-rearm", VFIOPlatformDevice, startup_rearm, false),
+ #ifdef CONFIG_IOMMUFD
+     DEFINE_PROP_LINK("iommufd", VFIOPlatformDevice, vbasedev.iommufd,
+                      TYPE_IOMMUFD_BACKEND, IOMMUFDBackend *),
+--- a/include/hw/vfio/vfio-platform.h
++++ b/include/hw/vfio/vfio-platform.h
+@@ -60,6 +60,7 @@
+     unsigned int num_compat; /* number of compatible values */
+     uint32_t mmap_timeout; /* delay to re-enable mmaps after interrupt */
+     QEMUTimer *mmap_timer; /* allows fast-path resume after IRQ hit */
++    bool startup_rearm; /* opt-in: re-arm early automasked lines at boot */
+     QemuMutex intp_mutex; /* protect the intp_list IRQ state */
+     bool irqfd_allowed; /* debug option to force irqfd on/off */
+ };
+--
+2.49.0

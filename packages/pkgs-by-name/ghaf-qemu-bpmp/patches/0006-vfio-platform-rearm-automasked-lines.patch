@@ -1,0 +1,133 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ghaf contributors <ghaf@tii.ae>
+Date: Mon, 20 Jul 2026 18:00:00 +0300
+Subject: [PATCH] hw/vfio/platform: bounded opt-in re-arm for early automasked
+ lines
+
+Unmasking once when the resamplefd is armed (previous patch) is not enough:
+vfio arms the line from vfio_start_irqfd_injection() (sysbus_connect_irq(),
+during device connect), ~17s before the guest driver requests the SPI when it
+opens the interface. An assertion in that gap is injected while nobody is
+listening, never EOId, so the resamplefd never fires and the line stays masked
+forever - the device goes silent.
+
+The userspace path self-heals via vfio_platform_eoi() on any MMIO. A perpetual,
+all-device unmask would bypass the resamplefd contract (a paused/reset/quiesced
+guest would get its line rearmed with no matching EOI), so make it opt-in and
+bounded:
+
+  - off unless "startup-rearm=on" is set on the device (default false);
+  - runs only for "startup-rearm-window" ms after the first arm (default 30s);
+  - on QEMU_CLOCK_VIRTUAL, which freezes while the guest is paused.
+
+Note this re-arms *every* kvm_accel level line for the window, not only the
+startup-wedged one: on the irqfd path intp->state is not maintained (the
+eventfd goes straight to KVM, bypassing vfio_intp_interrupt), so the loop
+cannot distinguish a wedged line from a live one. Harmless in this deployment -
+unmasking an already-unmasked line is a no-op, and MGBE0, the only opted-in
+device, is single-IRQ and quiescent during bring-up.
+
+Set startup-rearm-window=0 for perpetual recovery if a deployment needs it
+past the window.
+---
+--- a/hw/vfio/platform.c
++++ b/hw/vfio/platform.c
+@@ -182,6 +182,41 @@ static void vfio_intp_mmap_enable(void *opaque)
+     vfio_mmap_set_enabled(vdev, true);
+ }
+ 
++/**
++ * vfio_platform_unmask_watchdog - re-arm level lines automasked before the
++ * guest was listening. On irqfd only the resamplefd re-arms an automasked
++ * line, and it fires only after a guest EOI - but the line is armed long
++ * before the guest requests the SPI, so an early assertion wedges it.
++ *
++ * NB: on the irqfd path intp->state is not maintained (the eventfd goes
++ * straight to KVM, bypassing vfio_intp_interrupt), so this cannot tell a
++ * startup-wedged line from one legitimately cycling - it re-arms EVERY
++ * kvm_accel level line once a second for the whole window. Harmless here:
++ * unmasking an already-unmasked line is a no-op, this is opt-in, and MGBE0
++ * (the only opted-in device) is single-IRQ and idle during bring-up. A future
++ * multi-IRQ opt-in must accept that all its level lines are re-armed for the
++ * window. Bounded to the startup window; QEMU_CLOCK_VIRTUAL freezes on pause.
++ */
++static void vfio_platform_unmask_watchdog(void *opaque)
++{
++    VFIOPlatformDevice *vdev = (VFIOPlatformDevice *)opaque;
++    int64_t now = qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL);
++    VFIOINTp *intp;
++
++    if (vdev->startup_rearm_window && now >= vdev->startup_rearm_deadline) {
++        return; /* window elapsed: let the resamplefd contract own the line */
++    }
++
++    WITH_QEMU_LOCK_GUARD(&vdev->intp_mutex) {
++        QLIST_FOREACH(intp, &vdev->intp_list, next) {
++            if (intp->kvm_accel && vfio_irq_is_automasked(intp)) {
++                vfio_device_irq_unmask(&vdev->vbasedev, intp->pin);
++            }
++        }
++    }
++    timer_mod(vdev->unmask_timer, now + 1000);
++}
++
+ /**
+  * vfio_intp_inject_pending_lockheld - Injects a pending IRQ
+  * @opaque: opaque pointer, in practice the VFIOINTp handle
+@@ -420,6 +455,15 @@ static void vfio_start_irqfd_injection(SysBusDevice *sbdev, qemu_irq irq)
+                                     event_notifier_get_fd(intp->interrupt));
+     }
+ 
++    /* The resamplefd alone cannot recover a line masked before the guest was
++     * listening. If this device opted in, run a low-rate re-arm bounded to the
++     * startup window. */
++    if (vdev->startup_rearm && !vdev->startup_rearm_deadline) {
++        int64_t now = qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL);
++        vdev->startup_rearm_deadline = now + vdev->startup_rearm_window;
++        timer_mod(vdev->unmask_timer, now + 1000);
++    }
++
+     intp->kvm_accel = true;
+ 
+     return;
+@@ -479,6 +523,8 @@ static bool vfio_populate_device(VFIODevice *vbasedev, Error **errp)
+ 
+     vdev->mmap_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL,
+                                     vfio_intp_mmap_enable, vdev);
++    vdev->unmask_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL,
++                                      vfio_platform_unmask_watchdog, vdev);
+ 
+     QSIMPLEQ_INIT(&vdev->pending_intp_queue);
+ 
+@@ -503,6 +549,7 @@ static bool vfio_populate_device(VFIODevice *vbasedev, Error **errp)
+     return true;
+ irq_err:
+     timer_del(vdev->mmap_timer);
++    timer_del(vdev->unmask_timer);
+     QLIST_FOREACH_SAFE(intp, &vdev->intp_list, next, tmp) {
+         QLIST_REMOVE(intp, next);
+         g_free(intp);
+@@ -647,6 +694,8 @@ static const Property vfio_platform_dev_properties[] = {
+                        mmap_timeout, 1100),
+     DEFINE_PROP_BOOL("x-irqfd", VFIOPlatformDevice, irqfd_allowed, true),
+     DEFINE_PROP_BOOL("startup-rearm", VFIOPlatformDevice, startup_rearm, false),
++    DEFINE_PROP_UINT32("startup-rearm-window", VFIOPlatformDevice,
++                       startup_rearm_window, 30000),
+ #ifdef CONFIG_IOMMUFD
+     DEFINE_PROP_LINK("iommufd", VFIOPlatformDevice, vbasedev.iommufd,
+                      TYPE_IOMMUFD_BACKEND, IOMMUFDBackend *),
+--- a/include/hw/vfio/vfio-platform.h
++++ b/include/hw/vfio/vfio-platform.h
+@@ -60,7 +60,10 @@ struct VFIOPlatformDevice {
+     unsigned int num_compat; /* number of compatible values */
+     uint32_t mmap_timeout; /* delay to re-enable mmaps after interrupt */
+     QEMUTimer *mmap_timer; /* allows fast-path resume after IRQ hit */
++    QEMUTimer *unmask_timer; /* re-arms lines masked before the guest listened */
+     bool startup_rearm; /* opt-in: re-arm early automasked lines at boot */
++    uint32_t startup_rearm_window; /* ms after first arm to keep re-arming (0 = forever) */
++    int64_t startup_rearm_deadline; /* QEMU_CLOCK_VIRTUAL ms; 0 until armed */
+     QemuMutex intp_mutex; /* protect the intp_list IRQ state */
+     bool irqfd_allowed; /* debug option to force irqfd on/off */
+ };
+-- 
+2.49.0
