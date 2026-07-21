@@ -52,5 +52,19 @@ in
       );
       message = "Orin capability set invalid: no-syncpoint NVKMS selected outside the display-only (disp-vm) role.";
     }
+    {
+      # spec item 1: gui-vm is exclusive
+      assertion = !(guiOn && (gpuOn || dispOn));
+      message = "Orin: gui-vm cannot be enabled alongside gpu-vm or disp-vm; accelerated mode owns every combined capability exclusively.";
+    }
+    {
+      # spec item 8: exactly one GHAF_DCE_GUEST when display enabled, zero when disabled
+      assertion =
+        let
+          displayOn = dispOn || guiOn;
+        in
+        (displayOn && (lib.length displayOwners == 1)) || (!displayOn && displayOwners == [ ]);
+      message = "Orin: exactly one active VM must set GHAF_DCE_GUEST when display is enabled, and none when it is disabled.";
+    }
   ];
 }

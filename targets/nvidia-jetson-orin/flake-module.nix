@@ -90,6 +90,22 @@ let
     })
 
     (ghaf-configuration {
+      name = "nvidia-jetson-orin-agx-accelerated-guivm";
+      inherit system;
+      profile = "orin";
+      hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx;
+      variant = "debug";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-orinuser-trial.enable = true;
+        # Accelerated topology: gui-vm owns the combined payload; split VMs off.
+        hardware.nvidia.passthroughs.gui_vm.enable = true;
+        hardware.nvidia.passthroughs.gpu_vm.enable = lib.mkForce false;
+        hardware.nvidia.passthroughs.disp_vm.enable = lib.mkForce false;
+      };
+    })
+
+    (ghaf-configuration {
       name = "nvidia-jetson-orin-agx64";
       inherit system;
       profile = "orin";
