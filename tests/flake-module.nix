@@ -9,7 +9,12 @@
     {
       x86_64-linux =
         let
-          pkgs = pkgsPerSystem "x86_64-linux";
+          pkgs = (pkgsPerSystem "x86_64-linux").extend (
+            self.inputs.nixpkgs.lib.composeManyExtensions [
+              self.overlays.default
+              (_: _prev: { inherit (self) lib; })
+            ]
+          );
         in
         {
           installer = pkgs.callPackage ./installer { inherit self; };
@@ -17,6 +22,7 @@
           # firewall = pkgs.callPackage ./firewall { inherit self; };
           logging-fss = pkgs.callPackage ./logging { inherit self; };
           fss-test = pkgs.callPackage ./logging/test_scripts/fss-test.nix { };
+          access-control-tests = pkgs.callPackage ./access-control { inherit self; };
         };
     };
 }
