@@ -26,28 +26,20 @@ let
   # `config` shadow picking up the guest config.
   virt = config.ghaf.hardware.nvidia.virtualization;
 
-  # Host1x-ownership experiment (experiment/orin-two-vm-host1x). Both no-host1x
-  # directions drop physical host1x + 64MiB syncpoint shim + media (one unit).
-  # compute-no-host1x also drops display/DCE; display-no-host1x also drops
-  # GA10B/nvgpu and forces NVKMS no-syncpt mode.
-  exp = cfg.host1xExperiment;
-  computeNoHost1x = exp == "compute-no-host1x";
-  computeWithHost1x = exp == "compute-with-host1x";
-  displayOnly = exp == "display-no-host1x";
-  # host1x + 64MiB shim + media move as one unit; dropped only where host1x is
-  # removed (the two no-host1x experiments), kept for off and compute-with-host1x.
-  dropHost1x = computeNoHost1x || displayOnly;
-  # display/DCE/scanout/keyholes dropped for both compute VMs (neither drives display).
-  dropDisplay = computeNoHost1x || computeWithHost1x;
+  # Explicit compute capability (Task 1: payload/default.nix), replacing the
+  # former host1xExperiment enum. gpu-vm is the "compute-with-host1x" arm:
+  # keeps host1x/gpu/media, drops display.
+  inherit (import ../payload { inherit lib pkgs; }) capabilities mkPayload;
+  cap = capabilities.gpuvm;
+  payload = mkPayload cap;
 
-  # cpp -D flags that strip/resize guest DT nodes for the host1x experiment.
-  expDtDefines =
-    lib.optionalString dropHost1x "-DEXP_DROP_HOST1X "
-    + lib.optionalString dropDisplay "-DEXP_DROP_DISPLAY "
-    + lib.optionalString displayOnly "-DEXP_DROP_GPU "
-    # Shrink memory@ bank1 to 0x80000000..0xb0000000 so it no longer needs the
-    # scanout carveout, releasing 0xb0000000 for the GUI VM.
-    + lib.optionalString computeWithHost1x "-DEXP_SHRINK_BANK1 ";
+  dropHost1x = !cap.host1x; # false for gpuvm
+  dropDisplay = !cap.display; # true
+  displayOnly = cap.display && !cap.gpu && !cap.host1x; # false
+  computeWithHost1x = cap.gpu && cap.host1x && !cap.display; # true
+
+  # cpp -D flags that strip/resize guest DT nodes for the compute payload.
+  inherit (payload) expDtDefines;
 
   # Devices passed to gpu-vm. Reserved-memory carveouts take an explicit
   # mmio-base for 1:1 GPA=HPA; engines use the default mapping.
@@ -238,26 +230,6 @@ in
     description = "Pass the Tegra234 GPU and engines through to gpu-vm on NVIDIA Orin AGX";
   };
 
-  options.ghaf.hardware.nvidia.passthroughs.gpu_vm.host1xExperiment = lib.mkOption {
-    type = lib.types.enum [
-      "off"
-      "compute-no-host1x"
-      "display-no-host1x"
-      "compute-with-host1x"
-    ];
-    default = "off";
-    description = ''
-      Branch-only host1x-ownership experiment selector (experiment/orin-two-vm-host1x).
-      "off" reproduces the validated combined-gpuvm build. "compute-no-host1x"
-      strips host1x/shim/media/display for the GPU-compute feasibility gate.
-      "display-no-host1x" strips host1x/shim/media/gpu and forces NVKMS no-syncpt
-      mode for the software-display feasibility gate. "compute-with-host1x" is the
-      concurrent-test GPU VM: KEEPS host1x/shim/media/gpu, drops display, and
-      shrinks guest RAM bank1 to release the scanout carveout for the GUI VM.
-      Never promote to a target.
-    '';
-  };
-
   config = lib.mkIf cfg.enable {
     ghaf.hardware.nvidia.virtualization.host.bpmp.enable = true;
 
@@ -271,13 +243,6 @@ in
       {
         assertion = !config.ghaf.hardware.nvidia.virtualization.bpmpAllowAllDomains;
         message = "gpu_vm passthrough requires the closed BPMP allow-list; ghaf.hardware.nvidia.virtualization.bpmpAllowAllDomains must stay false.";
-      }
-      {
-        # Only one VM may open /dev/dce-host and drain the single DCE event ring
-        # (patch 0002's gate). gpu-vm sets GHAF_DCE_GUEST unless dropDisplay;
-        # disp-vm sets it whenever enabled -- so the two must not overlap.
-        assertion = !((!dropDisplay) && config.ghaf.hardware.nvidia.passthroughs.disp_vm.enable);
-        message = "gpu-vm still owns the display (host1xExperiment = \"${exp}\") while disp_vm is enabled: both would set GHAF_DCE_GUEST and race the DCE ring. Use a display-dropping host1xExperiment mode or disable disp_vm.";
       }
     ];
 

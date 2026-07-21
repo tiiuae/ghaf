@@ -7,10 +7,10 @@
 # windows -- all already declared+reserved by gpu-vm's gpu_passthrough_overlay.dts
 # (`_p` dummy nodes + reserved-memory). No new host carveouts here.
 #
-# The companion gpu-vm runs host1xExperiment = "compute-with-host1x": keeps
-# host1x/gpu/media/shim, shrinks its guest RAM bank1 to 0x80000000..0xb0000000,
-# drops its scanout claim -- releasing 0xb0000000 for disp-vm. See
-# ../gpu-vm/default.nix and orin-agx.nix.
+# The companion gpu-vm runs the compute capability (capabilities.gpuvm in
+# ../payload/default.nix): keeps host1x/gpu/media/shim, shrinks its guest RAM
+# bank1 to 0x80000000..0xb0000000, drops its scanout claim -- releasing
+# 0xb0000000 for disp-vm. See ../gpu-vm/default.nix and orin-agx.nix.
 #
 # Guest RAM (see tegra234-dispvm.dts): general guest RAM is plain QEMU -m emulated
 # RAM, NOT a 1:1 carveout (no vm_cma_p claimed), so no host-PA collision with
