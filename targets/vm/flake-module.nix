@@ -206,6 +206,7 @@ let
                 ];
 
                 givc = {
+                  accessControl.enable = lib.mkForce false;
                   enable = withGraphics;
                   debug = true;
                   # We enable the gui-vm module as the desktop runs on the host
