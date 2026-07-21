@@ -18,6 +18,12 @@
     # Guest DT pins four CPUs; keep vcpu in sync (base defaults 6).
     microvm.vcpu = lib.mkForce 4;
 
+    # gpu-screen-recorder is x86_64-only (modules/desktop/graphics/screen-recorder.nix
+    # asserts pkgs.stdenv.isx86_64). COSMIC's screenRecorder defaults true and maps
+    # to ghaf.graphics.screen-recorder.enable, so the aarch64 gui-vm guest would trip
+    # that assertion. The Orin host disables it in orin.nix; the guest needs the same.
+    ghaf.graphics.cosmic.screenRecorder.enable = lib.mkForce false;
+
     # Renderer/boot/input/TPM/audio specialisation belongs to the hw-bringup
     # plan (Phase 5-6). This module intentionally stays hardware-composition
     # only.
