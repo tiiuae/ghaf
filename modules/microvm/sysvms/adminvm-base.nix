@@ -153,6 +153,7 @@ in
     givc = {
       inherit (globalConfig.givc) enable;
       inherit (globalConfig.givc) debug;
+      accessControl.enable = true;
     };
 
     # Security
