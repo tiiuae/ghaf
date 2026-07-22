@@ -14,5 +14,6 @@
     ./spire
     ./tpm2-packages.nix
     ../../secureboot/secureboot.nix
+    ./usb-filtering
   ];
 }

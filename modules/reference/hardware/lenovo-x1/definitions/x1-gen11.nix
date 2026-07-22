@@ -90,6 +90,28 @@
     kernelConfig.kernelParams = [ "snd_intel_dspcfg.dsp_driver=0" ];
   };
 
+  usbControllers = {
+    pciDevices = [
+      {
+        # Passthrough Intel Raptor Lake-P Thunderbolt 4 USB Controller
+        # It handles 2 right side USB Type-C ports
+        path = "0000:00:0d.0";
+        vendorId = "8086";
+        productId = "a71e";
+
+        # Intel Corporation Alder Lake PCH USB 3.2 xHCI Host Controller
+        # It handles:
+        # 1 left side USB Type-A ports
+        # 1 right side USB Type-A port
+        # Second USB controller:
+        # internal USB 2.0 hub for keyboard, touchpad, fingerprint reader, camera, and Bluetooth
+        # path = "0000:00:14.0";
+        # vendorId = "8086";
+        # productId = "51ed";
+      }
+    ];
+  };
+
   usb.devices = [
     # Integrated camera
     {

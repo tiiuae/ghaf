@@ -335,6 +335,13 @@ in
       pkgs.ctrl-panel
       pkgs.waypipe
       pkgs.wlopm
+
+      # jarekk: enable usbip for gui-vm by default
+      # jarekk: we should probably add a feature flag for this
+      pkgs.linuxPackages.usbip
+      # jarekk: remove the packages after testing
+      pkgs.usbutils
+      pkgs.pciutils
     ]
     # For GIVC debugging/testing
     ++ lib.optional (globalConfig.debug.enable or false) pkgs.givc-cli
@@ -445,4 +452,12 @@ in
       .${globalConfig.storage.storeOnDisk.compression.algorithm};
     }
   );
+
+  # jarekk: enable usbip for gui-vm by default
+  # jarekk: we should probably add a feature flag for this, but for now we just enable it
+  boot.kernelModules = [
+    "vhci_hcd"
+    "usbip-core"
+    "usbip-host"
+  ];
 }

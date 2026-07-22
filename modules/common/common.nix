@@ -151,6 +151,11 @@ in
           default = [ { } ];
           description = "List of USB devices enabled for passthrough.";
         };
+        usbControllers = mkOption {
+          type = types.listOf types.attrs;
+          default = [ { } ];
+          description = "List of USB controllers enabled for passthrough.";
+        };
       };
     };
     type = mkOption {
@@ -274,6 +279,7 @@ in
               gpus = config.ghaf.hardware.definition.gpu.pciDevices;
               audio = config.ghaf.hardware.definition.audio.pciDevices;
               usb = config.ghaf.hardware.definition.usb.devices;
+              usbControllers = config.ghaf.hardware.definition.usbControllers.pciDevices;
             };
           };
         };

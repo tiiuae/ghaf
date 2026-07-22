@@ -32,6 +32,8 @@ let
     "net-vm" = staticPciCount "network" + 2;
     # Audio controllers often include multiple devices in the same IOMMU group
     "audio-vm" = staticPciCount "audio" + 7;
+    # Peripherals VM may need ports for USB controllers and other devices
+    "periph-vm" = staticPciCount "usbControllers" + 2;
   };
 
   # Helper function to create PCIe root ports in a microvm
@@ -93,6 +95,11 @@ in
       netvm.extraModules = [
         {
           microvm.qemu.pcieRootPorts = mkPcieRootPorts "net-vm";
+        }
+      ];
+      peripheralsvm.extraModules = [
+        {
+          microvm.qemu.pcieRootPorts = mkPcieRootPorts "periph-vm";
         }
       ];
     };
