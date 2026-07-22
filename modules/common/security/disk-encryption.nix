@@ -95,6 +95,7 @@ in
         unitScript = pkgs.writeShellApplication {
           name = "luks-enroll-tpm-unit-script";
           runtimeInputs = [
+            pkgs.coreutils
             pkgs.gnugrep
             pkgs.cryptsetup
             pkgs.plymouth
@@ -112,7 +113,12 @@ in
             PASSWORD="" systemd-cryptenroll ${enrollOpts} "$P_DEVPATH"
 
             echo '-- adding recovery key --'
-            PASSWORD="" systemd-cryptenroll --recovery "$P_DEVPATH"
+            # Never print the recovery key to stdout: this unit logs to the
+            # journal, which is persisted and exported off-device.
+            umask 077
+            mkdir -p /var/lib/ghaf
+            PASSWORD="" systemd-cryptenroll --recovery "$P_DEVPATH" > /var/lib/ghaf/luks-recovery-key
+            echo 'Recovery key written to /var/lib/ghaf/luks-recovery-key (root-only). Export it to a safe location and delete the file.'
 
             echo '========== Removing default passphrase =========='
             systemd-cryptenroll --wipe-slot=password "$P_DEVPATH"
