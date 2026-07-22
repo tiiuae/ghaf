@@ -38,6 +38,14 @@ in
       default = true;
       description = "Whether encryption setup requires user interaction (false = debug/automated)";
     };
+    # Declared here (not in the deferred partitioning module) because this
+    # module reads it and is imported on every target, while the deferred
+    # module only ships in the disko bundle.
+    deferred = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Apply disk encryption on first boot instead of at image creation";
+    };
     debugTools = mkOption {
       type = types.bool;
       default = false;
