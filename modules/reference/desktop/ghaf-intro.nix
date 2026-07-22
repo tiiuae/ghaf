@@ -54,7 +54,11 @@ in
           {
             name = "ghaf-intro";
             desktopName = "Getting Started";
-            startupWMClass = "chrome-__nix_store_850v4wcrr356skfy90gj6j8w95lmx6mq-ghaf-intro-1.0.0_index.html-Default";
+            # Chrome derives the WM class for --app=file:// URLs from the sanitized
+            # path, so it must track the ghaf-intro store path instead of a literal.
+            startupWMClass = "chrome-_${
+              lib.replaceStrings [ "/" ] [ "_" ] "${pkgs.ghaf-intro}/index.html"
+            }-Default";
             categories = [
               "Utility"
               "Documentation"
