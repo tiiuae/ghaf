@@ -71,7 +71,7 @@ let
     }
   ];
 
-  # All Orin configurations using mkGhafConfiguration
+  # Non-verity Orin configurations using mkGhafConfiguration
   target-configs = [
     # ============================================================
     # Debug Configurations
@@ -200,15 +200,14 @@ let
       };
     })
 
-    # ============================================================
-    # A/B Verity Boot Configurations (AGX only)
-    # ============================================================
-  ]
-  ++
+  ];
+
+  # A/B Verity Boot Configurations (AGX only)
+  verity-target-configs =
     map
       (
         variant:
-        ghaf-configuration {
+        (ghaf-configuration {
           name = "nvidia-jetson-orin-agx-verity";
           inherit system;
           profile = "orin";
@@ -228,12 +227,16 @@ let
               variant == "debug"
             ) ../../modules/secureboot/dev-keys;
           };
+        })
+        // {
+          isVerity = true;
         }
       )
       [
         "debug"
         "release"
       ];
+  all-target-configs = target-configs ++ verity-target-configs;
 
   generate-nodemoapps =
     tgt:
@@ -277,12 +280,12 @@ let
 
   # LUKS and dm-verity are mutually exclusive root strategies (see the assertion
   # in jetson-orin.nix), so the verity targets get no -luks variant.
-  luksable-target-configs = builtins.filter (t: !isVerityTarget t) target-configs;
+  luksable-target-configs = builtins.filter (t: !isVerityTarget t) all-target-configs;
 
   # Add nodemoapps targets
   targets =
-    target-configs
-    ++ (map generate-nodemoapps target-configs)
+    all-target-configs
+    ++ (map generate-nodemoapps all-target-configs)
     ++ (map generate-luks luksable-target-configs)
     ++ (map (t: generate-luks (generate-nodemoapps t)) luksable-target-configs);
   crossTargets = map generate-cross-from-x86_64 targets;
@@ -367,8 +370,9 @@ let
       '';
     };
 
-  # Filter verity targets (those with verity-volume enabled) for ghafImage output
-  isVerityTarget = t: (t.hostConfiguration.config.ghaf.partitioning.verity.enable or false);
+  # Filter verity targets without forcing every hostConfiguration.config during
+  # package-set evaluation.
+  isVerityTarget = t: t.isVerity or false;
   verityCrossTargets = builtins.filter isVerityTarget crossTargets;
 in
 {
