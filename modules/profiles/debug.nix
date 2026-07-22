@@ -13,12 +13,19 @@ in
   _file = ./debug.nix;
 
   options.ghaf.profiles.debug = {
-    enable = (lib.mkEnableOption "debug profile") // {
-      default = !config.ghaf.profiles.release.enable;
-    };
+    # No implicit default: a composition that selects neither profile gets
+    # neither the debug stack (ssh, serial, debug tools) nor release gates.
+    enable = lib.mkEnableOption "debug profile";
   };
 
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = !config.ghaf.profiles.release.enable;
+        message = "The debug and release profiles are mutually exclusive.";
+      }
+    ];
+
     # Enable minimal profile as base
     ghaf.profiles.minimal.enable = true;
 

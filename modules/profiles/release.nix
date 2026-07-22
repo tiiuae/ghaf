@@ -19,6 +19,17 @@ in
     # Enable minimal profile as base
     ghaf.profiles.minimal.enable = true;
 
+    # TODO(release-policy): turn this warning into an assertion once the
+    # release credential policy and CI provisioning are agreed.
+    warnings =
+      lib.optional
+        (
+          config.ghaf.users.admin.enable
+          && config.ghaf.users.admin.hashedPassword == null
+          && config.ghaf.users.admin.initialHashedPassword == null
+        )
+        "Release image ships the well-known default admin password. Set ghaf.users.admin.hashedPassword (e.g. mkpasswd -m yescrypt) for production images.";
+
     # Enable default accounts and passwords
     # TODO this needs to be refined when we define a policy for the
     # processes and the UID/groups that should be enabled by default
