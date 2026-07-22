@@ -58,7 +58,7 @@ in
         # default priority for the GPU-VM runtime's explicit policy override.
         addToDockerGroup = lib.mkDefault (hostConfig.users.admin.addToDockerGroup or true);
       };
-      managed = hostConfig.users.managed or { };
+      managed = hostConfig.users.managed or [ ];
     };
 
     # Enable dynamic hostname export for VMs

@@ -10,7 +10,6 @@ let
   inherit (lib)
     mkIf
     mkOption
-    optionals
     types
     ;
   inherit (lib.attrsets) nameValuePair;
@@ -128,30 +127,37 @@ in
         users = builtins.listToAttrs (
           map (
             acc:
-            nameValuePair acc.name {
-              isNormalUser = true;
-              inherit (acc) initialPassword;
-              inherit (acc) initialHashedPassword;
-              inherit (acc) hashedPassword;
-              inherit (acc) createHome;
-              inherit (acc) linger;
-              inherit (acc) extraGroups;
-            }
-            // lib.optionalAttrs (acc.uid != null) {
-              inherit (acc) uid;
-            }
-            // lib.optionalAttrs (acc.gid != null) {
-              inherit (acc) gid;
-            }
+            # The overrides must merge into the user definition (the second
+            # argument), not into the nameValuePair result.
+            nameValuePair acc.name (
+              {
+                isNormalUser = true;
+                inherit (acc) initialPassword;
+                inherit (acc) initialHashedPassword;
+                inherit (acc) hashedPassword;
+                inherit (acc) createHome;
+                inherit (acc) linger;
+                inherit (acc) extraGroups;
+              }
+              // lib.optionalAttrs (acc.uid != null) {
+                inherit (acc) uid;
+              }
+              // lib.optionalAttrs (acc.gid != null) {
+                group = acc.name;
+              }
+            )
           ) accounts
         );
         groups = builtins.listToAttrs (
           map (
             acc:
-            optionals (acc.gid == null) (
-              nameValuePair acc.name {
+            nameValuePair acc.name (
+              {
                 inherit (acc) name;
                 members = [ acc.name ];
+              }
+              // lib.optionalAttrs (acc.gid != null) {
+                inherit (acc) gid;
               }
             )
           ) accounts

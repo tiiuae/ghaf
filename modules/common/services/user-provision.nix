@@ -96,7 +96,7 @@ let
           sleep 2
           if [ $SECONDS -ge 10 ]; then
             echo "Timeout reached after 10 seconds, proceeding anyway..."
-            exit 1
+            break
           fi
         done
       ''}
@@ -145,8 +145,9 @@ let
         fi
       ''
       + optionalString (!cfg.enableHomed && !cfg.enableAD) ''
-        # No provisioning required
-        exit 0
+        # No provisioning backend enabled: non-zero tells systemd to skip
+        # the provisioning service (ExecCondition semantics).
+        exit 1
       '';
   };
 

@@ -11,7 +11,6 @@
 let
   cfg = config.ghaf.services.performance;
   inherit (lib)
-    hasAttrByPath
     concatMapStringsSep
     getExe
     getExe'
@@ -57,19 +56,13 @@ let
   hostProfileScripts =
     let
       # PCI devices we can adjust power management for
-      pciDevices =
-        if
-          (hasAttrByPath [
-            "hardware"
-          ] config.ghaf.common)
-        then
-          map (device: device.path) (
-            config.ghaf.common.hardware.gpus
-            ++ config.ghaf.common.hardware.audio
-            ++ config.ghaf.common.hardware.nics
-          )
-        else
-          [ ];
+      pciDevices = map (device: device.path) (
+        lib.filter (d: (d.path or null) != null) (
+          config.ghaf.common.hardware.gpus
+          ++ config.ghaf.common.hardware.audio
+          ++ config.ghaf.common.hardware.nics
+        )
+      );
     in
     {
       host-powersave = mkTunedScript {
