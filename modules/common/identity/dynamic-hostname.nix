@@ -173,7 +173,8 @@ let
           mkdir -p /persist/storagevm/${vm}/etc
           vm_key="$key-${vm}"
           vm_hash=$(echo -n "$vm_key" | sha256sum | cut -d' ' -f1)
-          echo -n "$vm_hash" > /persist/storagevm/${vm}/etc/machine-id
+          # systemd requires machine-id to be exactly 32 lowercase hex characters
+          printf '%s\n' "''${vm_hash:0:32}" > /persist/storagevm/${vm}/etc/machine-id
         '') activeMicrovms}
       }
 
