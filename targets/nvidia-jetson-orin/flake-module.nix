@@ -414,7 +414,12 @@ let
       isNoDemoApps = true;
       hostConfiguration = tgt.hostConfiguration.extendModules {
         modules = [
-          { ghaf.reference.host-demo-apps.demo-apps.enableDemoApplications = lib.mkForce false; }
+          {
+            ghaf.reference = {
+              host-demo-apps.demo-apps.enableDemoApplications = lib.mkForce false;
+              programs.windows-launcher.enable = lib.mkForce false;
+            };
+          }
         ];
       };
       package = hostConfiguration.config.system.build.ghafImage;
