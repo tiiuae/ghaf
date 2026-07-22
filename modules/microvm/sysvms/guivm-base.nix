@@ -241,7 +241,6 @@ in
 
       github = {
         enable = true;
-        token = "xxxxxxxxxxxxxxxxxxxx"; # Will be updated when the user login
         owner = "tiiuae";
         repo = "ghaf-bugreports";
       };
@@ -348,7 +347,7 @@ in
     sessionVariables = lib.optionalAttrs (globalConfig.debug.enable or false) (
       {
         GIVC_NAME = "admin-vm";
-        GIVC_ADDR = hostConfig.networking.hosts."admin-vm".ipv4 or "192.168.101.10";
+        GIVC_ADDR = hostConfig.networking.hosts."admin-vm".ipv4 or "192.168.100.5";
         GIVC_PORT = "9001";
       }
       // lib.optionalAttrs (hostConfig.givc.enableTls or false) {
