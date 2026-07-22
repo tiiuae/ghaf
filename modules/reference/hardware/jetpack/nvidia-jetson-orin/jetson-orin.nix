@@ -503,7 +503,7 @@ let
         printf "error: LUKS root partition (UUID=%s) not found\n" "${luksUuid}"
         handle_error
       fi
-      defaultManufactureKey=${cfg.diskEncryption.deviceUniqueKey.deviceManufacturerPassphrase}
+      defaultManufactureKey=${lib.escapeShellArg cfg.diskEncryption.deviceUniqueKey.deviceManufacturerPassphrase}
       luksDiskKeyKeyringDescription=${luksDiskKeyDescription}
 
       wait_for_luks_device "$luksDev"
@@ -647,9 +647,14 @@ in
     };
 
     runtimeEkProvision.enable = mkOption {
-      description = "Provision EK certificates into TPM NV indices at runtime";
+      description = ''
+        Provision EK certificates into TPM NV indices at runtime.
+        This is an unfused development/testing flow; production devices
+        receive EK certificates during manufacturing.
+      '';
       type = types.bool;
-      default = true;
+      default = config.ghaf.profiles.debug.enable;
+      defaultText = lib.literalExpression "config.ghaf.profiles.debug.enable";
     };
 
     diskEncryption = {
@@ -772,6 +777,15 @@ in
     ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkDefault (
       cfg.flashScriptOverrides.signedArtifactsPath != null
     );
+    # TODO(release-policy): turn this warning into an assertion once the
+    # production key-provisioning flow is agreed.
+    warnings =
+      lib.optional
+        (
+          config.ghaf.profiles.release.enable
+          && config.hardware.nvidia-jetpack.firmware.eksFile == "${firmwareEkbImage}/eks_t234.img"
+        )
+        "This release image bakes the all-zero development EKB (eks_t234.img); TPM-backed secrets are not protected by fused keys. Override hardware.nvidia-jetpack.firmware.eksFile with production key material.";
     hardware.nvidia-jetpack.firmware.eksFile = "${firmwareEkbImage}/eks_t234.img";
     hardware.nvidia-jetpack.kernel.version = "${cfg.kernelVersion}";
     # jetpack-nixos hardcodes the trailing rootfs device as mmcblk0p1; replay
