@@ -81,6 +81,19 @@ in
         assertion = !(config.ghaf.reference.personalize.keys.enable or false);
         message = "Release SSH must not ship the hard-coded development authorizedSshKeys list (ghaf.reference.personalize.keys.enable).";
       }
+      # Root login must be impossible in a release image, not merely absent
+      # because no module happened to add a key. PermitRootLogin = "no" below is
+      # the sshd-side half; these are the config-side half, and they catch any
+      # future module that grants root a key without going through the dev-keys
+      # module the assertion above covers.
+      {
+        assertion = config.users.users.root.openssh.authorizedKeys.keys == [ ];
+        message = "Release SSH must not authorize root: root has authorized SSH keys. Dev keys belong to the debug profile only.";
+      }
+      {
+        assertion = config.users.users.root.openssh.authorizedKeys.keyFiles == [ ];
+        message = "Release SSH must not authorize root: root has authorized SSH key files.";
+      }
     ];
 
     warnings = optional (hasCA && !hasKeys) ''
