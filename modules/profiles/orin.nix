@@ -305,16 +305,22 @@ in
     environment.variables.SYSTEMD_RELAX_ESP_CHECKS = "1";
 
     system.build.installBootLoader = lib.mkForce (
-      pkgs.writeShellScript "install-bootloader-wrapper" ''
-        echo "[ghaf] running systemd-boot (non-fatal)"
-
-        export SYSTEMD_RELAX_ESP_CHECKS=1
-
-        ${pkgs.systemd}/bin/bootctl --esp-path=/boot install || true
-        ${pkgs.systemd}/bin/bootctl --esp-path=/boot update || true
-
-        exit 0
-      ''
+      lib.getExe (
+        pkgs.writeShellApplication {
+          name = "install-bootloader-wrapper";
+          runtimeInputs = [ pkgs.systemd ];
+          text = ''
+            export SYSTEMD_RELAX_ESP_CHECKS=1
+            echo "[ghaf] installing systemd-boot"
+            # install fails when systemd-boot is already present; fall back to
+            # update, but let a real failure fail the switch.
+            if ! bootctl --esp-path=/boot install; then
+              echo "[ghaf] bootctl install failed, attempting update"
+              bootctl --esp-path=/boot update
+            fi
+          '';
+        }
+      )
     );
 
     # Cosmic on orin

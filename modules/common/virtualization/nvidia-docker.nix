@@ -32,11 +32,17 @@ in
 
     # Temporary fix for nvidia service restart remove with new nixpkgs reference.
     # systemd.services.nvidia-container-toolkit-cdi-generator.WantedBy = [ "multi-user.target" ];
-    systemd.services.nvidia-cdi-generate.after = [
-      "multi-user.target"
-      "greetd.service"
-      "avahi-daemon.service"
-    ];
+    # nvidia-cdi-generate only exists on jetpack systems; defining the ordering
+    # elsewhere would create an empty stub unit.
+    systemd.services.nvidia-cdi-generate =
+      lib.mkIf (config.nixpkgs.hostPlatform.isAarch64 && config.hardware.nvidia-jetpack.enable)
+        {
+          after = [
+            "multi-user.target"
+            "greetd.service"
+            "avahi-daemon.service"
+          ];
+        };
 
     # Docker Daemon Settings
     virtualisation.docker = {
@@ -70,7 +76,7 @@ in
     };
 
     # Add user to docker group and dialout group for access to serial ports
-    users.users."ghaf".extraGroups = [
+    users.users.${config.ghaf.users.admin.name}.extraGroups = [
       "docker"
       "dialout"
     ];

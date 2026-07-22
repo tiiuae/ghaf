@@ -979,24 +979,6 @@ in
         };
       }
       // lib.optionalAttrs cfg.diskEncryption.deviceUniqueKey.enable {
-        load-diskkey-to-keyring = {
-          description = "Service for loading unique device key to kernel keyring";
-          before = [
-            "systemd-pre-disk-unique-key.service"
-          ];
-          unitConfig = {
-            DefaultDependencies = false;
-          };
-          serviceConfig = {
-            Type = "oneshot";
-            RemainAfterExit = true;
-            ExecStart = "${preDiskUniqueKeyScript}/bin/pre-disk-unique-key";
-            StandardInput = "tty";
-            StandardOutput = "journal+console";
-            StandardError = "journal+console";
-          };
-        };
-
         pre-disk-unique-key = {
           description = "Service for device unique key disk encryption";
           before = [
@@ -1020,7 +1002,7 @@ in
           description = "Cleanup service for device unique key disk encryption";
           wantedBy = [ "initrd-switch-root.target" ];
           after = [
-            "systemd-resize-partitions.service"
+            "resize-partitions.service"
           ];
           unitConfig = {
             DefaultDependencies = false;
