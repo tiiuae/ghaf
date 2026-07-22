@@ -34,7 +34,6 @@ let
         exit 1
       fi
       IMG_FILE=$1
-      ISO_FILE=""
     ''
     + lib.optionalString (!enableSpice) ''
       if [[ -z "''${WAYLAND_DISPLAY:-}" ]]; then
@@ -54,6 +53,7 @@ let
       fi
     ''
     + lib.optionalString stdenv.isx86_64 ''
+      ISO_FILE=""
       if [[ $1 == *.iso || $1 == *.ISO ]]; then
         ISO_FILE=$1
         IMG_FILE="$IMG_DIR/win11.qcow2"
