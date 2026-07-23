@@ -32,6 +32,13 @@ let
       host1x = true;
       media = true;
       display = true;
+      # FALSE: this VM owns a real host1x (13e00000.host1x_pt via vfio), so NVKMS
+      # uses real syncpoint fences -- exactly the proven PR2043 combined gpu-vm
+      # model (feat: plumb display to gpu-vm, f08830d8), which lit the panel with
+      # host1x present and NO 0021. The no-syncpt patch (0021) is a PR2055
+      # disp-vm-only shim for the display-WITHOUT-host1x arm; forcing it here
+      # mismatches the DCE/DP completion path (which expects syncpoint fences) and
+      # is NOT how the combined path was validated. See [[gpuvm-flip-completion]].
       noSyncpointDisplay = false;
       memoryLayout = "combined";
     };

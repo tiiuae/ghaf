@@ -21,38 +21,69 @@ let
   payload = (import ./default.nix { inherit lib; }).mkPayload cap;
 in
 { config, pkgs, ... }:
+let
+  # Forces plain no-modifier GBM window surfaces; see the shim source for
+  # why the modifier path EGL_BAD_ALLOCs on this guest.
+  gbm-nomod-shim = pkgs.runCommandCC "gbm-nomod-shim" { } ''
+    mkdir -p $out/lib
+    $CC -O2 -fPIC -shared -o $out/lib/gbm-nomod-shim.so \
+      ${srcDir + "/sources/gbm-nomod-shim.c"} -ldl
+  '';
+  kmscube-wrapped =
+    pkgs.runCommand "kmscube-nomod"
+      {
+        nativeBuildInputs = [ pkgs.buildPackages.makeWrapper ];
+      }
+      ''
+        mkdir -p $out/bin
+        makeWrapper ${pkgs.kmscube}/bin/kmscube $out/bin/kmscube \
+          --set LD_PRELOAD ${gbm-nomod-shim}/lib/gbm-nomod-shim.so
+      '';
+  # Stable by-path node for the nvdisplay KMS card (66200000.display -> card0).
+  # Avoids the card0/card1 lottery: card1 is the connector-less host1x tegra-drm.
+  displayCard = "/dev/dri/by-path/platform-66200000.display-card";
+in
 {
   # DRM userspace: this nvidia-drm build has no fbdev support, so there's no
   # fbcon to trigger a modeset and the panel stays dark. Ship modetest so a
   # modeset can be driven from userspace until a compositor runs here.
-  environment.systemPackages =
-    let
-      # Forces plain no-modifier GBM window surfaces; see the shim source for
-      # why the modifier path EGL_BAD_ALLOCs on this guest.
-      gbm-nomod-shim = pkgs.runCommandCC "gbm-nomod-shim" { } ''
-        mkdir -p $out/lib
-        $CC -O2 -fPIC -shared -o $out/lib/gbm-nomod-shim.so \
-          ${srcDir + "/sources/gbm-nomod-shim.c"} -ldl
-      '';
-      kmscube-wrapped =
-        pkgs.runCommand "kmscube-nomod"
-          {
-            nativeBuildInputs = [ pkgs.buildPackages.makeWrapper ];
-          }
-          ''
-            mkdir -p $out/bin
-            makeWrapper ${pkgs.kmscube}/bin/kmscube $out/bin/kmscube \
-              --set LD_PRELOAD ${gbm-nomod-shim}/lib/gbm-nomod-shim.so
-          '';
-    in
-    [
-      pkgs.libdrm
-      kmscube-wrapped
-      # Graphics ABI verification: eglinfo/eglgears prove the NVIDIA EGL impl
-      # and a GA10B renderer string, drm_info maps render/KMS nodes.
-      pkgs.mesa-demos
-      pkgs.drm_info
-    ];
+  environment.systemPackages = [
+    pkgs.libdrm
+    kmscube-wrapped
+    # Graphics ABI verification: eglinfo/eglgears prove the NVIDIA EGL impl
+    # and a GA10B renderer string, drm_info maps render/KMS nodes.
+    pkgs.mesa-demos
+    pkgs.drm_info
+  ];
+
+  # Persistent KMS master. This nvidia-drm build has no fbdev, so nothing holds
+  # a mode after boot and the panel stays dark even though DP-1 is connected --
+  # a mode set by a client that exits drops the screen. Run the (shim-wrapped)
+  # kmscube on the nvdisplay card to own DRM master and keep the panel lit; it
+  # doubles as the Phase-4 visual proof (spinning cube). cap.display only
+  # (gui-vm/disp-vm); compute-only gpu-vm never starts it. Restart=always covers
+  # kmscube exiting on connector loss. Long-term this is replaced by the real
+  # gui-vm compositor (COSMIC), which is the natural persistent DRM master.
+  systemd.services.gui-vm-kms-owner = lib.mkIf cap.display {
+    description = "Hold DRM master on the nvdisplay card so the panel stays lit";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "systemd-udev-settle.service" ];
+    wants = [ "systemd-udev-settle.service" ];
+    serviceConfig = {
+      # nvidia-drm loads late (explicit boot.kernelModules), so the by-path node
+      # may not exist at udev-settle; wait for it before kmscube.
+      ExecStartPre = "${pkgs.bash}/bin/bash -c 'for i in $(seq 1 60); do [ -e ${displayCard} ] && exit 0; sleep 1; done; exit 1'";
+      # kmscube poll()s stdin for a quit-key. Under systemd stdin is /dev/null,
+      # which returns POLLHUP immediately -> kmscube reads EOF and quits with
+      # "user interrupted!" ~instantly (a foreground pty stdin blocks, so a manual
+      # run sustains). Pipe `sleep infinity` into stdin: an open pipe with no
+      # writer-close and no data, so the stdin poll never fires and kmscube runs
+      # until a real signal / DRM error.
+      ExecStart = "${pkgs.bash}/bin/bash -c '${pkgs.coreutils}/bin/sleep infinity | ${kmscube-wrapped}/bin/kmscube -D ${displayCard}'";
+      Restart = "always";
+      RestartSec = "2";
+    };
+  };
 
   # NVIDIA/Jetson graphics userspace (EGL/GLES/GBM) via /run/opengl-driver,
   # mirroring jetpack-nixos modules/graphics.nix. The guest can't enable
