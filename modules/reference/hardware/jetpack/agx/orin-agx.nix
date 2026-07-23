@@ -92,6 +92,14 @@
         }
         ../../../personalize
         { ghaf.reference.personalize.keys.enable = true; }
+        # Dev-only: relax net-vm's ssh flood rate-limit so `nix copy` and
+        # repeated deploy loops from the container don't self-blacklist the dev
+        # host (the ban cost most of a bring-up session). See
+        # ../nvidia-jetson-orin/dev-fw-exempt.nix. Drop for production.
+        {
+          imports = [ ../nvidia-jetson-orin/dev-fw-exempt.nix ];
+          ghaf.dev.firewallExempt.relaxSshFlood = true;
+        }
       ];
     };
   };
