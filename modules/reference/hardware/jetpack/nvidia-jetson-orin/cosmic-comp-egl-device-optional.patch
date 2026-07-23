@@ -1,0 +1,70 @@
+From: Ghaf contributors <ghaf@tii.ae>
+Subject: [PATCH] kms: make the EGLDevice optional (GBM-only fallback for Tegra)
+
+cosmic-comp KMS backend requires EGLDevice::device_for_display() for every DRM
+device, which needs EGL_EXT_device enumeration (eglQueryDevicesEXT). The
+L4T/Tegra NVIDIA EGL advertises it but eglQueryDevicesEXT BAD_ALLOCs, so
+init_egl() fails ("Unable to find matching egl device") and the compositor
+starts with no output -- though the GBM EGLDisplay + EGLContext (from the
+display, not the device) render fine on the GA10B (kmscube proves pure GBM
+works). The EGLDevice only identifies the render node (already falling back to
+the DRM dev_node) and reports is_software(); make it Optional and degrade to the
+GBM device node when enumeration is unavailable. Hardware rendering unaffected.
+---
+--- a/src/backend/kms/device.rs	2026-07-23 10:36:29.266257294 +0000
++++ b/src/backend/kms/device.rs	2026-07-23 10:36:29.266351342 +0000
+@@ -64,7 +64,7 @@
+ #[derive(Debug)]
+ pub struct EGLInternals {
+     pub display: EGLDisplay,
+-    pub device: EGLDevice,
++    pub device: Option<EGLDevice>,
+     pub context: EGLContext,
+ }
+ 
+@@ -165,12 +165,17 @@
+             path.as_deref().map(Path::display)
+         )
+     })?;
+-    let device = EGLDevice::device_for_display(&display).with_context(|| {
+-        format!(
+-            "Unable to find matching egl device for {:?}",
++    // EGLDevice enumeration (eglQueryDevicesEXT / EGL_EXT_device) is unusable on
++    // some drivers (L4T/Tegra NVIDIA EGL BAD_ALLOCs it). It only identifies the
++    // render node (which falls back to the DRM node) and is_software(), so degrade
++    // to None instead of failing -- the GBM display/context still render on HW.
++    let device = EGLDevice::device_for_display(&display).ok();
++    if device.is_none() {
++        tracing::warn!(
++            "No matching EGL device for {:?}; falling back to the GBM device node.",
+             path.as_deref().map(Path::display)
+-        )
+-    })?;
++        );
++    }
+ 
+     let context =
+         EGLContext::new_with_priority(&display, ContextPriority::High).with_context(|| {
+@@ -720,9 +725,10 @@
+ 
+             let render_node = egl
+                 .device
+-                .try_get_render_node()
+-                .ok()
+-                .and_then(std::convert::identity)
++                .as_ref()
++                .and_then(|device| {
++                    device.try_get_render_node().ok().and_then(std::convert::identity)
++                })
+                 .unwrap_or(dev_node);
+             let render_formats = egl.context.dmabuf_render_formats().clone();
+             let texture_formats = egl.context.dmabuf_texture_formats().clone();
+@@ -731,7 +737,7 @@
+                 render_node,
+                 render_formats,
+                 texture_formats,
+-                egl.device.is_software(),
++                egl.device.as_ref().map(|d| d.is_software()).unwrap_or(false),
+             )
+         };
+ 
