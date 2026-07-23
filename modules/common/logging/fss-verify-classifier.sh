@@ -105,10 +105,10 @@ fss_count_nonempty_lines() {
 
 fss_failure_bucket_for_path() {
   case "$1" in
+  */system.journal | */system.journal~) printf '%s' "active-system" ;;
+  */system@*.journal | */system@*.journal~) printf '%s' "archived-system" ;;
+  */user-[0-9]*.journal | */user-[0-9]*.journal~) printf '%s' "user-journal" ;;
   *.journal~) printf '%s' "temp" ;;
-  */system.journal) printf '%s' "active-system" ;;
-  */system@*.journal) printf '%s' "archived-system" ;;
-  */user-[0-9]*.journal) printf '%s' "user-journal" ;;
   *) printf '%s' "other" ;;
   esac
 }
@@ -171,6 +171,201 @@ fss_read_recorded_archive_list() {
   printf '%s' "$archive_paths"
 }
 
+# Lifecycle receipts.
+#
+# Each receipt is a TSV record describing one archived journal that was rotated
+# by a known lifecycle event, so the verifier can recognise expected exceptions
+# by content-bound identity rather than by path string alone. Schema (v1):
+#   schema_version  path  inode  size  boot_id  mtime  sha256  reason  event_id
+# shellcheck disable=SC2034  # read by the setup script that sources this library
+FSS_RECEIPT_SCHEMA_VERSION="v1"
+
+fss_valid_sha256() {
+  printf '%s' "$1" | grep -Eq '^[0-9a-f]{64}$'
+}
+
+# Read receipt records from a state file, dropping blank lines.
+fss_read_receipts() {
+  local state_file="$1"
+  [ -r "$state_file" ] && [ -s "$state_file" ] || return 0
+  grep -v '^[[:space:]]*$' "$state_file" || true
+}
+
+# Emit the deduplicated archive paths referenced by a set of receipt records.
+fss_receipt_paths() {
+  local records="$1"
+  local rec ver path rest paths=""
+
+  while IFS= read -r rec || [ -n "$rec" ]; do
+    [ -n "$rec" ] || continue
+    # shellcheck disable=SC2034  # ver/rest are positional placeholders
+    IFS=$'\t' read -r ver path rest <<<"$rec"
+    [ -n "$path" ] || continue
+    paths=$(fss_append_unique_line "$paths" "$path")
+  done <<<"$records"
+
+  printf '%s' "$paths"
+}
+
+# Print the boot_id recorded for a path; return non-zero when no receipt matches.
+fss_receipt_boot_for_path() {
+  local records="$1"
+  local needle="$2"
+  local rec ver path inode size boot rest
+
+  [ -n "$needle" ] || return 1
+  while IFS= read -r rec || [ -n "$rec" ]; do
+    [ -n "$rec" ] || continue
+    # shellcheck disable=SC2034  # ver/inode/size/rest are positional placeholders
+    IFS=$'\t' read -r ver path inode size boot rest <<<"$rec"
+    if [ "$path" = "$needle" ]; then
+      printf '%s' "$boot"
+      return 0
+    fi
+  done <<<"$records"
+
+  return 1
+}
+
+# Return success if any receipt was recorded for the specified boot id.
+fss_receipts_contain_boot() {
+  local records="$1"
+  local needle_boot="$2"
+  local rec ver path inode size boot rest
+
+  [ -n "$needle_boot" ] || return 1
+  while IFS= read -r rec || [ -n "$rec" ]; do
+    [ -n "$rec" ] || continue
+    # shellcheck disable=SC2034  # ver/path/inode/size/rest are positional placeholders
+    IFS=$'\t' read -r ver path inode size boot rest <<<"$rec"
+    if [ "$boot" = "$needle_boot" ]; then
+      return 0
+    fi
+  done <<<"$records"
+
+  return 1
+}
+
+# Return success if any receipt was recorded for a boot id other than the current one.
+fss_receipts_contain_other_boot() {
+  local records="$1"
+  local current_boot="$2"
+  local rec ver path inode size boot rest
+
+  [ -n "$current_boot" ] || return 1
+  while IFS= read -r rec || [ -n "$rec" ]; do
+    [ -n "$rec" ] || continue
+    # shellcheck disable=SC2034  # ver/path/inode/size/rest are positional placeholders
+    IFS=$'\t' read -r ver path inode size boot rest <<<"$rec"
+    if [ -n "$boot" ] && [ "$boot" != "$current_boot" ]; then
+      return 0
+    fi
+  done <<<"$records"
+
+  return 1
+}
+
+# Filter receipt records against the live filesystem, emitting only those whose
+# recorded content still matches the on-disk archive. Matching is by sha256
+# content identity (the durable evidence artifact), so it is stable across inode
+# changes (e.g. cross-filesystem moves) but rejects a substituted archive
+# (path reuse) or a vanished one. A missing/malformed sha is non-exculpatory:
+# the record is dropped rather than falling back to weaker size-only matching.
+# Requires real files; the pure policy decision does not call this so it stays
+# unit-testable on synthetic records.
+fss_filter_valid_receipts() {
+  local records="$1"
+  local rec ver path inode size boot mtime sha rest
+  local cur_sha
+
+  while IFS= read -r rec || [ -n "$rec" ]; do
+    [ -n "$rec" ] || continue
+    # shellcheck disable=SC2034  # ver/inode/size/boot/mtime/rest are positional placeholders
+    IFS=$'\t' read -r ver path inode size boot mtime sha rest <<<"$rec"
+    [ -n "$path" ] && [ -f "$path" ] || continue
+    fss_valid_sha256 "$sha" || continue
+    cur_sha=$(sha256sum "$path" 2>/dev/null | cut -d' ' -f1 || true)
+    [ "$cur_sha" = "$sha" ] || continue
+
+    printf '%s\n' "$rec"
+  done <<<"$records"
+}
+
+# Emit paths whose receipt still points at an on-disk archive but whose content no
+# longer matches the recorded receipt. Missing files are ignored here because
+# journald retention can legitimately delete archives; an existing mismatched file
+# is treated as substitution/path reuse and must fail closed.
+fss_receipt_mismatches() {
+  local records="$1"
+  local rec ver path inode size boot mtime sha rest
+  local cur_sha mismatches=""
+
+  while IFS= read -r rec || [ -n "$rec" ]; do
+    [ -n "$rec" ] || continue
+    # shellcheck disable=SC2034  # ver/inode/size/boot/mtime/rest are positional placeholders
+    IFS=$'\t' read -r ver path inode size boot mtime sha rest <<<"$rec"
+    [ -n "$path" ] && [ -f "$path" ] || continue
+    fss_valid_sha256 "$sha" || continue
+    cur_sha=$(sha256sum "$path" 2>/dev/null | cut -d' ' -f1 || true)
+    [ "$cur_sha" = "$sha" ] && continue
+
+    mismatches=$(fss_append_unique_line "$mismatches" "$path")
+  done <<<"$records"
+
+  printf '%s' "$mismatches"
+}
+
+fss_read_pre_activation_receipts() {
+  fss_read_receipts "$1"
+}
+
+fss_pre_activation_receipt_paths() {
+  fss_receipt_paths "$1"
+}
+
+fss_pre_activation_boot_for_path() {
+  fss_receipt_boot_for_path "$1" "$2"
+}
+
+fss_pre_activation_receipts_contain_boot() {
+  fss_receipts_contain_boot "$1" "$2"
+}
+
+fss_pre_activation_receipts_contain_other_boot() {
+  fss_receipts_contain_other_boot "$1" "$2"
+}
+
+fss_pre_activation_receipt_mismatches() {
+  fss_receipt_mismatches "$1"
+}
+
+# Unclean-shutdown receipts: journals journald itself reported as "corrupted or
+# uncleanly shut down" and renamed to <path>~ (host crash, power loss, stop-timeout
+# SIGKILL). Same v1 receipt schema and content-binding as the other classes.
+fss_read_unclean_shutdown_receipts() {
+  fss_read_receipts "$1"
+}
+
+fss_unclean_shutdown_receipt_paths() {
+  fss_receipt_paths "$1"
+}
+
+fss_unclean_shutdown_boot_for_path() {
+  fss_receipt_boot_for_path "$1" "$2"
+}
+
+fss_unclean_shutdown_receipts_contain_boot() {
+  fss_receipts_contain_boot "$1" "$2"
+}
+
+fss_unclean_shutdown_receipts_contain_other_boot() {
+  fss_receipts_contain_other_boot "$1" "$2"
+}
+
+fss_unclean_shutdown_receipt_mismatches() {
+  fss_receipt_mismatches "$1"
+}
+
 fss_matches_only_expected_archived_system_failure() {
   local expected_archive="$1"
   local archived_failures="${2:-$FSS_ARCHIVED_SYSTEM_FAILURES}"
@@ -213,6 +408,7 @@ fss_reset_classification() {
   FSS_FILESYSTEM_RESTRICTION=0
   FSS_VERDICT=""
   FSS_VERDICT_REASON=""
+  # shellcheck disable=SC2034  # read by consumers that source this library
   FSS_VERDICT_TAGS=""
 }
 
@@ -286,24 +482,87 @@ fss_classification_tags() {
 # Decide the verification policy verdict based on populated FSS_* state vars.
 # Inputs:
 #   $1 = expected pre-FSS archive path (single line, optional)
-#   $2 = expected recovery archive paths (newline-separated, optional)
+#   $2 = expected recovery receipt records (TSV, newline-separated, optional)
+#   $3 = pre-activation receipt records (TSV, newline-separated, optional)
+#   $4 = current boot_id (optional; distinguishes this boot's boundary from stale)
+#   $5 = journalctl --verify exit code (optional; nonzero unclassified exits fail)
 # Outputs (as globals):
-#   FSS_VERDICT        = pass | partial | fail
+#   FSS_VERDICT        = verified | verified-with-exception | warning | fail
 #   FSS_VERDICT_REASON = short human-readable reason
-#   FSS_VERDICT_TAGS   = classification tags augmented with PRE_FSS_ARCHIVE / RECOVERY_ARCHIVE
-# Requires fss_classify_verify_output to have been called first.
+#   FSS_VERDICT_TAGS   = classification tags augmented with PRE_FSS_ARCHIVE /
+#                        RECOVERY_ARCHIVE / PRE_ACTIVATION_ARCHIVE / PRE_ACTIVATION_STALE
+# Verdict semantics (per .idea/ Layer-5 policy states):
+#   verified                 - all journals verify, no exceptions.
+#   verified-with-exception  - only evidence-backed exceptions for THIS boot
+#                              (pre-FSS / recovery / current-boot insecure boot logs).
+#   warning                  - exceptions evidenced but from an earlier boot, or
+#                              user/temp/filesystem-only issues.
+#   fail                     - active-system failure, key defect, unclassified
+#                              failure, or an archived failure with no matching
+#                              receipt (unrecorded or content-substituted).
+# Receipt matching is content-bound: callers should pass receipts already filtered
+# against disk (see fss_filter_valid_receipts) so a substituted archive presents
+# as unmatched and fails closed. Requires fss_classify_verify_output first.
 fss_verify_policy_decision() {
   local expected_pre="${1-}"
-  local expected_recovery="${2-}"
-  local allowed_list="" archived_paths path
+  local recovery_receipts="${2-}"
+  local pre_activation_receipts="${3-}"
+  local current_boot="${4-}"
+  local verify_exit="${5:-0}"
+  local unclean_shutdown_receipts="${6-}"
+  local allowed_list="" recovery_paths pre_activation_paths unclean_paths archived_paths path boot
+  local recovery_seen=0 recovery_stale=0
+  local pre_activation_seen=0 pre_activation_stale=0 exception_seen=0
+  local unclean_seen=0 unclean_stale=0
 
   FSS_VERDICT_TAGS=$(fss_classification_tags)
   FSS_VERDICT_REASON=""
 
+  recovery_paths=$(fss_receipt_paths "$recovery_receipts")
+  pre_activation_paths=$(fss_pre_activation_receipt_paths "$pre_activation_receipts")
+  unclean_paths=$(fss_unclean_shutdown_receipt_paths "$unclean_shutdown_receipts")
+  if fss_pre_activation_receipts_contain_other_boot "$pre_activation_receipts" "$current_boot"; then
+    FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "PRE_ACTIVATION_ARCHIVE")
+    FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "PRE_ACTIVATION_STALE")
+    pre_activation_stale=1
+  fi
+  if fss_unclean_shutdown_receipts_contain_other_boot "$unclean_shutdown_receipts" "$current_boot"; then
+    FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "UNCLEAN_SHUTDOWN")
+    FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "UNCLEAN_SHUTDOWN_STALE")
+    unclean_stale=1
+  fi
+
   if [ -n "$expected_pre" ]; then
     allowed_list=$(fss_append_unique_line "$allowed_list" "$expected_pre")
   fi
-  allowed_list=$(fss_merge_path_lists "$allowed_list" "$expected_recovery")
+  allowed_list=$(fss_merge_path_lists "$allowed_list" "$recovery_paths")
+  allowed_list=$(fss_merge_path_lists "$allowed_list" "$pre_activation_paths")
+  allowed_list=$(fss_merge_path_lists "$allowed_list" "$unclean_paths")
+
+  # Carve a journald-attested, content-receipted unclean "system.journal~" corpse
+  # out of the fatal active-system set into the archived-exception track. The live
+  # system.journal has no '~', so it can never match an unclean receipt path and is
+  # never carved out; an unmatched .journal~ stays fatal. Receipts arrive already
+  # content-filtered (fss_filter_valid_receipts), so a substituted corpse has no
+  # surviving receipt -> not carved -> fails closed.
+  if [ -n "$FSS_ACTIVE_SYSTEM_FAILURES" ] && [ -n "$unclean_paths" ]; then
+    local active_keep="" active_line apath
+    while IFS= read -r active_line || [ -n "$active_line" ]; do
+      [ -n "$active_line" ] || continue
+      apath="${active_line#FAIL: }"
+      apath="${apath%% *}"
+      case "$apath" in
+      *.journal~)
+        if fss_path_list_contains "$unclean_paths" "$apath"; then
+          FSS_ARCHIVED_SYSTEM_FAILURES=$(fss_append_line "$FSS_ARCHIVED_SYSTEM_FAILURES" "$active_line")
+          continue
+        fi
+        ;;
+      esac
+      active_keep=$(fss_append_line "$active_keep" "$active_line")
+    done <<<"$FSS_ACTIVE_SYSTEM_FAILURES"
+    FSS_ACTIVE_SYSTEM_FAILURES="$active_keep"
+  fi
 
   if [ "$FSS_KEY_PARSE_ERROR" = 1 ] || [ "$FSS_KEY_REQUIRED_ERROR" = 1 ]; then
     FSS_VERDICT=fail
@@ -332,9 +591,34 @@ fss_verify_policy_decision() {
         [ -n "$path" ] || continue
         if [ "$path" = "$expected_pre" ]; then
           FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "PRE_FSS_ARCHIVE")
+          exception_seen=1
         fi
-        if fss_path_list_contains "$expected_recovery" "$path"; then
+        if boot=$(fss_receipt_boot_for_path "$recovery_receipts" "$path"); then
           FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "RECOVERY_ARCHIVE")
+          recovery_seen=1
+          exception_seen=1
+          if [ -n "$current_boot" ] && [ -n "$boot" ] && [ "$boot" != "$current_boot" ]; then
+            FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "RECOVERY_STALE")
+            recovery_stale=1
+          fi
+        fi
+        if boot=$(fss_pre_activation_boot_for_path "$pre_activation_receipts" "$path"); then
+          FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "PRE_ACTIVATION_ARCHIVE")
+          pre_activation_seen=1
+          exception_seen=1
+          if [ -n "$current_boot" ] && [ -n "$boot" ] && [ "$boot" != "$current_boot" ]; then
+            FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "PRE_ACTIVATION_STALE")
+            pre_activation_stale=1
+          fi
+        fi
+        if boot=$(fss_unclean_shutdown_boot_for_path "$unclean_shutdown_receipts" "$path"); then
+          FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "UNCLEAN_SHUTDOWN")
+          unclean_seen=1
+          exception_seen=1
+          if [ -n "$current_boot" ] && [ -n "$boot" ] && [ "$boot" != "$current_boot" ]; then
+            FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "UNCLEAN_SHUTDOWN_STALE")
+            unclean_stale=1
+          fi
         fi
       done <<<"$archived_paths"
     else
@@ -344,26 +628,96 @@ fss_verify_policy_decision() {
     fi
   fi
 
-  if [ "$archived_allowed" = 1 ] || [ -n "$FSS_USER_FAILURES" ]; then
-    FSS_VERDICT=partial
-    FSS_VERDICT_REASON="recorded archived-system and/or user exceptions only"
-    return 0
-  fi
-
   if [ "$FSS_FILESYSTEM_RESTRICTION" = 1 ]; then
-    FSS_VERDICT=partial
+    FSS_VERDICT=warning
     FSS_VERDICT_REASON="filesystem restrictions encountered"
     return 0
   fi
 
+  if [ "$archived_allowed" = 1 ] && [ -z "$FSS_USER_FAILURES" ]; then
+    if [ "$pre_activation_stale" = 1 ]; then
+      FSS_VERDICT=warning
+      FSS_VERDICT_REASON="insecure boot logs from an earlier boot"
+    elif [ "$recovery_stale" = 1 ]; then
+      FSS_VERDICT=warning
+      FSS_VERDICT_REASON="recovery archive from an earlier boot"
+    elif [ "$unclean_stale" = 1 ]; then
+      FSS_VERDICT=warning
+      FSS_VERDICT_REASON="unclean-shutdown journal from an earlier boot"
+    elif [ "$pre_activation_seen" = 1 ]; then
+      FSS_VERDICT=verified-with-exception
+      FSS_VERDICT_REASON="recorded insecure boot logs (current boot)"
+    elif [ "$recovery_seen" = 1 ]; then
+      FSS_VERDICT=verified-with-exception
+      FSS_VERDICT_REASON="recorded recovery archive (current boot)"
+    elif [ "$unclean_seen" = 1 ]; then
+      FSS_VERDICT=verified-with-exception
+      FSS_VERDICT_REASON="recorded unclean-shutdown journal (current boot)"
+    else
+      FSS_VERDICT=verified-with-exception
+      FSS_VERDICT_REASON="recorded archived-system exceptions only"
+    fi
+    return 0
+  fi
+
+  if [ -n "$FSS_USER_FAILURES" ]; then
+    FSS_VERDICT=warning
+    if [ "$exception_seen" = 1 ]; then
+      FSS_VERDICT_REASON="archived-system exceptions with user journal exceptions"
+    else
+      FSS_VERDICT_REASON="user journal exceptions only"
+    fi
+    return 0
+  fi
+
   if [ -n "$FSS_TEMP_FAILURES" ]; then
-    FSS_VERDICT=pass
+    FSS_VERDICT=warning
     FSS_VERDICT_REASON="temporary journal files ignored"
     return 0
   fi
 
+  if [ "$verify_exit" != 0 ]; then
+    FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "VERIFY_EXIT_UNCLASSIFIED")
+    FSS_VERDICT=fail
+    FSS_VERDICT_REASON="journalctl verify exited nonzero without a classified exception"
+    return 0
+  fi
+
+  # A valid stale receipt remains on disk and journalctl emitted no failure for it:
+  # structurally readable but non-FSS-trusted logs left over from an earlier boot.
+  # Surface as a warning even if this boot also has an expected receipt.
+  if [ "$pre_activation_stale" = 1 ]; then
+    FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "PRE_ACTIVATION_ARCHIVE")
+    FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "PRE_ACTIVATION_STALE")
+    FSS_VERDICT=warning
+    FSS_VERDICT_REASON="insecure boot logs from an earlier boot"
+    return 0
+  fi
+
+  if [ "$unclean_stale" = 1 ]; then
+    FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "UNCLEAN_SHUTDOWN")
+    FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "UNCLEAN_SHUTDOWN_STALE")
+    FSS_VERDICT=warning
+    FSS_VERDICT_REASON="unclean-shutdown journal from an earlier boot"
+    return 0
+  fi
+
+  if fss_pre_activation_receipts_contain_boot "$pre_activation_receipts" "$current_boot"; then
+    FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "PRE_ACTIVATION_ARCHIVE")
+    FSS_VERDICT=verified-with-exception
+    FSS_VERDICT_REASON="recorded insecure boot logs (current boot)"
+    return 0
+  fi
+
+  if fss_unclean_shutdown_receipts_contain_boot "$unclean_shutdown_receipts" "$current_boot"; then
+    FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "UNCLEAN_SHUTDOWN")
+    FSS_VERDICT=verified-with-exception
+    FSS_VERDICT_REASON="recorded unclean-shutdown journal (current boot)"
+    return 0
+  fi
+
   # shellcheck disable=SC2034  # read by consumers that source this library
-  FSS_VERDICT=pass
+  FSS_VERDICT=verified
   # shellcheck disable=SC2034
   FSS_VERDICT_REASON=""
 }
