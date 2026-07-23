@@ -24,8 +24,16 @@
     # that assertion. The Orin host disables it in orin.nix; the guest needs the same.
     ghaf.graphics.cosmic.screenRecorder.enable = lib.mkForce false;
 
-    # Renderer/boot/input/TPM/audio specialisation belongs to the hw-bringup
-    # plan (Phase 5-6). This module intentionally stays hardware-composition
-    # only.
+    # Phase 5: pin cosmic-comp to the GA10B render node proven in Phase 4
+    # (nvidia-drm on 66200000.display -> renderD128). guivm-base enables
+    # cosmic.enable, but renderDevice defaults null (orin.nix's value is
+    # host-scope, not inherited by the guest); without it cosmic-comp can't
+    # lock the GPU and would fall back to software. By-path node is stable
+    # across the card0/card1 (nvdisplay vs host1x) enumeration lottery.
+    ghaf.graphics.cosmic.renderDevice =
+      lib.mkForce "/dev/dri/by-path/platform-66200000.display-render";
+
+    # Boot/input/TPM/audio specialisation belongs to the later Phase-6 full
+    # desktop work.
   };
 }

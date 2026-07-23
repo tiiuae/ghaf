@@ -62,9 +62,11 @@ in
   # kmscube on the nvdisplay card to own DRM master and keep the panel lit; it
   # doubles as the Phase-4 visual proof (spinning cube). cap.display only
   # (gui-vm/disp-vm); compute-only gpu-vm never starts it. Restart=always covers
-  # kmscube exiting on connector loss. Long-term this is replaced by the real
-  # gui-vm compositor (COSMIC), which is the natural persistent DRM master.
-  systemd.services.gui-vm-kms-owner = lib.mkIf cap.display {
+  # kmscube exiting on connector loss. Disabled once COSMIC is enabled: cosmic-comp
+  # is then the real persistent DRM master, and two masters on one card conflict
+  # (kmscube would steal the card and the desktop never lights). So the holder is
+  # the no-compositor fallback (disp-vm bring-up); the gui-vm desktop supersedes it.
+  systemd.services.gui-vm-kms-owner = lib.mkIf (cap.display && !config.ghaf.graphics.cosmic.enable) {
     description = "Hold DRM master on the nvdisplay card so the panel stays lit";
     wantedBy = [ "multi-user.target" ];
     after = [ "systemd-udev-settle.service" ];
