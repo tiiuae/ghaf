@@ -131,6 +131,7 @@ let
     nativeBuildInputs = [
       pkgs.buildPackages.dtc
       pkgs.buildPackages.gcc
+      pkgs.buildPackages.xxd
     ];
     buildPhase =
       let
@@ -153,23 +154,30 @@ let
         dtc -I dts -O dtb -o tegra234-gpuvm.dtb preprocessed.dts
 
         # Verify the DCB payload that actually landed in the DTB against the
-        # pinned stock AGX blob; fail the build on any drift. Skipped in the
-        # host1x-experiment modes that drop the display node (EXP_DROP_DISPLAY):
-        # no display node -> no DCB to check. The guard keeps this a no-op for
-        # `off` (display present) so the baseline DTB stays byte-identical.
-        if fdtget tegra234-gpuvm.dtb \
+        # pinned stock AGX blob; fail the build on any drift. The display node
+        # is always present in this baseline DTB, so the check is mandatory:
+        # if the node can't be extracted (renamed/moved, or fdtget missing) the
+        # supply-chain gate must fail loudly rather than silently skip. The
+        # experiment modes that legitimately drop the display node gate this
+        # skip on their own eval-time flag, not on fdtget's exit code.
+        if ! fdtget tegra234-gpuvm.dtb \
              /platform-bus@70000000/display@13800000 nvidia,dcb-image >/dev/null 2>&1; then
-          fdtget -t bx tegra234-gpuvm.dtb \
-            /platform-bus@70000000/display@13800000 nvidia,dcb-image \
-            | tr ' ' '\n' | grep . > dcb.hex
-          dcbLen=$(wc -l < dcb.hex)
-          while read -r b; do printf "\x$(printf %02x "0x$b")"; done < dcb.hex > dcb.bin
-          dcbHash=$(sha256sum dcb.bin | cut -d' ' -f1)
-          if [ "$dcbLen" != "${dcbBytes}" ] || [ "$dcbHash" != "${dcbSha256}" ]; then
-            echo "DCB payload drifted: $dcbLen bytes, sha256 $dcbHash" >&2
-            echo "expected ${dcbBytes} bytes, sha256 ${dcbSha256}" >&2
-            exit 1
-          fi
+          echo "DCB gate: display@13800000/nvidia,dcb-image not found in DTB" >&2
+          echo "(node renamed/moved, or fdtget missing) -- refusing to skip the check" >&2
+          exit 1
+        fi
+        # -t bx prints space-separated hex bytes, UNPADDED (e.g. `0 d 55 aa`),
+        # so zero-pad each to two digits before xxd -r -p folds the whole
+        # payload back to binary in one pass (replaces a ~16k-exec printf loop).
+        fdtget -t bx tegra234-gpuvm.dtb \
+          /platform-bus@70000000/display@13800000 nvidia,dcb-image \
+          | tr -s ' \n' '\n' | grep . | sed 's/^\(.\)$/0\1/' | xxd -r -p > dcb.bin
+        dcbLen=$(wc -c < dcb.bin)
+        dcbHash=$(sha256sum dcb.bin | cut -d' ' -f1)
+        if [ "$dcbLen" != "${dcbBytes}" ] || [ "$dcbHash" != "${dcbSha256}" ]; then
+          echo "DCB payload drifted: $dcbLen bytes, sha256 $dcbHash" >&2
+          echo "expected ${dcbBytes} bytes, sha256 ${dcbSha256}" >&2
+          exit 1
         fi
       '';
     installPhase = ''
