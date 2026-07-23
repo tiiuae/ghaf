@@ -250,6 +250,36 @@ in
 
     spireNodeAttestationMode = lib.types.enum [ "x509pop" ];
 
+    adminRulesType = lib.types.submodule {
+      options = {
+        from = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          description = ''
+            A list of source VM identities (callers) permitted to initiate a request listed in
+            the 'permittedRequests' option. This defines who is originating the request to admin.
+          '';
+        };
+        to = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          description = ''
+            A list of allowed destination VMs for the requests specified in `permittedRequests`.
+            The Admin server is the default consumer unless a destination VM is specified in the request at runtime.
+            - Proxy access: To allow forwarding to a target VM, list the target VM here (e.g., `[ "app-vm" ]`).
+            - Unrestricted destination: Leave this empty (`[ ]`) to impose NO destination check — the rule permits the request regardless of target (the Admin may consume it, or forward it to any VM named at runtime). Listing targets in `to` is what *restricts* forwarding to those VMs.
+          '';
+        };
+        permittedRequests = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          description = ''
+            A list of specific gRPC methods that the callers listed in `from` are allowed to execute.
+          '';
+        };
+      };
+    };
+
   };
 
   # Launcher utilities (remove desktop entries from packages)

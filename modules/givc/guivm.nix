@@ -36,6 +36,39 @@ in
       }
     ];
 
+    # Access control rules for gui-vm.
+    ghaf.givc.accessControl.adminRules = [
+      {
+        from = [ config.networking.hostName ];
+        permittedRequests = [
+          "Suspend"
+          "Reboot"
+          "Poweroff"
+          "SetLocale"
+          "SetTimezone"
+          "StartService"
+          "ListGenerations"
+          "SetGeneration"
+          "StartVM"
+          "Watch"
+          "GetStats"
+          "QueryList"
+          "Sysinfo"
+          "PauseApplication"
+          "ResumeApplication"
+          "StopApplication"
+        ];
+      }
+      # Microvm services for apps, executed by admin
+      {
+        from = [ config.networking.hostName ];
+        to = config.ghaf.common.appHosts;
+        permittedRequests = [
+          "StartApplication"
+        ];
+      }
+    ];
+
     # Configure guivm service
     givc.sysvm = {
       enable = true;

@@ -92,6 +92,7 @@ in
 
       };
     };
+
     givc.dbusproxy = {
       enable = true;
       system = {
