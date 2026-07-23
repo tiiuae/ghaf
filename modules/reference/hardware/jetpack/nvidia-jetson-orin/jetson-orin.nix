@@ -861,6 +861,22 @@ in
             HW_RANDOM_TPM = no;
           };
         }
+        {
+          # Logitech Unifying receiver support on the HOST. Without hid-logitech-dj
+          # the receiver (e.g. 046d:c52b) binds to hid-generic, which cannot speak
+          # the Unifying protocol, so paired devices (K400 keyboard/touchpad) are
+          # never enumerated and deliver zero events. The gui-vm input path is
+          # evdev-forwarding (vhotplug reads the HOST evdev and forwards it via
+          # virtio-input), so the host must enumerate the K400 to have anything to
+          # forward. hidpp is needed for the HID++ devices behind the receiver.
+          name = "hid-logitech-unifying";
+          patch = null;
+          structuredExtraConfig = with lib.kernel; {
+            HID_LOGITECH = yes;
+            HID_LOGITECH_DJ = yes;
+            HID_LOGITECH_HIDPP = yes;
+          };
+        }
       ]
       ++ lib.optionals (cfg.diskEncryption.enable && cfg.kernelVersion == "upstream-6-6") [
         {
