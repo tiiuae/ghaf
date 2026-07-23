@@ -102,6 +102,57 @@ let
         hardware.nvidia.passthroughs.gui_vm.enable = true;
         hardware.nvidia.passthroughs.gpu_vm.enable = lib.mkForce false;
         hardware.nvidia.passthroughs.disp_vm.enable = lib.mkForce false;
+
+        # Input: keep the USB keyboard/mouse receiver on the evdev path only.
+        # Raw usb-host forwarding of the Logitech Unifying receiver (046d:c52b)
+        # is broken on this aarch64 gui-vm: the device enumerates and HID++
+        # connects, but interrupt-IN transfers deliver ZERO input events into the
+        # guest (verified on HW with greetd stopped). vhotplug double-passes it
+        # (evdev virtio-input AND usb-host), and usb-host claims the parent
+        # receiver -> host loses the evdev nodes the virtio-input backends need ->
+        # neither path delivers. Deny the receiver from GUI-VM USB passthrough so
+        # it stays host-owned and reaches gui-vm via evdev (evdev-rules.nix). An
+        # explicit deny is skipped cleanly (no "not attached to any VM" error).
+        # Mirrors vhotplug's own example config, which denies this exact receiver
+        # from raw USB. Target-scoped: x86 hosts keep the stock rules.
+        hardware.passthrough.usb.guivmRules = lib.mkForce [
+          {
+            description = "USB Devices for GUIVM";
+            targetVm = "gui-vm";
+            allow = [
+              {
+                interfaceClass = 3;
+                interfaceProtocol = 1;
+                description = "HID Keyboard";
+              }
+              {
+                interfaceClass = 3;
+                interfaceProtocol = 2;
+                description = "HID Mouse";
+              }
+              {
+                interfaceClass = 11;
+                description = "Chip/SmartCard (e.g. YubiKey)";
+              }
+              {
+                interfaceClass = 8;
+                interfaceSubclass = 6;
+                description = "Mass Storage - SCSI (USB drives)";
+              }
+              {
+                interfaceClass = 17;
+                description = "USB-C alternate modes supported by device";
+              }
+            ];
+            deny = [
+              {
+                vendorId = "046d";
+                productId = "c52b";
+                description = "Logitech Unifying Receiver: evdev-only on Orin (usb-host interrupt-IN broken)";
+              }
+            ];
+          }
+        ];
       };
     })
 

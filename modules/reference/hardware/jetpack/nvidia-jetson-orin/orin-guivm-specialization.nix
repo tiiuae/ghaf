@@ -108,12 +108,31 @@ in
     #    panel) AND the connector-less host1x tegra-drm -- and logind then fails
     #    to hand cosmic-comp DRM master ("Unable to become drm master"). Drop the
     #    host1x DRM nodes from seat0 so only card0 remains the seat's master.
+    # 6. No keyboard/mouse in cosmic. vhotplug passes the USB receiver into the
+    #    gui-vm fine (input devices present), but cosmic-comp fails to become the
+    #    logind session controller ("Unable to become drm master, assuming
+    #    unprivileged mode") and so opens devices DIRECTLY, relying on uaccess
+    #    ACLs. card0 carries :uaccess: (display works), but input devices get
+    #    only :power-switch: -- no uaccess, no ACL for the greeter uid (998) ->
+    #    open() EACCES -> cosmic-comp reads no input. Tag input with uaccess so
+    #    logind grants the active-session user an ACL (exactly how card0 works;
+    #    confirmed on HW: cosmic-comp then OPENS event0/1/2). NOTE: this is a
+    #    permission PREREQUISITE only -- it does not by itself make input work.
+    #    Events also require the evdev-only passthrough fix (the USB receiver is
+    #    denied from usb-host in the Orin target so it reaches gui-vm via
+    #    virtio-input; see targets/nvidia-jetson-orin/flake-module.nix). Single-user
+    #    gui-vm appliance, so session-wide input access is acceptable.
+    #    ponytail: uaccess = active-session user can read all input (keylogger
+    #    surface); the "correct" fix is making cosmic-comp the privileged session
+    #    controller, deferred until the libseat/logind-vs-unprivileged path is
+    #    understood.
     services.udev.extraRules = ''
       KERNEL=="nvmap", GROUP="video", MODE="0660"
       KERNEL=="nvhost-*", GROUP="video", MODE="0660"
       KERNEL=="nvgpu*", GROUP="video", MODE="0660"
       ENV{DEVNAME}=="/dev/nvgpu/*", GROUP="video", MODE="0660"
       SUBSYSTEM=="drm", DEVPATH=="*/66010000.host1x/*", ENV{ID_SEAT}="seat-unused"
+      SUBSYSTEM=="input", ENV{ID_INPUT}=="1", TAG+="uaccess"
     '';
 
     # Remaining input/TPM/audio specialisation belongs to the later full-desktop
