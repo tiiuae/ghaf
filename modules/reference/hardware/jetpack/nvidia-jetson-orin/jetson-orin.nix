@@ -730,6 +730,13 @@ in
   };
 
   config = mkIf cfg.enable {
+    # jetpack ships 99-tegra-devices.rules which sets GROUP="debug" on Tegra
+    # debug device nodes, but NixOS creates no `debug` group -> udev logs
+    # "Failed to resolve group 'debug', ignoring" for every matching rule on
+    # every device event (floods the journal >10/s under DRM device churn).
+    # Define the group so udev resolves it and applies the intended ownership.
+    users.groups.debug = { };
+
     assertions = [
       {
         assertion =
