@@ -15,14 +15,10 @@ let
     $CC -O2 -fPIC -shared -o $out/lib/gbm-nomod-shim.so \
       ${./virtualization/passthrough/gpu-vm/sources/gbm-nomod-shim.c} -ldl
   '';
-  # Fakes EGL_EXT_device enumeration so smithay (cosmic-comp) can match card0 to
-  # an EGL device; Tegra's EGL BAD_ALLOCs eglQueryDevicesEXT. See the shim source.
-  egl-device-shim = pkgs.runCommandCC "egl-device-shim" { } ''
-    mkdir -p $out/lib
-    $CC -O2 -fPIC -shared -o $out/lib/egl-device-shim.so \
-      ${./virtualization/passthrough/gpu-vm/sources/egl-device-shim.c} -ldl
-  '';
-  cosmicPreload = "${gbm-nomod-shim}/lib/gbm-nomod-shim.so:${egl-device-shim}/lib/egl-device-shim.so";
+  # cosmic-comp needs the no-modifier GBM path (modifier surfaces BAD_ALLOC on
+  # this L4T EGL); EGL device-enumeration is handled compositor-side by the
+  # cosmic-comp-egl-device-optional patch (overlay above), not a preload.
+  cosmicPreload = "${gbm-nomod-shim}/lib/gbm-nomod-shim.so";
 in
 {
   _file = ./orin-guivm-specialization.nix;
@@ -90,13 +86,15 @@ in
     systemd.services.dbus-proxy-bluetooth.wantedBy = lib.mkForce [ ];
     systemd.services.dbus-proxy-networkmanager.wantedBy = lib.mkForce [ ];
 
-    # 3. cosmic-comp dies on init here: "eglQueryDevicesEXT: EGL_BAD_ALLOC ->
-    #    Unable to find suitable EGL platform -> Failed to create EGLDisplay for
-    #    /dev/dri/card0". Tegra's NVIDIA EGL has no device-enumeration platform;
-    #    the compositor must use GBM, and the modifier GBM path BAD_ALLOCs.
-    #    Preload the no-modifier shim (as kmscube does) so GBM surface creation
-    #    succeeds. greetd.environment covers the greeter (cosmic-greeter ->
-    #    cosmic-comp); sessionVariables covers the logged-in user session.
+    # 3. cosmic-comp used to die on init: Tegra's NVIDIA EGL has no
+    #    device-enumeration platform (eglQueryDevicesEXT BAD_ALLOCs), so
+    #    EGLDevice matching failed ("Unable to find matching egl device"). Fixed
+    #    compositor-side by the cosmic-comp-egl-device-optional patch (overlay
+    #    above) which degrades the EGLDevice to Optional and uses GBM. The
+    #    modifier GBM path still BAD_ALLOCs, so preload the no-modifier shim (as
+    #    kmscube does) so GBM surface creation succeeds. greetd.environment
+    #    covers the greeter (cosmic-greeter -> cosmic-comp); sessionVariables
+    #    covers the logged-in user session.
     systemd.services.greetd.environment.LD_PRELOAD = cosmicPreload;
     environment.sessionVariables.LD_PRELOAD = cosmicPreload;
 
