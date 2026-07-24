@@ -55,6 +55,17 @@ in
     # that assertion. The Orin host disables it in orin.nix; the guest needs the same.
     ghaf.graphics.cosmic.screenRecorder.enable = lib.mkForce false;
 
+    # Disable idle auto-lock. cosmic-greeter 1.1.0's lock screen cannot
+    # authenticate: its in-process PAM conversation hands pam_unix an empty
+    # password (pam gets the username, then fails instantly with no unix_chkpwd
+    # call -- confirmed with pam_unix debug), so unlock ALWAYS fails regardless
+    # of the correct password/shadow/fprintd. Login is unaffected because greetd
+    # mediates that conversation. Until the lock is fixed upstream, turn idle
+    # management off so screen_off_time/suspend -> None and the session never
+    # auto-locks -- otherwise the screensaver traps the user on an unusable lock
+    # screen with no way back in.
+    ghaf.graphics.cosmic.idleManagement.enable = lib.mkForce false;
+
     # Pin cosmic-comp to the GA10B render node. This cosmic-comp (1.1.0)
     # PREPENDS /dev/dri/ to COSMIC_RENDER_DEVICE, so it needs the BARE node name
     # ("renderD128"), not an absolute path -- an absolute value doubles to
@@ -89,6 +100,16 @@ in
     # default `try_first_pass`, but allow pam_unix to prompt when the token is
     # absent.
     security.pam.services.greetd.rules.auth.unix.settings.use_first_pass = lib.mkForce false;
+
+    # Same PAM fix for the `cosmic-greeter` service (the screen lock and the
+    # cosmic-greeter login UI both use it): its pam_unix ships `use_first_pass`,
+    # the identical "auth could not identify password" wall the greetd fix above
+    # clears. NOTE: this alone does NOT make the lock screen work -- cosmic-greeter
+    # 1.1.0's in-process lock PAM conversation hands pam an EMPTY password (see the
+    # idleManagement note above), so unlock still fails. This removes one of the
+    # two walls, so unlock works out of the box once the upstream empty-password
+    # bug is fixed; keep it paired with idleManagement.enable=false until then.
+    security.pam.services.cosmic-greeter.rules.auth.unix.settings.use_first_pass = lib.mkForce false;
 
     # Phase 6 boot-unblock. The Orin gui-vm has no fbcon (this nvidia-drm has no
     # fbdev), so tty1 is never visible. Two first-boot units then deadlock the
