@@ -107,6 +107,13 @@ in
         Profiles can extend this with extendModules if customization needed.
       '';
     };
+
+    # GUI VM base configuration for profiles to extend
+    guivmBase = lib.mkOption {
+      type = lib.types.unspecified;
+      readOnly = true;
+      description = "Orin GUI VM base for profiles to extend (AArch64 analogue of laptop-x86.guivmBase).";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -208,6 +215,31 @@ in
             hostConfig = lib.ghaf.vm.mkHostConfig {
               inherit config;
               vmName = "disp-vm";
+            };
+          };
+        };
+
+        # Export GUI VM base for profiles to extend (AArch64)
+        orin.guivmBase = lib.nixosSystem {
+          modules = [
+            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.guivm-base
+            inputs.self.nixosModules.guivm-features
+            inputs.self.nixosModules.orin-guivm-specialization
+            {
+              nixpkgs = {
+                hostPlatform.system = "aarch64-linux";
+                inherit (config.nixpkgs) overlays;
+                inherit (config.nixpkgs) config;
+              };
+            }
+          ];
+          specialArgs = lib.ghaf.vm.mkSpecialArgs {
+            inherit lib inputs;
+            globalConfig = hostGlobalConfig;
+            hostConfig = lib.ghaf.vm.mkHostConfig {
+              inherit config;
+              vmName = "gui-vm";
             };
           };
         };
@@ -328,8 +360,18 @@ in
           };
 
           guivm = {
-            enable = false;
+            enable = lib.mkDefault false;
             # fprint/yubikey/brightness now controlled via ghaf.global-config.features
+            # Here we only provide the evaluatedConfig, extending guivmBase with
+            # hardware.definition.guivm.extraModules (DTB, vfio, guest kernel).
+            # Desktop feature bundle (services/programs/personalize) is deferred
+            # to the hw-bringup plan's Phase 6, not wired here.
+            evaluatedConfig = config.ghaf.profiles.orin.guivmBase.extendModules {
+              modules = lib.ghaf.vm.applyVmConfig {
+                inherit config;
+                vmName = "guivm";
+              };
+            };
           };
 
           audiovm = {

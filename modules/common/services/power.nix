@@ -851,13 +851,18 @@ in
     })
 
     (optionalAttrs (options ? microvm && options.microvm ? qemu) {
-      # Serial device (ttyS1) for wakeup from kernel GPU suspend
-      microvm.qemu.extraArgs = mkIf (cfg.gui.enable && cfg.vm.enable && cfg.gui.gpuSuspend) [
-        "-chardev"
-        "socket,id=wake0,path=vm-wake.sock,server=on,wait=off"
-        "-device"
-        "isa-serial,chardev=wake0,index=1"
-      ];
+      # Serial device (ttyS1) for wakeup from kernel GPU suspend.
+      # `isa-serial` is an x86 ISA device; aarch64 QEMU (virt machine, no ISA bus)
+      # rejects it and the VM fails to start, so gate the wake device on x86. On
+      # aarch64 the guest resumes via the fallback timeout (see gpuSuspendDuration).
+      microvm.qemu.extraArgs =
+        mkIf (cfg.gui.enable && cfg.vm.enable && cfg.gui.gpuSuspend && pkgs.stdenv.hostPlatform.isx86_64)
+          [
+            "-chardev"
+            "socket,id=wake0,path=vm-wake.sock,server=on,wait=off"
+            "-device"
+            "isa-serial,chardev=wake0,index=1"
+          ];
     })
 
     # Host power management
