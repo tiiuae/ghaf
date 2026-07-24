@@ -2,6 +2,7 @@
     SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
+
 <div align="center">
   <img src="./docs/src/assets/ghaf-logo.svg" alt="Ghaf Logo" width="25%" height="25%" />
   <h1>Ghaf Framework</h1>
