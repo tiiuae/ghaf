@@ -1,0 +1,32 @@
+diff --git a/src/backend/egl/device.rs b/src/backend/egl/device.rs
+--- a/src/backend/egl/device.rs
++++ b/src/backend/egl/device.rs
+@@ -75,9 +75,11 @@ impl EGLDevice {
+         if !extensions.iter().any(|s| s == "EGL_EXT_device_base") {
+             return Err(Error::EglExtensionNotSupported(&["EGL_EXT_device_base"]));
+         }
+
+-        if !extensions.iter().any(|s| s == "EGL_EXT_device_enumeration") {
+-            return Err(Error::EglExtensionNotSupported(&["EGL_EXT_device_enumeration"]));
++        if !extensions.iter().any(|s| s == "EGL_EXT_device_enumeration") {
++            warn!(
++                "Ignoring missing EGL_EXT_device_enumeration extension"
++            );
+         }
+
+         if !extensions.iter().any(|s| s == "EGL_EXT_device_query") {
+             return Err(Error::EglExtensionNotSupported(&["EGL_EXT_device_query"]));
+         }
+
+diff --git a/src/backend/egl/display.rs b/src/backend/egl/display.rs
+--- a/src/backend/egl/display.rs
++++ b/src/backend/egl/display.rs
+@@ -172,6 +172,8 @@ unsafe fn select_platform_display<N: EGLNativeDisplay + 'static>(
+ ) -> Result<(*const c_void, &'static str), Error> {
+
++    panic!("SMITHAY: SELECT_PLATFORM_DISPLAY");
++
+     for platform in native.supported_platforms() {
+         debug!("Trying EGL platform: {}", platform.platform_name);
+
+         let missing_extensions = platform
