@@ -49,15 +49,6 @@ in
     # Guest DT pins four CPUs; keep vcpu in sync (base defaults 6).
     microvm.vcpu = lib.mkForce 4;
 
-    # Input-debug tooling (Phase 6 input bring-up): libinput (list-devices /
-    # debug-events), evtest (raw evdev), wev (Wayland-level key/pointer events).
-    # ponytail: debug packages; drop once input is solved.
-    environment.systemPackages = with pkgs; [
-      libinput
-      evtest
-      wev
-    ];
-
     # gpu-screen-recorder is x86_64-only (modules/desktop/graphics/screen-recorder.nix
     # asserts pkgs.stdenv.isx86_64). COSMIC's screenRecorder defaults true and maps
     # to ghaf.graphics.screen-recorder.enable, so the aarch64 gui-vm guest would trip
@@ -76,15 +67,6 @@ in
     ghaf.graphics.cosmic.renderDevice = lib.mkForce null;
     systemd.services.greetd.environment.COSMIC_RENDER_DEVICE = "renderD128";
     environment.sessionVariables.COSMIC_RENDER_DEVICE = "renderD128";
-
-    # DEBUG (Phase 6 input dispatch): cosmic-comp/smithay use `tracing` -> RUST_LOG.
-    # The cosmic module pins RUST_LOG="error" via sessionVariables (default.nix),
-    # which the greeter inherits; mkForce it to debug to log the input path
-    # (libinput device add/read, seat, keyboard focus). Drop once input is solved.
-    environment.sessionVariables.RUST_LOG = lib.mkForce "debug";
-    # libseat logs its backend selection + TakeControl/TakeDevice result to stderr
-    # (-> cosmic-comp journal). Shows why logind won't grant cosmic-comp DRM master.
-    environment.sessionVariables.LIBSEAT_LOGLEVEL = "debug";
 
     # FIX (Phase 6 input): logind won't activate cosmic-comp's session on this
     # headless gui-vm (no fbcon -> VT-based handoff can't complete). Use seatd in
@@ -162,10 +144,11 @@ in
     #    denied from usb-host in the Orin target so it reaches gui-vm via
     #    virtio-input; see targets/nvidia-jetson-orin/flake-module.nix). Single-user
     #    gui-vm appliance, so session-wide input access is acceptable.
+    #    NOTE: cosmic-comp is now the privileged session controller via seatd
+    #    (SEATD_VTBOUND=0 above), so it opens input through seatd/TakeDevice; this
+    #    uaccess tag is a harmless belt-and-suspenders for any direct open.
     #    ponytail: uaccess = active-session user can read all input (keylogger
-    #    surface); the "correct" fix is making cosmic-comp the privileged session
-    #    controller, deferred until the libseat/logind-vs-unprivileged path is
-    #    understood.
+    #    surface); acceptable for a single-user appliance.
     services.udev.extraRules = ''
       KERNEL=="nvmap", GROUP="video", MODE="0660"
       KERNEL=="nvhost-*", GROUP="video", MODE="0660"
