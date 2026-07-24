@@ -16,7 +16,8 @@ in
   };
 
   config = mkIf cfg.enable {
-    users.users.root.openssh.authorizedKeys.keys = cfg.authorizedSshKeys;
+    # Dev keys authorize the admin account only; root stays key-free even in
+    # development builds.
     users.users.${config.ghaf.users.admin.name}.openssh.authorizedKeys.keys = cfg.authorizedSshKeys;
   };
 }

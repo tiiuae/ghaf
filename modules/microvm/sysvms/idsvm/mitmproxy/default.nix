@@ -37,15 +37,19 @@ in
     };
     webUIPswd = lib.mkOption {
       type = lib.types.str;
-      readOnly = true;
       default = "ghaf";
       description = ''
-        MitmwebUI password
+        MitmwebUI password. The default is a well-known development value;
+        override it wherever the web UI is actually exposed.
       '';
     };
   };
 
   config = lib.mkIf cfg.enable {
+    warnings = [
+      "mitmproxy on ids-vm uses a fixed development CA committed to the Ghaf repository; all app-VM TLS can be intercepted by anyone holding that key. Never enable this outside development."
+    ];
+
     # Here we add default CA keypair and corresponding self-signed certificate
     # for mitmproxy in different formats. These should be, of course, randomly and
     # securely generated and stored for each instance, but for development purposes
@@ -65,7 +69,7 @@ in
           ${pkgs.mitmproxy}/bin/mitmweb --web-host localhost --web-port ${toString mitmwebUIport} --set confdir=/etc/mitmproxy --set web_debug=true --set web_password='${cfg.webUIPswd}'
         '';
       in
-      {
+      lib.mkIf cfg.webUIEnabled {
         enable = true;
         description = "Run mitmweb to establish web interface for mitmproxy";
         path = [ mitmwebScript ];
@@ -84,8 +88,8 @@ in
 
       allowedTCPPorts = [
         mitmproxyport
-        mitmwebUIport
-      ];
+      ]
+      ++ lib.optional cfg.webUIEnabled mitmwebUIport;
 
       extra = {
 

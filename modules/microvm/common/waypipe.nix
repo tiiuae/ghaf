@@ -233,12 +233,18 @@ in
             serviceConfig = {
               Type = "oneshot";
               RemainAfterExit = true;
-              ExecStart = ''
-                ${getExe' pkgs.systemd "systemctl"} --user set-environment \
-                WAYLAND_DISPLAY=${cfg.persistentWaypipeServer.display} \
-                DISPLAY=${cfg.persistentWaypipeServer.xDisplay} \
-                XDG_SESSION_TYPE=wayland
-              '';
+              ExecStart = lib.concatStringsSep " " (
+                [
+                  (getExe' pkgs.systemd "systemctl")
+                  "--user"
+                  "set-environment"
+                  "WAYLAND_DISPLAY=${cfg.persistentWaypipeServer.display}"
+                  "XDG_SESSION_TYPE=wayland"
+                ]
+                ++ lib.optionals (cfg.persistentWaypipeServer.xDisplay != null) [
+                  "DISPLAY=${cfg.persistentWaypipeServer.xDisplay}"
+                ]
+              );
             };
           };
         }

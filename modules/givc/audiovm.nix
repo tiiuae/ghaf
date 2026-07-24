@@ -57,26 +57,36 @@ in
           ];
         socketProxy = {
           enable = true;
-          sockets = optionals (builtins.elem guivmName config.ghaf.common.vms) [
-            {
-              transport = {
-                name = guivmName;
-                addr = hosts.${guivmName}.ipv4;
-                port = "9011";
-                protocol = "tcp";
-              };
-              socket = "/tmp/dbusproxy_snd.sock";
-            }
-            (lib.optionalAttrs (audioCfg.enable && audioCfg.server.pipewireForwarding.enable) {
-              transport = {
-                name = guivmName;
-                addr = hosts.${guivmName}.ipv4;
-                inherit (audioCfg.server.pipewireForwarding) port;
-                protocol = "tcp";
-              };
-              inherit (audioCfg.server.pipewireForwarding) socket;
-            })
-          ];
+          sockets =
+            optionals (builtins.elem guivmName config.ghaf.common.vms) [
+              {
+                transport = {
+                  name = guivmName;
+                  addr = hosts.${guivmName}.ipv4;
+                  port = "9011";
+                  protocol = "tcp";
+                };
+                socket = "/tmp/dbusproxy_snd.sock";
+              }
+            ]
+            ++
+              optionals
+                (
+                  builtins.elem guivmName config.ghaf.common.vms
+                  && audioCfg.enable
+                  && audioCfg.server.pipewireForwarding.enable
+                )
+                [
+                  {
+                    transport = {
+                      name = guivmName;
+                      addr = hosts.${guivmName}.ipv4;
+                      inherit (audioCfg.server.pipewireForwarding) port;
+                      protocol = "tcp";
+                    };
+                    inherit (audioCfg.server.pipewireForwarding) socket;
+                  }
+                ];
         };
         eventProxy = {
           enable = true;

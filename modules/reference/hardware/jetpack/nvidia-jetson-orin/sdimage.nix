@@ -116,12 +116,14 @@ in
 
           GHAF_LUKS_PASSPHRASE_FILE=$(mktemp ".luks-passphrase.XXXXXX")
           chmod 600 "$GHAF_LUKS_PASSPHRASE_FILE"
-          printf '%s' "${
-            if config.ghaf.hardware.nvidia.orin.diskEncryption.deviceUniqueKey.enable then
-              config.ghaf.hardware.nvidia.orin.diskEncryption.deviceUniqueKey.deviceManufacturerPassphrase
-            else
-              config.ghaf.hardware.nvidia.orin.diskEncryption.userPassphrase.passphrase
-          }" > "$GHAF_LUKS_PASSPHRASE_FILE"
+          printf '%s' ${
+            lib.escapeShellArg (
+              if config.ghaf.hardware.nvidia.orin.diskEncryption.deviceUniqueKey.enable then
+                config.ghaf.hardware.nvidia.orin.diskEncryption.deviceUniqueKey.deviceManufacturerPassphrase
+              else
+                config.ghaf.hardware.nvidia.orin.diskEncryption.userPassphrase.passphrase
+            )
+          } > "$GHAF_LUKS_PASSPHRASE_FILE"
 
           echo "Shrinking plaintext root filesystem before LUKS conversion ..."
           e2fsck -fy "$ROOT_IMAGE"

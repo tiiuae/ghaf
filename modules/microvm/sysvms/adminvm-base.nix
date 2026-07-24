@@ -60,7 +60,7 @@ in
     users = {
       profile = hostConfig.users.profile or { };
       admin = hostConfig.users.admin or { };
-      managed = hostConfig.users.managed or { };
+      managed = hostConfig.users.managed or [ ];
     };
 
     # System

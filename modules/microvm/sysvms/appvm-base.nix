@@ -46,8 +46,17 @@ let
 
   # Helper to unwrap mkDefault values for use in lib.mkIf conditions
   # Values like `lib.mkDefault true` become { _type = "override"; content = true; priority = 1000; }
-  # This extracts the actual boolean for use in conditionals
-  unwrap = val: if val._type or null == "override" then val.content else val;
+  # This extracts the actual boolean for use in conditionals.
+  # Any other module-system wrapper (mkIf, mkMerge, ...) cannot be decoded
+  # here, so fail loudly instead of silently misreading it.
+  unwrap =
+    val:
+    if !(lib.isAttrs val) || !(val ? _type) then
+      val
+    else if val._type == "override" then
+      val.content
+    else
+      throw "appvm-base: unsupported module-system value (${val._type}) in the VM definition; use a plain value or lib.mkDefault";
 
   # Base applications from hostConfig (defined in mkAppVm call)
   baseApplications = vm.applications or [ ];

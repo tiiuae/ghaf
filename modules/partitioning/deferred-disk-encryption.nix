@@ -23,7 +23,6 @@
 }:
 let
   inherit (lib)
-    mkEnableOption
     mkIf
     getExe
     ;
@@ -493,9 +492,8 @@ in
 {
   _file = ./deferred-disk-encryption.nix;
 
-  options.ghaf.storage.encryption = {
-    deferred = mkEnableOption "Apply disk encryption on first boot instead of at image creation";
-  };
+  # The ghaf.storage.encryption.deferred option is declared in
+  # modules/common/security/disk-encryption.nix, which also reads it.
 
   config = mkIf (cfg.enable && cfg.deferred) {
     # Ensure TPM support is enabled
@@ -622,14 +620,16 @@ in
               OOMScoreAdjust = 500;
               ExecStart =
                 let
-                  # Replicate options from boot.initrd.luks.devices.crypted
-                  # We hardcode standard options here to match what the generator would produce
-                  options = [
-                    "allow-discards"
-                    "no-read-workqueue"
-                    "no-write-workqueue"
-                  ]
-                  ++ config.boot.initrd.luks.devices.crypted.crypttabExtraOpts;
+                  # Derive the options from boot.initrd.luks.devices.crypted so this
+                  # manual first-boot unit can never drift from the generator settings.
+                  luksDev = config.boot.initrd.luks.devices.crypted;
+                  options =
+                    lib.optional luksDev.allowDiscards "allow-discards"
+                    ++ lib.optionals luksDev.bypassWorkqueues [
+                      "no-read-workqueue"
+                      "no-write-workqueue"
+                    ]
+                    ++ luksDev.crypttabExtraOpts;
                   optionsStr = builtins.concatStringsSep "," options;
                 in
                 "${pkgs.systemd}/lib/systemd/systemd-cryptsetup attach crypted ${lvmPartition} - ${optionsStr}";

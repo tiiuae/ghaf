@@ -32,10 +32,15 @@ in
         Github repo of the bug reporter issue
       '';
     };
-    token = mkOption {
-      type = types.str;
+    tokenFile = mkOption {
+      type = types.nullOr types.str;
+      default = null;
       description = ''
-        Personal token of the bug reporter Github account
+        Absolute path to a file containing the personal token of the bug
+        reporter Github account, read at runtime. Do not use a Nix path
+        literal here - that would copy the secret into the world-readable
+        Nix store. When null, an empty token is written and ctrl-panel
+        updates it after user login.
       '';
     };
     clientId = mkOption {
@@ -61,26 +66,34 @@ in
 
     systemd.user.services."github-config" =
       let
-        configScript = pkgs.writeShellScriptBin "github-config" ''
-          mkdir -p "$HOME"/.config/ctrl-panel
-          cat > "$HOME"/.config/ctrl-panel/config.toml << EOF
-          token = "${cfg.token}"
-          owner = "${cfg.owner}"
-          repo = "${cfg.repo}"
-          EOF
-        '';
+        configScript = pkgs.writeShellApplication {
+          name = "github-config";
+          text = ''
+            mkdir -p "$HOME/.config/ctrl-panel"
+            {
+              ${
+                if cfg.tokenFile != null then
+                  ''printf 'token = "%s"\n' "$(cat ${lib.escapeShellArg cfg.tokenFile})"''
+                else
+                  # Populated by ctrl-panel after the user logs in
+                  ''printf 'token = ""\n' ''
+              }
+              printf 'owner = "%s"\n' ${lib.escapeShellArg cfg.owner}
+              printf 'repo = "%s"\n' ${lib.escapeShellArg cfg.repo}
+            } > "$HOME/.config/ctrl-panel/config.toml"
+          '';
+        };
       in
       {
         enable = true;
         description = "Generate Github configuration file for Ghaf Control Panel";
-        path = [ configScript ];
-        wantedBy = [ "ewwbar.service" ];
+        wantedBy = [ "default.target" ];
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
           StandardOutput = "journal";
           StandardError = "journal";
-          ExecStart = "${configScript}/bin/github-config";
+          ExecStart = lib.getExe configScript;
         };
       };
   };

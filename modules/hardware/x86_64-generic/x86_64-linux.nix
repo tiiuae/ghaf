@@ -23,7 +23,13 @@ in
       # Enable normal Linux console on the display, and QR code kernel panic
       kernelParams = [
         "console=tty0"
+      ]
+      # The USB serial console mirrors all console output to an attached
+      # adapter; keep it a debug-build convenience.
+      ++ lib.optionals config.ghaf.profiles.debug.enable [
         "console=ttyUSB0,115200"
+      ]
+      ++ [
         "drm.panic_screen=qr_code"
       ];
 
