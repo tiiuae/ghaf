@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
 From: Ghaf contributors <ghaf@tii.ae>
 Subject: [PATCH] kms: make the EGLDevice optional (GBM-only fallback for Tegra)
 

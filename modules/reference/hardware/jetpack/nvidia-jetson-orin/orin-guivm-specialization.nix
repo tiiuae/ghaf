@@ -31,16 +31,16 @@ in
   config = {
     nixpkgs.hostPlatform = lib.mkForce "aarch64-linux";
 
-    # Patch cosmic-comp so its KMS backend does NOT hard-require an EGLDevice
-    # (EGL_EXT_device / eglQueryDevicesEXT), which the L4T/Tegra NVIDIA EGL
-    # BAD_ALLOCs -> "Unable to find matching egl device" -> no output. The GBM
-    # EGLDisplay + EGLContext render on the GA10B regardless; the patch degrades
-    # the unused EGLDevice to Optional. See cosmic-comp-egl-device-optional.patch.
+    # Patch cosmic-comp for two L4T/Tegra NVIDIA KMS limitations: its EGL does
+    # not provide usable EGLDevice enumeration, and nvdisplay does not scan out
+    # cursor-plane position updates despite accepting them. Use the GBM device
+    # node and software-composite the cursor, respectively.
     nixpkgs.overlays = [
       (_final: prev: {
         cosmic-comp = prev.cosmic-comp.overrideAttrs (o: {
           patches = (o.patches or [ ]) ++ [
             ./cosmic-comp-egl-device-optional.patch
+            ./cosmic-comp-nvidia-software-cursor.patch
           ];
         });
       })
@@ -48,6 +48,15 @@ in
 
     # Guest DT pins four CPUs; keep vcpu in sync (base defaults 6).
     microvm.vcpu = lib.mkForce 4;
+
+    # Input-debug tooling (Phase 6 input bring-up): libinput (list-devices /
+    # debug-events), evtest (raw evdev), wev (Wayland-level key/pointer events).
+    # ponytail: debug packages; drop once input is solved.
+    environment.systemPackages = with pkgs; [
+      libinput
+      evtest
+      wev
+    ];
 
     # gpu-screen-recorder is x86_64-only (modules/desktop/graphics/screen-recorder.nix
     # asserts pkgs.stdenv.isx86_64). COSMIC's screenRecorder defaults true and maps
@@ -67,6 +76,37 @@ in
     ghaf.graphics.cosmic.renderDevice = lib.mkForce null;
     systemd.services.greetd.environment.COSMIC_RENDER_DEVICE = "renderD128";
     environment.sessionVariables.COSMIC_RENDER_DEVICE = "renderD128";
+
+    # DEBUG (Phase 6 input dispatch): cosmic-comp/smithay use `tracing` -> RUST_LOG.
+    # The cosmic module pins RUST_LOG="error" via sessionVariables (default.nix),
+    # which the greeter inherits; mkForce it to debug to log the input path
+    # (libinput device add/read, seat, keyboard focus). Drop once input is solved.
+    environment.sessionVariables.RUST_LOG = lib.mkForce "debug";
+    # libseat logs its backend selection + TakeControl/TakeDevice result to stderr
+    # (-> cosmic-comp journal). Shows why logind won't grant cosmic-comp DRM master.
+    environment.sessionVariables.LIBSEAT_LOGLEVEL = "debug";
+
+    # FIX (Phase 6 input): logind won't activate cosmic-comp's session on this
+    # headless gui-vm (no fbcon -> VT-based handoff can't complete). Use seatd in
+    # its documented VT-less mode, which activates the single session without
+    # waiting for a VT switch and brokers the DRM/input device fds. Point libseat
+    # at seatd and give the greeter/user seat-group access.
+    services.seatd.enable = true;
+    systemd.services.seatd.environment.SEATD_VTBOUND = "0";
+    environment.sessionVariables.LIBSEAT_BACKEND = "seatd";
+    users.users.cosmic-greeter.extraGroups = [ "seat" ];
+    users.users.ghaf.extraGroups = [
+      "seat"
+      "video"
+    ];
+
+    # The static `ghaf` user authenticates directly through greetd's pam_unix
+    # conversation. No earlier PAM module supplies PAM_AUTHTOK in this image, so
+    # pam_unix with `use_first_pass` rejects every login without asking greetd
+    # for the entered password ("auth could not identify password"). Retain the
+    # default `try_first_pass`, but allow pam_unix to prompt when the token is
+    # absent.
+    security.pam.services.greetd.rules.auth.unix.settings.use_first_pass = lib.mkForce false;
 
     # Phase 6 boot-unblock. The Orin gui-vm has no fbcon (this nvidia-drm has no
     # fbdev), so tty1 is never visible. Two first-boot units then deadlock the
