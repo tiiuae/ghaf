@@ -17,11 +17,11 @@ prev.grafana-alloy.overrideAttrs (oldAttrs: {
         'return writeTo.ReadEntries.Length() == 7 // replay the marked segment and catch up with both later segments'
     substituteInPlace internal/component/common/loki/client/shards.go \
       --replace-fail \
-        'defer batch.reportAsSentData(s.markerHandler, obs)' \
-        $'batchHandled := true\n\tdefer func() {\n\t\tif batchHandled {\n\t\t\tbatch.reportAsSentData(s.markerHandler, obs)\n\t\t}\n\t}()' \
+        'defer batch.reportAsSentData(s.tracker, obs)' \
+        $'batchHandled := true\n\tdefer func() {\n\t\tif batchHandled {\n\t\t\tbatch.reportAsSentData(s.tracker, obs)\n\t\t}\n\t}()' \
       --replace-fail \
-        $'\tlevel.Error(s.logger).Log("msg", "final error sending batch, no retries left, dropping data"' \
-        $'\tbatchHandled = s.ctx.Err() == nil\n\n\tlevel.Error(s.logger).Log("msg", "final error sending batch, no retries left, dropping data"'
+        $'\ts.logger.Error("final error sending batch, no retries left, dropping data"' \
+        $'\tbatchHandled = s.ctx.Err() == nil\n\n\ts.logger.Error("final error sending batch, no retries left, dropping data"'
   '';
 
   tags = builtins.filter (t: t != "gore2regex") oldAttrs.tags;
