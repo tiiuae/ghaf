@@ -19,6 +19,31 @@ DECLARE_INSTANCE_CHECKER(NvidiaBpmpGuestState, NVIDIA_BPMP_GUEST, TYPE_NVIDIA_BP
 #define HOST_DEVICE_PATH "/dev/bpmp-host"
 #define MESSAGE_SIZE 0x0200
 
+/*
+ * Stable userspace ABI shared with bpmp-host-proxy.
+ *
+ * Keep this separate from struct tegra_bpmp_message: NVIDIA's host kernel adds
+ * internal fields that are not part of the QEMU-to-host wire protocol.
+ */
+typedef struct BpmpProxyWireMessage {
+	uint32_t mrq;
+	uint32_t reserved0;
+
+	struct {
+		uint64_t data;
+		uint64_t size;
+	} tx;
+
+	struct {
+		uint64_t data;
+		uint64_t size;
+		int32_t ret;
+		uint32_t reserved0;
+	} rx;
+} BpmpProxyWireMessage;
+
+G_STATIC_ASSERT(sizeof(BpmpProxyWireMessage) == 48);
+
 // qemu_log_mask(LOG_UNIMP, "%s: \n", __func__ );
 
 struct NvidiaBpmpGuestState
@@ -69,23 +94,8 @@ static uint64_t nvidia_bpmp_guest_read(void *opaque, hwaddr addr, unsigned int s
 static void nvidia_bpmp_guest_write(void *opaque, hwaddr addr, uint64_t data, unsigned int size)
 {
 	NvidiaBpmpGuestState *s = opaque;
+	BpmpProxyWireMessage messg;
 	int ret;
-
-	struct
-	{
-		unsigned int mrq;
-		struct
-		{
-			void *data;
-			size_t size;
-		} tx;
-		struct
-		{
-			void *data;
-			size_t size;
-			int ret;
-		} rx;
-	} messg;
 
 	memset(&messg, 0, sizeof(messg));
 
@@ -101,9 +111,9 @@ static void nvidia_bpmp_guest_write(void *opaque, hwaddr addr, uint64_t data, un
 	case MRQ:
 		// set up the structure
 		messg.mrq = data;
-		messg.tx.data = &s->mem[TX_BUF];
+		messg.tx.data = (uintptr_t)&s->mem[TX_BUF];
 		memcpy(&messg.tx.size, &s->mem[TX_SIZ], sizeof(messg.tx.size));
-		messg.rx.data = &s->mem[RX_BUF];
+		messg.rx.data = (uintptr_t)&s->mem[RX_BUF];
 		memcpy(&messg.rx.size, &s->mem[RX_SIZ], sizeof(messg.rx.size));
 
 		ret = write(s->host_device_fd, &messg, sizeof(messg)); // Send the data to the host module
