@@ -62,8 +62,8 @@ static struct device *bpmp_host_proxy_device = NULL; ///< The device-driver devi
  */
 static int open(struct inode *, struct file *);
 static int close(struct inode *, struct file *);
-static ssize_t read(struct file *, char *, size_t, loff_t *);
-static ssize_t write(struct file *, const char *, size_t, loff_t *);
+static ssize_t read(struct file *, char __user *, size_t, loff_t *);
+static ssize_t write(struct file *, const char __user *, size_t, loff_t *);
 
 /**
  * File operations structure and the functions it points to.
@@ -287,7 +287,7 @@ static int close(struct inode *inodep, struct file *filep)
 /*
  * Reads from device, displays in userspace, and deletes the read data
  */
-static ssize_t read(struct file *filep, char *buffer, size_t len, loff_t *offset)
+static ssize_t read(struct file *filep, char __user *buffer, size_t len, loff_t *offset)
 {
 	deb_info("read stub");
 	return 0;
@@ -425,53 +425,61 @@ static bool check_if_allowed(struct tegra_bpmp_message *msg)
 extern int tegra_bpmp_transfer(struct tegra_bpmp *, struct tegra_bpmp_message *);
 extern struct tegra_bpmp *tegra_bpmp_host_device;
 
-#define BUF_SIZE 1024 
+#define BUF_SIZE 1024
+
+/*
+ * Stable userspace ABI shared with QEMU's nvidia_bpmp_guest device.
+ *
+ * Do not use struct tegra_bpmp_message as the wire format: NVIDIA's host 6.6
+ * kernel adds an unsigned long flags member to that internal structure, while
+ * the upstream 6.12 guest and QEMU header end at rx.ret. On aarch64 those
+ * layouts are 56 and 48 bytes respectively.
+ */
+struct bpmp_proxy_wire_message {
+	u32 mrq;
+	u32 reserved0;
+
+	struct {
+		u64 data;
+		u64 size;
+	} tx;
+
+	struct {
+		u64 data;
+		u64 size;
+		s32 ret;
+		u32 reserved0;
+	} rx;
+};
+
+static_assert(sizeof(struct bpmp_proxy_wire_message) == 48);
 
 /*
  * Writes to the device
  */
 
-static ssize_t write(struct file *filep, const char *buffer, size_t len, loff_t *offset)
+static ssize_t write(struct file *filep, const char __user *buffer, size_t len, loff_t *offset)
 {
-
-	int ret = len;
-	struct tegra_bpmp_message *kbuf = NULL;
+	struct bpmp_proxy_wire_message wire;
+	struct tegra_bpmp_message message = { 0 };
+	void __user *usertxbuf;
+	void __user *userrxbuf;
 	void *txbuf = NULL;
 	void *rxbuf = NULL;
-	void *usertxbuf = NULL;
-	void *userrxbuf = NULL;
+	int ret;
 
-	if (len > 65535) {	/* paranoia */
-		deb_error("count %zu exceeds max # of bytes allowed, "
-			"aborting write\n", len);
-		goto out_nomem;
+	if (len != sizeof(wire)) {
+		deb_error("count %zu does not match message header size %zu\n",
+			  len, sizeof(wire));
+		return -EINVAL;
 	}
 
-	/* Short write -> kbuf->mrq/tx.size/rx.size below read past kmalloc(len). */
-	if (len < sizeof(*kbuf)) {
-		deb_error("count %zu shorter than message header, aborting write\n", len);
-		ret = -EINVAL;
-		goto out_nomem;
-	}
-
-	ret = -ENOMEM;
-	kbuf = kmalloc(len, GFP_KERNEL);
-
-
-	if (!kbuf)
-		goto out_nomem;
-
-	memset(kbuf, 0, len);
-
-	ret = -EFAULT;
-	
-	// Copy header
-	if (copy_from_user(kbuf, buffer, len)) {
+	if (copy_from_user(&wire, buffer, sizeof(wire))) {
 		deb_error("copy_from_user(1) failed\n");
-		goto out_cfu;
+		return -EFAULT;
 	}
 
-	deb_info("\nwants to write %zu bytes, with mrq: %d\n", len, kbuf->mrq);
+	deb_info("\nwants to write %zu bytes, with mrq: %d\n", len, wire.mrq);
 
 	// A malformed or malicious guest can set tx.size/rx.size larger than the
 	// BUF_SIZE bounce buffers below; copy_from_user would then overflow the host
@@ -479,91 +487,105 @@ static ssize_t write(struct file *filep, const char *buffer, size_t len, loff_t 
 	// __kmem_cache_alloc_node from unrelated syscalls). Real MRQs are bounded by
 	// the guest BPMP window (< MESSAGE_SIZE), so anything larger is rejected. The
 	// guest proxy only caps tx.size, so rx.size must be checked here.
-	if (kbuf->tx.size > BUF_SIZE || kbuf->rx.size > BUF_SIZE) {
-		deb_error("tx.size %zu / rx.size %zu exceeds %d, rejecting\n",
-			  kbuf->tx.size, kbuf->rx.size, BUF_SIZE);
-		goto out_cfu;
+	if (wire.tx.size > BUF_SIZE || wire.rx.size > BUF_SIZE) {
+		deb_error("tx.size %llu / rx.size %llu exceeds %d, rejecting\n",
+			  wire.tx.size, wire.rx.size, BUF_SIZE);
+		return -EINVAL;
 	}
 
-	if(kbuf->tx.size > 0){
+	usertxbuf = u64_to_user_ptr(wire.tx.data);
+	userrxbuf = u64_to_user_ptr(wire.rx.data);
+
+	if (wire.tx.size > 0) {
 		txbuf = kmalloc(BUF_SIZE, GFP_KERNEL);
-		if (!txbuf)
-			goto out_nomem;
+		if (!txbuf) {
+			ret = -ENOMEM;
+			goto out;
+		}
 		memset(txbuf, 0, BUF_SIZE);
-		if (copy_from_user(txbuf, kbuf->tx.data, kbuf->tx.size)) {
+		if (copy_from_user(txbuf, usertxbuf, wire.tx.size)) {
 			deb_error("copy_from_user(2) failed\n");
-			goto out_cfu;
+			ret = -EFAULT;
+			goto out;
 		}
 	}
 
 	rxbuf = kmalloc(BUF_SIZE, GFP_KERNEL);
-	if (!rxbuf)
-		goto out_nomem;
-	
+	if (!rxbuf) {
+		ret = -ENOMEM;
+		goto out;
+	}
+
 	memset(rxbuf, 0, BUF_SIZE);
-	if (copy_from_user(rxbuf, kbuf->rx.data, kbuf->rx.size)) {
+	if (copy_from_user(rxbuf, userrxbuf, wire.rx.size)) {
 		deb_error("copy_from_user(3) failed\n");
-		goto out_cfu;
-	}	
+		ret = -EFAULT;
+		goto out;
+	}
 
+	message.mrq = wire.mrq;
+	message.tx.data = txbuf;
+	message.tx.size = wire.tx.size;
+	message.rx.data = rxbuf;
+	message.rx.size = wire.rx.size;
 
-	usertxbuf = (void*)kbuf->tx.data; //save userspace buffers addresses
-	userrxbuf = kbuf->rx.data;
-
-
-	kbuf->tx.data = txbuf; //reassing to kernel space buffers
-	kbuf->rx.data = rxbuf;
-
-	if(!tegra_bpmp_host_device){
+	if (!tegra_bpmp_host_device) {
 		deb_error("host device not initialised, can't do transfer!");
-		goto out_cfu;
+		ret = -ENODEV;
+		goto out;
 	}
 
 	// Only continue if allowed or BPMP_HOST_ALLOWS_ALL
-	if(!check_if_allowed(kbuf) && !BPMP_HOST_ALLOWS_ALL){
-		goto out_cfu;
+	if (!check_if_allowed(&message) && !BPMP_HOST_ALLOWS_ALL) {
+		ret = -EPERM;
+		goto out;
 	}
 
-	hexDump (DEVICE_NAME ": kbuf", kbuf, len);
-	hexDump (DEVICE_NAME ": txbuf", txbuf, kbuf->tx.size);
+	hexDump(DEVICE_NAME ": message", &message, sizeof(message));
+	hexDump(DEVICE_NAME ": txbuf", txbuf, message.tx.size);
 
-	ret = tegra_bpmp_transfer(tegra_bpmp_host_device, (struct tegra_bpmp_message *)kbuf);
+	ret = tegra_bpmp_transfer(tegra_bpmp_host_device, &message);
+	if (ret < 0)
+		goto out;
 
+	if (message.rx.size > BUF_SIZE) {
+		deb_error("response size %zu exceeds %d\n", message.rx.size, BUF_SIZE);
+		ret = -EOVERFLOW;
+		goto out;
+	}
 
-
-	if (copy_to_user((void *)usertxbuf, kbuf->tx.data, kbuf->tx.size)) {
+	if (copy_to_user(usertxbuf, message.tx.data, message.tx.size)) {
 		deb_error("copy_to_user(2) failed\n");
-		goto out_notok;
+		ret = -EFAULT;
+		goto out;
 	}
 
-	if (copy_to_user((void *)userrxbuf, kbuf->rx.data, kbuf->rx.size)) {
+	if (copy_to_user(userrxbuf, message.rx.data, message.rx.size)) {
 		deb_error("copy_to_user(3) failed\n");
-		goto out_notok;
+		ret = -EFAULT;
+		goto out;
 	}
 
-	kbuf->tx.data=usertxbuf;
-	kbuf->rx.data=userrxbuf;
-	
-	if (copy_to_user((void *)buffer, kbuf, len)) {
+	wire.rx.size = message.rx.size;
+	wire.rx.ret = message.rx.ret;
+
+	/*
+	 * This character-device write ABI is intentionally bidirectional: QEMU
+	 * consumes the updated response fields from the same userspace header.
+	 * file_operations.write requires a const buffer, so cast away const only
+	 * for this response copy.
+	 */
+	if (copy_to_user((void __user *)buffer, &wire, sizeof(wire))) {
 		deb_error("copy_to_user(1) failed\n");
-		goto out_notok;
+		ret = -EFAULT;
+		goto out;
 	}
 
-
-
-	kfree(kbuf);
+	ret = len;
+out:
 	kfree(txbuf);
 	kfree(rxbuf);
-	return len;
-out_notok:
-out_nomem:
-	deb_error("memory allocation failed");
-out_cfu:
-	kfree(kbuf);
-	kfree(txbuf);
-	kfree(rxbuf);
-    return -EINVAL;
-
+	return ret;
 }
 
 static const struct of_device_id bpmp_host_proxy_ids[] = {
