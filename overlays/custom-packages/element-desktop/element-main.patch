@@ -1,42 +1,44 @@
 --- a/apps/desktop/src/electron-main.ts
 +++ b/apps/desktop/src/electron-main.ts
-@@ -400,11 +400,10 @@
+@@ -249,11 +249,10 @@
          // https://www.electronjs.org/docs/faq#the-font-looks-blurry-what-is-this-and-what-can-i-do
          backgroundColor: "#fff",
-
+ 
 -        titleBarStyle: process.platform === "darwin" ? "hidden" : "default",
          trafficLightPosition: { x: 9, y: 8 },
-
+ 
          icon: await getIconPath(),
 -        show: false,
 +        show: true,
          autoHideMenuBar: store.get("autoHideMenuBar"),
-
+ 
          x: mainWindowState.x,
-@@ -430,100 +429,42 @@
-         app.exit(1);
-     }
-
--    void global.mainWindow.loadURL("vector://vector/webapp/");
+@@ -281,100 +280,42 @@
+ 
+     // do this after we know we are the primary instance of the app
+     const hasDeeplink = protocolHandler.initialise(args);
+-    if (!hasDeeplink) {
+-        void global.mainWindow.loadURL("vector://vector/webapp/");
+-    }
 -
 -    if (process.platform === "darwin") {
 -        setupMacosTitleBar(global.mainWindow);
 -    }
--
+ 
      // Handle spellchecker
      // For some reason spellCheckerEnabled isn't persisted, so we have to use the store here
      global.mainWindow.webContents.session.setSpellCheckerEnabled(store.get("spellCheckerEnabled", true));
-
+ 
      // Create trayIcon icon
 -    if (store.get("minimizeToTray")) await tray.create();
-+    tray.create();
-
++    await tray.create();
+ 
 -    global.mainWindow.once("ready-to-show", () => {
-+    global.mainWindow.webContents.once('did-finish-load',function() {
++    global.mainWindow.webContents.once("did-finish-load", () => {
          if (!global.mainWindow) return;
          mainWindowState.manage(global.mainWindow);
-
-         if (!argv["hidden"]) {
+ 
+         if (!args.hidden) {
              global.mainWindow.show();
 +            global.mainWindow.restore();
 +            global.mainWindow.focus();
@@ -45,7 +47,7 @@
              global.mainWindow.hide();
          }
      });
-
+ 
 -    global.mainWindow.webContents.on("before-input-event", (event: Event, input: Input): void => {
 -        const exitShortcutPressed =
 -            input.type === "keyDown" && exitShortcuts.some((shortcutFn) => shortcutFn(input, process.platform));
@@ -65,7 +67,7 @@
 -                    buttons: [
 -                        _t("action|cancel"),
 -                        _t("action|close_brand", {
--                            brand: global.vectorConfig.brand || "Element",
+-                            brand: config.brand,
 -                        }),
 -                    ],
 -                    message: _t("confirm_quit"),
@@ -78,8 +80,10 @@
 -        // Exit the app
 -        app.exit();
 -    });
-+    void global.mainWindow.loadURL("vector://vector/webapp/");
-
++    if (!hasDeeplink) {
++        void global.mainWindow.loadURL("vector://vector/webapp/");
++    }
+ 
      global.mainWindow.on("closed", () => {
          global.mainWindow = null;
      });
@@ -105,7 +109,7 @@
 +            global.mainWindow?.hide();
          }
      });
-
+ 
 -    if (process.platform === "win32") {
 -        // Handle forward/backward mouse buttons in Windows
 -        global.mainWindow.on("app-command", (e, cmd) => {
@@ -118,8 +122,5 @@
 -    }
 -
      webContentsHandler(global.mainWindow.webContents);
-
-+
+ 
      session.defaultSession.setDisplayMediaRequestHandler(
-         (_, callback) => {
-             if (process.env.XDG_SESSION_TYPE === "wayland") {
