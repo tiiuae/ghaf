@@ -343,8 +343,16 @@ static bool check_if_allowed(struct tegra_bpmp_message *msg)
 		return true;
 	}
 
+	/* The policed MRQs below read a request struct out of tx. tx.data is NULL
+	 * when the guest sends tx.size == 0, and both fields are guest-controlled,
+	 * so a missing or truncated request must be denied, not dereferenced. */
+
 	// Check for reset and clock mrq
 	if(msg->mrq == MRQ_RESET){
+		if (!msg->tx.data || msg->tx.size < sizeof(*reset_req)) {
+			deb_warn("Warning, reset mrq with truncated tx (%zu), denied", msg->tx.size);
+			return false;
+		}
 		reset_req = (struct mrq_reset_request*) msg->tx.data;
 
 		for(i = 0; i < bpmp_ares.resets_size; i++){
@@ -356,6 +364,10 @@ static bool check_if_allowed(struct tegra_bpmp_message *msg)
 		return false;
 	}
 	else if (msg->mrq == MRQ_CLK){
+		if (!msg->tx.data || msg->tx.size < sizeof(clock_req->cmd_and_id)) {
+			deb_warn("Warning, clk mrq with truncated tx (%zu), denied", msg->tx.size);
+			return false;
+		}
 		clock_req = (struct mrq_clk_request*) msg->tx.data;
 		clk_cmd = (clock_req->cmd_and_id >> 24) & 0x000F;
 
@@ -388,6 +400,10 @@ static bool check_if_allowed(struct tegra_bpmp_message *msg)
 		return false;
 	}
 	else if(msg->mrq == MRQ_PG){
+		if (!msg->tx.data || msg->tx.size < offsetofend(struct mrq_pg_request, id)) {
+			deb_warn("Warning, pg mrq with truncated tx (%zu), denied", msg->tx.size);
+			return false;
+		}
 		pg_req = (struct mrq_pg_request*) msg->tx.data;
 
 		for(i = 0; i < bpmp_ares.pd_size; i++){
@@ -425,15 +441,23 @@ static bool check_if_allowed(struct tegra_bpmp_message *msg)
 extern int tegra_bpmp_transfer(struct tegra_bpmp *, struct tegra_bpmp_message *);
 extern struct tegra_bpmp *tegra_bpmp_host_device;
 
-#define BUF_SIZE 1024
+/*
+ * Matches the QEMU device's 512-byte TX/RX windows (MESSAGE_SIZE in
+ * nvidia_bpmp_guest.c). A larger bound would let copy_to_user() reach past
+ * those windows into adjacent QEMU device state.
+ */
+#define BUF_SIZE 512
 
 /*
  * Stable userspace ABI shared with QEMU's nvidia_bpmp_guest device.
  *
- * Do not use struct tegra_bpmp_message as the wire format: NVIDIA's host 6.6
- * kernel adds an unsigned long flags member to that internal structure, while
- * the upstream 6.12 guest and QEMU header end at rx.ret. On aarch64 those
- * layouts are 56 and 48 bytes respectively.
+ * Do not use struct tegra_bpmp_message as the wire format. It is a
+ * kernel-internal type: it gained an `unsigned long flags` member in v6.7
+ * (backported to 6.6.y as 9c9312fccdc9), so it is 56 bytes on both the
+ * 6.6.129 host and the 6.12 guest. QEMU's device previously declared its own
+ * copy of that layout, written before `flags` existed, and so sent 48 bytes
+ * into a 56-byte cast. This struct is the contract instead; it is 48 bytes by
+ * definition and must not track the kernel type.
  */
 struct bpmp_proxy_wire_message {
 	u32 mrq;
