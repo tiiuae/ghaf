@@ -119,8 +119,12 @@ static void nvidia_bpmp_guest_write(void *opaque, hwaddr addr, uint64_t data, un
 		ret = write(s->host_device_fd, &messg, sizeof(messg)); // Send the data to the host module
 		if (ret < 0)
 		{
+			/* The host proxy denied or failed the transfer without filling
+			 * the response fields. Report a defined failure instead of
+			 * leaving RET_COD/RX_SIZ at the previous transaction's values. */
+			messg.rx.ret = -EIO;
+			messg.rx.size = 0;
 			qemu_log_mask(LOG_UNIMP, "%s: Failed to write the host device..\n", __func__);
-			return;
 		}
 
 		memcpy(&s->mem[RET_COD], &messg.rx.ret, sizeof(messg.rx.ret));
