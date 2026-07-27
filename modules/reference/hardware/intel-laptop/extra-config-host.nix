@@ -1,10 +1,10 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+{ lib, ... }:
 {
-  lib,
-  ...
-}:
-{
+  ghaf.hardware.usb.authorization.enable = lib.mkDefault true;
+  ghaf.hardware.usb.authorization.deauthorizeUnmatched = lib.mkDefault true;
+
   ghaf.services.power-manager.suspend = {
     mode = lib.mkDefault "auto";
     s2idleModels = [ "System76 Darter Pro" ];
