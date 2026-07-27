@@ -25,11 +25,19 @@
 		#size-cells = <2>;
 		ranges;
 
-		// Reserve the passthrough CMA ram region as CMA for the VM
+		// Reserve the passthrough CMA ram region as CMA for the VM.
+		// Grown 64MB -> 96MB in place: the 64MB pool exhausts under the full
+		// COSMIC desktop (nvidia-drm dumb scanout-class buffers are ~20MB
+		// each; NvKmsKapiMemory then fails NV_ERR_NO_MEMORY and cosmic-comp
+		// exits, collapsing the session). vpr/fsi move into the free
+		// 0x8E000000 hole to keep the pool contiguous. 96MB is the proven
+		// ceiling: bisected on hardware, ANY resize/move of the generic
+		// carveout (and CMA placed at 0xA4000000) hangs the guest before
+		// earlycon, so vidmem/generic must stay untouched.
 		linux,cma {
 			compatible = "shared-dma-pool";
 			reusable;
-			reg = <0x00 0x88000000 0x00 0x04000000>; // 64MB
+			reg = <0x00 0x88000000 0x00 0x06000000>; // 96MB
 			linux,cma-default;
 			status = "okay";
 		};
@@ -45,14 +53,14 @@
 		// Carveout needed by the NVMAP driver
 		vpr: vpr-carveout {
 			compatible = "removed-dma-pool";
-			reg = <0x00 0x8C000000 0x00 0x01000000>; // 16MB
+			reg = <0x00 0x8E000000 0x00 0x01000000>; // 16MB (moved from 0x8C for CMA growth)
 			status = "okay";
 		};
 
 		// Carveout needed by the NVMAP driver
 		fsi_reserved: fsi-carveout {
 			compatible = "removed-dma-pool";
-			reg = <0x00 0x8D000000 0x00 0x01000000>; // 16MB
+			reg = <0x00 0x8F000000 0x00 0x01000000>; // 16MB (moved from 0x8D for CMA growth)
 			no-map;
 			status = "okay";
 		};

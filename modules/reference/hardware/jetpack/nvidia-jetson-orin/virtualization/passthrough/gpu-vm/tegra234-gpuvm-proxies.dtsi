@@ -40,6 +40,10 @@
 		dce_guest_proxy {
 			compatible = "nvidia,dce-guest-proxy";
 			dce-virtual-pa = <0x0 0x090e0000>;
+			// QEMU a15irqmap[VIRT_NVIDIA_DCE_GUEST]. The bridge asserts
+			// this level-triggered line while an unacknowledged event is
+			// in the reverse window.
+			interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
 			status = "okay";
 		};
 	};

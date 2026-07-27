@@ -48,6 +48,10 @@ _: {
     #     .extendModules { modules = [ ../services ]; }
     guivm-base = ./sysvms/guivm-base.nix;
 
+    # Small AArch64/Orin specialization of guivm-base (overrides x86-only
+    # assumptions the base cannot infer on aarch64).
+    orin-guivm-specialization = ../reference/hardware/jetpack/nvidia-jetson-orin/orin-guivm-specialization.nix;
+
     # Admin VM base module for layered composition
     # Use with extendModules pattern:
     #   lib.nixosSystem { modules = [ inputs.self.nixosModules.adminvm-base ]; ... }
