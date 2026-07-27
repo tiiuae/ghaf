@@ -126,8 +126,20 @@ let
         python3 ${./splice-flash-xml.py} \
           --device-type "${if isNvme then "nvme" else "sdmmc_user"}" \
           ${lib.optionalString cfg.flashScriptOverrides.onlyQSPI "--remove-device"} \
-          --set "esp.size=$(($(cat ${images}/esp.size) * 512))" \
-          --set "APP.size=$(($(cat ${images}/root.size) * 512))" \
+          --set "esp.size=${
+            if cfg.flashScriptOverrides.appPartitionSizeBytes != null then
+              # Static sizing: 512 MiB ESP (every Ghaf Orin image uses 524288
+              # sectors); keeps flash.xml independent of the built sdImage.
+              "268435456"
+            else
+              "$(($(cat ${images}/esp.size) * 512))"
+          }" \
+          --set "APP.size=${
+            if cfg.flashScriptOverrides.appPartitionSizeBytes != null then
+              toString cfg.flashScriptOverrides.appPartitionSizeBytes
+            else
+              "$(($(cat ${images}/root.size) * 512))"
+          }" \
           ${xmlFile} \
           ${pkgs.writeText "sdmmc.json" (builtins.toJSON partitionsEmmc)} \
           "$out"
@@ -215,7 +227,20 @@ let
       fi
 
       ${lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
-        image_source_root=${lib.escapeShellArg (toString images)}
+        image_source_root=${
+          # With a static APP size the flash script must not depend on the
+          # built sdImage; the image then comes exclusively from -s at run time.
+          if cfg.flashScriptOverrides.appPartitionSizeBytes != null then
+            "\"\""
+          else
+            lib.escapeShellArg (toString images)
+        }
+
+        if [ -z "$image_source_root" ] && [ -z "''${SIGNED_SD_IMAGE_DIR:-}" ]; then
+          echo "ERROR: this flash script was built without an embedded sdImage;" >&2
+          echo "       pass -s <signed-sd-image> to supply one." >&2
+          exit 1
+        fi
 
         if [ -n "''${SIGNED_SD_IMAGE_DIR:-}" ]; then
           if [ ! -d "$SIGNED_SD_IMAGE_DIR" ]; then

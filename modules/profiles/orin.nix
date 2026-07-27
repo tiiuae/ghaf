@@ -107,12 +107,37 @@ in
         Profiles can extend this with extendModules if customization needed.
       '';
     };
+
+    # GUI VM base configuration for profiles to extend
+    guivmBase = lib.mkOption {
+      type = lib.types.unspecified;
+      readOnly = true;
+      description = "Orin GUI VM base for profiles to extend (AArch64 analogue of laptop-x86.guivmBase).";
+    };
+
+    mkAppVm = lib.mkOption {
+      type = lib.types.unspecified;
+      readOnly = true;
+      description = "Create an App VM on the Orin base (AArch64 analogue of laptop-x86.mkAppVm).";
+    };
   };
 
   config = lib.mkIf cfg.enable {
     ghaf = {
       # Orin devices are embedded, not laptops
       hardware.definition.type = "embedded";
+
+      # Orin has no fingerprint reader; disable fprint so the gui-vm does not
+      # pull fprintd/libfprint. libfprint cannot cross-compile (it runs a target
+      # binary at build time to generate the udev hwdb), so leaving it enabled
+      # forces the whole image off the fast cross path onto native/emulated builds.
+      global-config.features.fprint.enable = false;
+
+      # TuneD power profiles pull python3-ethtool, which fails to cross-compile
+      # (its setup.py queries the host pkg-config for libnl-3.0 instead of the
+      # cross one). The embedded Orin gui-vm does not need laptop power tuning,
+      # so drop the feature to keep the fast cross path.
+      global-config.features.performance.enable = false;
 
       profiles = {
         # Export Net VM base for profiles to extend
@@ -211,6 +236,75 @@ in
             };
           };
         };
+
+        # Export GUI VM base for profiles to extend (AArch64)
+        orin.guivmBase = lib.nixosSystem {
+          modules = [
+            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.guivm-base
+            inputs.self.nixosModules.guivm-features
+            inputs.self.nixosModules.orin-guivm-specialization
+            {
+              nixpkgs = {
+                hostPlatform.system = "aarch64-linux";
+                inherit (config.nixpkgs) overlays;
+                inherit (config.nixpkgs) config;
+              };
+            }
+          ];
+          specialArgs = lib.ghaf.vm.mkSpecialArgs {
+            inherit lib inputs;
+            globalConfig = hostGlobalConfig;
+            hostConfig = lib.ghaf.vm.mkHostConfig {
+              inherit config;
+              vmName = "gui-vm";
+            };
+          };
+        };
+
+        # Export mkAppVm for App VMs on Orin, mirroring laptop-x86.mkAppVm:
+        # same appvm-base composition, pinned to aarch64-linux.
+        orin.mkAppVm =
+          vmDef:
+          let
+            vmCfg = config.ghaf.virtualization.vmConfig.appvms.${vmDef.name} or { };
+            effectiveDef =
+              vmDef
+              // lib.optionalAttrs ((vmCfg.mem or null) != null) { inherit (vmCfg) mem; }
+              // lib.optionalAttrs ((vmCfg.vcpu or null) != null) { inherit (vmCfg) vcpu; }
+              // lib.optionalAttrs ((vmCfg.balloonRatio or null) != null) { inherit (vmCfg) balloonRatio; };
+          in
+          lib.nixosSystem {
+            modules = [
+              inputs.microvm.nixosModules.microvm
+              inputs.self.nixosModules.appvm-base
+              {
+                nixpkgs = {
+                  hostPlatform.system = "aarch64-linux";
+                  inherit (config.nixpkgs) overlays;
+                  inherit (config.nixpkgs) config;
+                };
+              }
+            ]
+            ++ (vmCfg.extraModules or [ ]);
+            specialArgs = lib.ghaf.vm.mkSpecialArgs {
+              inherit lib inputs;
+              globalConfig = hostGlobalConfig;
+              hostConfig =
+                lib.ghaf.vm.mkHostConfig {
+                  inherit config;
+                  vmName = "${effectiveDef.name}-vm";
+                }
+                // {
+                  appvm = effectiveDef;
+                  sharedVmDirectory =
+                    config.ghaf.virtualization.microvm-host.sharedVmDirectory or {
+                      enable = false;
+                      vms = [ ];
+                    };
+                };
+            };
+          };
 
         graphics = {
           enable = true;
@@ -328,8 +422,20 @@ in
           };
 
           guivm = {
-            enable = false;
+            enable = lib.mkDefault false;
             # fprint/yubikey/brightness now controlled via ghaf.global-config.features
+            # Hardware-only fallback: guivmBase + hardware.definition.guivm
+            # extraModules (DTB, vfio, guest kernel). The MVP profile
+            # (mvp-orinuser-trial.nix) overrides this with the full desktop
+            # bundle; mkDefault keeps this bringup-only form usable without it.
+            evaluatedConfig = lib.mkDefault (
+              config.ghaf.profiles.orin.guivmBase.extendModules {
+                modules = lib.ghaf.vm.applyVmConfig {
+                  inherit config;
+                  vmName = "guivm";
+                };
+              }
+            );
           };
 
           audiovm = {

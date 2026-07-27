@@ -81,17 +81,22 @@ Four cooperating pieces:
 1. **`dce-guest-proxy.ko` (guest)** installs the `tegra_dce_ipc_send_redirect`
    hook exported by the patched guest `tegra-dce`, so every synchronous DCE
    client IPC goes into a shared MMIO window instead of a (non-existent) guest
-   IVC channel. It also polls the reverse window and injects asynchronous
-   events back into `tegra-dce`'s client callbacks via
+   IVC channel. A virtual SPI wakes its threaded handler when the bridge
+   publishes a reverse-window event; the handler injects asynchronous events
+   back into `tegra-dce`'s client callbacks via
    `tegra_dce_client_ipc_inject` — identical to native IVC delivery from the
    driver's point of view.
-2. **QEMU DCE bridge** (`nvidia_dce_guest` device in `ghaf-qemu-bpmp`) traps
-   the window. Bridge creation is opt-in through `GHAF_DCE_GUEST=1`; only the
-   VM that owns the display path may set it and open `/dev/dce-host`. A
-   doorbell write runs the forward round-trip synchronously: it packages the
+2. **QEMU DCE bridge** (`nvidia_dce_guest` device in `ghaf-qemu-bpmp`) exposes
+   the existing trapped MMIO window, with a RAM overlay for only the 4 KiB
+   reverse-event payload. Bridge creation is opt-in through `GHAF_DCE_GUEST=1`;
+   only the VM that owns the display path may set it and open `/dev/dce-host`.
+   A doorbell write runs the forward round-trip synchronously: it packages the
    request and `write()`s it to `/dev/dce-host`, which returns only when the
    real DCE has answered. A pump thread `poll()`s the same fd for asynchronous
-   events and publishes them into the reverse window.
+   events, publishes them into the reverse window, and asserts the virtual SPI.
+   It sleeps on the guest acknowledgement before publishing the next event.
+   Keeping the 4 KiB reverse payload RAM-backed is essential: placing it in an
+   IO memory region turns each vblank copy into roughly 1,000 KVM exits.
 3. **`dce-host-proxy.ko` (host)** registers as a tegra-dce client (`CPU_RM`
    interface) and relays each guest request to the real DCE via
    `tegra_dce_client_ipc_send_recv`. Unsolicited DCE notifications (channel
@@ -104,8 +109,9 @@ Four cooperating pieces:
 
 ### The relay window
 
-A single 0x5000-byte MMIO region, one transaction at a time (serialized by a
-guest spinlock — DCE IPC can be issued from atomic context):
+A single 0x5000-byte MMIO region with a RAM overlay at the reverse-event
+payload, one transaction at a time (serialized by a guest spinlock — DCE IPC
+can be issued from atomic context):
 
 | Offset | Field | Purpose |
 | ------ | ----- | ------- |
@@ -119,8 +125,9 @@ guest spinlock — DCE IPC can be issued from atomic context):
 
 The reverse window is single-slot with a sequence/ack handshake: the bridge
 publishes one event and bumps `EVT_SEQ`; the guest consumes it and writes the
-sequence back to `EVT_ACK`; the bridge holds the next event (buffered in the
-host ring) until the ack catches up. Slow guest ⇒ delayed events, never lost.
+sequence back to `EVT_ACK`, which deasserts the virtual SPI; the bridge holds
+the next event (buffered in the host ring) until the ack catches up. Slow guest
+⇒ delayed events, never lost. Neither endpoint polls the reverse MMIO window.
 
 The host event ring is single-consumer. Do not enable the DCE bridge in a
 compute-only GPU VM, NetVM, or AdminVM. Multiple QEMU readers race after
