@@ -1,4 +1,5 @@
 #include "qemu/osdep.h"
+#include "hw/irq.h"	/* qemu_set_irq */
 #include "qemu/log.h"
 #include "qemu/main-loop.h"	/* bql_lock/bql_unlock */
 #include "qemu/thread.h"
@@ -24,9 +25,10 @@ DECLARE_INSTANCE_CHECKER(NvidiaDceGuestState, NVIDIA_DCE_GUEST, TYPE_NVIDIA_DCE_
 /*
  * Reverse (async) window -- DCE R5 unsolicited ch_type=3 notifications (vblank,
  * flip-completion a modeset blocks on). Helper thread poll()s /dev/dce-host,
- * read()s one event, publishes it and bumps EVT_SEQ; guest consumes and writes
- * seq to EVT_ACK. Next event held until ACK catches up, so none is overwritten
- * unseen.
+ * read()s one event, publishes it, bumps EVT_SEQ and asserts a virtual SPI.
+ * The guest consumes the event and writes seq to EVT_ACK, which deasserts the
+ * SPI and wakes the helper so the next event can be published. No event is
+ * overwritten unseen.
  */
 #define FWD_SIZE  0x3000  /* forward window; reverse window sits above it so a
 			   * sync send never clobbers EVT_SEQ/EVT_ACK. */
@@ -52,11 +54,18 @@ struct dce_host_event_wire {
 struct NvidiaDceGuestState
 {
 	SysBusDevice parent_obj;
+	MemoryRegion container;
 	MemoryRegion iomem;
+	MemoryRegion evt_payload_ram;
+	qemu_irq irq;
 	int host_device_fd;
 	uint8_t mem[MEM_SIZE];
+	uint8_t *evt_payload;
 	QemuThread evt_thread;
+	QemuMutex evt_lock;
+	QemuCond evt_cond;
 	bool evt_thread_running;
+	bool evt_acked;
 	uint32_t evt_seq;	/* last seq this device published */
 	bool stopping;
 };
@@ -109,8 +118,8 @@ struct dce_host_msg
  * notification, publishes it into the reverse window. Gated on EVT_ACK so a
  * slow guest never loses an event (unconsumed events stay in the host ring).
  *
- * ponytail: poll(2) + 500us ack-wait spin, no guest IRQ. nvidia-drm's flip
- * wait is 3s so latency is irrelevant; wire a GIC SPI only if a hot path needs it.
+ * The host side blocks in poll(2). Once an event is published, it blocks on a
+ * condition until the guest IRQ handler ACKs it; neither side polls MMIO.
  */
 static void *nvidia_dce_guest_evt_thread(void *opaque)
 {
@@ -120,19 +129,8 @@ static void *nvidia_dce_guest_evt_thread(void *opaque)
 	while (!qatomic_read(&s->stopping)) {
 		struct pollfd pfd = { .fd = s->host_device_fd, .events = POLLIN };
 		ssize_t r;
-		uint32_t iface, dsize, ack;
+		uint32_t iface, dsize;
 		int n;
-
-		/* Hold off until the guest has acked the last published event. */
-		if (s->evt_seq) {
-			bql_lock();
-			ack = *(uint32_t *)&s->mem[EVT_ACK];
-			bql_unlock();
-			if (ack != s->evt_seq) {
-				g_usleep(500);
-				continue;
-			}
-		}
 
 		n = poll(&pfd, 1, 200);	/* 200ms so we notice ->stopping */
 		if (n <= 0 || !(pfd.revents & POLLIN))
@@ -155,82 +153,113 @@ static void *nvidia_dce_guest_evt_thread(void *opaque)
 			dsize = EVT_MAX;
 
 		bql_lock();
-		memcpy(&s->mem[EVT_BUF], ev.data, dsize);
+		memcpy(s->evt_payload, ev.data, dsize);
+		memory_region_set_dirty(&s->evt_payload_ram, 0, dsize);
 		*(uint32_t *)&s->mem[EVT_IFACE] = iface;
 		*(uint32_t *)&s->mem[EVT_SIZ]   = dsize;
 		s->evt_seq++;
 		*(uint32_t *)&s->mem[EVT_SEQ]   = s->evt_seq;	/* publish last */
+		smp_wmb();
+		/*
+		 * Arm the ACK wait only after advancing EVT_SEQ, while the BQL
+		 * excludes guest MMIO. A queued ACK for the previous sequence
+		 * must not satisfy the new event's wait.
+		 */
+		qemu_mutex_lock(&s->evt_lock);
+		s->evt_acked = false;
+		qemu_set_irq(s->irq, 1);
+		qemu_mutex_unlock(&s->evt_lock);
 		bql_unlock();
+
+		/* One reverse-window slot: wait until the guest has consumed it. */
+		qemu_mutex_lock(&s->evt_lock);
+		while (!s->evt_acked && !qatomic_read(&s->stopping))
+			qemu_cond_wait(&s->evt_cond, &s->evt_lock);
+		qemu_mutex_unlock(&s->evt_lock);
 	}
 
 	return NULL;
 }
 
-static uint64_t nvidia_dce_guest_read(void *opaque, hwaddr addr, unsigned int size)
+static uint64_t nvidia_dce_guest_read(void *opaque, hwaddr addr,
+				      unsigned int size)
 {
 	NvidiaDceGuestState *s = opaque;
+	uint64_t val = 0;
 
-	// Bound the full width, not just addr: a tail read must not leak adjacent
-	// NvidiaDceGuestState fields.
+	/* Bound the full width, not just addr: a tail read must not leak
+	 * adjacent NvidiaDceGuestState fields. */
 	if (addr > MEM_SIZE - size)
 		return 0xDEADBEEF;
 
-	uint64_t val = 0;
-	memcpy(&val, &s->mem[addr], size); // honor size, not a fixed u64 deref
+	memcpy(&val, &s->mem[addr], size);
 	return val;
 }
 
-static void nvidia_dce_guest_write(void *opaque, hwaddr addr, uint64_t data, unsigned int size)
+static void nvidia_dce_guest_write(void *opaque, hwaddr addr, uint64_t data,
+				   unsigned int size)
 {
 	NvidiaDceGuestState *s = opaque;
-	int ret;
-
 	struct dce_host_msg messg;
+	int ret;
 
 	memset(&messg, 0, sizeof(messg));
 
-	// Bound the full width: a tail write must not clobber adjacent
-	// NvidiaDceGuestState fields (host_device_fd, thread state, evt_seq).
-	if (addr > MEM_SIZE - size){
-		qemu_log_mask(LOG_UNIMP, "qemu: Error addr+size > MEM_SIZE in 0x%lX data: 0x%lX\n", addr, data);
+	/* Bound the full width: a tail write must not clobber adjacent state. */
+	if (addr > MEM_SIZE - size) {
+		qemu_log_mask(LOG_UNIMP,
+			      "nvidia_dce_guest: addr+size exceeds window at "
+			      "0x%" HWADDR_PRIx "\n", addr);
 		return;
 	}
 
-	switch (addr)
-	{
+	switch (addr) {
+	case EVT_ACK: {
+		uint32_t ack;
+
+		memcpy(&s->mem[addr], &data, size);
+		memcpy(&ack, &s->mem[EVT_ACK], sizeof(ack));
+		if (ack == s->evt_seq) {
+			qemu_set_irq(s->irq, 0);
+			qemu_mutex_lock(&s->evt_lock);
+			s->evt_acked = true;
+			qemu_cond_signal(&s->evt_cond);
+			qemu_mutex_unlock(&s->evt_lock);
+		}
+		break;
+	}
+
 	case DOORBELL:
-		// set up the structure from the fields already written into mem[]
 		memcpy(&messg.iface, &s->mem[IFACE], sizeof(messg.iface));
 		messg.tx.data = &s->mem[TX_BUF];
-		memcpy(&messg.tx.size, &s->mem[TX_SIZ], sizeof(messg.tx.size));
+		memcpy(&messg.tx.size, &s->mem[TX_SIZ],
+		       sizeof(messg.tx.size));
 		messg.rx.data = &s->mem[RX_BUF];
-		memcpy(&messg.rx.size, &s->mem[RX_SIZ], sizeof(messg.rx.size));
+		memcpy(&messg.rx.size, &s->mem[RX_SIZ],
+		       sizeof(messg.rx.size));
 
-		ret = write(s->host_device_fd, &messg, sizeof(messg)); // Send the data to the host module, synchronous round-trip
-		if (ret < 0)
-		{
-			qemu_log_mask(LOG_UNIMP, "%s: Failed to write the host device..\n", __func__);
+		ret = write(s->host_device_fd, &messg, sizeof(messg));
+		if (ret < 0) {
+			qemu_log_mask(LOG_UNIMP,
+				      "%s: failed to write the host device\n",
+				      __func__);
 			return;
 		}
 
 		memcpy(&s->mem[RET_COD], &messg.ret, sizeof(messg.ret));
-		memcpy(&s->mem[RX_SIZ], &messg.rx.size, sizeof(messg.rx.size));
-
+		memcpy(&s->mem[RX_SIZ], &messg.rx.size,
+		       sizeof(messg.rx.size));
 		break;
 
 	default:
-
 		memcpy(&s->mem[addr], &data, size);
 	}
-
-	return;
 }
 
 static const MemoryRegionOps nvidia_dce_guest_ops = {
 	.read = nvidia_dce_guest_read,
 	.write = nvidia_dce_guest_write,
 	.endianness = DEVICE_NATIVE_ENDIAN,
-	// QEMU clamps to 1..8-byte aligned accesses before the handlers run.
 	.valid = {
 		.min_access_size = 1,
 		.max_access_size = 8,
@@ -246,9 +275,29 @@ static void nvidia_dce_guest_instance_init(Object *obj)
 {
 	NvidiaDceGuestState *s = NVIDIA_DCE_GUEST(obj);
 
-	/* allocate memory map region */
-	memory_region_init_io(&s->iomem, obj, &nvidia_dce_guest_ops, s, TYPE_NVIDIA_DCE_GUEST, MEM_SIZE);
-	sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->iomem);
+	/*
+	 * Preserve the working MMIO protocol for synchronous DCE requests and
+	 * reverse-event controls. Overlay only the 4 KiB reverse payload with
+	 * RAM: otherwise each guest memcpy_fromio() causes roughly 1000 KVM
+	 * exits per vblank event.
+	 */
+	memory_region_init(&s->container, obj, TYPE_NVIDIA_DCE_GUEST, MEM_SIZE);
+	memory_region_init_io(&s->iomem, obj, &nvidia_dce_guest_ops, s,
+			      TYPE_NVIDIA_DCE_GUEST ".io", MEM_SIZE);
+	memory_region_add_subregion(&s->container, 0, &s->iomem);
+
+	memory_region_init_ram(&s->evt_payload_ram, obj,
+			       TYPE_NVIDIA_DCE_GUEST ".event-payload", EVT_MAX,
+			       &error_fatal);
+	s->evt_payload = memory_region_get_ram_ptr(&s->evt_payload_ram);
+	memory_region_add_subregion_overlap(&s->container, EVT_BUF,
+					    &s->evt_payload_ram, 1);
+
+	sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->container);
+	sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->irq);
+	qemu_mutex_init(&s->evt_lock);
+	qemu_cond_init(&s->evt_cond);
+	s->evt_acked = true;
 
 	s->host_device_fd = open(HOST_DEVICE_PATH, O_RDWR); // Open the device with read/write access
 
@@ -271,11 +320,17 @@ static void nvidia_dce_guest_instance_finalize(Object *obj)
 
 	if (s->evt_thread_running) {
 		qatomic_set(&s->stopping, true);
+		qemu_mutex_lock(&s->evt_lock);
+		qemu_cond_broadcast(&s->evt_cond);
+		qemu_mutex_unlock(&s->evt_lock);
 		qemu_thread_join(&s->evt_thread);
 		s->evt_thread_running = false;
 	}
+	qemu_set_irq(s->irq, 0);
 	if (s->host_device_fd >= 0)
 		close(s->host_device_fd);
+	qemu_cond_destroy(&s->evt_cond);
+	qemu_mutex_destroy(&s->evt_lock);
 }
 
 /* create a new type to define the info related to our device */
@@ -296,8 +351,8 @@ type_init(nvidia_dce_guest_register_types)
 
 	/*
 	 * Forward (sync) path via doorbell + reverse (RM_NOTIFY) window drained
-	 * by the poll thread from instance_init. Delivery is poll-based (guest
-	 * watches EVT_SEQ), so no sysbus IRQ is wired here.
+	 * by the host-fd thread from instance_init. The machine wires this device's
+	 * sysbus IRQ to the SPI described by the guest DT.
 	 */
 	DeviceState *nvidia_dce_guest_create(hwaddr addr)
 {

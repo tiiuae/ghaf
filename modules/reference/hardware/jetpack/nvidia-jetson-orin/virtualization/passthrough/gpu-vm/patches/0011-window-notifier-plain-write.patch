@@ -1,6 +1,6 @@
 --- a/nvdisplay/src/nvidia-modeset/src/nvkms-evo3.c
 +++ b/nvdisplay/src/nvidia-modeset/src/nvkms-evo3.c
-@@ -4321,13 +4321,13 @@
+@@ -4321,13 +4321,21 @@
          pSurfaceDesc = &pNIso->pSurfaceEvo->planes[0].surfaceDesc;
          offset = pNIso->offsetInWords / 4;
          ctrlVal = 0;
@@ -11,13 +11,21 @@
 -            ctrlVal = FLD_SET_DRF(C37E, _SET_NOTIFIER_CONTROL, _MODE,
 -                                  _WRITE, ctrlVal);
 -        }
-+        /* DCE host-proxy passthrough: plain WRITE, never WRITE_AWAKEN --
-+         * same R5 abort as the core channel (0009). The completion notifier
-+         * memory must land in DRAM so the guest can poll it for real flip
-+         * completion (0013). */
-+        (void) pHwState->completionNotifier.awaken;
-+        ctrlVal = FLD_SET_DRF(C37E, _SET_NOTIFIER_CONTROL, _MODE,
-+                              _WRITE, ctrlVal);
++        /*
++         * Native-completion trial: request WRITE_AWAKEN only for an active
++         * window with a committed surface. Inactive overlay notifiers stay
++         * plain WRITE, avoiding the second abort source observed during the
++         * original bring-up. 0010 traces and drops the resulting event while
++         * 0013 remains the sole DRM completion owner.
++         */
++        if (pHwState->completionNotifier.awaken &&
++            pHwState->pSurfaceEvo[NVKMS_LEFT] != NULL) {
++            ctrlVal = FLD_SET_DRF(C37E, _SET_NOTIFIER_CONTROL, _MODE,
++                                  _WRITE_AWAKEN, ctrlVal);
++        } else {
++            ctrlVal = FLD_SET_DRF(C37E, _SET_NOTIFIER_CONTROL, _MODE,
++                                  _WRITE, ctrlVal);
++        }
  
          SetWinNotifierSurfaceAddressAndControl(pChannel,
              pSurfaceDesc, offset, ctrlVal);

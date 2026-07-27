@@ -46,7 +46,15 @@ the MMIO at the address the DTS hardcodes.
      [VIRT_NVIDIA_BPMP_GUEST] =  { 0x090d0000, 0x00001000 },
      [VIRT_MMIO] =               { 0x0a000000, 0x00000200 },
      /* ...repeating for a total of NUM_VIRTIO_TRANSPORTS, each of that size */
-@@ -1188,14 +1190,49 @@
+@@ -235,6 +237,7 @@ static const int a15irqmap[] = {
+     [VIRT_GPIO] = 7,
+     [VIRT_UART1] = 8,
+     [VIRT_ACPI_GED] = 9,
++    [VIRT_NVIDIA_DCE_GUEST] = 15,
+     [VIRT_MMIO] = 16, /* ...to 16 + NUM_VIRTIO_TRANSPORTS - 1 */
+     [VIRT_GIC_V2M] = 48, /* ...to 48 + NUM_GICV2M_SPIS - 1 */
+     [VIRT_SMMU] = 74,    /* ...to 74 + NUM_SMMU_IRQS - 1 */
+@@ -1188,14 +1191,53 @@
      qemu_fdt_setprop_cell(ms->fdt, "/bpmp", "phandle",
                            qemu_fdt_alloc_phandle(ms->fdt));
  }
@@ -66,6 +74,7 @@ the MMIO at the address the DTS hardcodes.
 +static void create_nvidia_dce_guest(const VirtMachineState *vms)
 +{
 +    hwaddr base = vms->memmap[VIRT_NVIDIA_DCE_GUEST].base;
++    DeviceState *dev;
 +
 +    /*
 +     * Exclusive DCE ownership (opt-in). The host proxy has a single global
@@ -82,7 +91,10 @@ the MMIO at the address the DTS hardcodes.
 +        return;
 +    }
 +
-+    nvidia_dce_guest_create(base);
++    dev = nvidia_dce_guest_create(base);
++    sysbus_connect_irq(SYS_BUS_DEVICE(dev), 0,
++                       qdev_get_gpio_in(vms->gic,
++                                        vms->irqmap[VIRT_NVIDIA_DCE_GUEST]));
 +}
 +
  static void create_virtio_devices(const VirtMachineState *vms)

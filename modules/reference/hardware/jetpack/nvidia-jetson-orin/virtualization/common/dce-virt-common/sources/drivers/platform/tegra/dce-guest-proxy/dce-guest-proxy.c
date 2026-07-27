@@ -20,7 +20,7 @@
 #include <linux/spinlock.h>
 #include <linux/minmax.h>
 #include <linux/string.h>
-#include <linux/kthread.h>
+#include <linux/interrupt.h>
 #include <linux/delay.h>
 #include <linux/debugfs.h>
 #include <linux/platform/tegra/dce/dce-client-ipc.h>
@@ -50,8 +50,8 @@ MODULE_VERSION("0.1");
 /*
  * Reverse (async) window -- must match nvidia_dce_guest.c. Above FWD_SIZE so
  * sync transactions leave it untouched. QEMU publishes DCE's unsolicited
- * ch_type=3 notifications here and bumps EVT_SEQ; we consume one per bump and
- * write the seq back to EVT_ACK.
+ * ch_type=3 notifications here, bumps EVT_SEQ and asserts the virtual SPI; the
+ * threaded handler consumes the event and writes the seq back to EVT_ACK.
  */
 #define EVT_SEQ         0x3000  /* u32: bumped per published event */
 #define EVT_IFACE       0x3004  /* u32: event interface type (ch_type) */
@@ -64,7 +64,8 @@ MODULE_VERSION("0.1");
 #define DCE_MAX_PAYLOAD 0x1000  /* max tx/rx payload (== TX_BUF/RX_BUF slot) */
 
 static void __iomem *mem_iova;
-static struct task_struct *dce_evt_task;
+static int dce_evt_irq = -1;
+static u32 dce_evt_last_seq;
 static struct dentry *dce_virt_dbg;
 
 /*
@@ -119,55 +120,52 @@ static int my_dce_ipc_send(u32 ch_type, struct dce_ipc_message *msg)
 /*
  * Reverse doorbell, guest end. QEMU publishes DCE's unsolicited ch_type=3
  * notifications (vblank, and the flip-completion nvidia-drm's atomic commit
- * blocks on) into the reverse window and bumps EVT_SEQ. Poll, consume each new
- * event, inject into tegra_dce so dce_client_async_event_work delivers it to
- * nvdisplay's async client callback -- the completion the guest modeset
- * otherwise never gets -- then ack.
+ * blocks on) into the reverse window and bumps EVT_SEQ. Consume each
+ * interrupting event and inject it into tegra_dce so
+ * dce_client_async_event_work delivers it to nvdisplay's async client callback
+ * -- the completion the guest modeset otherwise never gets -- then ack.
  *
- * ponytail: poll loop, not a GIC IRQ. nvidia-drm's flip wait is 3s, so ~1ms
- * latency is irrelevant; wire an SPI only if a hot path needs it.
+ * QEMU asserts a level-triggered virtual SPI after publishing an event. This
+ * threaded handler may sleep if tegra-dce's FIFO is temporarily full; ACKing
+ * the sequence deasserts the line and lets QEMU publish the next event.
  */
-static int dce_evt_poll_fn(void *arg)
+static irqreturn_t dce_evt_irq_thread(int irq, void *arg)
 {
-	static u8 evbuf[EVT_MAX];	/* single kthread; off the 8K stack */
-	u32 last_seq = 0;
+	static u8 evbuf[EVT_MAX];	/* single IRQ thread; off the 8K stack */
+	u32 seq = readl(mem_iova + EVT_SEQ);
+	u32 iface;
+	u32 size;
 	int ret;
 
-	while (!kthread_should_stop()) {
-		u32 seq = readl(mem_iova + EVT_SEQ);
-
-		if (seq != last_seq) {
-			u32 iface = readl(mem_iova + EVT_IFACE);
-			u32 size  = readl(mem_iova + EVT_SIZ);
-
-			if (size > EVT_MAX)
-				size = EVT_MAX;
-			memcpy_fromio(evbuf, mem_iova + EVT_BUF, size);
-
-			/* pr_debug: the vblank stream makes this a ~100Hz path */
-			pr_debug("dce_guest_proxy: EVENT seq=%u iface=%u size=%u\n",
-				 seq, iface, size);
-
-			/* Into tegra-dce's FIFO. ACK only on success: a full FIFO
-			 * leaves EVT_ACK unchanged so the QEMU pump re-presents
-			 * the slot -- opaque events are never dropped (Blocker 2). */
-			ret = tegra_dce_client_ipc_inject(iface, size, evbuf);
-			if (ret == -ENOSPC) {
-				usleep_range(500, 1000);
-				continue;	/* re-read same seq, do NOT ack */
-			}
-			if (ret == -ENOENT || ret == -EINVAL)
-				pr_warn_ratelimited("dce_guest_proxy: event iface=%u dropped (ret=%d)\n",
-						    iface, ret);
-
-			last_seq = seq;
-			writel(seq, mem_iova + EVT_ACK);	/* unblock next */
-		}
-
-		usleep_range(500, 1000);
+	/* Re-ACK a repeated level so QEMU cannot remain asserted if a prior ACK
+	 * raced interrupt unmasking. Sequence zero means no event was published. */
+	if (!seq || seq == dce_evt_last_seq) {
+		writel(seq, mem_iova + EVT_ACK);
+		return IRQ_HANDLED;
 	}
 
-	return 0;
+	iface = readl(mem_iova + EVT_IFACE);
+	size = readl(mem_iova + EVT_SIZ);
+	if (size > EVT_MAX)
+		size = EVT_MAX;
+	memcpy_fromio(evbuf, mem_iova + EVT_BUF, size);
+
+	/* Into tegra-dce's FIFO. ACK only on success: a full FIFO leaves the
+	 * virtual SPI asserted so the threaded handler retries without dropping
+	 * the opaque event. */
+	ret = tegra_dce_client_ipc_inject(iface, size, evbuf);
+	if (ret == -ENOSPC) {
+		usleep_range(500, 1000);
+		return IRQ_HANDLED;
+	}
+	if (ret == -ENOENT || ret == -EINVAL)
+		pr_warn_ratelimited("dce_guest_proxy: event iface=%u dropped (ret=%d)\n",
+				    iface, ret);
+
+	dce_evt_last_seq = seq;
+	writel(seq, mem_iova + EVT_ACK);
+
+	return IRQ_HANDLED;
 }
 
 static int dce_guest_proxy_probe(struct platform_device *pdev)
@@ -200,6 +198,22 @@ static int dce_guest_proxy_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	dce_evt_last_seq = 0;
+	dce_evt_irq = platform_get_irq(pdev, 0);
+	if (dce_evt_irq < 0) {
+		ret = dce_evt_irq;
+		dev_err(&pdev->dev, "missing reverse-doorbell IRQ: %d\n", ret);
+		goto err_event_stop;
+	}
+	ret = request_threaded_irq(dce_evt_irq, NULL, dce_evt_irq_thread,
+				   IRQF_ONESHOT, DEVICE_NAME, pdev);
+	if (ret) {
+		dev_err(&pdev->dev, "reverse-doorbell IRQ request failed: %d\n",
+			ret);
+		dce_evt_irq = -1;
+		goto err_event_stop;
+	}
+
 	dce_virt_dbg = debugfs_create_dir("dce-virt", NULL);
 	debugfs_create_atomic_t("enqueued",  0444, dce_virt_dbg, tegra_dce_virt_counter(0));
 	debugfs_create_atomic_t("full",      0444, dce_virt_dbg, tegra_dce_virt_counter(1));
@@ -210,24 +224,22 @@ static int dce_guest_proxy_probe(struct platform_device *pdev)
 	 * FIFO worker is live and cannot fail this probe. */
 	tegra_dce_ipc_send_redirect = my_dce_ipc_send;
 
-	/* Start draining the reverse window (async DCE notifications). */
-	dce_evt_task = kthread_run(dce_evt_poll_fn, NULL, "dce-evt-poll");
-	if (IS_ERR(dce_evt_task)) {
-		dev_warn(&pdev->dev, "reverse-doorbell poll thread failed: %ld\n",
-			 PTR_ERR(dce_evt_task));
-		dce_evt_task = NULL;
-	}
-
 	return 0;
+
+err_event_stop:
+	tegra_dce_virt_event_stop();
+	iounmap(mem_iova);
+	mem_iova = NULL;
+	return ret;
 }
 
 /* 6.12 guest kernel: platform_driver.remove is void since v6.11 (the host proxy
  * on the 6.6 L4T kernel still returns int). */
 static void dce_guest_proxy_remove(struct platform_device *pdev)
 {
-	if (dce_evt_task) {
-		kthread_stop(dce_evt_task);	/* no new injects after this */
-		dce_evt_task = NULL;
+	if (dce_evt_irq >= 0) {
+		free_irq(dce_evt_irq, pdev);	/* no new injects after this */
+		dce_evt_irq = -1;
 	}
 	debugfs_remove_recursive(dce_virt_dbg);
 	dce_virt_dbg = NULL;
