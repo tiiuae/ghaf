@@ -1,9 +1,26 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  options,
+  ...
+}:
 let
   cfg = config.ghaf.development.usb-serial;
-  inherit (lib) mkEnableOption mkIf concatMapStrings;
+  hasUsbAuthorization = lib.hasAttrByPath [
+    "ghaf"
+    "hardware"
+    "usb"
+    "authorization"
+    "enable"
+  ] options;
+  inherit (lib)
+    concatMapStrings
+    mkEnableOption
+    mkIf
+    mkMerge
+    ;
 
   # Commonly used USB serial adapters
   usbSerialAdapters = [
@@ -25,6 +42,11 @@ let
     } # WCH CH340
   ];
 
+  usbSerialHostAllow = map (adapter: {
+    vendorId = adapter.vid;
+    productId = adapter.pid;
+  }) usbSerialAdapters;
+
   mkUdevRule =
     { vid, pid }:
     ''
@@ -37,10 +59,17 @@ in
   options.ghaf.development.usb-serial.enable = mkEnableOption "USB serial connection";
 
   #TODO Should this be alos bound to only x86?
-  config = mkIf cfg.enable {
-    services.getty.extraArgs = [ "115200" ];
-    systemd.services."serial-getty@".enable = true;
+  config = mkIf cfg.enable (mkMerge [
+    {
+      services.getty.extraArgs = [ "115200" ];
+      systemd.services."serial-getty@".enable = true;
 
-    services.udev.extraRules = concatMapStrings mkUdevRule usbSerialAdapters;
-  };
+      services.udev.extraRules = concatMapStrings mkUdevRule usbSerialAdapters;
+    }
+
+    (lib.optionalAttrs hasUsbAuthorization {
+      ghaf.hardware.passthrough.vhotplug.usbAuthorization.hostAllow =
+        mkIf config.ghaf.hardware.usb.authorization.enable usbSerialHostAllow;
+    })
+  ]);
 }
