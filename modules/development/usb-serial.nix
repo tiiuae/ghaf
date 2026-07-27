@@ -4,12 +4,25 @@
   config,
   lib,
   pkgs,
+  options,
   ...
 }:
 let
   cfg = config.ghaf.development.usb-serial;
   getty = config.services.getty;
-  inherit (lib) mkEnableOption mkIf concatMapStrings;
+  hasUsbAuthorization = lib.hasAttrByPath [
+    "ghaf"
+    "hardware"
+    "usb"
+    "authorization"
+    "hostAllow"
+  ] options;
+  inherit (lib)
+    concatMapStrings
+    mkEnableOption
+    mkIf
+    mkMerge
+    ;
 
   # The arguments NixOS's getty module passes to every agetty.
   gettyArgs = [
@@ -47,6 +60,11 @@ let
     } # WCH CH340
   ];
 
+  usbSerialHostAllow = map (adapter: {
+    vendorId = adapter.vid;
+    productId = adapter.pid;
+  }) usbSerialAdapters;
+
   mkUdevRule =
     { vid, pid }:
     ''
@@ -59,17 +77,23 @@ in
   options.ghaf.development.usb-serial.enable = mkEnableOption "USB serial connection";
 
   #TODO Should this be alos bound to only x86?
-  config = mkIf cfg.enable {
-    # NixOS starts serial gettys without a baud rate. Set it on this unit only:
-    # services.getty.extraArgs also reaches the VT gettys and corrupts their TERM.
-    systemd.services."serial-getty@" = {
-      enable = true;
-      serviceConfig.ExecStart = lib.mkForce [
-        ""
-        "${lib.getExe' pkgs.util-linux "agetty"} ${lib.escapeShellArgs gettyArgs} %I 115200 $TERM"
-      ];
-    };
+  config = mkIf cfg.enable (mkMerge [
+    {
+      # NixOS starts serial gettys without a baud rate. Set it on this unit only:
+      # services.getty.extraArgs also reaches the VT gettys and corrupts their TERM.
+      systemd.services."serial-getty@" = {
+        enable = true;
+        serviceConfig.ExecStart = lib.mkForce [
+          ""
+          "${lib.getExe' pkgs.util-linux "agetty"} ${lib.escapeShellArgs gettyArgs} %I 115200 $TERM"
+        ];
+      };
 
-    services.udev.extraRules = concatMapStrings mkUdevRule usbSerialAdapters;
-  };
+      services.udev.extraRules = concatMapStrings mkUdevRule usbSerialAdapters;
+    }
+
+    (lib.optionalAttrs hasUsbAuthorization {
+      ghaf.hardware.usb.authorization.hostAllow = usbSerialHostAllow;
+    })
+  ]);
 }
