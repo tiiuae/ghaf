@@ -500,9 +500,20 @@ in
       };
 
       maxReceipts = mkOption {
-        description = "Upper bound on retained content-bound recovery archive receipts.";
         type = types.int;
         default = 64;
+        description = ''
+          Upper bound on retained content-bound recovery archive receipts.
+
+          The recovery path caps the receipt store at this many records, evicting
+          the oldest with a warning when exceeded. Receipts are matched against
+          on-disk archives by content (sha256) at verify time, so a receipt for a
+          deleted archive is harmless and is not dropped merely because the
+          archive is currently absent (transient absence would lose coverage).
+          Archives are owned by journald vacuum/rotation and are not deleted with
+          receipts; this cap is only the growth backstop against repeated clock-
+          jump recoveries, not a 1:1 archive index.
+        '';
       };
 
       clockReady = {
@@ -544,6 +555,10 @@ in
     ];
 
     systemd = {
+      # Barrier target: Requires the oneshot so the target is only reached on
+      # success. Consumers that must not fail-closed on a barrier IO error
+      # (notably systemd-journal-flush) depend on the service with Wants= below,
+      # not on this target.
       targets.ghaf-clock-ready = mkIf clockReadyEnabled {
         description = "Ghaf clock readiness barrier";
         requires = [ "ghaf-clock-ready.service" ];
