@@ -85,7 +85,13 @@ let
         # Store initial checksum (if file exists)
         prev_checksum=$(get_locale_checksum)
 
-        ${getExe' pkgs.systemd "busctl"} monitor org.freedesktop.locale1 --system \
+        # A positional SERVICE filter becomes ineffective while localed has no
+        # owner, causing unrelated system-bus PropertiesChanged messages to
+        # enter the checksum retry loop. Match the locale1 signal itself so an
+        # idle desktop does not continuously spawn sha256sum/awk/sleep through
+        # the virtiofs-backed Nix store.
+        ${getExe' pkgs.systemd "busctl"} monitor --system \
+          --match="type='signal',path='/org/freedesktop/locale1',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged',arg0='org.freedesktop.locale1'" \
           | grep --line-buffered PropertiesChanged \
             | while read -r _; do
               # DBus event received, but locale.conf may not be updated yet
