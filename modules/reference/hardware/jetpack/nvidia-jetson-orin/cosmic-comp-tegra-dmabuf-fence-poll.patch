@@ -1,0 +1,146 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+From: Ghaf contributors <ghaf@tii.ae>
+Subject: [PATCH] compositor: poll implicit DMA-BUF fences on Tegra
+
+The Tegra DMA-BUF implicit-fence poll implementation can make the buffer
+readable without waking an epoll waiter. COSMIC then leaves the surface commit
+blocked until unrelated input wakes calloop; animated clients consequently
+advance only while the pointer moves.
+
+When COSMIC_POLL_DMABUF_FENCES is set, replace the implicit-fence fd event
+source with a short-lived timer that polls the same DMA-BUF planes every 2 ms.
+Keep the Smithay transaction blocked until every plane really reports readable,
+so this does not weaken implicit synchronization or sample unfinished buffers.
+Explicit syncobj acquire points retain their existing event-driven path.
+---
+ Cargo.toml                         |  2 +-
+ src/wayland/handlers/compositor.rs | 97 +++++++++++++++++++++++++++++---
+ 2 files changed, 88 insertions(+), 11 deletions(-)
+
+diff --git a/Cargo.toml b/Cargo.toml
+index 56b9e2c..373c14a 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -76,3 +76,3 @@ zbus = "5.14.0"
+ profiling = { version = "1.0" }
+-rustix = { version = "1.1.4", features = ["process"] }
++rustix = { version = "1.1.4", features = ["event", "process"] }
+ rand = "0.10"
+diff --git a/src/wayland/handlers/compositor.rs b/src/wayland/handlers/compositor.rs
+index 92b51e5..2f2219a 100644
+--- a/src/wayland/handlers/compositor.rs
++++ b/src/wayland/handlers/compositor.rs
+@@ -3,7 +3,13 @@
+ use crate::{shell::grabs::SeatMoveGrabState, state::ClientState, utils::prelude::*};
+-use calloop::Interest;
++use calloop::{
++    Interest,
++    timer::{TimeoutAction, Timer},
++};
+ use smithay::{
+-    backend::renderer::{
+-        element::{Kind, surface::KindEvaluation},
+-        utils::{on_commit_buffer_handler, with_renderer_surface_state},
++    backend::{
++        allocator::dmabuf::Dmabuf,
++        renderer::{
++            element::{Kind, surface::KindEvaluation},
++            utils::{on_commit_buffer_handler, with_renderer_surface_state},
++        },
+     },
+@@ -14,5 +20,5 @@ use smithay::{
+         compositor::{
+-            BufferAssignment, CompositorClientState, CompositorHandler, CompositorState,
+-            SurfaceAttributes, SurfaceData, TraversalAction, add_blocker, add_post_commit_hook,
+-            add_pre_commit_hook, with_states, with_surface_tree_downward,
++            Blocker, BlockerState, BufferAssignment, CompositorClientState, CompositorHandler,
++            CompositorState, SurfaceAttributes, SurfaceData, TraversalAction, add_blocker,
++            add_post_commit_hook, add_pre_commit_hook, with_states, with_surface_tree_downward,
+         },
+@@ -23,5 +29,3 @@ use smithay::{
+             wlr_layer::LayerSurfaceAttributes,
+-            xdg::{
+-                ToplevelSurface, XdgPopupSurfaceRoleAttributes, XdgToplevelSurfaceRoleAttributes,
+-            },
++            xdg::{ToplevelSurface, XdgPopupSurfaceRoleAttributes, XdgToplevelSurfaceRoleAttributes},
+         },
+@@ -30,2 +34,33 @@ use smithay::{
+ };
++
++#[derive(Debug)]
++struct PollDmabufBlocker(std::sync::Arc<std::sync::atomic::AtomicBool>);
++
++impl Blocker for PollDmabufBlocker {
++    fn state(&self) -> BlockerState {
++        if self.0.load(std::sync::atomic::Ordering::SeqCst) {
++            BlockerState::Released
++        } else {
++            BlockerState::Pending
++        }
++    }
++}
++
++fn dmabuf_read_ready(dmabuf: &Dmabuf) -> bool {
++    dmabuf.handles().all(|handle| {
++        matches!(
++            rustix::event::poll(
++                &mut [rustix::event::PollFd::new(
++                    &handle,
++                    rustix::event::PollFlags::IN,
++                )],
++                Some(&rustix::time::Timespec {
++                    tv_sec: 0,
++                    tv_nsec: 0,
++                }),
++            ),
++            Ok(1)
++        )
++    })
++}
+ use std::{collections::VecDeque, sync::Mutex, time::Duration};
+@@ -214,2 +249,44 @@ impl CompositorHandler for State {
+                 }
++
++                /*
++                 * Tegra's implicit-fence poll can transition to readable
++                 * without waking epoll. A timer-backed poll preserves the
++                 * blocker contract while ensuring calloop observes readiness
++                 * without requiring an unrelated input event.
++                 */
++                if std::env::var_os("COSMIC_POLL_DMABUF_FENCES").is_some()
++                    && !dmabuf_read_ready(&dmabuf)
++                {
++                    let signal =
++                        std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
++                    let timer_signal = signal.clone();
++                    let timer_dmabuf = dmabuf.clone();
++                    let client = surface.client().unwrap();
++                    let timer = Timer::immediate();
++                    let res = state.common.event_loop_handle.insert_source(
++                        timer,
++                        move |_, _, state| {
++                            if dmabuf_read_ready(&timer_dmabuf) {
++                                timer_signal.store(true, std::sync::atomic::Ordering::SeqCst);
++                                let dh = state.common.display_handle.clone();
++                                state
++                                    .client_compositor_state(&client)
++                                    .blocker_cleared(state, &dh);
++                                TimeoutAction::Drop
++                            } else {
++                                TimeoutAction::ToDuration(Duration::from_millis(2))
++                            }
++                        },
++                    );
++
++                    if res.is_ok() {
++                        add_blocker(surface, PollDmabufBlocker(signal));
++                        return;
++                    }
++                }
++
++                /*
++                 * Default event-driven implicit-fence path. Keep it for
++                 * drivers whose DMA-BUF poll wakeup is reliable.
++                 */
+                 if let Ok((blocker, source)) = dmabuf.generate_blocker(Interest::READ) {

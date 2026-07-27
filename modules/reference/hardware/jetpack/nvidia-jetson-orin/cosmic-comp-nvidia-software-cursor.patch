@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+From: Ghaf contributors <ghaf@tii.ae>
+Subject: [PATCH] kms: composite the cursor on NVIDIA
+
+The Tegra nvdisplay DRM driver accepts atomic updates for its cursor plane and
+reports the updated coordinates in debugfs, but the scanned-out cursor remains
+at the top-left corner. Disable the NVIDIA cursor plane so cosmic-comp renders
+the cursor into the primary plane instead.
+---
+--- a/src/backend/kms/mod.rs
++++ b/src/backend/kms/mod.rs
+@@ -937,6 +937,7 @@
+                                 .contains("nvidia")
+                         }) {
+                             planes.overlay = vec![];
++                            planes.cursor = vec![];
+                         }
+                         // QUIRK: Cursor planes on evdi sometimes don't disappear correctly.
+                         // TODO: Debug and figure out, as they can be a nice improvement.
