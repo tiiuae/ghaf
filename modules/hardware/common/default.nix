@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   imports = [
+    ./usb/authorization.nix
     ./usb/external-devices.nix
     ./devices.nix
     ./input.nix
