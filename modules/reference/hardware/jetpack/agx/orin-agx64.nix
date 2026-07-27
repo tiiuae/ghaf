@@ -22,6 +22,8 @@
         kernelVersion = "upstream-6-6";
         somType = "agx64";
         agx.enableNetvmWlanPCIPassthrough = true;
+        # Run DRAM at its trained maximum (3199 MHz vs the 2133 boot rate).
+        emcBoost.enable = true;
         carrierBoard = "devkit";
         # AGX64 devkit boots rootfs from eMMC.
         flashScriptOverrides = {

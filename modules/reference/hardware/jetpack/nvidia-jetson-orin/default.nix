@@ -10,5 +10,6 @@
     ./pci-passthrough-common.nix
     ./virtualization
     ./optee/optee.nix
+    ./emc-boost
   ];
 }
