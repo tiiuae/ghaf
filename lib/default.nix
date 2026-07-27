@@ -244,6 +244,11 @@ in
             type = lib.types.listOf lib.types.str;
             description = "Selector of the workload";
           };
+          dnsNames = lib.mkOption {
+            type = lib.types.listOf lib.types.str;
+            default = [ ];
+            description = "DNS names to include in the workload X.509-SVID";
+          };
         };
       }
     );

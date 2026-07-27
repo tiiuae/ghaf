@@ -151,6 +151,7 @@ in
     givc = {
       inherit (globalConfig.givc) enable;
       inherit (globalConfig.givc) debug;
+      spireWorkload.enable = (globalConfig.givc.enable or false) && (globalConfig.spire.enable or false);
     };
 
     # Security
