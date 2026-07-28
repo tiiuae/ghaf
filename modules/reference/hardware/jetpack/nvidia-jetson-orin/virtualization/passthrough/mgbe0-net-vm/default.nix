@@ -51,6 +51,36 @@ in
         380
         381
         248
+        # MGBE0's "tx" (374) is fed by a PLL chain that clk_prepare() walks in
+        # full, so every link needs allowing or the child fails: the guest logs
+        # "Failed to prepare clk 'tx': -5" and tegra-mgbe probes at -5, while the
+        # host logs "bpmp-host: Warning, clock not allowed for: <id>, command: 7".
+        # Allowing only part of the chain just moves the denial to the next link
+        # (seen going 319 -> 367). All of these are gigabit-ethernet dedicated,
+        # so the boundary stays ethernet-scoped: host-critical display/memory
+        # PLLs stay denied, and the MGBE1/2/3 instances are deliberately not
+        # listed since only MGBE0 is passed through.
+        319 # PLLGBE
+        320 # PLLGBE_HPS
+        366 # MGBES_APP
+        367 # UPHY_GBE_PLL2_TX_REF
+        368 # UPHY_GBE_PLL2_XDIG
+        # mgbe0_app (380) does not hang off the GBE PLLs at all: it is clocked
+        # at 480 MHz from the USB/UTMI tree, so clk_prepare walks
+        # mgbe0_app -> utmipll_clkout480 -> utmip_pll -> osc/clk_m. Every one of
+        # these is shared with host USB, so bpmp-host-proxy.c also lists them in
+        # protected_clk_roots: net-vm may enable and read them, but
+        # disable/set_rate/set_parent stay denied, so a guest cannot pull the
+        # clock out from under the host's USB (keyboard, net-vm's own NIC).
+        103 # UTMIP_PLL
+        292 # UTMIPLL_CLKOUT480
+        91 # OSC
+        14 # CLK_M
+        # ptp-ref (381) hangs off the PLLREFE tree rather than the USB one, so
+        # it needs its own two ancestors. PLLREFE is a shared reference PLL
+        # (PCIe/UPHY use it too), hence protected_clk_roots as well.
+        288 # PLLREFE_VCOOUT
+        327 # PLLREFE_VCOOUT_GATED
       ];
       resets = [
         45

@@ -308,6 +308,11 @@ static ssize_t read(struct file *filep, char __user *buffer, size_t len, loff_t 
 static const uint32_t protected_clk_roots[] = {
 	14,  /* TEGRA234_CLK_CLK_M */
 	102, /* TEGRA234_CLK_PLLP_OUT0 */
+	103, /* TEGRA234_CLK_UTMIP_PLL: parent of mgbe0_app, also feeds host USB */
+	292, /* TEGRA234_CLK_UTMIPLL_CLKOUT480: 480 MHz output feeding mgbe0_app */
+	91,  /* TEGRA234_CLK_OSC */
+	288, /* TEGRA234_CLK_PLLREFE_VCOOUT: shared reference PLL (PCIe/UPHY) */
+	327, /* TEGRA234_CLK_PLLREFE_VCOOUT_GATED */
 };
 
 static bool clk_root_is_protected(uint32_t clk_id)
