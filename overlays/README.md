@@ -40,6 +40,7 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
 [qemu: Battery, lid, power](https://github.com/blochl/qemu/pull/3)
 [gjs - cross](https://github.com/NixOS/nixpkgs/pull/461666)
 [oculante: Generated Nix Path Changed](https://github.com/NixOS/nixpkgs/pull/502921)
+[python3Packages.pandas-stubs: pin pytest to 9.0](https://github.com/NixOS/nixpkgs/pull/545267)
 
 ## carried in tiiuae/nixpkgs/...
 
