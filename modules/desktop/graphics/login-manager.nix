@@ -94,52 +94,91 @@ in
           };
         };
       };
-      greetd = {
-        fprintAuth = false; # User needs to enter password to decrypt home on login
-        rules = {
-          auth = {
-            unix.settings.use_first_pass = !config.ghaf.services.sssd.enable;
+      # nixpkgs' greetd module (upstream f941d78c5a, "nixos/greetd: substack login
+      # in PAM") sets `useDefaultRules = false` and reduces greetd's whole stack to
+      # `substack login` / `include login` at order 10100. greetd therefore has no
+      # unix, fprintd or deny rules of its own any more:
+      #   - `rules.auth.unix.*` here would define a rule with no order/control and
+      #     abort evaluation,
+      #   - `fprintAuth = false` here would be a silent no-op.
+      # Anything about *how* the password is checked now belongs on `login`, below.
+      # Only the rules that are genuinely greetd-specific stay on greetd.
+      login = {
+        fprintAuth = false; # user must type their password to decrypt home
 
-            # This should precede other auth rules e.g. pam_sss.so (pam module for SSSD)
-            faillock_preauth = mkIf cfg.failLock.enable {
-              enable = true;
-              control = "required";
-              modulePath = "${pkgs.linux-pam}/lib/security/pam_faillock.so";
-              order = 11300;
-              args = [
-                "preauth"
-                "audit"
-                "unlock_time=900"
-                "deny=${toString cfg.failLock.maxTries}"
-              ];
-            };
-
-            # This should follow auth rules but should come before pam_deny.so
-            faillock_authfail = mkIf cfg.failLock.enable {
-              enable = true;
-              control = "[default=die]";
-              modulePath = "${pkgs.linux-pam}/lib/security/pam_faillock.so";
-              order = 12399;
-              args = [
-                "authfail"
-                "audit"
-                "unlock_time=900"
-                "deny=${toString cfg.failLock.maxTries}"
-              ];
-            };
+        # The faillock pair has to live in login's *own* stack, next to the
+        # pam_unix rule it wraps -- not in greetd's stack around the substack.
+        # `sufficient` short-circuits only to the end of the stack level it sits
+        # in (libpam pam_dispatch.c, the `decision_made` loop skips handlers
+        # while `stack_level >= ` the current one), so an authfail rule placed
+        # after `substack login` still runs when login's `sufficient pam_unix`
+        # already succeeded. Two ways that bites:
+        #   - pam_setcred: greetd's greeter session never calls pam_authenticate,
+        #     so pam_unix returns success from setcred, the substack ends, and
+        #     authfail runs anyway. `[default=die]` maps *every* return code
+        #     (pam_misc.c `_pam_set_default_control` fills each unset slot),
+        #     success included, so the stack dies and libpam's sanity check turns
+        #     the result into PAM_PERM_DENIED -> "pam_setcred: PERM_DENIED" and
+        #     greetd never starts the greeter.
+        #   - a correct password: authfail runs on the success path, returns
+        #     PAM_IGNORE *and* writes a failure tally, so logins fail and the
+        #     account locks itself after maxTries successful attempts.
+        # Placed back in the flat stack the `sufficient pam_unix` hit skips both,
+        # which is how this behaved before the upstream substack change.
+        rules.auth = {
+          # Before unix (11700) so a locked account is rejected up front.
+          faillock_preauth = mkIf cfg.failLock.enable {
+            enable = true;
+            control = "required";
+            modulePath = "${pkgs.linux-pam}/lib/security/pam_faillock.so";
+            order = 11300;
+            args = [
+              "preauth"
+              "audit"
+              "unlock_time=900"
+              "deny=${toString cfg.failLock.maxTries}"
+            ];
           };
+
+          # After unix (11700) so it observes the auth result, but before
+          # deny (12500) so a failure is recorded before the stack is denied.
+          faillock_authfail = mkIf cfg.failLock.enable {
+            enable = true;
+            control = "[default=die]";
+            modulePath = "${pkgs.linux-pam}/lib/security/pam_faillock.so";
+            order = 12399;
+            args = [
+              "authfail"
+              "audit"
+              "unlock_time=900"
+              "deny=${toString cfg.failLock.maxTries}"
+            ];
+          };
+        };
+      };
+
+      greetd = {
+        rules = {
+          # Both of these must precede `account include login` (order 10100).
+          # `include` inlines the included rules at the *same* stack level, so
+          # login's `account sufficient pam_systemd_home` short-circuits the
+          # whole chain for systemd-homed users -- skipping everything ordered
+          # after it, deny_admin included. Before the upstream substack change
+          # these sat at 10600/10700, ahead of the default systemd_home rule at
+          # 10800; the include moved that rule to the front of the chain, so
+          # they have to move ahead of the include to keep running.
           account = {
             faillock = mkIf cfg.failLock.enable {
               enable = true;
               control = "required";
               modulePath = "${pkgs.linux-pam}/lib/security/pam_faillock.so";
-              order = 10600;
+              order = 10010;
             };
             deny_admin = {
               enable = !config.ghaf.users.admin.enableUILogin;
               control = "requisite";
               modulePath = "${pkgs.linux-pam}/lib/security/pam_succeed_if.so";
-              order = 10700;
+              order = 10020;
               args = [
                 "user"
                 "!="
