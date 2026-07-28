@@ -11,6 +11,11 @@
     cross-compilation = import ./cross-compilation;
     custom-packages = import ./custom-packages;
 
+    # Jetson-only Python fixes for the EDK2/UEFI firmware build. Deliberately
+    # excluded from `default`: it rewrites pythonPackagesExtensions globally.
+    # Applied by modules/reference/hardware/jetpack/default.nix.
+    jetpack-python = import ./jetpack-python;
+
     # This is a composition of all the overlays that are used in the project
     # and is used to export a simple default interface.
     default = inputs.nixpkgs.lib.composeManyExtensions [
