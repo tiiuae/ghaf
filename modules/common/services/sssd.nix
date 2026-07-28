@@ -216,9 +216,25 @@ in
       };
       displayManagerService = mkOption {
         type = types.nullOr types.str;
-        default = "greetd";
-        description = "The PAM service name for your display manager (e.g., 'gdm-password', 'greetd', 'sddm').";
-        example = "greetd";
+        default = "login";
+        description = ''
+          The PAM service the SSSD auth rules below are applied to.
+
+          Defaults to `login` rather than to a display manager. nixpkgs'
+          greetd, sddm, lightdm and ly modules now set
+          `security.pam.services.<dm>.useDefaultRules = false` and reduce their
+          own stacks to `substack login` (for greetd, upstream f941d78c5a).
+          Those services therefore have no `unix`, `sss`, `ccreds` or `krb5`
+          rules to override -- forcing them there would define rules with no
+          order and abort evaluation -- so the rules belong on the `login`
+          service the display manager delegates to. This also covers tty and
+          serial login for domain users, which the previous display-manager-only
+          scope did not.
+
+          Set this to a display manager service name only for a display manager
+          that still carries its own default rule set (e.g. `gdm-password`).
+        '';
+        example = "gdm-password";
       };
       initGroupsScheme = mkOption {
         type = types.enum [
@@ -318,7 +334,10 @@ in
       })
     ];
 
-    # PAM configuration for display manager
+    # PAM configuration for the service that actually authenticates domain users.
+    # See ghaf.services.sssd.pam.displayManagerService: this is `login` by
+    # default, because greetd and the other display managers now substack it
+    # rather than carrying their own rule set.
     security.pam.services = optionalAttrs (cfg.pam.displayManagerService != null) {
       "${cfg.pam.displayManagerService}" = {
         makeHomeDir = true;
