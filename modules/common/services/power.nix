@@ -38,7 +38,7 @@ let
   # is used to determine suspend actions for PCI devices at runtime
   pciDevices = flatten (
     map (device: "${device.vendorId}:${device.productId}") (
-      lib.filter (d: d.vendorId != null && d.productId != null) (
+      lib.filter (d: (d.vendorId or null) != null && (d.productId or null) != null) (
         config.ghaf.common.hardware.nics ++ config.ghaf.common.hardware.audio
       )
     )

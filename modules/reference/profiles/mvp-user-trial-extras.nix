@@ -37,12 +37,18 @@ in
       };
 
       virtualization.microvm = {
-        # Enable idsvm and the MiTM features
+        # The ids-vm MiTM tooling uses a committed development CA and a fixed
+        # web UI password: it must never ship in a release image.
         idsvm = {
-          enable = lib.mkForce true;
-          mitmproxy.enable = lib.mkForce true;
-          # Use the new evaluatedConfig pattern from laptop-x86 profile
-          evaluatedConfig = config.ghaf.profiles.laptop-x86.idsvmBase;
+          enable = lib.mkForce config.ghaf.profiles.debug.enable;
+          # mitmproxy is enabled inside the ids-vm guest via extendModules
+          # below; enabling it here as well would materialize the proxy
+          # service in the host evaluation too.
+          evaluatedConfig = config.ghaf.profiles.laptop-x86.idsvmBase.extendModules {
+            modules = [
+              { ghaf.virtualization.microvm.idsvm.mitmproxy.enable = true; }
+            ];
+          };
         };
       };
 

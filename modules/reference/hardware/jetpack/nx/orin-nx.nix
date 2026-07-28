@@ -66,7 +66,15 @@
           ];
         }
         ../../../personalize
-        { ghaf.reference.personalize.keys.enable = true; }
+        (
+          { lib, globalConfig, ... }:
+          {
+            # Dev-team SSH keys are a debug convenience; this hardware
+            # definition applies to release variants too, so gate on the
+            # variant carried by globalConfig.
+            ghaf.reference.personalize.keys.enable = lib.mkDefault (globalConfig.debug.enable or false);
+          }
+        )
       ];
     };
   };

@@ -78,6 +78,25 @@ in
             # systemd_home account succeeds → done. When fingerprint was used,
             # PAM_AUTHTOK is unset and systemd_home fails → fall through to permit.
             systemd_home.control = lib.mkForce "[success=done default=ignore]";
+            # faillock and deny_admin must run before systemd_home/permit can
+            # short-circuit the account stack with success=done.
+            faillock = mkIf cfg.failLock.enable {
+              enable = true;
+              control = "required";
+              modulePath = "${pkgs.linux-pam}/lib/security/pam_faillock.so";
+              order = 10600;
+            };
+            deny_admin = {
+              enable = !config.ghaf.users.admin.enableUILogin;
+              control = "requisite";
+              modulePath = "${pkgs.linux-pam}/lib/security/pam_succeed_if.so";
+              order = 10700;
+              args = [
+                "user"
+                "!="
+                "${config.ghaf.users.admin.name}"
+              ];
+            };
             permit = {
               enable = true;
               control = "[success=done default=ignore]";
@@ -91,6 +110,34 @@ in
               "max-tries=3"
               "timeout=-1"
             ];
+
+            # Mirror the greetd faillock rules: cosmic-greeter performs the
+            # real unix/fprintd authentication for login and unlock, so the
+            # lockout policy must apply on this path too.
+            faillock_preauth = mkIf cfg.failLock.enable {
+              enable = true;
+              control = "required";
+              modulePath = "${pkgs.linux-pam}/lib/security/pam_faillock.so";
+              order = 11300;
+              args = [
+                "preauth"
+                "audit"
+                "unlock_time=900"
+                "deny=${toString cfg.failLock.maxTries}"
+              ];
+            };
+            faillock_authfail = mkIf cfg.failLock.enable {
+              enable = true;
+              control = "[default=die]";
+              modulePath = "${pkgs.linux-pam}/lib/security/pam_faillock.so";
+              order = 12399;
+              args = [
+                "authfail"
+                "audit"
+                "unlock_time=900"
+                "deny=${toString cfg.failLock.maxTries}"
+              ];
+            };
           };
         };
       };

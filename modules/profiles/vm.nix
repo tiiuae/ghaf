@@ -138,6 +138,16 @@ in
       # Pure function - extensions are applied via extendModules in appvm.nix
       mkAppVm =
         vmDef:
+        let
+          # Apply vmConfig.appvms overrides (mem, vcpu, balloonRatio,
+          # extraModules) the same way the laptop-x86 profile does.
+          vmCfg = config.ghaf.virtualization.vmConfig.appvms.${vmDef.name} or { };
+          effectiveDef =
+            vmDef
+            // lib.optionalAttrs ((vmCfg.mem or null) != null) { inherit (vmCfg) mem; }
+            // lib.optionalAttrs ((vmCfg.vcpu or null) != null) { inherit (vmCfg) vcpu; }
+            // lib.optionalAttrs ((vmCfg.balloonRatio or null) != null) { inherit (vmCfg) balloonRatio; };
+        in
         lib.nixosSystem {
           modules = [
             inputs.microvm.nixosModules.microvm
@@ -149,18 +159,19 @@ in
                 inherit (config.nixpkgs) config;
               };
             }
-          ];
+          ]
+          ++ (vmCfg.extraModules or [ ]);
           specialArgs = lib.ghaf.vm.mkSpecialArgs {
             inherit lib inputs;
             globalConfig = hostGlobalConfig;
             hostConfig =
               lib.ghaf.vm.mkHostConfig {
                 inherit config;
-                vmName = "${vmDef.name}-vm";
+                vmName = "${effectiveDef.name}-vm";
               }
               // {
                 # App VM-specific hostConfig fields
-                appvm = vmDef;
+                appvm = effectiveDef;
                 sharedVmDirectory =
                   config.ghaf.virtualization.microvm-host.sharedVmDirectory or {
                     enable = false;

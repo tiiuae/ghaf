@@ -76,16 +76,25 @@ in
                 };
                 socket = "/tmp/dbusproxy_snd.sock";
               }
-              (lib.optionalAttrs (audioCfg.enable && audioCfg.client.pipewireControl.enable) {
-                transport = {
-                  name = audiovmName;
-                  addr = hosts.${audiovmName}.ipv4;
-                  inherit (audioCfg.server.pipewireForwarding) port;
-                  protocol = "tcp";
-                };
-                inherit (audioCfg.client.pipewireControl) socket;
-              })
-            ];
+            ]
+            ++
+              lib.optionals
+                (
+                  builtins.elem audiovmName config.ghaf.common.vms
+                  && audioCfg.enable
+                  && audioCfg.client.pipewireControl.enable
+                )
+                [
+                  {
+                    transport = {
+                      name = audiovmName;
+                      addr = hosts.${audiovmName}.ipv4;
+                      inherit (audioCfg.server.pipewireForwarding) port;
+                      protocol = "tcp";
+                    };
+                    inherit (audioCfg.client.pipewireControl) socket;
+                  }
+                ];
         };
         eventProxy = {
           enable = true;

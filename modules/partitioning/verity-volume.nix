@@ -128,7 +128,7 @@ in
           verityUnpackedSize=$(stat -c%s ${verityImage})
 
           # Compress the image
-          ${lib.getExe pkgs.buildPackages.zstd} -T''${cores} --compress $out/*raw --rm
+          ${lib.getExe pkgs.buildPackages.zstd} -T''${mkfsWorkers} --compress $out/*raw --rm
 
           # Create artifacts and manifest.
           ${pkgs.buildPackages.python3}/bin/python ${./mk-manifest.py} \

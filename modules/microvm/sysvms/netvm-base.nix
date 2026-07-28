@@ -65,7 +65,7 @@ in
       # User configuration - from hostConfig
       profile = hostConfig.users.profile or { };
       admin = hostConfig.users.admin or { };
-      managed = hostConfig.users.managed or { };
+      managed = hostConfig.users.managed or [ ];
     };
 
     # Enable dynamic hostname export and setter for NetVM

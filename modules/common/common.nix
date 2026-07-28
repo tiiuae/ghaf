@@ -98,7 +98,7 @@ in
       adminHost = mkOption {
         type = types.nullOr types.str;
         default = null;
-        description = "List of admin hosts currently enabled.";
+        description = "Admin host currently enabled, if any.";
       };
       systemHosts = mkOption {
         type = types.listOf types.str;
@@ -133,22 +133,22 @@ in
       hardware = {
         nics = mkOption {
           type = types.listOf types.attrs;
-          default = [ { } ];
+          default = [ ];
           description = "List of network interfaces currently enabled for passthrough.";
         };
         gpus = mkOption {
           type = types.listOf types.attrs;
-          default = [ { } ];
+          default = [ ];
           description = "List of GPUs currently enabled for passthrough.";
         };
         audio = mkOption {
           type = types.listOf types.attrs;
-          default = [ { } ];
+          default = [ ];
           description = "List of Audio PCI devices currently enabled for passthrough.";
         };
         usb = mkOption {
           type = types.listOf types.attrs;
-          default = [ { } ];
+          default = [ ];
           description = "List of USB devices enabled for passthrough.";
         };
       };

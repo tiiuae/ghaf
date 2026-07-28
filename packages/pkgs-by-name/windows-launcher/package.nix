@@ -7,8 +7,7 @@
   qemu_kvm,
   OVMF,
   yad,
-  #TODO: this should probably be converted to writeShellApplication
-  writeShellScript,
+  writeShellApplication,
   enableSpice ? false,
 }:
 let
@@ -19,10 +18,10 @@ let
       "AAVMF"
     else
       throw "Unsupported architecture";
-  windowsLauncher = writeShellScript "windows-launcher" (
-    ''
-      IMG_FILE=$1
-      ISO_FILE=""
+  windowsLauncher = writeShellApplication {
+    name = "windows-launcher";
+    runtimeInputs = [ qemu_kvm ];
+    text = ''
       if [ $# -eq 0 ]; then
     ''
     + lib.optionalString stdenv.isAarch64 ''
@@ -32,13 +31,15 @@ let
       echo "Usage: windows-launcher ./Win11_22H2_English_x64v2.iso or ./win11.qcow2"
     ''
     + ''
-        exit
+        exit 1
       fi
+      IMG_FILE=$1
+      ISO_FILE=""
     ''
     + lib.optionalString (!enableSpice) ''
-      if [[ -z "''${WAYLAND_DISPLAY}" ]]; then
+      if [[ -z "''${WAYLAND_DISPLAY:-}" ]]; then
         echo "Wayland display not found"
-        exit
+        exit 1
       fi
     ''
     + ''
@@ -46,106 +47,121 @@ let
       OVMF_VARS="$IMG_DIR/${ovmfPrefix}_VARS.fd"
       OVMF_CODE="$IMG_DIR/${ovmfPrefix}_CODE.fd"
 
-      if [ ! -f $OVMF_VARS ] || [ ! -f $OVMF_CODE ]; then
-        cp ${OVMF.fd}/FV/${ovmfPrefix}_VARS.fd $OVMF_VARS
-        cp ${OVMF.fd}/FV/${ovmfPrefix}_CODE.fd $OVMF_CODE
-        chmod 644 $OVMF_VARS
+      if [ ! -f "$OVMF_VARS" ] || [ ! -f "$OVMF_CODE" ]; then
+        cp ${OVMF.fd}/FV/${ovmfPrefix}_VARS.fd "$OVMF_VARS"
+        cp ${OVMF.fd}/FV/${ovmfPrefix}_CODE.fd "$OVMF_CODE"
+        chmod 644 "$OVMF_VARS"
       fi
     ''
     + lib.optionalString stdenv.isx86_64 ''
       if [[ $1 == *.iso || $1 == *.ISO ]]; then
         ISO_FILE=$1
         IMG_FILE="$IMG_DIR/win11.qcow2"
-        if [ ! -f $IMG_FILE ]; then
-          ${qemu_kvm}/bin/qemu-img create -f qcow2 $IMG_FILE 64G
+        if [ ! -f "$IMG_FILE" ]; then
+          qemu-img create -f qcow2 "$IMG_FILE" 64G
         fi
       fi
     ''
     + ''
       QEMU_PARAMS=(
-        "-name \"Windows VM\""
-        "-cpu host"
-        "-enable-kvm"
-        "-smp 6"
-        "-m 8G"
-        "-drive file=$OVMF_CODE,format=raw,if=pflash,readonly=on"
-        "-drive file=$OVMF_VARS,format=raw,if=pflash"
+        -name "Windows VM"
+        -cpu host
+        -enable-kvm
+        -smp 6
+        -m 8G
+        -drive "file=$OVMF_CODE,format=raw,if=pflash,readonly=on"
+        -drive "file=$OVMF_VARS,format=raw,if=pflash"
+      )
     ''
     + lib.optionalString (!enableSpice) ''
-      "-vga none"
-      "-device ramfb"
-      "-device virtio-gpu-pci"
-      "-nic user,model=virtio"
+      QEMU_PARAMS+=(
+        -vga none
+        -device ramfb
+        -device virtio-gpu-pci
+        -nic "user,model=virtio"
+      )
     ''
     + lib.optionalString enableSpice ''
-      "-vga qxl"
-      "-device virtio-serial-pci"
-      "-spice port=5900,addr=0.0.0.0,disable-ticketing=on"
-      "-netdev tap,id=tap-windows,ifname=tap-windows,script=no,downscript=no"
-      "-device e1000,netdev=tap-windows,mac=02:00:00:03:55:01"
+      QEMU_PARAMS+=(
+        -vga qxl
+        -device virtio-serial-pci
+        -spice "port=5900,addr=0.0.0.0,disable-ticketing=on"
+        -netdev "tap,id=tap-windows,ifname=tap-windows,script=no,downscript=no"
+        -device "e1000,netdev=tap-windows,mac=02:00:00:03:55:01"
+      )
     ''
     + ''
-      "-device qemu-xhci"
-      "-device usb-kbd"
-      "-device usb-tablet"
+      QEMU_PARAMS+=(
+        -device qemu-xhci
+        -device usb-kbd
+        -device usb-tablet
+      )
     ''
     + lib.optionalString stdenv.isAarch64 ''
-      "-M virt,highmem=on,gic-version=max"
-      "-drive file=$IMG_FILE,format=vhdx,if=none,id=boot"
-      "-device usb-storage,drive=boot,serial=boot,bootindex=1"
+      QEMU_PARAMS+=(
+        -M "virt,highmem=on,gic-version=max"
+        -drive "file=$IMG_FILE,format=vhdx,if=none,id=boot"
+        -device "usb-storage,drive=boot,serial=boot,bootindex=1"
       )
     ''
     + lib.optionalString stdenv.isx86_64 ''
-      "-drive file=$IMG_FILE,format=qcow2,if=none,id=boot"
-      "-device nvme,drive=boot,serial=boot,bootindex=1"
+      QEMU_PARAMS+=(
+        -drive "file=$IMG_FILE,format=qcow2,if=none,id=boot"
+        -device "nvme,drive=boot,serial=boot,bootindex=1"
       )
 
-      if [ ! -z "$ISO_FILE" ]; then
+      if [ -n "$ISO_FILE" ]; then
         QEMU_PARAMS+=(
-          "-drive file=$ISO_FILE,media=cdrom,if=none,id=installcd"
-          "-device usb-storage,drive=installcd,bootindex=0"
+          -drive "file=$ISO_FILE,media=cdrom,if=none,id=installcd"
+          -device "usb-storage,drive=installcd,bootindex=0"
         )
       fi
     ''
     + ''
-      eval "${qemu_kvm}/bin/qemu-kvm ''${QEMU_PARAMS[@]} ''${@:2}"
-    ''
-  );
-  windowsLauncherUI = writeShellScript "windows-launcher-ui" (
-    ''
-      if [[ -z "''${WAYLAND_DISPLAY}" ]]; then
+      # Arguments are passed as array elements, never through eval/word
+      # splitting: image paths with shell metacharacters stay inert.
+      exec qemu-kvm "''${QEMU_PARAMS[@]}" "''${@:2}"
+    '';
+  };
+  windowsLauncherUI = writeShellApplication {
+    name = "windows-launcher-ui";
+    runtimeInputs = [ yad ];
+    text = ''
+      if [[ -z "''${WAYLAND_DISPLAY:-}" ]]; then
         echo "Wayland display not found"
-        exit
+        exit 1
       fi
 
-      CONFIG=~/.config/windows-launcher-ui.conf
+      CONFIG="$HOME/.config/windows-launcher-ui.conf"
+      FILE=""
       if [ -f "$CONFIG" ]; then
-        source $CONFIG
+        # The config stores only the image path; it is data, never sourced.
+        FILE=$(<"$CONFIG")
       fi
 
       if [ ! -f "$FILE" ]; then
     ''
     + lib.optionalString stdenv.isAarch64 ''
-      FILE=`${yad}/bin/yad --file --title="Select Windows VM image (VHDX)"`
+      if ! FILE=$(yad --file --title="Select Windows VM image (VHDX)"); then
+        exit 0
+      fi
     ''
     + lib.optionalString stdenv.isx86_64 ''
-      FILE=`${yad}/bin/yad --file --title="Select Windows VM image (QCOW2 or ISO)"`
+      if ! FILE=$(yad --file --title="Select Windows VM image (QCOW2 or ISO)"); then
+        exit 0
+      fi
     ''
     + ''
-        if [ ''$? -ne 0 ]; then
-          exit
-        else
-          if [[ $FILE != *.iso && $FILE != *.ISO ]]; then
-            echo FILE="$FILE" > "$CONFIG"
-          fi
+        if [[ $FILE != *.iso && $FILE != *.ISO ]]; then
+          printf '%s\n' "$FILE" > "$CONFIG"
         fi
       fi
 
-      if ! ${windowsLauncher} $FILE; then
-        ${yad}/bin/yad --image=gtk-dialog-error --text="Failed to run Windows VM: $?"
+      if ! ${lib.getExe windowsLauncher} "$FILE"; then
+        yad --image=gtk-dialog-error --text="Failed to run Windows VM"
       fi
-    ''
-  );
+    '';
+  };
 in
 stdenvNoCC.mkDerivation {
   name = "windows-launcher";
@@ -160,8 +176,8 @@ stdenvNoCC.mkDerivation {
 
   installPhase = ''
     mkdir -p $out/bin
-    cp ${windowsLauncher} $out/bin/windows-launcher
-    cp ${windowsLauncherUI} $out/bin/windows-launcher-ui
+    cp ${lib.getExe windowsLauncher} $out/bin/windows-launcher
+    cp ${lib.getExe windowsLauncherUI} $out/bin/windows-launcher-ui
   '';
 
   meta = {

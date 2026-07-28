@@ -503,7 +503,7 @@ let
         printf "error: LUKS root partition (UUID=%s) not found\n" "${luksUuid}"
         handle_error
       fi
-      defaultManufactureKey=${cfg.diskEncryption.deviceUniqueKey.deviceManufacturerPassphrase}
+      defaultManufactureKey=${lib.escapeShellArg cfg.diskEncryption.deviceUniqueKey.deviceManufacturerPassphrase}
       luksDiskKeyKeyringDescription=${luksDiskKeyDescription}
 
       wait_for_luks_device "$luksDev"
@@ -647,9 +647,14 @@ in
     };
 
     runtimeEkProvision.enable = mkOption {
-      description = "Provision EK certificates into TPM NV indices at runtime";
+      description = ''
+        Provision EK certificates into TPM NV indices at runtime.
+        This is an unfused development/testing flow; production devices
+        receive EK certificates during manufacturing.
+      '';
       type = types.bool;
-      default = true;
+      default = config.ghaf.profiles.debug.enable;
+      defaultText = lib.literalExpression "config.ghaf.profiles.debug.enable";
     };
 
     diskEncryption = {
@@ -772,6 +777,15 @@ in
     ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkDefault (
       cfg.flashScriptOverrides.signedArtifactsPath != null
     );
+    # TODO(release-policy): turn this warning into an assertion once the
+    # production key-provisioning flow is agreed.
+    warnings =
+      lib.optional
+        (
+          config.ghaf.profiles.release.enable
+          && config.hardware.nvidia-jetpack.firmware.eksFile == "${firmwareEkbImage}/eks_t234.img"
+        )
+        "This release image bakes the all-zero development EKB (eks_t234.img); TPM-backed secrets are not protected by fused keys. Override hardware.nvidia-jetpack.firmware.eksFile with production key material.";
     hardware.nvidia-jetpack.firmware.eksFile = "${firmwareEkbImage}/eks_t234.img";
     hardware.nvidia-jetpack.kernel.version = "${cfg.kernelVersion}";
     # jetpack-nixos hardcodes the trailing rootfs device as mmcblk0p1; replay
@@ -979,24 +993,6 @@ in
         };
       }
       // lib.optionalAttrs cfg.diskEncryption.deviceUniqueKey.enable {
-        load-diskkey-to-keyring = {
-          description = "Service for loading unique device key to kernel keyring";
-          before = [
-            "systemd-pre-disk-unique-key.service"
-          ];
-          unitConfig = {
-            DefaultDependencies = false;
-          };
-          serviceConfig = {
-            Type = "oneshot";
-            RemainAfterExit = true;
-            ExecStart = "${preDiskUniqueKeyScript}/bin/pre-disk-unique-key";
-            StandardInput = "tty";
-            StandardOutput = "journal+console";
-            StandardError = "journal+console";
-          };
-        };
-
         pre-disk-unique-key = {
           description = "Service for device unique key disk encryption";
           before = [
@@ -1020,7 +1016,7 @@ in
           description = "Cleanup service for device unique key disk encryption";
           wantedBy = [ "initrd-switch-root.target" ];
           after = [
-            "systemd-resize-partitions.service"
+            "resize-partitions.service"
           ];
           unitConfig = {
             DefaultDependencies = false;

@@ -34,7 +34,14 @@ in
         vmConfig.sysvms.netvm.extraModules = [
           ../services
           ../personalize
-          { ghaf.reference.personalize.keys.enable = true; }
+          (
+            { globalConfig, ... }:
+            {
+              # Dev-team SSH keys are a debug convenience; this trial profile
+              # is also used for release variants.
+              ghaf.reference.personalize.keys.enable = globalConfig.debug.enable or false;
+            }
+          )
           # Forward host reference services config to netvm
           {
             ghaf.reference.services = {

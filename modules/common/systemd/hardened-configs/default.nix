@@ -22,11 +22,11 @@
     generate-shutdown-ramfs.serviceConfig = import ./generate-shutdown-ramfs.nix;
     ghaf-session.serviceConfig = import ./ghaf-session.nix;
     greetd.serviceConfig = import ./greetd.nix;
-    install-microvm-netvm.serviceConfig = import ./install-microvm-netvm.nix;
+    install-microvm-net-vm.serviceConfig = import ./install-microvm-net-vm.nix;
     kmod-static-nodes.serviceConfig = import ./kmod-static-nodes.nix;
     logrotate-checkconf.serviceConfig = import ./logrotate-checkconf.nix;
     logrotate.serviceConfig = import ./logrotate.nix;
-    NetworkManager-Dispatcher.serviceConfig = import ./NetworkManager-dispatcher.nix;
+    NetworkManager-dispatcher.serviceConfig = import ./NetworkManager-dispatcher.nix;
     nscd.serviceConfig = import ./nscd.nix;
     nw-packet-forwarder.serviceConfig = import ./nw-packet-forwarder.nix;
     rtkit-daemon.serviceConfig = import ./rtkit-daemon.nix;
