@@ -38,5 +38,19 @@
     );
   });
 
+  # Fix swtpm cross-compilation.
+  # swtpm 0.10.1-unstable-2026-05-21 switched its local CA from gnutls certtool
+  # to the openssl CLI, so configure.ac now does AC_PATH_PROG([OPENSSL], ...)
+  # and aborts when the tool is absent:
+  #   configure: error: "Could not find openssl tool. Is openssl installed?"
+  # nixpkgs only lists openssl in buildInputs. Natively that still works, since
+  # build == host means the buildInputs bin dirs land on PATH anyway, but when
+  # cross-compiling they go to HOST_PATH instead and configure sees nothing.
+  # A build-platform openssl is what the configure probe actually wants
+  # (openssl's default output is "bin", so this puts the CLI on PATH).
+  swtpm = prev.swtpm.overrideAttrs (oldAttrs: {
+    nativeBuildInputs = (oldAttrs.nativeBuildInputs or [ ]) ++ [ final.buildPackages.openssl ];
+  });
+
 })
 # keep-sorted end
