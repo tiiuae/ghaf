@@ -24,6 +24,7 @@
   oculante = import ./oculante { inherit prev; };
   osquery-with-hostname = import ./osquery-with-hostname { inherit prev; };
   pipewire = import ./pipewire { inherit prev; };
+  pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [ (import ./pandas-stubs-pytest-pin) ];
   spire4ghaf = import ./spire4ghaf { inherit prev; };
 })
 # keep-sorted end
