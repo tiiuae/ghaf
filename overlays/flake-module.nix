@@ -16,6 +16,10 @@
     # Applied by modules/reference/hardware/jetpack/default.nix.
     jetpack-python = import ./jetpack-python;
 
+    # Jetson-only build fix for the L4T OOT modules against kernels >= 6.12.97.
+    # Also applied by modules/reference/hardware/jetpack/default.nix.
+    jetpack-nvdisplay = import ./jetpack-nvdisplay;
+
     # This is a composition of all the overlays that are used in the project
     # and is used to export a simple default interface.
     default = inputs.nixpkgs.lib.composeManyExtensions [

@@ -168,3 +168,15 @@ path = [
 SPDX-License-Identifier = "MIT"
 SPDX-FileCopyrightText = "igt-gpu-tools contributors"
 path = "overlays/custom-packages/intel-gpu-tools/feat-dynamically-detect-iGPU-PCI-address-at-runtime.patch"
+
+# Patches against the L4T nvdisplay `kernel-open` tree. nv-pci.c carries NVIDIA's
+# own MIT header, and the conftest hunk is taken verbatim from NVIDIA's
+# open-gpu-kernel-modules -- so MIT here, not the GPL-2.0-only used above for the
+# nvidia-oot kernel-driver patches.
+[[annotations]]
+SPDX-License-Identifier = "MIT"
+SPDX-FileCopyrightText = [
+  "Copyright (c) 2019-2021 NVIDIA CORPORATION & AFFILIATES. All rights reserved.",
+  "2022-2026 TII (SSRC) and the Ghaf contributors"
+]
+path = "overlays/jetpack-nvdisplay/*.patch"

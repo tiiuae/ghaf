@@ -1,0 +1,71 @@
+Subject: [PATCH] nvdisplay: detect pci_resize_resource() exclude_bars argument
+
+Linux 6.12.97 (and other stable trees carrying the backport of upstream
+commit 337b1b566db0, "PCI: Fix restoring BARs on BAR resize rollback path")
+added a fourth `exclude_bars` parameter to pci_resize_resource(). The L4T
+R36.5 nvdisplay tree still calls the three-argument form, so nv-pci.c fails
+to build against those kernels:
+
+  nv-pci.c:219:9: error: too few arguments to function 'pci_resize_resource';
+                  expected 4, have 3
+
+Add the conftest NVIDIA uses upstream (open-gpu-kernel-modules,
+kernel-open/conftest.sh: pci_resize_resource_has_exclude_bars_arg) and
+guard the call site with it, so the driver builds against both the
+three- and four-argument kernels. Passing 0 for exclude_bars keeps the
+old behaviour: no BAR is excluded from the release/reassign pass.
+
+--- a/kernel-open/conftest.sh
++++ b/kernel-open/conftest.sh
+@@ -6170,6 +6170,27 @@
+             compile_check_conftest "$CODE" "NV_PCI_REBAR_GET_POSSIBLE_SIZES_PRESENT" "" "functions"
+         ;;
+ 
++        pci_resize_resource_has_exclude_bars_arg)
++            #
++            # Determine if pci_resize_resource() has exclude_bars argument.
++            #
++            # exclude_bars argument was added to pci_resize_resource by commit
++            # 337b1b566db0 (11/14/2025) ("PCI: Fix restoring BARs on BAR resize rollback path")
++            # in linux-next.
++            #
++            CODE="
++            #include <linux/pci.h>
++
++            typeof(pci_resize_resource) conftest_pci_resize_resource_has_exclude_bars_arg;
++            int __must_check conftest_pci_resize_resource_has_exclude_bars_arg(struct pci_dev *dev,
++                                                                               int i, int size,
++                                                                               int exclude_bars) {
++                return 0;
++            }"
++
++            compile_check_conftest "$CODE" "NV_PCI_RESIZE_RESOURCE_HAS_EXCLUDE_BARS_ARG" "" "types"
++        ;;
++
+         wait_for_random_bytes)
+             #
+             # Determine if the wait_for_random_bytes() function is present.
+--- a/kernel-open/nvidia/nvidia.Kbuild
++++ b/kernel-open/nvidia/nvidia.Kbuild
+@@ -243,6 +243,7 @@
+ NV_CONFTEST_TYPE_COMPILE_TESTS += mm_has_mmap_lock
+ NV_CONFTEST_TYPE_COMPILE_TESTS += pci_channel_state
+ NV_CONFTEST_TYPE_COMPILE_TESTS += pci_dev_has_ats_enabled
++NV_CONFTEST_TYPE_COMPILE_TESTS += pci_resize_resource_has_exclude_bars_arg
+ NV_CONFTEST_TYPE_COMPILE_TESTS += remove_memory_has_nid_arg
+ NV_CONFTEST_TYPE_COMPILE_TESTS += add_memory_driver_managed_has_mhp_flags_arg
+ NV_CONFTEST_TYPE_COMPILE_TESTS += num_registered_fb
+--- a/kernel-open/nvidia/nv-pci.c
++++ b/kernel-open/nvidia/nv-pci.c
+@@ -216,7 +216,11 @@
+ 
+ resize:
+     /* Attempt to resize BAR1 to the largest supported size */
++#if defined(NV_PCI_RESIZE_RESOURCE_HAS_EXCLUDE_BARS_ARG)
++    r = pci_resize_resource(pci_dev, NV_GPU_BAR1, requested_size, 0);
++#else
+     r = pci_resize_resource(pci_dev, NV_GPU_BAR1, requested_size);
++#endif
+ 
+     if (r) {
+         if (r == -ENOSPC)

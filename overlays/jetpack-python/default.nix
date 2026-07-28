@@ -3,11 +3,15 @@
 #
 # Python fixes needed only to build jetpack-nixos' UEFI/EDK2 firmware.
 #
-# These are deliberately NOT part of `overlays.default`. Both entries reach into
+# These are deliberately NOT part of `overlays.default`. Every entry reaches into
 # `pythonPackagesExtensions`, which rewrites *every* Python package in the pkgs
 # instance -- and `setuptools-pkg-resources` in particular pins setuptools back
 # to 80.x, which breaks any package requiring a newer one (hpack 4.2.0 wants
 # >= 82, and takes h2 -> twisted -> s-tui -> system-path down with it).
+#
+# That pin also makes every Python package a cache miss, so packages that are
+# normally substituted now build from source and run their test suites;
+# `threadpoolctl-no-check` deals with the fallout of that.
 #
 # Only the Jetson targets build the EDK2 firmware, so this overlay is applied by
 # the jetpack module (modules/reference/hardware/jetpack/default.nix) instead of
@@ -17,5 +21,6 @@
   pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
     (import ./pygount)
     (import ./setuptools-pkg-resources)
+    (import ./threadpoolctl-no-check)
   ];
 })
