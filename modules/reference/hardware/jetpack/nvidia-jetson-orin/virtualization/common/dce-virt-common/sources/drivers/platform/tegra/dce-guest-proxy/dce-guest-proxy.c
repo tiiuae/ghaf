@@ -57,7 +57,7 @@ MODULE_VERSION("0.1");
 #define EVT_IFACE       0x3004  /* u32: event interface type (ch_type) */
 #define EVT_SIZ         0x3008  /* u32: event payload length */
 #define EVT_ACK         0x300c  /* u32: we write the consumed seq here */
-#define EVT_BUF         0x3010  /* event payload */
+#define EVT_BUF         0x4000  /* page-aligned event payload */
 #define EVT_MAX         0x1000  /* max event payload */
 
 #define DCE_MEM_SIZE    0x5000  /* total window (forward + reverse), ioremap size */

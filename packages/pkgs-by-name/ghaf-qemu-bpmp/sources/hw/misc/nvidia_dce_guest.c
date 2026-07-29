@@ -36,7 +36,7 @@ DECLARE_INSTANCE_CHECKER(NvidiaDceGuestState, NVIDIA_DCE_GUEST, TYPE_NVIDIA_DCE_
 #define EVT_IFACE 0x3004  /* u32: event interface type (ch_type) */
 #define EVT_SIZ   0x3008  /* u32: event payload length (<= EVT_MAX) */
 #define EVT_ACK   0x300c  /* u32: guest writes the consumed seq here */
-#define EVT_BUF   0x3010  /* event payload, up to EVT_MAX */
+#define EVT_BUF   0x4000  /* page-aligned event payload, up to EVT_MAX */
 #define EVT_MAX   0x1000  /* == struct dce_host_event.data[DCE_HOST_EVENT_MAX_DATA] */
 
 #define MEM_SIZE 0x5000
@@ -83,6 +83,9 @@ struct NvidiaDceGuestState
 //      0x2010  -- Ret code (s32)
 //      0x2018  -- Iface    (u32)
 //      0x2100  -- Doorbell -- writing here triggers the forward
+//      0x3000  -- Event sequence/interface/size/ack control words
+//      0x4000 \ Event payload (page-aligned RAM overlay)
+//      0x4FFF /
 
 //  Data should be aligned to 64bit paragraph.
 
@@ -278,8 +281,9 @@ static void nvidia_dce_guest_instance_init(Object *obj)
 	/*
 	 * Preserve the working MMIO protocol for synchronous DCE requests and
 	 * reverse-event controls. Overlay only the 4 KiB reverse payload with
-	 * RAM: otherwise each guest memcpy_fromio() causes roughly 1000 KVM
-	 * exits per vblank event.
+	 * page-aligned RAM: otherwise each guest memcpy_fromio() causes roughly
+	 * 1000 KVM exits per vblank event. KVM and VFIO memory listeners require
+	 * the RAM section to begin on a host-page boundary.
 	 */
 	memory_region_init(&s->container, obj, TYPE_NVIDIA_DCE_GUEST, MEM_SIZE);
 	memory_region_init_io(&s->iomem, obj, &nvidia_dce_guest_ops, s,
