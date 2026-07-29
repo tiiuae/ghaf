@@ -1,0 +1,113 @@
+---
+title: Release ghaf-26.07.1
+sidebar:
+  order: 9966
+  badge:
+    text: Latest
+    variant: success
+
+---
+
+This is monthly Ghaf release which has been fully tested on Nvidia Orin NX, Nvidia Orin AGX, Lenovo X1 Carbon Gen11 and System76 Darter Pro platforms
+
+## Release Tag
+
+https://github.com/tiiuae/ghaf/releases/tag/ghaf-26.07.1
+
+## Supported Hardware
+
+The following target hardware is supported by this release:
+
+- NVIDIA Jetson Orin AGX
+- NVIDIA Jetson Orin NX
+- Lenovo ThinkPad X1 Carbon Gen 10/11/12/13, Gen9 2-in-1
+- Lenovo T14 AMD
+- Dell Latitude 7230, 7330
+- Alienware M18
+- System76 Darter Pro
+- NXP i.MX 8M Plus
+
+## What's Changed
+
+### 🚀  Features
+
+- **flash-script**: Multi-thread zstd, bmap fast-path, and bmaptool retry - ([9c0847c](https://github.com/tiiuae/ghaf/commit/9c0847c308ec577b7f8e79727f8f5603bde0d516))
+- **installer**: Improve speed, add encryption TUI, improve DRY-ness - ([2aa297e](https://github.com/tiiuae/ghaf/commit/2aa297e9ce7926e174a4b5bcc418f21c6b5eecb5))
+- **jetson**: Pass the on-soc mgbe0 ethernet through to net-vm - ([aa546fa](https://github.com/tiiuae/ghaf/commit/aa546fa23591a8950b8f71c4a7490458b6c108bf))
+- **jetson-gpu**: Pass the tegra234 gpu through to a gpu-vm microvm - ([f287f54](https://github.com/tiiuae/ghaf/commit/f287f540d878835ea92f10c3a12ef36abff93219))
+- **jetson-orin**: Generic LUKS FDE flash flow for Orin AGX/NX - ([38fa3ba](https://github.com/tiiuae/ghaf/commit/38fa3bab3d54ac05527260ee3e149fa044b15d8a))
+- **ora-update**: Bump givc to version with implemented OCI download - ([5936192](https://github.com/tiiuae/ghaf/commit/59361923cbad7473215d9ee8c0752bee79fe0b21))
+- **ota-update**: Introduce ota-update tool for net-vm - ([c602a99](https://github.com/tiiuae/ghaf/commit/c602a99640607855cee96a252ede4db0f6ab6a2b))
+- **ota-update**: Re-export givc.apps.ota-oras-push - ([f4a16ac](https://github.com/tiiuae/ghaf/commit/f4a16ac86bb8e2ff2382fff78a4bd5346813859c))
+- **release/cd**: Automate changelog and GitHub release creation - ([95434b8](https://github.com/tiiuae/ghaf/commit/95434b847fe235c65b1926bec7141820fdead3dd))
+- Implement remote and local wiping - ([540b096](https://github.com/tiiuae/ghaf/commit/540b09679bee34592d26b7b8a356d56416da0242))
+
+### 🐛 Bug Fixes
+
+- **audit**: Stop full backlog stalling auditd startup - ([3c063c5](https://github.com/tiiuae/ghaf/commit/3c063c55dd96082dd5c89292ade84ecde63b8756))
+- **ci**: Opt in to fork PR checkout in build workflow - ([506e1f4](https://github.com/tiiuae/ghaf/commit/506e1f4811c209847e6d52c8fe72d5c6e2d7cf55))
+- **ci**: Align codeql-action/init with autobuild and analyze - ([dba4ab7](https://github.com/tiiuae/ghaf/commit/dba4ab70faf737b32adac1b3bc0e42c85f12b392))
+- **cosmic**: Adjust for 1.1.0, move pipewire workaround - ([835c065](https://github.com/tiiuae/ghaf/commit/835c06500c8c59a9f5498b590ae306faadee682d))
+- **devshell**: Fix changelog helper to run against latest tag and offline - ([850f002](https://github.com/tiiuae/ghaf/commit/850f0025a74c230e0635d58da142d760360392ea))
+- **identity**: Break set-dynamic-hostname ordering cycle - ([b42ae3a](https://github.com/tiiuae/ghaf/commit/b42ae3a544d3c1bbe143ed86580a576381571f0d))
+- **jetson-orin**: Cosmic auto suspend disable - ([c6b41b8](https://github.com/tiiuae/ghaf/commit/c6b41b8ad71f74034f5dda3d12bbd7259d39b9b5))
+- **logging**: Reduce alloy stop timeout - ([d3237d9](https://github.com/tiiuae/ghaf/commit/d3237d997f0e62157e1b237ce5abc090a3c51281))
+- **logging**: Remove unused attr - ([4079baa](https://github.com/tiiuae/ghaf/commit/4079baacf03a53ae17d5da62ff60a1e1813ce4ff))
+- **media**: Add cosmic player plugin path - ([99128a4](https://github.com/tiiuae/ghaf/commit/99128a44634c4d4773a07a0e8934586bd214fbad))
+- **microvm**: Route VM DNS through net-vm - ([f45cada](https://github.com/tiiuae/ghaf/commit/f45cada3cb01f741856534bd08b43a70336d34b7))
+- **net-vm**: Ax88179 power management quirks - ([837646f](https://github.com/tiiuae/ghaf/commit/837646f006fa2affa2195660c5694c6da0c42e07))
+- **netvm**: Assign stable NIC names - ([ae4c973](https://github.com/tiiuae/ghaf/commit/ae4c973b1ac68b9c7f7b543baf5f5ab5cf2b748c))
+- **ota-update**: Fix image compression error - ([1eacd01](https://github.com/tiiuae/ghaf/commit/1eacd01fcfd1c1d93bcf320ce55530f4b96a5cd9))
+- **partitioning**: Don't call GUM before Plymouth releases the console - ([6ac934a](https://github.com/tiiuae/ghaf/commit/6ac934acc2f5f0915604532ed07fa76e5a67b178))
+- **wipe**: Fix persist not being wiped when disk is encrypted - ([2895397](https://github.com/tiiuae/ghaf/commit/2895397eaf729de881b6f416b12d5c26a59d0e55))
+- **wireguard-gui**: Enabling pkexec wrapper - ([fb5ea71](https://github.com/tiiuae/ghaf/commit/fb5ea713bdefd4a60b263a86e4be07f8bbfa3c94))
+
+### 📚 Documentation
+
+- **bump**: Bump to the latest dependencies - ([80ddbae](https://github.com/tiiuae/ghaf/commit/80ddbae0b70980772ac49d705d58ef39820625c4))
+- Add 26.06.1 release note - ([4f6dd5d](https://github.com/tiiuae/ghaf/commit/4f6dd5d704b9327fb9ed99d549d3a94f4660bc5d))
+
+### ⏩ Dependency Updates
+
+- **ci-test-automation**: Bump to fix build - ([58e68c7](https://github.com/tiiuae/ghaf/commit/58e68c793aa30e92eabe09c4f2f80535ae8c045a))
+- **dependabot**: Fix a partial upgrade - ([3ce1817](https://github.com/tiiuae/ghaf/commit/3ce1817861ed6901f10216f019fc2a8472921135))
+- Version number - ([c0aa6cf](https://github.com/tiiuae/ghaf/commit/c0aa6cf87f731952b7bc01efd8f64a1f02ec1f03))
+- Bump all inputs 2026-07-08 - ([a82f121](https://github.com/tiiuae/ghaf/commit/a82f12144ce548a05b7997c5f1a8c8d07d1e9056))
+
+### ⚙️ Miscellaneous Tasks
+
+- **cross-compilation**: Remove some cross compilation workarounds - ([87b8ddb](https://github.com/tiiuae/ghaf/commit/87b8ddb7badd16fc3f8662d7d39964fb74b2953b))
+- **devshell**: Add ORAS tool - ([377d98d](https://github.com/tiiuae/ghaf/commit/377d98d847788392aad0061489847201b0fe684b))
+- Switch to building intel targets in gh PR checks - ([b97729a](https://github.com/tiiuae/ghaf/commit/b97729aa62a8c531af9e8d38ebb32f6def10ca42))
+- Switch erofs to zstd, expand compression options, standardize image output - ([ff0fadf](https://github.com/tiiuae/ghaf/commit/ff0fadfaa0c5503657b0ec231a51f4cad0be3e13))
+- Trim some packages to reduce closure size - ([49b83d1](https://github.com/tiiuae/ghaf/commit/49b83d1af98741160ae17e9db9b89540e2621b04))
+- Include bmap in installer, limit devshell threads to 8 by default - ([91965fa](https://github.com/tiiuae/ghaf/commit/91965fa1fca61df5fcb9befbfe45c93fdd61d973))
+
+## Bug fixes
+
+Fixed bugs that were present in the previous release
+
+* Not able to open videos
+* WireGuard GUI is not available
+* Restoring brightness does not work with storeDisk image
+
+## Known Issues and Limitations
+
+| Issue                                                                                                     | Status      | Comments                                                                   |
+| --------------------------------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------- |
+| **x86**                                                                                             |             |                                                                            |
+| Reboot and shutdown takes long time | In Progress | Issue is under investigation |
+| (System76) Laptop suspended again after opening the lid | In Progress | Seen occasionally, issue is under investigation |
+| Layout can be selected only once and not changed afterwards | In Progress | Fix is under verification |
+| Audio taskbar doesn't work after suspension | In Progress | Issue is under investigation |
+| **NVIDIA Jetson AGX Orin / Orin NX**                                                                      |             |                                                                            |
+| (Orin AGX) GUI doesn't work | In Progress | Fix is under verification |
+| If suspended, device doesn't wake-up | On Hold | |
+| Locking the device from power menu doesn't work | On Hold |  |
+| Unlocking from lock screen does not work | On Hold |  |
+
+## Installation Instructions
+
+Released images are available at https://archive.vedenemo.dev/
+
+Download the required image and use the following instructions: [Build and Run](https://ghaf.tii.ae/ghaf/dev/ref/build_and_run)
