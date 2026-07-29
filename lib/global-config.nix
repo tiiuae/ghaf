@@ -845,9 +845,16 @@ rec {
         vmConfigModules = vmCfg.extraModules or [ ];
 
         # Resource allocation module (applies vmConfig.mem/vcpu)
-        resourceModule =
-          lib.optionalAttrs (vmCfg.mem or null != null) { microvm.mem = vmCfg.mem; }
-          // lib.optionalAttrs (vmCfg.vcpu or null != null) { microvm.vcpu = vmCfg.vcpu; };
+        #
+        # Merge inside `microvm`, not at the top level: `//` is a shallow
+        # update, so combining { microvm.mem = ...; } with
+        # { microvm.vcpu = ...; } would replace the whole microvm attrset and
+        # silently drop mem whenever both are set.
+        resourceModule = {
+          microvm =
+            lib.optionalAttrs (vmCfg.mem or null != null) { inherit (vmCfg) mem; }
+            // lib.optionalAttrs (vmCfg.vcpu or null != null) { inherit (vmCfg) vcpu; };
+        };
       in
       [ resourceModule ] ++ hwModules ++ vmConfigModules;
   };
