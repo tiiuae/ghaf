@@ -695,6 +695,41 @@ let
         return 1
       }
 
+      # Distinguish a diverged key pair from genuine journal damage.
+      #
+      # The active journal was created by the running journald moments ago and
+      # sealed with the sealing key currently in use, so a tag failure on that
+      # file *alone* cannot be pre-existing corruption -- it means the stored
+      # verification key no longer corresponds to the sealing key.
+      #
+      # The two halves live in separate persistence domains: the verification
+      # key under cfg.keyPath, the sealing key under the journal directory. They
+      # can therefore be reset independently (re-provisioning, a stray
+      # `journalctl --setup-keys`, a half-completed key rotation). Keys are only
+      # ever generated together on the branch above, which is unreachable once a
+      # sealing key exists, so nothing re-converges them: from the moment they
+      # diverge every boot fails here. Reporting that plainly matters because
+      # the raw journalctl output blames the journal contents, which sends
+      # whoever reads it looking for disk corruption that is not there.
+      #
+      # Diagnosis only -- the verdict is unchanged and this still fails closed.
+      verification_key_diverged_from_sealing_key() {
+        local key="$1" active_journal probe_output probe_exit
+
+        active_journal="$JOURNAL_DIR/system.journal"
+        [ -f "$active_journal" ] || return 1
+
+        probe_exit=0
+        probe_output=$(journalctl --verify --verify-key="$key" \
+          --file="$active_journal" 2>&1) || probe_exit=$?
+        [ "$probe_exit" -eq 0 ] && return 1
+
+        case "''${probe_output,,}" in
+        *"tag failed verification"* | *"bad message"*) return 0 ;;
+        *) return 1 ;;
+        esac
+      }
+
       verify_live_sealing_after_activation() {
         local verify_key verify_output verify_exit marker
 
@@ -716,7 +751,19 @@ let
           || [ -n "$FSS_OTHER_FAILURES" ] \
           || [ "$FSS_KEY_PARSE_ERROR" = 1 ] \
           || [ "$FSS_KEY_REQUIRED_ERROR" = 1 ]; then
-          fss_log fail "Live active-journal verification failed after FSS activation"
+          if [ -n "$FSS_ACTIVE_SYSTEM_FAILURES" ] \
+            && verification_key_diverged_from_sealing_key "$verify_key"; then
+            fss_log fail "FSS verification key does not match the sealing key in use"
+            fss_log fail "  verification key: $VERIFY_KEY_FILE"
+            fss_log fail "  sealing key:      $FSS_KEY_FILE"
+            fss_log fail "The journal contents are intact -- the key pair has diverged, and"
+            fss_log fail "setup cannot re-converge it, so every boot will fail here until the"
+            fss_log fail "FSS state is re-provisioned by hand."
+            fss_log fail "Recovery discards sealed history: archive and clear the journal,"
+            fss_log fail "remove both keys above, then reboot so setup regenerates the pair."
+          else
+            fss_log fail "Live active-journal verification failed after FSS activation"
+          fi
           printf '%s\n' "$verify_output" | fss_log_block
           write_activation_state failed
           return 1
