@@ -132,7 +132,11 @@
                                     20 with -d Lenovo-X1
                                     12 with -d Orin-AGX
                                     8 with other devices
-                -f  --configpath  Path to config directory.
+                -f  --configpath  Path to the directory holding test_config.json.
+                                  Also accepted as --config.
+                                  Without it the tests that read that file --
+                                  serial connection, device id, net-vm hostname --
+                                  fail on unset variables rather than skipping.
                                   Defaults to 'None'.
                 -o  --outputdir   Path to directory where all helper files and result files are saved.
                                   Defaults to '/tmp/test_results'
@@ -157,9 +161,14 @@
                     (--userpasswd)   userpasswd="''$2";;
                     (-t|--tag)       tag="''$2";;
                     (-c|--commit)    commit="''$2";;
-                    (--threads)      threads="''$2";;
-                    (--config)       configpath="''$2";;
-                    (--outputdir)    outputdir="''$2";;
+                    # The short forms and --configpath are the spellings the help
+                    # text above advertises; --config/--threads/--outputdir are what
+                    # this parser has always accepted. Both are kept: dropping either
+                    # breaks somebody, and a documented flag that exits 1 with
+                    # "Unknown option" costs a whole test cycle to discover.
+                    (-n|--threads)   threads="''$2";;
+                    (-f|--config|--configpath) configpath="''$2";;
+                    (-o|--outputdir) outputdir="''$2";;
                     (*)
                       echo "Unknown option: ''$1"
                       exit 1

@@ -28,20 +28,27 @@
 #
 {
   writeShellApplication,
-  nixos-rebuild,
+  # `nixos-rebuild` is only an alias for this now (nixpkgs aliases.nix, "Added
+  # 2025-12-02"), so depend on the real package. It still installs a binary called
+  # `nixos-rebuild`, which is what the script below invokes.
+  nixos-rebuild-ng,
   ipcalc,
 }:
 writeShellApplication {
   name = "ghaf-build-helper";
   runtimeInputs = [
-    nixos-rebuild
+    nixos-rebuild-ng
     ipcalc
   ];
   text = ''
         function script_usage() {
           cat << EOF
 
-    Usage:   ghaf-rebuild <target-ip> <flake-target> [nixos-rebuild options]
+    Usage:   ghaf-rebuild <target-ip|ssh-alias> <flake-target> [nixos-rebuild options]
+
+    The first argument is the net-vm to proxy-jump through. Prefer an ssh_config
+    host alias over a bare IP: ssh matches Host blocks on the name as written, so
+    an IP picks up no IdentityFile and falls back to your default keys.
 
     Options:
       -h, --help         Show this help message and exit
@@ -59,8 +66,9 @@ writeShellApplication {
                          See https://nixos.wiki/wiki/Nixos-rebuild or run nixos-rebuild --help.
 
     Examples:
-      ghaf-rebuild 192.168.0.123 .#lenovo-x1-carbon-gen11-debug switch
-      ghaf-rebuild 192.168.0.123 .#lenovo-x1-carbon-gen11-debug --force-local switch
+      ghaf-rebuild ghaf-usb .#intel-laptop-debug switch
+      ghaf-rebuild ghaf-usb .#intel-laptop-debug --force-local switch
+      ghaf-rebuild 192.168.0.123 .#intel-laptop-debug switch
 
     EOF
         }
@@ -71,14 +79,29 @@ writeShellApplication {
         fi
 
         proxy_jump="$1"
-        if ! ipcalc -c "$proxy_jump"; then
-          echo "Invalid IP address: $proxy_jump"
-          exit 1
+        # Accept either a bare IP or an ssh_config host alias.
+        #
+        # ssh matches Host blocks against the name as written on the command
+        # line, never the resolved address, so "root@192.168.0.123" matches only
+        # "Host *" -- and an alias carrying IdentityFile/User for this device is
+        # silently bypassed. On a workstation whose default identities are
+        # FIDO2/YubiKey-backed that means the jump hop asks for a touch, or fails
+        # outright, while the second hop (root@ghaf-host, an alias) works fine.
+        # Passing the alias instead lets its own IdentityFile and User apply.
+        if ipcalc -c "$proxy_jump" >/dev/null 2>&1; then
+          jump_host="root@$proxy_jump"
+        else
+          # An alias supplies its own User; do not force root@ over it.
+          jump_host="$proxy_jump"
+          if [ "$(ssh -G "$proxy_jump" | awk '/^hostname /{print $2; exit}')" = "$proxy_jump" ]; then
+            echo "Not an IP address, and no 'Host $proxy_jump' block in your ssh config: $proxy_jump" >&2
+            exit 1
+          fi
         fi
         build_target="$2"
         shift 2
 
-        NIX_SSHOPTS="-o ProxyJump=root@$proxy_jump"
+        NIX_SSHOPTS="-o ProxyJump=$jump_host"
 
         # Parse flags
         insecure=false
@@ -105,7 +128,7 @@ writeShellApplication {
           # so StrictHostKeyChecking=no would not apply to the jump host. Use a temp
           # config with ProxyCommand instead so both hops skip host key checking.
           _ssh_cfg=$(mktemp)
-          printf 'Host ghaf-host\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile /dev/null\n\tProxyCommand ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -W %%h:%%p root@%s\n' "$proxy_jump" > "$_ssh_cfg"
+          printf 'Host ghaf-host\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile /dev/null\n\tProxyCommand ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -W %%h:%%p %s\n' "$jump_host" > "$_ssh_cfg"
           # shellcheck disable=SC2064
           trap "rm -f $_ssh_cfg" EXIT
           NIX_SSHOPTS="-F $_ssh_cfg"
@@ -120,15 +143,24 @@ writeShellApplication {
         # shellcheck disable=SC2086
         old_system=$(ssh $NIX_SSHOPTS root@ghaf-host readlink -f /nix/var/nix/profiles/system 2>/dev/null || true)
 
-        show_nvd_diff() {
+        # The diff runs on the target, because that is where both closures exist. dix is
+        # shipped by the debug profile (modules/development/debug-tools.nix); a release
+        # image, or one flashed before dix replaced nvd, will not have it.
+        show_system_diff() {
           local old="$1" new="$2"
           [ -n "$old" ] && [ -n "$new" ] && [ "$old" != "$new" ] || return 0
           # shellcheck disable=SC2086
-          ssh $NIX_SSHOPTS root@ghaf-host command -v nvd &>/dev/null || return 0
+          if ! ssh $NIX_SSHOPTS root@ghaf-host command -v dix &>/dev/null; then
+            # Say so rather than returning quietly: otherwise a missing tool is
+            # indistinguishable from "nothing changed".
+            echo ""
+            echo "(package diff skipped: dix is not on the target)"
+            return 0
+          fi
           echo ""
           echo "--- Package diff ---"
           # shellcheck disable=SC2086,SC2029
-          ssh $NIX_SSHOPTS root@ghaf-host nvd diff "$old" "$new" || true
+          ssh $NIX_SSHOPTS root@ghaf-host dix "$old" "$new" || true
         }
 
         # Detect whether the requested action is "switch"
@@ -148,11 +180,7 @@ writeShellApplication {
 
           # shellcheck disable=SC2086
           new_system=$(ssh $NIX_SSHOPTS root@ghaf-host readlink -f /nix/var/nix/profiles/system 2>/dev/null || true)
-          show_nvd_diff "$old_system" "$new_system"
-          if [ -z "$new_system" ]; then
-            echo "Unable to resolve uploaded system profile on target; refusing to queue switch activation" >&2
-            exit 1
-          fi
+          show_system_diff "$old_system" "$new_system"
 
           # Activate via systemd-run --no-block so the unit is detached from the
           # SSH session.  The connection may drop once network services restart
@@ -170,7 +198,7 @@ writeShellApplication {
 
           # shellcheck disable=SC2086
           new_system=$(ssh $NIX_SSHOPTS root@ghaf-host readlink -f /nix/var/nix/profiles/system 2>/dev/null || true)
-          show_nvd_diff "$old_system" "$new_system"
+          show_system_diff "$old_system" "$new_system"
         fi
   '';
   meta = {

@@ -13,6 +13,10 @@ precedence = "closest"
 path = [
   ".github/dependabot.yml",
   ".github/copilot-instructions.md",
+  # Claude Code skills and agents: the YAML frontmatter has to be the first thing in the
+  # file for the loader to parse it, so these cannot carry an SPDX comment header.
+  ".claude/skills/**/SKILL.md",
+  ".claude/agents/*.md",
   ".github/workflows/codeql.yml",
   ".github/workflows/dependency-review.yml",
   ".pre-commit-config.yaml",

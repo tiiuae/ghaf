@@ -1413,7 +1413,12 @@ non_interactive_setup() {
   if create_user; then
     debug "User creation completed"
   else
+    # Must propagate: this is the exit status of `main`, and therefore of the
+    # script. Swallowing it made user-provision-test.service report success
+    # while creating no user at all, so the test suite only discovered the
+    # failure later, as "testuser cannot authenticate".
     debug "Failed to create user account."
+    return 1
   fi
 }
 

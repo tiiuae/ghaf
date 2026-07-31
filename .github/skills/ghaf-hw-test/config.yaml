@@ -3,64 +3,79 @@
 #
 # Ghaf Hardware Test Automation - Configuration
 #
+# Two names, and they are not the same name
+# ------------------------------------------
+# `ghaf_target`      what you BUILD and FLASH. x86 laptops now share the generic
+#                    `intel-laptop-*` image: modules/reference/hardware/intel-laptop/
+#                    passes display, network and audio through by PCI *class wildcard*
+#                    rather than per-device IDs, so one image covers the fleet.
+#                    Per-machine targets (lenovo-x1-carbon-gen11-debug,
+#                    system76-darp11-b-debug, dell-latitude-7330-debug, ...) still
+#                    exist for special cases, but are no longer the default path.
+#
+# `test_device_name` what you pass to `robot-test -d`. The Robot suite still selects
+#                    behaviour per physical machine and accepts only the fixed set
+#                    below (see nix/devshell.nix). It has no `intel-laptop` value.
+#
+# Keying this file by physical machine keeps both straight: the generic image goes on
+# any of them, but the test run still has to say which machine it is talking to.
 
 # Device profiles
 # Each device has defaults that can be overridden via CLI
 devices:
   darter-pro:
     architecture: x86_64
-    ghaf_target: system76-darp11-b-debug
+    # Generic laptop image (was: system76-darp11-b-debug)
+    ghaf_target: intel-laptop-debug
     test_device_name: darter-pro
     default_threads: 16
     default_tag: pre-merge
     flash_method: ghaf-flash
     connection: ssh
     boot_wait_seconds: 180
-
-  Orin-AGX:
-    architecture: aarch64
-    ghaf_target: nvidia-jetson-orin-agx-debug
-    test_device_name: Orin-AGX
-    default_threads: 12
-    default_tag: pre-merge
-    flash_method: flash-script
-    flash_script_target: nvidia-jetson-orin-agx-debug-flash-script
-    connection: ssh
-    boot_wait_seconds: 240
-
-  Orin-NX:
-    architecture: aarch64
-    ghaf_target: nvidia-jetson-orin-nx-debug
-    test_device_name: Orin-NX
-    default_threads: 8
-    default_tag: pre-merge
-    flash_method: flash-script
-    flash_script_target: nvidia-jetson-orin-nx-debug-flash-script
-    connection: ssh
-    boot_wait_seconds: 240
+    # Connection details for the ghaf-* skills in .claude/skills/. Fill these in for
+    # the machine on your desk; leave null for devices you reach some other way.
+    host_ip: null # ghaf-host address, e.g. 192.168.1.50
+    usb_iface: ghaf-usb # host-side NIC facing the device
+    flash_drive: null # e.g. /dev/sda -- verified before any write
+    serial_device: null # e.g. /dev/ttyUSB0, when a serial cable is attached
+    serial_baud: 115200
 
   Lenovo-X1:
     architecture: x86_64
-    ghaf_target: lenovo-x1-carbon-gen11-debug
-    test_device_name: Lenovo-X1
+    # Generic laptop image (was: lenovo-x1-carbon-gen11-debug)
+    ghaf_target: intel-laptop-debug
+    test_device_name: lenovo-x1
     default_threads: 20
     default_tag: pre-merge
     flash_method: ghaf-flash
     connection: ssh
     boot_wait_seconds: 180
+    host_ip: null
+    usb_iface: ghaf-usb
+    flash_drive: null
+    serial_device: null
+    serial_baud: 115200
 
   dell-7330:
     architecture: x86_64
-    ghaf_target: dell-latitude-7330-debug
+    # Generic laptop image (was: dell-latitude-7330-debug)
+    ghaf_target: intel-laptop-debug
     test_device_name: dell-7330
     default_threads: 12
     default_tag: pre-merge
     flash_method: ghaf-flash
     connection: ssh
     boot_wait_seconds: 180
+    host_ip: null
+    usb_iface: ghaf-usb
+    flash_drive: null
+    serial_device: null
+    serial_baud: 115200
 
   NUC:
     architecture: x86_64
+    # Not a laptop -- stays on the generic x86 target rather than intel-laptop.
     ghaf_target: generic-x86_64-debug
     test_device_name: NUC
     default_threads: 8
@@ -68,6 +83,56 @@ devices:
     flash_method: ghaf-flash
     connection: ssh
     boot_wait_seconds: 180
+    host_ip: null
+    usb_iface: ghaf-usb
+    flash_drive: null
+    serial_device: null
+    serial_baud: 115200
+
+  # Jetsons are cross-built from x86_64. The native aarch64 attribute names are NOT
+  # exposed in packages.x86_64-linux, so a build host has to name the `-from-x86_64`
+  # variants -- the previous values here silently resolved to nothing.
+  Orin-AGX:
+    architecture: aarch64
+    ghaf_target: nvidia-jetson-orin-agx-debug-from-x86_64
+    test_device_name: orin-agx
+    default_threads: 12
+    default_tag: pre-merge
+    flash_method: flash-script
+    flash_script_target: nvidia-jetson-orin-agx-debug-from-x86_64-flash-script
+    connection: ssh
+    boot_wait_seconds: 240
+    # net-vm's address, held by MGBE0 (the on-SoC ethernet passed through to it).
+    # Verified on the devkit; it is a DHCP lease, so re-check if the lab moves it.
+    host_ip: 192.168.10.149
+    usb_iface: ghaf-usb
+    flash_drive: null
+    # The AGX devkit exposes its console over the USB-C debug port as a composite
+    # device presenting /dev/ttyACM0-3, NOT /dev/ttyUSB0 -- there is no ttyUSB
+    # node at all, so the previous value made serial-console.sh fail on a path
+    # that cannot exist. ACM0 is the one carrying the ghaf-host console.
+    serial_device: /dev/ttyACM0
+    serial_baud: 115200
+
+  Orin-NX:
+    architecture: aarch64
+    ghaf_target: nvidia-jetson-orin-nx-debug-from-x86_64
+    test_device_name: orin-nx
+    default_threads: 8
+    default_tag: pre-merge
+    flash_method: flash-script
+    flash_script_target: nvidia-jetson-orin-nx-debug-from-x86_64-flash-script
+    connection: ssh
+    boot_wait_seconds: 240
+    host_ip: null
+    usb_iface: ghaf-usb
+    flash_drive: null
+    # UNVERIFIED. The AGX turned out to enumerate as /dev/ttyACM* rather than
+    # ttyUSB*; whether the NX carrier does the same has not been checked on
+    # hardware, so this is left as-is. Confirm with `ls /dev/ttyACM* /dev/ttyUSB*`
+    # while the NX is attached before trusting it.
+    serial_device: /dev/ttyUSB0
+    serial_baud: 115200
 
 # Test execution settings
 test:
@@ -81,6 +146,8 @@ fix_loop:
   max_iterations: 5
   pause_for_fixes: true
   auto_commit: false
+  # Touch this path to stop an unattended loop before its next destructive step.
+  stop_file: /tmp/ghaf-loop-stop
 
 # Analysis settings
 analysis:
@@ -120,6 +187,49 @@ failure_patterns:
       - modules/desktop/
       - modules/hardware/graphics/
     suggestion: "Check desktop and graphics configuration"
+
+  missing_test_config:
+    patterns:
+      - "Variable '\\$\\{STATIC_DEVICE_ID\\}' not found"
+      - "Variable '\\$\\{STATIC_NETVM_NAME\\}' not found"
+      - "Variable '\\$\\{SERIAL_PORT\\}' not found"
+    likely_modules:
+      - .claude/skills/ghaf-test/SKILL.md
+    suggestion: "Not a device fault -- no test_config.json was passed. robot-test needs
+      --config <dir> holding test_config.json with this rig's serial_port, device_ip_address,
+      threads, relay_serial_port (all mandatory) plus device_id and netvm_hostname. The
+      variables are left unset rather than defaulted, so they surface as 'Variable not
+      found' at use rather than at load. All three failing together is the tell. See the
+      ghaf-test skill for how to derive the values from the device."
+
+  test_user_missing:
+    patterns:
+      - "User not created"
+      - "does not contain 'testuser'"
+      - "Authentication failed for user 'testuser'"
+      - "No active session found for testuser"
+    likely_modules:
+      - modules/common/services/user-provision.nix
+      - modules/common/users/homed.nix
+    suggestion: "Environmental, not a regression -- the whole suite fails in setup when
+      testuser is missing. user-provision-test.service is skipped by its exec-condition on
+      any device that already has a login user, and systemd reports a condition-skipped
+      unit as a successful start. Ghaf is single-user by construction (storagevm sizes
+      /home for one home area, and uid 1000 is baked into GIVC and memsocket paths), so
+      testuser cannot coexist with a real account. Either flash a fresh debug image, or run
+      ghaf-test-user-reset on the device -- it prompts, and destroys the existing home
+      irrecoverably."
+
+  login_failure:
+    patterns:
+      - "pam_setcred"
+      - "greetd.*authentication error"
+      - "Failed to start Greeter"
+    likely_modules:
+      - modules/desktop/graphics/login-manager.nix
+      - modules/common/services/
+    suggestion: "Check the greetd/login PAM stacks; render them with
+      security.pam.services.<name>.text before guessing"
 
   vm_communication:
     patterns:
