@@ -33,7 +33,13 @@ NC='\033[0m' # No Color
 # Detect if running on NixOS and use nix-shell if needed
 run_with_nix() {
     if command -v nix-shell &>/dev/null && [[ -f "$SCRIPT_DIR/shell.nix" ]]; then
-        nix-shell "$SCRIPT_DIR/shell.nix" --run "$*"
+        # --run takes a single shell string, so the argument vector has to be
+        # re-quoted. Using "$*" here collapses the arguments on whitespace, which
+        # silently broke every `python3 -c "<multi-line program>"` call: the shell
+        # re-split the program and python saw `-c` with no argument.
+        local quoted
+        quoted=$(printf '%q ' "$@")
+        nix-shell "$SCRIPT_DIR/shell.nix" --run "$quoted"
     else
         "$@"
     fi
@@ -250,7 +256,13 @@ cmd_test() {
     local test_device_name
     test_device_name=$(get_device_config "$device" "test_device_name")
     if [[ -z "$test_device_name" ]]; then
-        test_device_name="$device"
+        # Do not fall back to "$device": that is the config key (e.g. Lenovo-X1,
+        # Orin-AGX), not a value robot-test accepts. Robot-Framework compares
+        # DEVICE_TYPE against exact lowercase strings, so a wrong -d does not
+        # error -- it quietly runs a different subset of tests and reports green.
+        error "No test_device_name for '$device' in $CONFIG_FILE"
+        error "Pass a device key that exists in the config, or add the field."
+        exit 1
     fi
 
     info "Running tests on $device ($ip) with tag: $tag"

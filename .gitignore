@@ -19,7 +19,9 @@ uv-x86_64-unknown-linux-gnu/
 __pycache__/
 .vscode
 plans/
-CLAUDE.md
+# CLAUDE.md is tracked: it imports the shared AGENTS.md, which is how Claude Code picks up
+# the project instructions. Personal, machine-local notes belong in CLAUDE.local.md.
+CLAUDE.local.md
 
 # Ignore VIM backup files (hide them from reuse lint)
 *.swp

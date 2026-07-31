@@ -23,14 +23,24 @@ Use this skill when the user wants to:
 
 ## Supported Devices
 
-| Device | Architecture | Ghaf Target | Test Device Name |
-|--------|-------------|-------------|------------------|
-| System76 Darter Pro | x86_64 | system76-darp11-b-debug | darter-pro |
-| NVIDIA Jetson AGX Orin | aarch64 | nvidia-jetson-orin-agx-debug | Orin-AGX |
-| NVIDIA Jetson Orin NX | aarch64 | nvidia-jetson-orin-nx-debug | Orin-NX |
-| Lenovo ThinkPad X1 | x86_64 | lenovo-x1-carbon-gen11-debug | Lenovo-X1 |
-| Dell Latitude 7330 | x86_64 | dell-latitude-7330-debug | dell-7330 |
+| Device | Architecture | Ghaf target (build/flash) | `-d` value (test) |
+|--------|-------------|---------------------------|-------------------|
+| System76 Darter Pro | x86_64 | intel-laptop-debug | darter-pro |
+| Lenovo ThinkPad X1 | x86_64 | intel-laptop-debug | lenovo-x1 |
+| Dell Latitude 7330 | x86_64 | intel-laptop-debug | dell-7330 |
 | Intel NUC | x86_64 | generic-x86_64-debug | NUC |
+| NVIDIA Jetson AGX Orin | aarch64 | nvidia-jetson-orin-agx-debug-from-x86_64 | orin-agx |
+| NVIDIA Jetson Orin NX | aarch64 | nvidia-jetson-orin-nx-debug-from-x86_64 | orin-nx |
+
+**The two columns are different names for a reason.** x86 laptops share the generic
+`intel-laptop-*` image — `modules/reference/hardware/intel-laptop/` passes display, network
+and audio through by PCI *class wildcard* instead of per-device IDs, so one image covers the
+fleet. The Robot suite, however, still branches on the physical machine: `Robot-Framework/
+config/variables.robot` compares `DEVICE_TYPE` against the exact lowercase strings above to
+decide `IS_LAPTOP`, so a mismatched value silently changes which tests apply.
+
+Jetson entries name the `-from-x86_64` variants because the native aarch64 attributes are
+not exposed in `packages.x86_64-linux`; naming them from a build host resolves to nothing.
 
 ## Available Commands
 

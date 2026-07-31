@@ -26,12 +26,15 @@ A CLI skill for running Robot Framework hardware tests on Ghaf devices with auto
 
 ## Supported Devices
 
-- `darter-pro` - System76 Darter Pro (x86_64)
-- `Orin-AGX` - NVIDIA Jetson AGX Orin (aarch64)
-- `Orin-NX` - NVIDIA Jetson Orin NX (aarch64)
-- `Lenovo-X1` - Lenovo ThinkPad X1 (x86_64)
-- `dell-7330` - Dell Latitude 7330 (x86_64)
-- `NUC` - Intel NUC (x86_64)
+Keys are physical machines; each maps to a build target and a Robot `-d` value, which are
+deliberately different names (see [SKILL.md](SKILL.md)).
+
+- `darter-pro` - System76 Darter Pro (x86_64, `intel-laptop-debug`)
+- `Lenovo-X1` - Lenovo ThinkPad X1 (x86_64, `intel-laptop-debug`)
+- `dell-7330` - Dell Latitude 7330 (x86_64, `intel-laptop-debug`)
+- `NUC` - Intel NUC (x86_64, `generic-x86_64-debug`)
+- `Orin-AGX` - NVIDIA Jetson AGX Orin (aarch64, cross-built from x86_64)
+- `Orin-NX` - NVIDIA Jetson Orin NX (aarch64, cross-built from x86_64)
 
 ## Commands
 

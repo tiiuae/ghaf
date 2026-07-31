@@ -44,8 +44,9 @@ in
       # For debug complicated issues
       pkgs.strace
 
-      # For comparing NixOS system closure differences between generations
-      pkgs.nvd
+      # For comparing NixOS system closure differences between generations.
+      # ghaf-rebuild runs this on the target to print its post-switch package diff.
+      pkgs.dix
     ]
     ++ rmDesktopEntries [
       pkgs.htop
