@@ -207,11 +207,31 @@ let
         ''}
 
         ${optionalString (agent.trustBundleUrl == null) ''
-          until [ -e ${escapeShellArg agent.trustBundlePath} ]; do
+          # -s and a PEM check, not just -e: the server truncates and rewrites this file
+          # in place, so a bare existence test lets the agent start against a zero-byte
+          # or half-written bundle and fail its first handshake for no good reason.
+          until [ -s ${escapeShellArg agent.trustBundlePath} ] \
+            && grep -q "BEGIN CERTIFICATE" ${escapeShellArg agent.trustBundlePath}; do
             echo "Waiting for SPIRE trust bundle ${agent.trustBundlePath}"
             sleep 1
           done
         ''}
+
+        # NOTE: passing the checks above does not prove the bundle is the *current* one.
+        # trustBundlePath lives on persistent storage, so it outlives a reflash while the
+        # server regenerates its CA; the agent then starts against a stale bundle and
+        # crash-loops with "x509svid: could not verify leaf certificate: certificate
+        # signed by unknown authority" until the server rewrites the file. Observed on an
+        # AGX: ~40 restarts per VM per boot, and because Restart= keeps the unit in
+        # activating/auto-restart it never reaches "failed", so `systemctl --failed` and
+        # the test suite's VM status check both stay green while this is happening.
+        #
+        # Closing that properly means making bundle distribution authoritative rather than
+        # best-effort -- spire-publish-bundle.service is still marked PoC and ships
+        # inactive. Deliberately not papered over here with an mtime or freshness
+        # heuristic: if the server does not rewrite the bundle on a given boot, such a
+        # check would hang the agent forever instead of letting it retry, which is worse
+        # than the loop it replaces.
       '';
     };
 

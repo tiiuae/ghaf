@@ -26,4 +26,13 @@
     self.overlays.jetpack-python
     self.overlays.jetpack-nvdisplay
   ];
+
+  # NVIDIA's L4T udev rules give the GPU debug/profiling nodes to a "debug" group
+  # (nvhost-dbg-gpu, nvhost-prof-gpu, nvhost-ctxsw-gpu and friends, in
+  # *-tegra-devices.rules). The rules ship inside the L4T payload rather than as
+  # jetpack-nixos source, and nothing declares the group, so udev logs
+  #
+  #   Failed to resolve group 'debug', ignoring: Unknown group
+  #
+  users.groups.debug = { };
 }
