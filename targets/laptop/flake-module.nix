@@ -25,6 +25,16 @@ let
     extraModules = installerModules;
   };
 
+  # The same installer delivered over PXE instead of on an ISO. It takes the
+  # SAME installerModules, which is what guarantees the netboot installer keeps
+  # ghaf.host.secureboot.enable and the dev SSH keys -- i.e. that
+  # /etc/ghaf/secureboot/keys/*.auth are present for enrollment either way.
+  ghaf-netboot-installer = self.builders.mkGhafNetbootInstaller {
+    inherit self system;
+    inherit (self) lib;
+    extraModules = installerModules;
+  };
+
   # Common modules shared across all laptop configurations
   commonModules = [
     self.nixosModules.disko-debug-partition
@@ -631,6 +641,11 @@ let
     }
   ) target-configs;
 
+  # Netboot counterparts. Unlike the ISOs these do NOT depend on the disk image
+  # -- it is fetched at install time -- so they are tiny and share one kernel
+  # and initrd across every target.
+  target-netboot-installers = map (t: ghaf-netboot-installer { inherit (t) name; }) target-configs;
+
   target-sysupdates = map (
     t:
     (t.extendHost [
@@ -644,7 +659,8 @@ let
   ) (builtins.filter (x: x.buildSysupdateImage) target-configs);
 
   config-targets = target-configs ++ target-sysupdates;
-  package-targets = target-configs ++ target-installers ++ target-sysupdates;
+  package-targets =
+    target-configs ++ target-installers ++ target-netboot-installers ++ target-sysupdates;
 in
 {
   flake = {
