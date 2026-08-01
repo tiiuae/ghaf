@@ -22,6 +22,7 @@
       ./networking
       ./logging
       ./identity
+      ./time
     ];
 
     # Ghaf-patched QEMU package definition (ivshmem, TPM, USB, ACPI patches).

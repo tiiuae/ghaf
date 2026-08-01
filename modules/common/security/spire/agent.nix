@@ -243,13 +243,21 @@ let
     nameValuePair unitName {
       description = "SPIRE agent ${name}";
       wantedBy = [ "multi-user.target" ];
+      # ghaf-clock-synced.target is not decoration: SVIDs carry a 24h TTL, so an
+      # agent that attests before NTP has corrected the clock receives an
+      # identity that is already months expired once it is. The agent then
+      # crash-loops on "certificate signed by unknown authority" forever, while
+      # Restart= keeps the unit in auto-restart so it never reaches "failed" and
+      # never shows up in `systemctl --failed`.
       requires = [
         "network-online.target"
         "local-fs.target"
+        "ghaf-clock-synced.target"
       ];
       after = [
         "network-online.target"
         "local-fs.target"
+        "ghaf-clock-synced.target"
         "givc-key-setup.service"
       ];
 

@@ -187,6 +187,10 @@ in
             description = "SPIRE server setup";
             wantedBy = [ "spire-server.service" ];
             before = [ "spire-server.service" ];
+            # Ordered after the clock barrier as well, so the bundle is not
+            # deleted and republished around a CA minted against a bad clock.
+            requires = [ "ghaf-clock-synced.target" ];
+            after = [ "ghaf-clock-synced.target" ];
             serviceConfig = {
               Type = "oneshot";
               ExecStart = "${setupScript}";
@@ -194,14 +198,20 @@ in
             };
           };
         spire-server = {
+          # The server mints its CA and its own SVID with a 24h TTL at startup.
+          # Started against the boot-time fallback clock those are born expired,
+          # the server cannot rotate its own identity, and it emergency-rotates
+          # to a CA that no published bundle matches.
           requires = [
             "network-online.target"
             "local-fs.target"
+            "ghaf-clock-synced.target"
             "spire-server-setup.service"
           ];
           after = [
             "network-online.target"
             "local-fs.target"
+            "ghaf-clock-synced.target"
             "spire-server-setup.service"
           ];
 
@@ -233,6 +243,14 @@ in
           serviceConfig = {
             Type = "oneshot";
             ExecStart = getExe spirePublishBundleApp;
+            # Publishing once per boot is not enough. The bundle only matches the
+            # server while the CA it was exported from is still the active one;
+            # any later rotation silently invalidates it and every agent fails
+            # with "certificate signed by unknown authority" until the next
+            # reboot. Retry on failure, and re-export on a period well inside the
+            # 24h CA lifetime so the two cannot drift apart unnoticed.
+            Restart = "on-failure";
+            RestartSec = "30s";
           };
         };
         spire-create-workload-entries = {
@@ -246,6 +264,16 @@ in
             RemainAfterExit = true;
             ExecStart = getExe spireCreateWorkloadEntriesApp;
           };
+        };
+      };
+
+      timers.spire-publish-bundle = {
+        description = "Re-publish the SPIRE trust bundle so it tracks CA rotation";
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnUnitActiveSec = "1h";
+          AccuracySec = "1m";
+          Unit = "spire-publish-bundle.service";
         };
       };
     };
