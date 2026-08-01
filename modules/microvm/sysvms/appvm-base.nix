@@ -414,7 +414,10 @@ in
           {
             extraArgs = [
               "-M"
-              "accel=kvm:tcg,mem-merge=on${lib.optionalString (!isMicrovm) ",sata=off"}"
+              # sata= is a q35-only machine property; the aarch64 virt machine
+              # rejects it ("Property 'virt-*-machine.sata' not found") and the
+              # App VM exits at startup.
+              "accel=kvm:tcg,mem-merge=on${lib.optionalString (effectiveMachine == "q35") ",sata=off"}"
               "-device"
               "vhost-vsock-pci,guest-cid=${toString (hostConfig.networking.thisVm.cid or 100)}"
             ]

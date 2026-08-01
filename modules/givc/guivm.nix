@@ -109,7 +109,7 @@ in
       };
     };
 
-    systemd.services.dbus-proxy-networkmanager = {
+    systemd.services.dbus-proxy-networkmanager = mkIf (builtins.elem netvmName config.ghaf.common.vms) {
       description = "DBus proxy for Network Manager ${guivmName}";
       # Wait for GIVC to create the socket before starting
       after = [ "givc-${guivmName}.service" ];
@@ -140,7 +140,7 @@ in
       startLimitIntervalSec = 0;
       wantedBy = [ "multi-user.target" ];
     };
-    systemd.services.dbus-proxy-bluetooth = {
+    systemd.services.dbus-proxy-bluetooth = mkIf (builtins.elem audiovmName config.ghaf.common.vms) {
       description = "DBus proxy for Bluetooth ${guivmName}";
       # Wait for GIVC to create the socket before starting
       after = [ "givc-${guivmName}.service" ];
