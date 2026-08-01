@@ -29,6 +29,10 @@ let
   rtcSeedAnchorPath = "/var/lib/systemd/timesync/clock";
   rtcSeedMaxAheadSeconds = 180 * 24 * 60 * 60;
   rtcSeedMinEpochSeconds = 1704067200; # 2024-01-01T00:00:00Z
+  # Absolute upper bound, used when there is no anchor to measure "ahead of" from.
+  # Matches ghaf.logging.recovery.clockReady.maxEpochSeconds so the two plausibility
+  # windows cannot disagree about what counts as a corrupt clock.
+  rtcSeedMaxEpochSeconds = 2524608000; # 2050-01-01T00:00:00Z
   rtcSeedTimeFromRtc = pkgs.writeShellApplication {
     name = "ghaf-seed-time-from-rtc";
     runtimeInputs = [ pkgs.coreutils ];
@@ -38,14 +42,24 @@ let
       anchor_path=${lib.escapeShellArg rtcSeedAnchorPath}
       max_ahead_seconds=${toString rtcSeedMaxAheadSeconds}
       min_epoch_seconds=${toString rtcSeedMinEpochSeconds}
+      max_epoch_seconds=${toString rtcSeedMaxEpochSeconds}
 
       skip() {
         echo "RTC seed skipped: $*"
         exit 0
       }
 
-      if [ ! -f "$anchor_path" ]; then
-        skip "$anchor_path is missing or not a regular file"
+      # A missing anchor is not a reason to refuse to seed. It means this is the
+      # first boot after a flash -- precisely the boot with no other source of
+      # time, and the one that previously fell through to systemd's compiled-in
+      # epoch. Seed from an absolute plausibility window instead; the
+      # anchor only ever tightened that window, it was never what made the RTC
+      # value trustworthy.
+      if [ -f "$anchor_path" ]; then
+        have_anchor=1
+      else
+        have_anchor=0
+        echo "RTC seed: no anchor at $anchor_path, using absolute bounds only"
       fi
 
       if [ ! -r "$rtc_since_epoch_path" ]; then
@@ -61,22 +75,28 @@ let
         skip "RTC epoch $rtc_epoch below minimum $min_epoch_seconds"
       fi
 
-      anchor_epoch="$(stat -c %Y "$anchor_path" 2>/dev/null || echo 0)"
-      if ! [[ "$anchor_epoch" =~ ^[0-9]+$ ]]; then
-        skip "invalid anchor mtime '$anchor_epoch'"
+      if [ "$rtc_epoch" -gt "$max_epoch_seconds" ]; then
+        skip "RTC epoch $rtc_epoch above maximum $max_epoch_seconds"
       fi
 
-      if [ "$anchor_epoch" -le 0 ]; then
-        skip "anchor mtime is not positive ($anchor_epoch)"
-      fi
+      if [ "$have_anchor" -eq 1 ]; then
+        anchor_epoch="$(stat -c %Y "$anchor_path" 2>/dev/null || echo 0)"
+        if ! [[ "$anchor_epoch" =~ ^[0-9]+$ ]]; then
+          skip "invalid anchor mtime '$anchor_epoch'"
+        fi
 
-      if [ "$rtc_epoch" -lt "$anchor_epoch" ]; then
-        skip "RTC epoch $rtc_epoch is behind anchor $anchor_epoch"
-      fi
+        if [ "$anchor_epoch" -le 0 ]; then
+          skip "anchor mtime is not positive ($anchor_epoch)"
+        fi
 
-      ahead_seconds=$((rtc_epoch - anchor_epoch))
-      if [ "$ahead_seconds" -gt "$max_ahead_seconds" ]; then
-        skip "RTC ahead by $ahead_seconds seconds (> $max_ahead_seconds)"
+        if [ "$rtc_epoch" -lt "$anchor_epoch" ]; then
+          skip "RTC epoch $rtc_epoch is behind anchor $anchor_epoch"
+        fi
+
+        ahead_seconds=$((rtc_epoch - anchor_epoch))
+        if [ "$ahead_seconds" -gt "$max_ahead_seconds" ]; then
+          skip "RTC ahead by $ahead_seconds seconds (> $max_ahead_seconds)"
+        fi
       fi
 
       current_epoch="$(date -u +%s)"
@@ -1049,8 +1069,13 @@ in
       };
     };
 
+    # No TEST== on the anchor here: udev processes rtc0 long before
+    # /var/lib/systemd/timesync/clock can exist on a freshly flashed device, so
+    # gating the trigger on it meant the unit was never even started on exactly
+    # the boots that had no other time source. The seeding decision belongs to
+    # the script, which bounds the RTC value itself.
     services.udev.extraRules = ''
-      SUBSYSTEM=="rtc", KERNEL=="rtc0", TEST=="${rtcSeedAnchorPath}", TAG+="systemd", ENV{SYSTEMD_WANTS}+="ghaf-seed-time-from-rtc@%k.service"
+      SUBSYSTEM=="rtc", KERNEL=="rtc0", TAG+="systemd", ENV{SYSTEMD_WANTS}+="ghaf-seed-time-from-rtc@%k.service"
     '';
 
     systemd.services."ghaf-seed-time-from-rtc@" = {
@@ -1058,7 +1083,6 @@ in
       unitConfig = {
         ConditionPathExists = [
           "/sys/class/rtc/%I/since_epoch"
-          rtcSeedAnchorPath
         ];
       };
       serviceConfig = {
