@@ -46,6 +46,7 @@ jobs:
           - target: packages.x86_64-linux.generic-x86_64-debug
           - target: packages.x86_64-linux.intel-laptop-debug
           - target: packages.x86_64-linux.intel-laptop-debug-installer
+          - target: packages.x86_64-linux.intel-laptop-debug-netboot-installer
           - target: packages.x86_64-linux.nvidia-jetson-orin-agx-debug-from-x86_64
           - target: packages.x86_64-linux.nvidia-jetson-orin-nx-debug-from-x86_64
           - target: packages.x86_64-linux.doc
