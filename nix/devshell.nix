@@ -77,6 +77,16 @@
               category = "builder";
             }
             {
+              help = "Serve a Ghaf netboot install (root; one interface, one MAC)";
+              name = "ghaf-netboot";
+              # exec sudo the store path rather than the bare name: sudo resets
+              # PATH via secure_path, so `sudo ghaf-netboot` would not find the
+              # devshell's copy. The store path also carries its runtimeInputs,
+              # which is why this is a package rather than an inline command.
+              command = ''exec sudo -- "${self'.legacyPackages.ghaf-netboot}/bin/ghaf-netboot" "$@"'';
+              category = "builder";
+            }
+            {
               help = "Update the npm dependencies in the docs";
               name = "update-docs-depends";
               command = "update-docs-deps";

@@ -3,6 +3,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 let
@@ -43,5 +44,9 @@ in
         (config.boot.kernelPackages.callPackage ./kernel/modules/fake-battery { })
       ];
     };
+
+    # canTouchEfiVariables already pulls efibootmgr into the closure for the
+    # bootloader installer, but nothing puts it on PATH, so add here
+    environment.systemPackages = [ pkgs.efibootmgr ];
   };
 }
