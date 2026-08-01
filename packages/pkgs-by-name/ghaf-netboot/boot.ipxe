@@ -1,0 +1,85 @@
+#!ipxe
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-FileCopyrightText: 2016 Google Inc.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Embedded script for the iPXE binary ghaf-netboot serves to 64-bit UEFI
+# clients. Derived from pixiecore's own pixiecore/boot.ipxe, deliberately and
+# almost verbatim -- see below for why that matters more than it looks.
+#
+# WHY WE SHIP OUR OWN iPXE AT ALL
+#
+# Pixiecore embeds bin-x86_64-efi/ipxe.efi (see its Makefile `update-ipxe`
+# target), which drives NICs with iPXE's *native* drivers. On the Lenovo USB-C
+# dock that is not enough: iPXE's unicast TFTP works, but broadcast DHCP replies
+# never arrive, so it burns its ten retries and reboots -- forever, until the
+# dock is physically unplugged. We therefore build bin-x86_64-efi/snponly.efi
+# instead, which talks to the NIC through the firmware's own SNP driver -- the
+# same driver the firmware's PXE stack uses, and that one works throughout.
+#
+# WHY THIS SCRIPT IS A COPY RATHER THAN SOMETHING SIMPLER
+#
+# A *stock* iPXE (no embedded script) chainload-loops against pixiecore: it
+# defaults to user-class "iPXE", pixiecore classifies it as plain 64-bit UEFI
+# firmware, and re-serves the iPXE binary, roughly every 20 s, forever.
+#
+# The whole of pixiecore's "have I already chainloaded this client?" test is a
+# string compare on DHCP option 77 (pixiecore/dhcp.go:139):
+#
+#     if userClass == "pixiecore" { fwtype = FirmwarePixiecoreIpxe }
+#
+# and that branch answers with
+#
+#     BootFilename = http://<server>:<http-port>/_/ipxe?arch=..&mac=..
+#
+# So `set user-class pixiecore` below is the entire contract, and `${filename}`
+# then carries pixiecore's HTTP port without us having to know it. Everything
+# downstream -- the MAC allowlist, the 404 for machines we were not pointed at,
+# the assembled kernel command line -- keeps working exactly as before.
+#
+# Do not "simplify" this into `chain http://${next-server}:8080/...`: that bakes
+# a port into the binary that --port can then contradict, and moves the boot
+# decision off the allowlisted path.
+
+set attempts:int32 10
+set x:int32 0
+
+# The contract with pixiecore. Without this line the binary chainload-loops.
+set user-class pixiecore
+
+# iPXE configures itself from the first DHCP response it sees and can miss the
+# ProxyDHCP one that says how to boot, so retry rather than fall out of the PXE
+# path. This is what the iPXE documentation recommends and what pixiecore's own
+# script does; the loop is ugly and it is also load-bearing.
+:loop
+dhcp || goto nodhcp
+isset ${filename} || goto nobootconfig
+goto boot
+
+:nodhcp
+echo No DHCP response, retrying (attempt ${x}/${attempts})
+goto retry
+
+:nobootconfig
+echo No ProxyDHCP response, retrying (attempt ${x}/${attempts})
+goto retry
+
+:retry
+iseq ${x} ${attempts} && goto fail ||
+inc x
+goto loop
+
+:boot
+chain ${filename}
+
+# Reaching here means pixiecore stopped offering to boot this machine midway
+# through the cycle -- most likely --exit-after-serve fired, or the MAC is no
+# longer allowlisted. Rebooting is right: the machine falls through to disk.
+:fail
+echo Failed to get a ProxyDHCP response after ${attempts} attempts
+echo
+echo ghaf-netboot: is the server still running, and is this MAC in --mac?
+echo
+echo Rebooting in 5 seconds...
+sleep 5
+reboot

@@ -1,0 +1,59 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Machine-local overrides for ghaf-hw-test. Copy to `config.local.yaml`
+# (gitignored) and fill in the hardware on your desk.
+#
+#     cp config.local.yaml.example config.local.yaml
+#
+# Only the fields you set are used: this file is merged over config.yaml per
+# device, and a `null` here does NOT blank a value set there -- so an example
+# full of nulls is harmless, and you can list only what you actually have.
+#
+# You may also add devices that do not exist in config.yaml at all; the merge
+# does not require a matching entry.
+#
+# Override the location with GHAF_HW_TEST_LOCAL_CONFIG if you keep your lab
+# config somewhere central rather than in the checkout.
+
+devices:
+  Lenovo-X1:
+    # Address ghaf-hw-test connects to. This is net-vm, which holds the
+    # passed-through NIC -- ghaf-host is one hop further in at 192.168.100.2.
+    # It is a DHCP lease and it MOVES when you change ethernet adapter.
+    host_ip: null # e.g. 192.168.10.99
+
+    # ssh identity for the device. Needed whenever the key is not one ssh would
+    # offer by default -- otherwise every command fails with "Permission denied
+    # (publickey)", which reads like the device being down.
+    ssh_identity: null # e.g. /run/secrets/builder-key
+
+    # --- netboot ---------------------------------------------------------
+    # The BUILD HOST's NIC facing the target: the one you would run tcpdump on.
+    # Deliberately not usb_iface, which is already overloaded as both an
+    # interface name and an ssh alias.
+    netboot_iface: null # e.g. eth1
+
+    # The TARGET's PXE NIC. On a laptop with no built-in RJ45 this is a dock or
+    # adapter, and not every adapter can PXE at all -- the firmware needs its own
+    # UEFI driver for the chipset. A vendor dock generally works where a generic
+    # USB-C adapter emits no PXE request whatsoever.
+    netboot_mac: null # e.g. 48:2a:e3:82:e8:31
+
+    # Longer than boot_wait_seconds on purpose: an install fetches several GB
+    # and writes them, on top of a normal boot.
+    netboot_install_wait_seconds: null # e.g. 1800
+
+    # --- flashing / console ----------------------------------------------
+    flash_drive: null # e.g. /dev/sda -- verify before any write
+    serial_device: null # e.g. /dev/ttyUSB0, or /dev/ttyACM0 on Orin AGX
+
+  Orin-AGX:
+    host_ip: null # e.g. 192.168.10.149
+    ssh_identity: null
+    serial_device: null # AGX enumerates as /dev/ttyACM*, not ttyUSB*
+
+  darter-pro:
+    host_ip: null
+    ssh_identity: null
+    flash_drive: null

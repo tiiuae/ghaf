@@ -2,24 +2,16 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   coreutils,
-  ipxe,
   iproute2,
+  ipxe,
   lib,
   nftables,
   pixiecore,
   python3,
+  stdenv,
   writeShellApplication,
 }:
 let
-  # nixpkgs builds bin-x86_64-efi/snp.efi but not snponly.efi, so ask for it.
-  # Both land in the same output, which keeps `--ipxe <store>/snp.efi` available
-  # as a runtime fallback without another build.
-  ipxe' = ipxe.override {
-    additionalTargets = {
-      "bin-x86_64-efi/snponly.efi" = null;
-    };
-  };
-
   # Kept as its own executable rather than a heredoc inside the shell script:
   # writeShellApplication runs shellcheck over its text, and an embedded Python
   # program is both unreadable there and invisible to any Python linting.
@@ -34,6 +26,37 @@ let
       patchShebangs $out/bin/ghaf-netboot-api
     '';
   };
+
+  # The iPXE pixiecore embeds drives NICs with iPXE's own native drivers, which
+  # on the Lenovo USB-C dock cannot receive broadcast DHCP -- it retries ten
+  # times and reboots, and only unplugging the dock clears it. snponly.efi uses
+  # the firmware's SNP driver instead, i.e. the same one the firmware's PXE
+  # stack uses successfully throughout. See ./boot.ipxe for the other half.
+  ghafIpxe =
+    (ipxe.override {
+      embedScript = ./boot.ipxe;
+      # One target, not the usual dozen: this shortens a from-source build we
+      # cannot get from a cache, and it keeps the BIOS/ROM outputs we have no use
+      # for out of the closure.
+      enableDefaultPlatformTargets = false;
+      additionalTargets = {
+        "bin-x86_64-efi/snponly.efi" = null;
+      };
+      # Not cosmetic: the ipxe package asserts firmwareBinary is one of the
+      # binaries it actually built, and the "ipxe.efirom" default is no longer
+      # among them once the default targets are off.
+      firmwareBinary = "snponly.efi";
+    }).overrideAttrs
+      (_: {
+        # The ipxe package installs a compatibility symlink undionly.kpxe.0 ->
+        # undionly.kpxe on every x86 build, for dnsmasq setups that want the .0
+        # suffix. undionly.kpxe is a BIOS target we just switched off, so the
+        # link dangles -- and that fails the build outright in fixupPhase, where
+        # noBrokenSymlinks treats it as an error rather than a warning.
+        postInstall = "rm -f $out/undionly.kpxe.0";
+      });
+
+  defaultIpxe = lib.optionalString stdenv.hostPlatform.isx86_64 "${ghafIpxe}/snponly.efi";
 in
 writeShellApplication {
   name = "ghaf-netboot";
@@ -44,18 +67,17 @@ writeShellApplication {
     nftables # --open-firewall; PXE is dropped outright without it
     pixiecore # ProxyDHCP + TFTP; never assigns addresses
   ];
+  # runtimeEnv, not derivationArgs: the latter sets the variable while the
+  # script is *built*, where nothing reads it, and the script then runs with it
+  # unset.
+  runtimeEnv = {
+    GHAF_NETBOOT_IPXE = defaultIpxe;
+  };
   text = builtins.readFile ./ghaf-netboot.sh;
-
-  # Deliberately NOT set: pixiecore uses its own embedded iPXE, and that is the
-  # only build that works with it.
-  # If this is ever set again, it must be runtimeEnv and not derivationArgs --
-  # derivationArgs sets the variable while the script is being *built*, where
-  # nothing reads it, leaving it unset at runtime.
-  passthru.ipxe = ipxe';
 
   meta = {
     description = "Serve a Ghaf netboot install to one machine on one interface";
-    platforms = [ "x86_64-linux" ];
+    platforms = lib.platforms.linux;
     mainProgram = "ghaf-netboot";
     license = lib.licenses.asl20;
   };

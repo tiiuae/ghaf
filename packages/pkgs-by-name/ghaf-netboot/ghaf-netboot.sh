@@ -32,19 +32,32 @@ Options:
       --secureboot         With --install-target: enroll Secure Boot keys
   -p, --port <PORT>        HTTP port (default 8080)
   -t, --timeout <MIN>      Exit after this long (default 60, 0 disables)
-      --exit-after-serve   Exit once the image has been fetched once
+      --exit-after-serve   Exit once the image has been fetched once. ON by
+                           default with --install-target: the installer reboots
+                           itself when it finishes, and a target with network
+                           boot ahead of its disk would land straight back in
+                           the installer and reinstall in a loop.
+      --no-exit-after-serve
+                           Keep serving after the image has been fetched. Only
+                           safe when the target boots from disk by preference.
       --force-interface    Skip the default-route / wireless refusals
       --open-firewall      Temporarily open 67/69/4011 and the HTTP ports in the
                            host firewall, and close them again on exit. Without
                            this, a host that filters inbound traffic drops every
                            PXE request before pixiecore sees it -- the server
                            looks healthy and the target times out.
-      --ipxe <FILE>        64-bit UEFI iPXE binary. Defaults to pixiecore's own
-                           embedded iPXE, which is the only build known to work
-                           with it. Only override this if pixiecore's iPXE has
-                           no driver for the NIC, and note that a stock iPXE
-                           will chainload-loop: it needs an embedded script
-                           that chains back to pixiecore.
+      --ipxe <FILE|builtin>
+                           64-bit UEFI iPXE binary. Defaults to the snponly.efi
+                           we build ourselves, which drives the NIC through the
+                           firmware's SNP driver; pixiecore's built-in iPXE uses
+                           its own native drivers and cannot receive broadcast
+                           DHCP on some adapters (the Lenovo dock among them),
+                           where it retries ten times and reboots forever.
+                           'builtin' falls back to pixiecore's, for a NIC the
+                           firmware's SNP does not cover. A *stock* iPXE is not
+                           a valid value: with no embedded script it identifies
+                           as user-class "iPXE", pixiecore reads that as plain
+                           UEFI firmware and re-serves the binary in a loop.
       --dry-run            Print what would run and exit
   -h, --help               This message
 
@@ -65,11 +78,15 @@ SECUREBOOT=false
 FORCE_IFACE=false
 OPEN_FIREWALL=false
 DRY_RUN=false
-EXIT_AFTER_SERVE=false
+# Deliberately tri-state: "" means "nobody asked", which resolves after argument
+# parsing to true for an unattended install and false otherwise.
+EXIT_AFTER_SERVE=""
 MACS=()
-# Empty by default, and package.nix deliberately does not set it: empty means
-# "let pixiecore use its own embedded iPXE". Only --ipxe fills this in.
-IPXE_EFI64="${IPXE_EFI64:-}"
+# package.nix exports GHAF_NETBOOT_IPXE as our snponly.efi on x86_64, and as the
+# empty string elsewhere (an aarch64 host can serve an x86_64 target, but cannot
+# build the binary natively). Empty means "let pixiecore use its own embedded
+# iPXE". An explicit IPXE_EFI64 in the environment still wins over both.
+IPXE_EFI64="${IPXE_EFI64:-${GHAF_NETBOOT_IPXE:-}}"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -113,6 +130,10 @@ while [ $# -gt 0 ]; do
     EXIT_AFTER_SERVE=true
     shift
     ;;
+  --no-exit-after-serve)
+    EXIT_AFTER_SERVE=false
+    shift
+    ;;
   --force-interface)
     FORCE_IFACE=true
     shift
@@ -122,7 +143,14 @@ while [ $# -gt 0 ]; do
     shift
     ;;
   --ipxe)
-    IPXE_EFI64="$2"
+    # `builtin` is the escape hatch back to pixiecore's own iPXE, for a NIC the
+    # firmware's SNP driver does not cover. Spelt as a keyword rather than as
+    # --ipxe '' so it survives being quoted, logged and copied out of a runbook.
+    if [ "$2" = "builtin" ]; then
+      IPXE_EFI64=""
+    else
+      IPXE_EFI64="$2"
+    fi
     shift 2
     ;;
   --dry-run)
@@ -159,10 +187,11 @@ done
 [ -e "$IMAGE_DIR/ghaf-image.raw.zst" ] || die "$IMAGE_DIR/ghaf-image.raw.zst missing"
 [ -e "$IMAGE_DIR/ghaf-image.bmap" ] || die "$IMAGE_DIR/ghaf-image.bmap missing (needed to verify the image)"
 
-# Empty means "use pixiecore's own built-in iPXE", which is the right default.
-# Do NOT substitute a stock iPXE here: pixiecore's embedded build carries a
-# script that chains directly to pixiecore's HTTP endpoint, whereas a stock
-# iPXE finishes loading and simply re-runs DHCP.
+# Empty means "use pixiecore's own built-in iPXE" (--ipxe builtin, or a non-x86
+# build host). Do NOT substitute a *stock* iPXE here: our binary and pixiecore's
+# both carry an embedded script that identifies as user-class "pixiecore", which
+# is the only thing that stops pixiecore re-serving the binary in a loop. A
+# stock build has no such script and loops.
 [ -z "$IPXE_EFI64" ] || [ -e "$IPXE_EFI64" ] || die "no such iPXE binary: $IPXE_EFI64"
 
 # An unattended install wipes a disk with nobody watching. Allowlisting is not
@@ -170,6 +199,18 @@ done
 # machine" and "reinstall whichever machine happened to PXE boot".
 if [ -n "$INSTALL_TARGET" ]; then
   [[ $INSTALL_TARGET =~ ^/dev/[a-zA-Z0-9._-]+$ ]] || die "--install-target must look like /dev/nvme0n1"
+fi
+
+# An unattended install now ends with the installer rebooting itself, so a
+# server still answering PXE catches that reboot and reinstalls the machine --
+# an install loop, on the one operation where a loop is most expensive. Default
+# it on rather than leaving it to be remembered.
+if [ -z "$EXIT_AFTER_SERVE" ]; then
+  if [ -n "$INSTALL_TARGET" ]; then EXIT_AFTER_SERVE=true; else EXIT_AFTER_SERVE=false; fi
+fi
+if [ -n "$INSTALL_TARGET" ] && [ "$EXIT_AFTER_SERVE" = false ]; then
+  echo "ghaf-netboot: WARNING --no-exit-after-serve with --install-target: if this target" >&2
+  echo "ghaf-netboot:   prefers network boot it will reinstall itself on every reboot." >&2
 fi
 
 # --- interface guard rails ----------------------------------------------------
@@ -229,8 +270,17 @@ firewall_open() {
 
 firewall_close() {
   $FW_OPENED || return 0
-  nft delete element inet nixos-fw temp-ports "{ $FW_ELEMENTS }" 2>/dev/null ||
-    echo "ghaf-netboot: WARNING could not close firewall ports; check nixos-firewall-tool show" >&2
+  nft delete element inet nixos-fw temp-ports "{ $FW_ELEMENTS }" 2>/dev/null || true
+  # Assert on the resulting state, not on nft's exit status. Deleting the whole
+  # element list fails as a unit if any single element has already gone, so a
+  # delete that did close every port still reports failure -- observed on a real
+  # run, printing "could not close firewall ports" at a host whose ports were
+  # shut. A warning that sends the next person hunting a firewall that is
+  # already closed costs more than no warning at all.
+  local still
+  still=$(nft list set inet nixos-fw temp-ports 2>/dev/null | grep -cE 'udp \. (67|69|4011)' || true)
+  [ "$still" = 0 ] ||
+    echo "ghaf-netboot: WARNING firewall ports still open; check nixos-firewall-tool show" >&2
 }
 
 # Best-effort nudge when the ports are plainly going to be dropped. Deliberately
@@ -286,9 +336,10 @@ ghaf-netboot:
   netboot     $NETBOOT_DIR
   image       $IMAGE_DIR
   http        http://${LISTEN_IP}:${PORT}
-  ipxe        ${IPXE_EFI64:-pixiecore built-in (correct default; a stock iPXE loops)}
+  ipxe        ${IPXE_EFI64:-pixiecore built-in (native drivers; broadcast DHCP fails on some NICs)}
   cmdline     $CMDLINE
   mode        $(if [ -n "$INSTALL_TARGET" ]; then echo "UNATTENDED INSTALL to $INSTALL_TARGET (destructive)"; else echo "interactive TUI"; fi)
+  stop        $(if $EXIT_AFTER_SERVE; then echo "once the image has been served in full"; else echo "on timeout or signal only"; fi)
   timeout     $(if [ "$TIMEOUT_MIN" = 0 ]; then echo "none"; else echo "${TIMEOUT_MIN} min"; fi)
 EOF
 
