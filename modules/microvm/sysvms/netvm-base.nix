@@ -200,11 +200,21 @@ in
   ghaf.firewall =
     let
       dnsPort = 53;
+      ntpPort = 123;
     in
     {
       allowedTCPPorts = [ dnsPort ];
-      allowedUDPPorts = [ dnsPort ];
+      allowedUDPPorts = [
+        dnsPort
+        ntpPort
+      ];
     };
+
+  # net-vm holds the physical uplink, so it is the only VM that can reach an
+  # upstream time source -- and therefore the fleet's time server. Every other
+  # machine points at it (see modules/common/time), which keeps the number of
+  # places to retarget for a lab or air-gapped network down to one.
+  ghaf.time.server.enable = true;
 
   services.resolved.settings.Resolve.DNSStubListenerExtra = netVmAddress;
 
