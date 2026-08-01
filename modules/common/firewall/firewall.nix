@@ -268,9 +268,25 @@ in
       description = "iptables command used for all firewall rules (e.g. 'iptables -w' to wait for xtables lock).";
     };
     blacklistSize = mkOption {
-      type = types.int;
+      type = types.ints.positive; # ipset maxelem; 0 is a syntax error
       default = 65536;
       description = "The maximum number of IP addresses that can be stored in BLACKLIST";
+    };
+    blacklistTimeout = mkOption {
+      # ipset range. 0 would mean "never expires", not "no ban".
+      type = types.ints.between 1 2147483;
+      default = 3600;
+      description = ''
+        Seconds a source IP stays in BLACKLIST once a flood rule bans it.
+
+        Membership becomes fwmark 8 in raw PREROUTING, which ghaf-fw-in-filter
+        matches ahead of the RELATED,ESTABLISHED accept, so everything addressed
+        to this node is dropped including already-open connections. Forwarded
+        traffic is unaffected; fwd-filter has no ban rule.
+
+        blacklist-add re-adds with `--exist`, which resets the timer, so this
+        only releases a source that goes quiet.
+      '';
     };
     tcpBlacklistRules = mkOption {
       type = blacklistRuleType;
@@ -409,6 +425,12 @@ in
     # Include required kernel modules for firewall
     ghaf.firewall.kernel-modules.enable = true;
 
+    # Debug images: bound the outage for a source that backs off. Set here, not
+    # in attack-mitigation.nix, because tcpBlacklistRules/udpBlacklistRules feed
+    # BLACKLIST too -- gating on attack-mitigation.enable would leave those
+    # configurations on 3600s.
+    ghaf.firewall.blacklistTimeout = mkIf (config.ghaf.profiles.debug.enable or false) (mkDefault 60);
+
     # Include ethertypes file
     environment.etc.ethertypes.source = "${cfg.iptablesPackage}/etc/ethertypes";
 
@@ -427,8 +449,19 @@ in
         ];
         extraCommands = mkBefore ''
 
-          # Create BLACKLIST
-          ipset create ${blackListName} hash:ip timeout 3600 maxelem ${toString cfg.blacklistSize} -exist
+          # Create BLACKLIST. `-exist` only tolerates an identical set, so a
+          # changed timeout returns 1 and, under `sh -e`, aborts the whole
+          # ruleset. `destroy` is out (raw PREROUTING references the set), but
+          # `swap` works while referenced. The swap discards in-flight bans,
+          # which is intended: a timeout change should not leave entries around
+          # on the old expiry. The pre-emptive destroy clears any -tmp left by a
+          # run that died mid-swap, which would otherwise abort the next start.
+          if ! ipset create ${blackListName} hash:ip timeout ${toString cfg.blacklistTimeout} maxelem ${toString cfg.blacklistSize} -exist 2>/dev/null; then
+            ipset destroy ${blackListName}-tmp 2>/dev/null || true
+            ipset create ${blackListName}-tmp hash:ip timeout ${toString cfg.blacklistTimeout} maxelem ${toString cfg.blacklistSize} -exist
+            ipset swap ${blackListName}-tmp ${blackListName}
+            ipset destroy ${blackListName}-tmp
+          fi
 
           # Create IDS_BLACKLIST (snort, suricata,...)
           ${lib.concatStringsSep "\n" (

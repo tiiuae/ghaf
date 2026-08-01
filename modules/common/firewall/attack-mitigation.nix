@@ -69,6 +69,13 @@ in
           };
           rule = mkOption {
             type = floodType;
+            # Load-bearing: any definition of `ping.rule`, even behind a false
+            # mkIf, suppresses the aggregate `ping` default below and would
+            # leave burstNum/maxPacketFreq unset. `ssh.rule` does the same.
+            default = {
+              burstNum = 10;
+              maxPacketFreq = "60/min";
+            };
             description = "Flood rule parameters for Ping";
           };
         };
@@ -94,6 +101,30 @@ in
         message = "ghaf.firewall.extraOptions.allowPing and ghaf.firewall.attack-mitigation.ping.enable cannot be set at the same time";
       }
     ];
+    # Debug images: relax both limiters, which ban via BLACKLIST (see
+    # blacklistTimeout in firewall.nix). Same debug gate as security/fail2ban.nix.
+    #
+    # Production ping is `above 1/sec burst 10`: `ping -i0.2` from ghaf-host
+    # blacklisted it on net-vm and killed the host<->net-vm link, while every tap
+    # and bridge counter read zero drops -- invisible at L2, so it looks like a
+    # virtio fault rather than a firewall action.
+    ghaf.firewall.attack-mitigation.ping.rule = mkIf (config.ghaf.profiles.debug.enable or false) (
+      lib.mkDefault {
+        burstNum = 100;
+        maxPacketFreq = "3600/minute";
+      }
+    );
+
+    # Production ssh is burst 5 / 30-per-minute of NEW connections per source
+    # (ESTABLISHED is accepted earlier, so it counts logins not packets): ~six
+    # quick logins, and a dev jumping through net-vm spends two per command.
+    ghaf.firewall.attack-mitigation.ssh.rule = mkIf (config.ghaf.profiles.debug.enable or false) (
+      lib.mkDefault {
+        burstNum = 100;
+        maxPacketFreq = "1000/minute";
+      }
+    );
+
     # ssh syn flood protection
     ghaf.firewall.tcpBlacklistRules = mkIf cfg.ssh.enable [
       {
