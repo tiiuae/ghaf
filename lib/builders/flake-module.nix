@@ -10,5 +10,8 @@ _: {
 
     # Unified installer builder
     mkGhafInstaller = import ./mkGhafInstaller.nix;
+
+    # Same installer, delivered over the network instead of on an ISO
+    mkGhafNetbootInstaller = import ./mkGhafNetbootInstaller.nix;
   };
 }

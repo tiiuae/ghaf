@@ -22,12 +22,25 @@ Options:
   -w            Wipe only
   -e            Install with disk encryption
   -s            Install with Secure Boot enrollment
+  -d DEVICE     Target device, e.g. /dev/nvme0n1 (skips the device prompt)
+  -y            Do not ask for confirmation before writing
   -h, --help    Show this help message and exit.
+
+IMG_PATH may be a directory (ISO install) or an http(s) base URL (netboot);
+in the URL case the image and its block map are fetched and streamed straight
+to the disk without being staged anywhere.
+
+Kernel parameters, for unattended netboot installs:
+  ghaf.install_target=/dev/nvme0n1   as -d, and implies -y
+  ghaf.install_encrypt               as -e
+  ghaf.install_secureboot            as -s
+
 Examples:
   $(basename "$0") -w
   $(basename "$0") -e
   $(basename "$0") -s
   $(basename "$0") -e -s
+  $(basename "$0") -d /dev/nvme0n1 -y
 
 EOF
 }
@@ -35,8 +48,30 @@ EOF
 WIPE_ONLY=false
 ENCRYPTED_INSTALL=false
 SECUREBOOT_INSTALL=false
+DEVICE_NAME=""
+ASSUME_YES=false
 
-while getopts "wesh" opt; do
+# Kernel-parameter defaults, so a netbooted lab machine can install unattended
+# with no console interaction. Command-line flags still win over these.
+#   ghaf.install_target=/dev/nvme0n1   pick the disk and skip both prompts
+#   ghaf.install_encrypt               same as -e
+#   ghaf.install_secureboot            same as -s
+# Deliberately opt-in: with none of these the installer behaves exactly as it
+# always has, because skipping the confirmation before a destructive write
+# should never be the default.
+if [ -r /proc/cmdline ]; then
+  _cmdline=$(cat /proc/cmdline)
+  case " $_cmdline " in
+  *" ghaf.install_target="*)
+    DEVICE_NAME=$(sed -n 's/.*[[:space:]]ghaf\.install_target=\([^[:space:]]*\).*/\1/p' /proc/cmdline)
+    ASSUME_YES=true
+    ;;
+  esac
+  case " $_cmdline " in *" ghaf.install_encrypt "*) ENCRYPTED_INSTALL=true ;; esac
+  case " $_cmdline " in *" ghaf.install_secureboot "*) SECUREBOOT_INSTALL=true ;; esac
+fi
+
+while getopts "wesyd:h" opt; do
   case $opt in
   w)
     WIPE_ONLY=true
@@ -46,6 +81,12 @@ while getopts "wesh" opt; do
     ;;
   s)
     SECUREBOOT_INSTALL=true
+    ;;
+  d)
+    DEVICE_NAME="$OPTARG"
+    ;;
+  y)
+    ASSUME_YES=true
     ;;
   h)
     help_msg
@@ -84,35 +125,58 @@ echo "To install image or wipe installed image choose path to the device."
 hwinfo --disk --short
 
 while true; do
-  read -r -p "Device name [e.g. /dev/nvme0n1]: " DEVICE_NAME
+  # A device supplied by -d or ghaf.install_target= still goes through every
+  # check below; it just cannot be re-prompted on failure, so a bad value is
+  # fatal instead of looping forever against a console nobody is watching.
+  if [ -n "$DEVICE_NAME" ]; then
+    preset=true
+  else
+    preset=false
+    read -r -p "Device name [e.g. /dev/nvme0n1]: " DEVICE_NAME
+  fi
+
+  reject() {
+    echo "$1"
+    if [ "$preset" = true ]; then
+      echo "Refusing to continue with the preset target $DEVICE_NAME."
+      exit 1
+    fi
+    DEVICE_NAME=""
+  }
 
   # Input validation: ensure device name starts with /dev/ and contains no path traversal
   if [[ ! $DEVICE_NAME =~ ^/dev/[a-zA-Z0-9._-]+$ ]]; then
-    echo "Invalid device name format. Device must be in /dev/ and contain only alphanumeric characters, dots, underscores, and dashes."
+    reject "Invalid device name format. Device must be in /dev/ and contain only alphanumeric characters, dots, underscores, and dashes."
     continue
   fi
 
   # Additional security check: ensure the device exists as a block device
   if [ ! -b "$DEVICE_NAME" ]; then
-    echo "Device is not a valid block device!"
+    reject "Device is not a valid block device!"
     continue
   fi
 
   # Safely get basename to prevent directory traversal
   device_basename=$(basename "$DEVICE_NAME")
   if [ ! -d "/sys/block/$device_basename" ]; then
-    echo "Device not found in sysfs!"
+    reject "Device not found in sysfs!"
     continue
   fi
 
   # Check if removable
   if [ "$(cat "/sys/block/$device_basename/removable")" != "0" ]; then
+    if [ "$ASSUME_YES" = true ]; then
+      echo "Device $DEVICE_NAME is removable; continuing because -y was given."
+      break
+    fi
     read -r -p "Device provided is removable, do you want to continue? [y/N] " response
     case "$response" in
     [yY][eE][sS] | [yY])
       break
       ;;
     *)
+      $preset && exit 1
+      DEVICE_NAME=""
       continue
       ;;
     esac
@@ -122,15 +186,19 @@ while true; do
 done
 
 echo "Installing/Deleting Ghaf on $DEVICE_NAME"
-read -r -p 'Do you want to continue? [y/N] ' response
+if [ "$ASSUME_YES" = true ]; then
+  echo "Proceeding without confirmation (-y / ghaf.install_target=)."
+else
+  read -r -p 'Do you want to continue? [y/N] ' response
 
-case "$response" in
-[yY][eE][sS] | [yY]) ;;
-*)
-  echo "Exiting..."
-  exit
-  ;;
-esac
+  case "$response" in
+  [yY][eE][sS] | [yY]) ;;
+  *)
+    echo "Exiting..."
+    exit
+    ;;
+  esac
+fi
 
 echo "Wiping device..."
 
@@ -172,16 +240,64 @@ if [ "$WIPE_ONLY" = true ]; then
 fi
 
 echo "Installing..."
-shopt -s nullglob
-raw_file=("$IMG_PATH"/*.raw.zst)
-shopt -u nullglob
 
-if [ ${#raw_file[@]} -eq 0 ]; then
-  echo "No .raw.zst image found in $IMG_PATH"
-  exit 1
+# IMG_PATH is either a directory (booted from the ISO, which carries the image)
+# or an http(s) base URL (netboot, where the image is fetched now and was never
+# embedded). Keep this in step with resolve_image_source() in
+# ghaf-installer-tui/ghaf-installer-lib.sh -- the two are deliberately separate
+# because that lib depends on the gum helpers this script does not have.
+GHAF_BMAP=""
+if [[ $IMG_PATH =~ ^https?:// ]]; then
+  GHAF_REMOTE=true
+  if [[ $IMG_PATH == *.raw.zst ]]; then
+    GHAF_RAW_SRC="$IMG_PATH"
+  else
+    GHAF_RAW_SRC="${IMG_PATH%/}/ghaf-image.raw.zst"
+  fi
+
+  # bmaptool needs the map as a seekable local file; it is ~50 KB. Fatal if
+  # absent: its per-range sha256 checksums are the only integrity check on an
+  # image pulled over plain HTTP, so an unverified dd would be worse than
+  # stopping here.
+  rundir="${GHAF_INSTALLER_RUNDIR:-/run/ghaf-installer}"
+  mkdir -p "$rundir"
+  GHAF_BMAP="$rundir/ghaf-image.bmap"
+  if ! curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors \
+    -o "$GHAF_BMAP" "${GHAF_RAW_SRC%.raw.zst}.bmap"; then
+    echo "Could not fetch block map ${GHAF_RAW_SRC%.raw.zst}.bmap"
+    exit 1
+  fi
+else
+  GHAF_REMOTE=false
+  shopt -s nullglob
+  raw_file=("$IMG_PATH"/*.raw.zst)
+  shopt -u nullglob
+
+  if [ ${#raw_file[@]} -eq 0 ]; then
+    echo "No .raw.zst image found in $IMG_PATH"
+    exit 1
+  fi
+  GHAF_RAW_SRC="${raw_file[0]}"
+  [ -s "${GHAF_RAW_SRC%.raw.zst}.bmap" ] && GHAF_BMAP="${GHAF_RAW_SRC%.raw.zst}.bmap"
 fi
 
-zstdcat "${raw_file[0]}" | dd of="$DEVICE_NAME" bs=32M status=progress
+feed_image() {
+  if [ "$GHAF_REMOTE" = true ]; then
+    curl -fL --no-progress-meter --retry 5 --retry-delay 2 --retry-all-errors "$GHAF_RAW_SRC"
+  else
+    cat "$GHAF_RAW_SRC"
+  fi | zstdcat -T0
+}
+
+# Prefer bmaptool: it skips unmapped ranges and verifies the per-range sha256
+# from the map as it copies. The bare dd below stays as the fallback.
+if [ -n "$GHAF_BMAP" ] && command -v bmaptool >/dev/null 2>&1 &&
+  feed_image | bmaptool copy --bmap "$GHAF_BMAP" - "$DEVICE_NAME"; then
+  echo "Image written and verified against the block map."
+else
+  [ -n "$GHAF_BMAP" ] && echo "bmaptool unavailable or failed; falling back to a plain streaming write."
+  feed_image | dd of="$DEVICE_NAME" bs=32M status=progress
+fi
 
 find_esp_device() {
   local esp_device=""

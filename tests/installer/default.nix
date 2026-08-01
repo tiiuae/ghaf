@@ -52,6 +52,11 @@ pkgs.testers.nixosTest {
     def create_test_machine(
         oldmachine=None, **kwargs
     ):  # taken from <nixpkgs/nixos/tests/installer.nix>
+      # The default of None exists only to match the upstream signature; this
+      # helper cannot do anything without the installed machine's state dir.
+      # Asserting is also what satisfies the test driver's type checker, which
+      # otherwise rejects oldmachine.state_dir on `Unknown | None`.
+      assert oldmachine is not None, "create_test_machine requires oldmachine"
       # TODO: tpm2-abrmd.service fails to start. https://qemu-project.gitlab.io/qemu/specs/tpm.html
       start_command = [
           "${pkgs.qemu_test}/bin/qemu-kvm",
