@@ -54,6 +54,7 @@
           crosvm-shutdown = pkgs.callPackage ./crosvm-shutdown.nix { inherit self; };
           chromium-package-parity = pkgs.callPackage ./chromium-package-parity.nix { inherit self; };
           uplink-resolver = pkgs.callPackage ./uplink-resolver { };
+          fortivpn = pkgs.callPackage ./fortivpn.nix { };
           attack-mitigation-arp-spoofing = pkgs.callPackage ./attack-mitigation/arp-spoofing.nix { };
           attack-mitigation-mac-ip-spoofing = pkgs.callPackage ./attack-mitigation/mac-ip-spoofing.nix { };
           logging-recovery = pkgs.callPackage ./logging { };
