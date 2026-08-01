@@ -11,6 +11,10 @@
 }:
 let
   cfg = config.ghaf.reference.appvms.chromium;
+  onLaptop = config.ghaf.profiles.laptop-x86.enable or false;
+  onOrin = config.ghaf.profiles.orin.enable or false;
+  mkAppVm =
+    if onLaptop then config.ghaf.profiles.laptop-x86.mkAppVm else config.ghaf.profiles.orin.mkAppVm;
 in
 {
   _file = ./chromium.nix;
@@ -19,15 +23,15 @@ in
     enable = lib.mkEnableOption "Chromium Browser App VM";
   };
 
-  # Only configure when both enabled AND laptop-x86 profile is available
-  # (reference appvms use laptop-x86.mkAppVm which doesn't exist on other profiles like Orin)
-  config = lib.mkIf (cfg.enable && config.ghaf.profiles.laptop-x86.enable or false) {
+  # Only configure when enabled AND a profile providing mkAppVm is available
+  # (laptop-x86 or orin; other profiles have no App VM composition).
+  config = lib.mkIf (cfg.enable && (onLaptop || onOrin)) {
     # DRY: Only enable and evaluatedConfig at host level.
     # All values (name, mem, borderColor, applications, vtpm) are derived from vmDef.
     ghaf.virtualization.microvm.appvm.vms.chromium = {
-      enable = lib.mkDefault false;
+      enable = lib.mkDefault true;
 
-      evaluatedConfig = config.ghaf.profiles.laptop-x86.mkAppVm {
+      evaluatedConfig = mkAppVm {
         name = "chromium";
         packages = lib.optional config.ghaf.development.debug.tools.enable pkgs.alsa-utils;
         mem = 6144;

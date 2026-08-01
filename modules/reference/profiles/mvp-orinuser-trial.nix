@@ -89,10 +89,11 @@ in
 
       reference = {
         appvms.enable = true;
-        # One App VM for the accelerated gui-vm bring-up: gala is the smallest
-        # reference App VM and ships an arm64 build. Its window reaches the
-        # gui-vm COSMIC session via the standard Waypipe/vsock path.
-        appvms.gala.enable = true;
+        # App VM for the accelerated gui-vm bring-up. chromium is FOSS and
+        # builds native aarch64; its window reaches the gui-vm COSMIC session
+        # via the standard Waypipe/vsock path.
+        appvms.chromium.enable = true;
+        appvms.flatpak.enable = true;
 
         services = {
           enable = true;

@@ -89,7 +89,10 @@ in
         "-tpmdev"
         "emulator,id=tpm0,chardev=chrtpm"
         "-device"
-        "tpm-tis,tpmdev=tpm0"
+        # tpm-tis is the x86 ISA/MMIO frontend; arm virt machines only have the
+        # sysbus variant tpm-tis-device (plain tpm-tis fails "not a valid
+        # device model name" and the VM exits at startup).
+        "${if pkgs.stdenv.isx86_64 then "tpm-tis" else "tpm-tis-device"},tpmdev=tpm0"
       ];
     })
   ];

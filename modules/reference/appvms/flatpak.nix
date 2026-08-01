@@ -11,6 +11,10 @@
 }:
 let
   cfg = config.ghaf.reference.appvms.flatpak;
+  onLaptop = config.ghaf.profiles.laptop-x86.enable or false;
+  onOrin = config.ghaf.profiles.orin.enable or false;
+  mkAppVm =
+    if onLaptop then config.ghaf.profiles.laptop-x86.mkAppVm else config.ghaf.profiles.orin.mkAppVm;
 
   runCosmicStore = pkgs.writeShellApplication {
     name = "run-cosmic-store";
@@ -284,13 +288,13 @@ in
 
   # Only configure when both enabled AND laptop-x86 profile is available
   # (reference appvms use laptop-x86.mkAppVm which doesn't exist on other profiles like Orin)
-  config = lib.mkIf (cfg.enable && config.ghaf.profiles.laptop-x86.enable or false) {
+  config = lib.mkIf (cfg.enable && (onLaptop || onOrin)) {
     # DRY: Only enable and evaluatedConfig at host level.
     # All values (name, mem, borderColor, applications, vtpm) are derived from vmDef.
     ghaf.virtualization.microvm.appvm.vms.flatpak = {
       enable = lib.mkDefault true;
 
-      evaluatedConfig = config.ghaf.profiles.laptop-x86.mkAppVm {
+      evaluatedConfig = mkAppVm {
         name = "flatpak";
         mem = 6144;
         vcpu = 4;
