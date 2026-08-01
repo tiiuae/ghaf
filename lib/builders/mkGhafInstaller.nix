@@ -49,112 +49,26 @@ let
       inherit lib;
     };
     modules = [
+      # Everything not about the boot medium lives in installer-common.nix and is
+      # shared with mkGhafNetbootInstaller.nix. Add ISO-specific settings here;
+      # add anything else there, or the netboot installer silently loses it.
+      (import ./installer-common.nix { inherit self system; })
       (
-        { pkgs, modulesPath, ... }:
+        { modulesPath, ... }:
         {
           imports = [
             "${toString modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
-            # Enable plymouth graphical boot
-            "${self}/modules/desktop/graphics/boot.nix"
           ];
 
+          # ISO-only: these options exist solely because iso-image.nix is imported.
           isoImage = {
             storeContents = [ ];
             contents = [ ];
             squashfsCompression = "zstd -Xcompression-level 3";
           };
 
-          environment = {
-            sessionVariables.IMG_PATH = "/iso/ghaf-image";
-            variables.IMG_PATH = "/iso/ghaf-image";
-          };
-
-          ghaf.graphics.boot = {
-            enable = true;
-            renderer = "simpledrm";
-          };
-
-          # Skip NixOS installer
-          boot.loader.timeout = lib.mkForce 0;
-
-          systemd.services.wpa_supplicant.wantedBy = lib.mkForce [ "multi-user.target" ];
-          systemd.services.sshd.wantedBy = lib.mkForce [ "multi-user.target" ];
-          networking.networkmanager.enable = true;
-
-          image.baseName = lib.mkForce "ghaf";
-          networking.hostName = "ghaf-installer";
-
-          environment.systemPackages = [
-            self.packages.${system}.ghaf-installer-tui
-            self.packages.${system}.ghaf-installer
-            self.packages.${system}.hardware-scan
-          ];
-
-          # Autostart the installer TUI on tty1, replacing the default getty
-          systemd.services.ghaf-installer-tui = {
-            description = "Ghaf Installer TUI";
-            after = [ "multi-user.target" ];
-            wantedBy = [ "multi-user.target" ];
-            conflicts = [ "getty@tty1.service" ];
-            environment = {
-              IMG_PATH = "/iso/ghaf-image";
-            };
-            serviceConfig = {
-              ExecStart = "${self.packages.${system}.ghaf-installer-tui}/bin/ghaf-installer-tui";
-              # Suppress kernel printk noise on tty1 while TUI is active
-              ExecStartPre = "${pkgs.util-linux}/bin/dmesg -n 1";
-              # Restore kernel log level and hand tty1 back to getty on exit
-              ExecStopPost = [
-                "${pkgs.util-linux}/bin/dmesg -n 7"
-                "${pkgs.systemd}/bin/systemctl start getty@tty1.service"
-              ];
-              StandardInput = "tty";
-              StandardOutput = "tty";
-              StandardError = "tty";
-              TTYPath = "/dev/tty1";
-              TTYReset = true;
-              TTYVHangup = true;
-              PrivateTmp = true;
-              Restart = "on-failure";
-              RestartSec = "5s";
-            };
-          };
-
-          services.getty = {
-            greetingLine = "<<< Welcome to the Ghaf installer >>>";
-            helpLine = lib.mkAfter ''
-
-              To start the interactive Ghaf installer, run
-              `sudo ghaf-installer-tui`.
-
-              To start the non-interactive Ghaf installer, run
-              `sudo ghaf-installer`.
-            '';
-          };
-
-          # NOTE: Stop nixos complains about "warning:
-          # mdadm: Neither MAILADDR nor PROGRAM has been set. This will cause the `mdmon` service to crash."
-          # https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/profiles/installation-device.nix#L112
-          boot.swraid.mdadmConf = "PROGRAM ${pkgs.coreutils}/bin/true";
-
-          boot = {
-            kernelPackages = pkgs.linuxPackages_latest;
-            # Disable ZFS support - not compatible with latest. only supported on LTS.
-            supportedFilesystems.zfs = lib.mkForce false;
-          };
-
-          # Configure nixpkgs with Ghaf overlays for extended lib support
-          nixpkgs = {
-            hostPlatform.system = system;
-            config = {
-              allowUnfree = true;
-              permittedInsecurePackages = [
-                "jitsi-meet-1.0.8043"
-                "qtwebengine-5.15.19"
-              ];
-            };
-            overlays = [ self.overlays.default ];
-          };
+          # The image rides along inside the ISO and is mounted at /iso.
+          ghaf.installer.imageSource = "/iso/ghaf-image";
         }
       )
     ]

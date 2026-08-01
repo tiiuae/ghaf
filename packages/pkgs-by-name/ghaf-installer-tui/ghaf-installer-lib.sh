@@ -25,6 +25,11 @@ debug() {
 # shellcheck disable=SC2329
 boot_device() {
   local source parent
+  # Netboot: the image arrives over the network, so there is no installer medium
+  # to exclude and every disk is a legitimate target. Returning empty is the
+  # correct answer here, not a failure -- findmnt on a URL would fall through to
+  # the `|| return 0` below anyway, but only by accident.
+  [[ ${IMG_PATH:-} =~ ^https?:// ]] && return 0
   source=$(findmnt -n -o SOURCE --target "${IMG_PATH:-/}" 2>/dev/null) || return 0
   parent=$(lsblk -no pkname "$source" 2>/dev/null | head -1)
   if [[ -n $parent ]]; then
@@ -124,49 +129,114 @@ find_esp_device() {
   return 1
 }
 
+# Work out where the image is coming from, and make sure the block map is a
+# local seekable file either way. Sets GHAF_REMOTE / GHAF_RAW_SRC / GHAF_BMAP.
+#
+# IMG_PATH is either a directory (booted from the ISO, which carries the image)
+# or an http(s) base URL (netboot, where the image is fetched at install time
+# and never embedded -- that is the whole point of netboot: the boot artefacts
+# stay ~1.5 GB instead of ~7 GB).
+# shellcheck disable=SC2329
+resolve_image_source() {
+  local cmdline_url bmap_url
+
+  # A ghaf.image_url= kernel parameter beats the built-in default, so a single
+  # netboot artefact can serve every target and the server picks. Parsed here
+  # rather than injected via the unit's Environment= so that the TUI and the
+  # scripted installer share exactly one code path.
+  cmdline_url=$(sed -n 's/.*[[:space:]]ghaf\.image_url=\([^[:space:]]*\).*/\1/p' /proc/cmdline 2>/dev/null)
+  [[ -n $cmdline_url ]] && IMG_PATH="$cmdline_url"
+
+  if [[ ${IMG_PATH:-} =~ ^https?:// ]]; then
+    GHAF_REMOTE=true
+    if [[ $IMG_PATH == *.raw.zst ]]; then
+      GHAF_RAW_SRC="$IMG_PATH"
+    else
+      GHAF_RAW_SRC="${IMG_PATH%/}/ghaf-image.raw.zst"
+    fi
+    bmap_url="${GHAF_RAW_SRC%.raw.zst}.bmap"
+
+    # bmaptool needs the map as a seekable local file; it is only ~50 KB, so
+    # /run (RAM-backed) is the right home and nothing touches the target disk.
+    # Overridable so this path can be exercised without root in tests.
+    local rundir="${GHAF_INSTALLER_RUNDIR:-/run/ghaf-installer}"
+    GHAF_BMAP="$rundir/ghaf-image.bmap"
+    if ! mkdir -p "$rundir"; then
+      show_error "Could not create $rundir for the block map"
+      return 1
+    fi
+    if ! curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors -o "$GHAF_BMAP" "$bmap_url"; then
+      # Deliberately fatal rather than falling back to an unverified dd. The
+      # bmap carries per-range sha256 checksums that bmaptool verifies while
+      # copying, and over plain HTTP that is the only integrity check there is.
+      show_error "Could not fetch block map $bmap_url"
+      return 1
+    fi
+  else
+    GHAF_REMOTE=false
+    shopt -s nullglob
+    local -a raw_files=("$IMG_PATH"/*.raw.zst)
+    shopt -u nullglob
+
+    if [[ ${#raw_files[@]} -eq 0 ]]; then
+      show_error "No .raw.zst image found in $IMG_PATH"
+      return 1
+    fi
+
+    GHAF_RAW_SRC="${raw_files[0]}"
+    GHAF_BMAP="${GHAF_RAW_SRC%.raw.zst}.bmap"
+  fi
+}
+
+# Produce the decompressed image on stdout, from disk or from the network.
+# shellcheck disable=SC2329
+feed_image() {
+  if [[ ${GHAF_REMOTE:-false} == true ]]; then
+    # --no-progress-meter: pv already draws the progress bar the TUI shows, and
+    # curl's own meter would scribble over it on the same tty.
+    curl -fL --no-progress-meter --retry 5 --retry-delay 2 --retry-all-errors "$GHAF_RAW_SRC"
+  else
+    cat "$GHAF_RAW_SRC"
+  fi | zstdcat -T0
+}
+
 # Decompress and write the raw image to the target device.
 # Uses bmaptool for a sparse-aware copy when a .bmap file is available,
-# piping directly from zstdcat so no temp storage is needed.
+# piping directly from the producer so no temp storage is needed.
 # Falls back to a streaming dd write if bmaptool is unavailable or fails.
 # shellcheck disable=SC2329
 do_install_image() {
   local dev="$1"
 
-  shopt -s nullglob
-  local -a raw_files=("$IMG_PATH"/*.raw.zst)
-  shopt -u nullglob
-
-  if [[ ${#raw_files[@]} -eq 0 ]]; then
-    show_error "No .raw.zst image found in $IMG_PATH"
-    return 1
-  fi
-
-  local raw_file="${raw_files[0]}"
-  local bmap_file="${raw_file%.raw.zst}.bmap"
+  resolve_image_source || return 1
 
   local IMGSIZE
-  if [[ -s $bmap_file ]]; then
-    IMGSIZE="$(grep -oP '<ImageSize>\s*\K\d+' "$bmap_file")"
-  else
+  if [[ -s $GHAF_BMAP ]]; then
+    IMGSIZE="$(grep -oP '<ImageSize>\s*\K\d+' "$GHAF_BMAP")"
+  elif [[ ${GHAF_REMOTE:-false} == false ]]; then
+    # `zstd -l` needs a seekable file, so this estimate is local-only. The
+    # remote path always has a bmap by now, or resolve_image_source bailed.
     show_info "Estimating image size..." ""
-    IMGSIZE="$(zstd -l "$raw_file" -v 2>/dev/null | awk '/Decompressed Size:/ {print $5}' | tr -d '()')"
+    IMGSIZE="$(zstd -l "$GHAF_RAW_SRC" -v 2>/dev/null | awk '/Decompressed Size:/ {print $5}' | tr -d '()')"
   fi
 
   local -a PV_CMD
-  PV_CMD=(pv --format '%{sgr:white,bold}Writing Ghaf image to disk - %r %40p %e%{sgr:reset}' -N "$raw_file")
+  PV_CMD=(pv --format '%{sgr:white,bold}Writing Ghaf image to disk - %r %40p %e%{sgr:reset}' -N "$GHAF_RAW_SRC")
   [[ -n $IMGSIZE ]] && PV_CMD+=(-s "$IMGSIZE")
 
-  if command -v bmaptool >/dev/null 2>&1 && [[ -s $bmap_file ]]; then
-    debug "Using bmaptool with block map: $bmap_file"
-    if zstdcat -T0 "$raw_file" | "${PV_CMD[@]}" | bmaptool copy --bmap "$bmap_file" - "$dev" >/dev/null 2>&1; then
+  if command -v bmaptool >/dev/null 2>&1 && [[ -s $GHAF_BMAP ]]; then
+    debug "Using bmaptool with block map: $GHAF_BMAP"
+    if feed_image | "${PV_CMD[@]}" | bmaptool copy --bmap "$GHAF_BMAP" - "$dev" >/dev/null 2>&1; then
       return 0
     fi
     debug "bmaptool failed, falling back to streaming write"
+    # Over the network this fallback re-fetches the whole image, so it is slow
+    # rather than free -- but a second pass beats a half-written disk.
     show_warning "Fast installation unavailable. Continuing with standard installation."
   fi
 
-  debug "Writing image: $raw_file -> $dev"
-  zstdcat -T0 "$raw_file" | "${PV_CMD[@]}" | dd of="$dev" bs=32M conv=fsync oflag=direct iflag=fullblock status=none
+  debug "Writing image: $GHAF_RAW_SRC -> $dev"
+  feed_image | "${PV_CMD[@]}" | dd of="$dev" bs=32M conv=fsync oflag=direct iflag=fullblock status=none
 }
 
 # Place a deferred encryption marker on the ESP partition
