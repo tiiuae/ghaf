@@ -282,6 +282,20 @@ rec {
           };
         };
 
+        fortivpn = {
+          enable = mkEnableOption "Fortinet SSL VPN support" // {
+            default = true;
+          };
+          targetVms = mkOption {
+            type = types.listOf types.str;
+            default = [
+              "gui-vm"
+              "net-vm"
+            ];
+            description = "VMs that provide the Fortinet VPN UI and networking backend";
+          };
+        };
+
         # Hardware authentication services
         fprint = {
           enable = mkEnableOption "fingerprint authentication support" // {
@@ -462,6 +476,13 @@ rec {
 
       # Feature defaults for debug profile
       features = {
+        fortivpn = {
+          enable = true;
+          targetVms = [
+            "gui-vm"
+            "net-vm"
+          ];
+        };
         fprint = {
           enable = true;
           targetVms = [ "gui-vm" ];
@@ -565,6 +586,13 @@ rec {
 
       # Feature defaults for release profile
       features = {
+        fortivpn = {
+          enable = true;
+          targetVms = [
+            "gui-vm"
+            "net-vm"
+          ];
+        };
         fprint = {
           enable = true;
           targetVms = [ "gui-vm" ];
@@ -660,6 +688,10 @@ rec {
 
       # Feature defaults for minimal profile - all disabled
       features = {
+        fortivpn = {
+          enable = false;
+          targetVms = [ ];
+        };
         fprint = {
           enable = false;
           targetVms = [ ];
