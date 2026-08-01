@@ -4,6 +4,7 @@
   bmaptool,
   brightnessctl,
   coreutils,
+  curl,
   e2fsprogs,
   efitools,
   gawk,
@@ -31,6 +32,7 @@ writeShellApplication {
     bmaptool
     brightnessctl # screen brightness on startup
     coreutils
+    curl # fetch the image and its block map when netbooted
     e2fsprogs # chattr in efivar cleanup
     efitools # Secure Boot key enrollment
     gawk
