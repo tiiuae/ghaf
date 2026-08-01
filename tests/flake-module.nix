@@ -13,6 +13,8 @@
         in
         {
           installer = pkgs.callPackage ./installer { inherit self; };
+          netboot-boot = pkgs.callPackage ./installer/netboot-boot.nix { inherit self; };
+          netboot-fetch = pkgs.callPackage ./installer/netboot-fetch.nix { inherit self; };
           # Fails after https://github.com/tiiuae/ghaf/commit/e45a8fc47dc82e37a0327bd794478277c5c7a043
           # firewall = pkgs.callPackage ./firewall { inherit self; };
           logging-fss = pkgs.callPackage ./logging { inherit self; };

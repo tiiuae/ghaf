@@ -25,10 +25,6 @@ let
     extraModules = installerModules;
   };
 
-  # The same installer delivered over PXE instead of on an ISO. It takes the
-  # SAME installerModules, which is what guarantees the netboot installer keeps
-  # ghaf.host.secureboot.enable and the dev SSH keys -- i.e. that
-  # /etc/ghaf/secureboot/keys/*.auth are present for enrollment either way.
   ghaf-netboot-installer = self.builders.mkGhafNetbootInstaller {
     inherit self system;
     inherit (self) lib;
@@ -43,24 +39,25 @@ let
     self.nixosModules.profiles
   ];
 
-  installerModules = [
-    (
-      { config, ... }:
-      {
-        imports = [
-          self.nixosModules.common
-          self.nixosModules.givc
-          self.nixosModules.development
-          self.nixosModules.reference-personalize
-        ];
+  # Everything the installer environment needs beyond the boot medium: the dev
+  # SSH keys and the Secure Boot enrollment keys.
+  installerModule =
+    { config, ... }:
+    {
+      imports = [
+        self.nixosModules.common
+        self.nixosModules.givc
+        self.nixosModules.development
+        self.nixosModules.reference-personalize
+      ];
 
-        ghaf.host.secureboot.enable = true;
+      ghaf.host.secureboot.enable = true;
 
-        users.users.nixos.openssh.authorizedKeys.keys =
-          config.ghaf.reference.personalize.keys.authorizedSshKeys;
-      }
-    )
-  ];
+      users.users.nixos.openssh.authorizedKeys.keys =
+        config.ghaf.reference.personalize.keys.authorizedSshKeys;
+    };
+
+  installerModules = [ installerModule ];
 
   # All laptop configurations using mkGhafConfiguration
   target-configs = [
@@ -664,6 +661,10 @@ let
 in
 {
   flake = {
+    # So tests can build the installer the targets actually ship. See the
+    # comment on installerModule above.
+    nixosModules.laptop-installer = installerModule;
+
     nixosConfigurations = builtins.listToAttrs (
       map (t: lib.nameValuePair t.name t.hostConfiguration) config-targets
     );
