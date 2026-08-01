@@ -1,5 +1,5 @@
 #include "qemu/osdep.h"
-#include "hw/irq.h"	/* qemu_set_irq */
+#include "hw/irq.h"
 #include "qemu/log.h"
 #include "qemu/main-loop.h"	/* bql_lock/bql_unlock */
 #include "qemu/thread.h"
@@ -22,14 +22,7 @@ DECLARE_INSTANCE_CHECKER(NvidiaDceGuestState, NVIDIA_DCE_GUEST, TYPE_NVIDIA_DCE_
 #define IFACE    0x2018
 #define DOORBELL 0x2100
 
-/*
- * Reverse (async) window -- DCE R5 unsolicited ch_type=3 notifications (vblank,
- * flip-completion a modeset blocks on). Helper thread poll()s /dev/dce-host,
- * read()s one event, publishes it, bumps EVT_SEQ and asserts a virtual SPI.
- * The guest consumes the event and writes seq to EVT_ACK, which deasserts the
- * SPI and wakes the helper so the next event can be published. No event is
- * overwritten unseen.
- */
+/* Single-slot reverse-event window, level SPI, and guest ACK handshake. */
 #define FWD_SIZE  0x3000  /* forward window; reverse window sits above it so a
 			   * sync send never clobbers EVT_SEQ/EVT_ACK. */
 #define EVT_SEQ   0x3000  /* u32: bumped per published event (0 = none yet) */
@@ -116,14 +109,7 @@ struct dce_host_msg
 	int32_t ret;
 };
 
-/*
- * Reverse-doorbell pump. poll()s /dev/dce-host, reads one async DCE
- * notification, publishes it into the reverse window. Gated on EVT_ACK so a
- * slow guest never loses an event (unconsumed events stay in the host ring).
- *
- * The host side blocks in poll(2). Once an event is published, it blocks on a
- * condition until the guest IRQ handler ACKs it; neither side polls MMIO.
- */
+/* Block on the host fd, publish one event, then wait for the guest ACK. */
 static void *nvidia_dce_guest_evt_thread(void *opaque)
 {
 	NvidiaDceGuestState *s = opaque;
@@ -160,21 +146,17 @@ static void *nvidia_dce_guest_evt_thread(void *opaque)
 		memory_region_set_dirty(&s->evt_payload_ram, 0, dsize);
 		*(uint32_t *)&s->mem[EVT_IFACE] = iface;
 		*(uint32_t *)&s->mem[EVT_SIZ]   = dsize;
+		/* Publish the sequence after payload and metadata. */
+		smp_wmb();
 		s->evt_seq++;
 		*(uint32_t *)&s->mem[EVT_SEQ]   = s->evt_seq;	/* publish last */
-		smp_wmb();
-		/*
-		 * Arm the ACK wait only after advancing EVT_SEQ, while the BQL
-		 * excludes guest MMIO. A queued ACK for the previous sequence
-		 * must not satisfy the new event's wait.
-		 */
+		/* The BQL prevents a stale ACK while the new sequence is armed. */
 		qemu_mutex_lock(&s->evt_lock);
 		s->evt_acked = false;
 		qemu_set_irq(s->irq, 1);
 		qemu_mutex_unlock(&s->evt_lock);
 		bql_unlock();
 
-		/* One reverse-window slot: wait until the guest has consumed it. */
 		qemu_mutex_lock(&s->evt_lock);
 		while (!s->evt_acked && !qatomic_read(&s->stopping))
 			qemu_cond_wait(&s->evt_cond, &s->evt_lock);
@@ -190,8 +172,7 @@ static uint64_t nvidia_dce_guest_read(void *opaque, hwaddr addr,
 	NvidiaDceGuestState *s = opaque;
 	uint64_t val = 0;
 
-	/* Bound the full width, not just addr: a tail read must not leak
-	 * adjacent NvidiaDceGuestState fields. */
+	/* Bound the full access, not only its start address. */
 	if (addr > MEM_SIZE - size)
 		return 0xDEADBEEF;
 
@@ -208,7 +189,7 @@ static void nvidia_dce_guest_write(void *opaque, hwaddr addr, uint64_t data,
 
 	memset(&messg, 0, sizeof(messg));
 
-	/* Bound the full width: a tail write must not clobber adjacent state. */
+	/* Bound the full access, not only its start address. */
 	if (addr > MEM_SIZE - size) {
 		qemu_log_mask(LOG_UNIMP,
 			      "nvidia_dce_guest: addr+size exceeds window at "
@@ -278,13 +259,7 @@ static void nvidia_dce_guest_instance_init(Object *obj)
 {
 	NvidiaDceGuestState *s = NVIDIA_DCE_GUEST(obj);
 
-	/*
-	 * Preserve the working MMIO protocol for synchronous DCE requests and
-	 * reverse-event controls. Overlay only the 4 KiB reverse payload with
-	 * page-aligned RAM: otherwise each guest memcpy_fromio() causes roughly
-	 * 1000 KVM exits per vblank event. KVM and VFIO memory listeners require
-	 * the RAM section to begin on a host-page boundary.
-	 */
+	/* Keep controls in MMIO and overlay the aligned event payload with RAM. */
 	memory_region_init(&s->container, obj, TYPE_NVIDIA_DCE_GUEST, MEM_SIZE);
 	memory_region_init_io(&s->iomem, obj, &nvidia_dce_guest_ops, s,
 			      TYPE_NVIDIA_DCE_GUEST ".io", MEM_SIZE);
@@ -353,11 +328,7 @@ static void nvidia_dce_guest_register_types(void)
 
 type_init(nvidia_dce_guest_register_types)
 
-	/*
-	 * Forward (sync) path via doorbell + reverse (RM_NOTIFY) window drained
-	 * by the host-fd thread from instance_init. The machine wires this device's
-	 * sysbus IRQ to the SPI described by the guest DT.
-	 */
+	/* The machine wires the reverse-event IRQ to the guest-DT SPI. */
 	DeviceState *nvidia_dce_guest_create(hwaddr addr)
 {
 	DeviceState *dev = qdev_new(TYPE_NVIDIA_DCE_GUEST);

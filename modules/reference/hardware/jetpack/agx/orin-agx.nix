@@ -44,17 +44,10 @@
       # p3737 carrier); pass it through to net-vm. Orin NX has no MGBE0.
       nvidia.passthroughs.mgbe0_net_vm.enable = true;
 
-      # 32 GiB static APP partition (64 GB eMMC): the desktop-bundle rootfs
-      # outgrew the image-derived APP size baked into older flash scripts, and
-      # static sizing also lets the flash script build without the sdImage
-      # (flash always uses -s <signed-sd-image> here anyway).
+      # Reserve space for the desktop closure on 64 GiB eMMC.
       nvidia.orin.flashScriptOverrides.appPartitionSizeBytes = 34359738368;
-      # gpu_vm is the compute capability (keeps host1x/gpu/media, drops
-      # display, releases scanout for disp-vm); paired with disp_vm.enable
-      # below (two-VM build).
+      # Split topology: compute gpu-vm plus display-only disp-vm.
       nvidia.passthroughs.gpu_vm.enable = true;
-      # Display-only microvm for the two-VM build (branch-only). Owns only
-      # scanout_p/disp_caps_pt/disp_chan_pt, disjoint from gpu_vm above.
       nvidia.passthroughs.disp_vm.enable = true;
 
       # Net VM hardware-specific modules - use hardware.definition for composition model

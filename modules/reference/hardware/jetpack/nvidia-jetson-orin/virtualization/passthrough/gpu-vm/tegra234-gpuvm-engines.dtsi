@@ -5,7 +5,7 @@
 
 / {
 	platform-bus@70000000 {
-/* Host1x-ownership experiment: GA10B is dropped in the display-only VM. */
+/* GA10B is absent from display-only guests. */
 #ifndef EXP_DROP_GPU
 		ga10b: gpu@17000000 {
 			compatible = "nvidia,ga10b";
@@ -44,7 +44,7 @@
 #endif
 
 /* host1x + its VIC/NVDEC/NVJPG children + the 64MiB syncpoint shim move as one
- * unit; dropped in both host1x-ownership experiments. */
+ * unit; dropped when the guest does not own the corresponding engine. */
 #ifndef EXP_DROP_HOST1X
 		host1x: host1x@13e00000 {
 			compatible = "nvidia,tegra234-host1x";

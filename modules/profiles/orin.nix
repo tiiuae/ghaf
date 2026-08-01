@@ -108,7 +108,6 @@ in
       '';
     };
 
-    # GUI VM base configuration for profiles to extend
     guivmBase = lib.mkOption {
       type = lib.types.unspecified;
       readOnly = true;
@@ -127,16 +126,9 @@ in
       # Orin devices are embedded, not laptops
       hardware.definition.type = "embedded";
 
-      # Orin has no fingerprint reader; disable fprint so the gui-vm does not
-      # pull fprintd/libfprint. libfprint cannot cross-compile (it runs a target
-      # binary at build time to generate the udev hwdb), so leaving it enabled
-      # forces the whole image off the fast cross path onto native/emulated builds.
+      # Avoid non-cross-compilable desktop features unavailable on Orin.
       global-config.features.fprint.enable = false;
 
-      # TuneD power profiles pull python3-ethtool, which fails to cross-compile
-      # (its setup.py queries the host pkg-config for libnl-3.0 instead of the
-      # cross one). The embedded Orin gui-vm does not need laptop power tuning,
-      # so drop the feature to keep the fast cross path.
       global-config.features.performance.enable = false;
 
       profiles = {
@@ -237,7 +229,6 @@ in
           };
         };
 
-        # Export GUI VM base for profiles to extend (AArch64)
         orin.guivmBase = lib.nixosSystem {
           modules = [
             inputs.microvm.nixosModules.microvm
@@ -262,8 +253,6 @@ in
           };
         };
 
-        # Export mkAppVm for App VMs on Orin, mirroring laptop-x86.mkAppVm:
-        # same appvm-base composition, pinned to aarch64-linux.
         orin.mkAppVm =
           vmDef:
           let
@@ -424,10 +413,7 @@ in
           guivm = {
             enable = lib.mkDefault false;
             # fprint/yubikey/brightness now controlled via ghaf.global-config.features
-            # Hardware-only fallback: guivmBase + hardware.definition.guivm
-            # extraModules (DTB, vfio, guest kernel). The MVP profile
-            # (mvp-orinuser-trial.nix) overrides this with the full desktop
-            # bundle; mkDefault keeps this bringup-only form usable without it.
+            # Profiles can override this hardware-only guest composition.
             evaluatedConfig = lib.mkDefault (
               config.ghaf.profiles.orin.guivmBase.extendModules {
                 modules = lib.ghaf.vm.applyVmConfig {

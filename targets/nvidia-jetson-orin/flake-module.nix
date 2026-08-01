@@ -98,23 +98,12 @@ let
       extraModules = commonModules;
       extraConfig = {
         reference.profiles.mvp-orinuser-trial.enable = true;
-        # Accelerated topology: gui-vm owns the combined payload; split VMs off.
+        # Accelerated topology has one combined GPU/display owner.
         hardware.nvidia.passthroughs.gui_vm.enable = true;
         hardware.nvidia.passthroughs.gpu_vm.enable = lib.mkForce false;
         hardware.nvidia.passthroughs.disp_vm.enable = lib.mkForce false;
 
-        # Input: keep the USB keyboard/mouse receiver on the evdev path only.
-        # Raw usb-host forwarding of the Logitech Unifying receiver (046d:c52b)
-        # is broken on this aarch64 gui-vm: the device enumerates and HID++
-        # connects, but interrupt-IN transfers deliver ZERO input events into the
-        # guest (verified on HW with greetd stopped). vhotplug double-passes it
-        # (evdev virtio-input AND usb-host), and usb-host claims the parent
-        # receiver -> host loses the evdev nodes the virtio-input backends need ->
-        # neither path delivers. Deny the receiver from GUI-VM USB passthrough so
-        # it stays host-owned and reaches gui-vm via evdev (evdev-rules.nix). An
-        # explicit deny is skipped cleanly (no "not attached to any VM" error).
-        # Mirrors vhotplug's own example config, which denies this exact receiver
-        # from raw USB. Target-scoped: x86 hosts keep the stock rules.
+        # Keep the Unifying receiver on the working evdev path.
         hardware.passthrough.usb.guivmRules = lib.mkForce [
           {
             description = "USB Devices for GUIVM";

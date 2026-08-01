@@ -6,7 +6,7 @@
 
 / {
 	platform-bus@70000000 {
-/* Host1x-ownership experiment: display/nvdisplay (incl. the DCB payload
+/* Display/nvdisplay (including the DCB payload
  * #included below) is dropped in both compute VMs. */
 #ifndef EXP_DROP_DISPLAY
 		display: display@13800000 {

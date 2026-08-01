@@ -1,25 +1,12 @@
 Subject: [PATCH] hw/arm/virt: NVIDIA DCE guest bridge
 
-Registers the nvidia_dce_guest sysbus device (source in ../sources) at GPA
-0x090e0000, mirroring 0001's BPMP bridge -- same sync-forward MMIO shape,
-different backing device (/dev/dce-host) and frame layout (DCE_MEM_SIZE 0x3000
-vs BPMP's 0x600).
-
-Applied after 0001. 0x090e0000 sits in the untouched gap between BPMP's end
-(0x090d1000) and VIRT_MMIO (0x0a000000); the 0x10000 window (vs BPMP's 0x1000)
-leaves room for the reverse RM_NOTIFY window Task 1e adds later. The array
-entry is inserted *before* [VIRT_NVIDIA_BPMP_GUEST] so it stays outside the
-hunk 0002-vfio-platform-mmio-base.patch edits; element order need not match
-address order (designated initializers), so this is cosmetic.
-
-No DT node is emitted (unlike create_nvidia_bpmp_guest): the GPU-VM's
-hand-written DTS carries dce-virtual-pa directly (Task 1d), so QEMU only maps
-the MMIO at the address the DTS hardcodes.
+Registers the `nvidia_dce_guest` sysbus device at GPA 0x090e0000. The guest DT
+supplies the matching relay address and interrupt; only the display owner may
+create the bridge and consume `/dev/dce-host` events.
 
 --- a/hw/arm/Kconfig
 +++ b/hw/arm/Kconfig
-@@ -39,7 +39,8 @@
-     select VIRTIO_MEM_SUPPORTED
+@@ -40,6 +40,7 @@
      select ACPI_CXL
      select ACPI_HMAT
      select NVIDIA_BPMP_GUEST
@@ -29,8 +16,7 @@ the MMIO at the address the DTS hardcodes.
      bool
 --- a/hw/arm/virt.c
 +++ b/hw/arm/virt.c
-@@ -88,7 +88,8 @@
- #include "hw/virtio/virtio-md-pci.h"
+@@ -89,6 +89,7 @@
  #include "hw/virtio/virtio-iommu.h"
  #include "hw/char/pl011.h"
  #include "hw/misc/nvidia_bpmp_guest.h"
@@ -46,7 +32,7 @@ the MMIO at the address the DTS hardcodes.
      [VIRT_NVIDIA_BPMP_GUEST] =  { 0x090d0000, 0x00001000 },
      [VIRT_MMIO] =               { 0x0a000000, 0x00000200 },
      /* ...repeating for a total of NUM_VIRTIO_TRANSPORTS, each of that size */
-@@ -235,6 +237,7 @@ static const int a15irqmap[] = {
+@@ -241,6 +243,7 @@
      [VIRT_GPIO] = 7,
      [VIRT_UART1] = 8,
      [VIRT_ACPI_GED] = 9,
@@ -54,8 +40,7 @@ the MMIO at the address the DTS hardcodes.
      [VIRT_MMIO] = 16, /* ...to 16 + NUM_VIRTIO_TRANSPORTS - 1 */
      [VIRT_GIC_V2M] = 48, /* ...to 48 + NUM_GICV2M_SPIS - 1 */
      [VIRT_SMMU] = 74,    /* ...to 74 + NUM_SMMU_IRQS - 1 */
-@@ -1188,14 +1191,53 @@
-     qemu_fdt_setprop_cell(ms->fdt, "/bpmp", "phandle",
+@@ -1189,6 +1192,44 @@
                            qemu_fdt_alloc_phandle(ms->fdt));
  }
  
@@ -100,7 +85,7 @@ the MMIO at the address the DTS hardcodes.
  static void create_virtio_devices(const VirtMachineState *vms)
  {
      int i;
-     hwaddr size = vms->memmap[VIRT_MMIO].size;
+@@ -1196,6 +1237,7 @@
      MachineState *ms = MACHINE(vms);
  
      create_nvidia_bpmp_guest(vms);
@@ -119,8 +104,7 @@ the MMIO at the address the DTS hardcodes.
  system_ss.add(when: 'CONFIG_ISA_DEBUG', if_true: files('debugexit.c'))
 --- a/include/hw/arm/virt.h
 +++ b/include/hw/arm/virt.h
-@@ -71,7 +71,8 @@
-     VIRT_PCIE_MMIO,
+@@ -72,6 +72,7 @@
      VIRT_PCIE_PIO,
      VIRT_PCIE_ECAM,
      VIRT_NVIDIA_BPMP_GUEST,

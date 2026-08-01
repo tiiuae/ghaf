@@ -794,11 +794,7 @@ in
     # and post-release jumps are already handled by ghaf-clock-jump-watcher, so
     # the default 20 s stability window only adds boot latency here.
     ghaf.logging.recovery.clockReady.stableSeconds = lib.mkDefault 5;
-    # jetpack ships 99-tegra-devices.rules which sets GROUP="debug" on Tegra
-    # debug device nodes, but NixOS creates no `debug` group -> udev logs
-    # "Failed to resolve group 'debug', ignoring" for every matching rule on
-    # every device event (floods the journal >10/s under DRM device churn).
-    # Define the group so udev resolves it and applies the intended ownership.
+    # Required by JetPack's 99-tegra-devices.rules.
     users.groups.debug = { };
 
     assertions = [
@@ -926,13 +922,7 @@ in
           };
         }
         {
-          # Logitech Unifying receiver support on the HOST. Without hid-logitech-dj
-          # the receiver (e.g. 046d:c52b) binds to hid-generic, which cannot speak
-          # the Unifying protocol, so paired devices (K400 keyboard/touchpad) are
-          # never enumerated and deliver zero events. The gui-vm input path is
-          # evdev-forwarding (vhotplug reads the HOST evdev and forwards it via
-          # virtio-input), so the host must enumerate the K400 to have anything to
-          # forward. hidpp is needed for the HID++ devices behind the receiver.
+          # Host evdev forwarding requires the receiver-specific HID drivers.
           name = "hid-logitech-unifying";
           patch = null;
           structuredExtraConfig = with lib.kernel; {

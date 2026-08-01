@@ -323,11 +323,11 @@
         };
     };
 
-    // Second keyhole: EVO channel DOORBELL registers (PUT/GET). Guest nvkms writes
+    // Second keyhole: EVO core/window channel DOORBELL registers (PUT/GET). Guest nvkms writes
     // PUT to tell the DCE R5 to fetch the pushbuffer. Unbacked -> PUT never reaches
     // HW, R5 never fetches, GET stays 0 (nvidia-modeset: waiting for GPU progress).
     // CPU-RM user doorbells (guest IS the CPU RM); R5 owns core/control. Map the
-    // whole region 0x13870000..0x1388ffff (core + windows + cursor/IMM). Isolated
+    // whole region 0x13870000..0x1388ffff (core + windows). Isolated
     // SID_PASSTHROUGH, no reset -> R5-safe.
     fragment@10 {
         target-path = "/";
@@ -335,6 +335,24 @@
             disp_chan_pt: disp_chan_pt@13870000 {
                 compatible = "nvidia,dummy";
                 reg = <0x0 0x13870000 0x0 0x20000>;
+                iommus = <&smmu_niso0 GHAF_SID_DISPVM> /* concurrent: distinct group */;
+                dma-coherent;
+                status = "okay";
+            };
+        };
+    };
+
+    // Third keyhole: cursor immediate PIO channels for the two display heads.
+    // T234 maps these at display offsets 0xc8000 and 0xc9000. Without this
+    // keyhole, nvdisplay maps unbacked guest address space: the PIO Free field
+    // reads permanently as zero and every cursor position/update method times
+    // out. Keep this separate from the intervening DCE-owned display registers.
+    fragment@11 {
+        target-path = "/";
+        __overlay__ {
+            disp_cursor_pt: disp_cursor_pt@138c8000 {
+                compatible = "nvidia,dummy";
+                reg = <0x0 0x138c8000 0x0 0x2000>;
                 iommus = <&smmu_niso0 GHAF_SID_DISPVM> /* concurrent: distinct group */;
                 dma-coherent;
                 status = "okay";
