@@ -1,10 +1,6 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-#
-# Owner-neutral GPU/display capability payload constructor. Derives the
-# vfio-platform device set, guest DT defines, and guest kernel module list
-# from a capability descriptor rather than a specific VM's option arm, so
-# gpu-vm/disp-vm/gui-vm callers can share one source of truth.
+# Owner-neutral GPU/display capability payloads.
 {
   lib,
   ...
@@ -17,7 +13,6 @@ let
       media = true;
       display = false;
       noSyncpointDisplay = false;
-      memoryLayout = "compute";
     };
     dispvm = {
       gpu = false;
@@ -25,22 +20,14 @@ let
       media = false;
       display = true;
       noSyncpointDisplay = true;
-      memoryLayout = "display";
     };
     guivm = {
       gpu = true;
       host1x = true;
       media = true;
       display = true;
-      # FALSE: this VM owns a real host1x (13e00000.host1x_pt via vfio), so NVKMS
-      # uses real syncpoint fences -- exactly the proven PR2043 combined gpu-vm
-      # model (feat: plumb display to gpu-vm, f08830d8), which lit the panel with
-      # host1x present and NO 0021. The no-syncpt patch (0021) is a PR2055
-      # disp-vm-only shim for the display-WITHOUT-host1x arm; forcing it here
-      # mismatches the DCE/DP completion path (which expects syncpoint fences) and
-      # is NOT how the combined path was validated. See [[gpuvm-flip-completion]].
+      # Only display-without-host1x needs the no-syncpoint path.
       noSyncpointDisplay = false;
-      memoryLayout = "combined";
     };
   };
 
@@ -58,7 +45,6 @@ let
         + lib.optionalString displayOnly "-DEXP_DROP_GPU "
         + lib.optionalString computeWithHost1x "-DEXP_SHRINK_BANK1 ";
 
-      # reservedMem: verbatim from gpu-vm/default.nix:54-91, gated on capability booleans
       reservedMem =
         lib.optional cap.host1x {
           dev = "60000000.vm_hs_p";
@@ -79,7 +65,6 @@ let
           base = "0xb0000000";
         };
 
-      # engines: verbatim from gpu-vm/default.nix:99-108
       engines =
         lib.optional cap.gpu "17000000.gpu"
         ++ lib.optionals cap.host1x [
@@ -89,7 +74,7 @@ let
           "15540000.nvjpg"
         ];
 
-      # dispCaps: verbatim from gpu-vm/default.nix:124-133
+      # Expose only capability, channel, and cursor keyholes.
       dispCaps = lib.optionals cap.display [
         {
           dev = "13830000.disp_caps_pt";
@@ -98,6 +83,10 @@ let
         {
           dev = "13870000.disp_chan_pt";
           base = "0x66270000";
+        }
+        {
+          dev = "138c8000.disp_cursor_pt";
+          base = "0x662c8000";
         }
       ];
 

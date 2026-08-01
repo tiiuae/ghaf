@@ -13,9 +13,9 @@ works). The EGLDevice only identifies the render node (already falling back to
 the DRM dev_node) and reports is_software(); make it Optional and degrade to the
 GBM device node when enumeration is unavailable. Hardware rendering unaffected.
 ---
---- a/src/backend/kms/device.rs	2026-07-23 10:36:29.266257294 +0000
-+++ b/src/backend/kms/device.rs	2026-07-23 10:36:29.266351342 +0000
-@@ -64,7 +64,7 @@
+--- a/src/backend/kms/device.rs
++++ b/src/backend/kms/device.rs
+@@ -64,10 +64,10 @@
  #[derive(Debug)]
  pub struct EGLInternals {
      pub display: EGLDisplay,
@@ -23,18 +23,20 @@ GBM device node when enumeration is unavailable. Hardware rendering unaffected.
 +    pub device: Option<EGLDevice>,
      pub context: EGLContext,
  }
- 
-@@ -165,12 +165,17 @@
+-
++
+ pub type LockedGbmDrmOutputManager<'a> = LockedDrmOutputManager<
+     'a,
+     GbmAllocator<DrmDeviceFd>,
+@@ -165,13 +165,16 @@
              path.as_deref().map(Path::display)
          )
      })?;
 -    let device = EGLDevice::device_for_display(&display).with_context(|| {
 -        format!(
 -            "Unable to find matching egl device for {:?}",
-+    // EGLDevice enumeration (eglQueryDevicesEXT / EGL_EXT_device) is unusable on
-+    // some drivers (L4T/Tegra NVIDIA EGL BAD_ALLOCs it). It only identifies the
-+    // render node (which falls back to the DRM node) and is_software(), so degrade
-+    // to None instead of failing -- the GBM display/context still render on HW.
++    // L4T EGLDevice enumeration fails, but the GBM display remains usable.
++    // Keep the DRM node fallback and treat the renderer as hardware.
 +    let device = EGLDevice::device_for_display(&display).ok();
 +    if device.is_none() {
 +        tracing::warn!(
@@ -42,13 +44,19 @@ GBM device node when enumeration is unavailable. Hardware rendering unaffected.
              path.as_deref().map(Path::display)
 -        )
 -    })?;
+-
 +        );
 +    }
- 
++
      let context =
          EGLContext::new_with_priority(&display, ContextPriority::High).with_context(|| {
-@@ -720,9 +725,10 @@
- 
+             format!(
+@@ -717,12 +720,13 @@
+             .with_context(|| format!("Failed to initialize GBM device for {}", path.display()))?;
+         let (render_node, render_formats, texture_formats, is_software) = {
+             let egl = init_egl(&gbm)?;
+-
++
              let render_node = egl
                  .device
 -                .try_get_render_node()
@@ -61,7 +69,7 @@ GBM device node when enumeration is unavailable. Hardware rendering unaffected.
                  .unwrap_or(dev_node);
              let render_formats = egl.context.dmabuf_render_formats().clone();
              let texture_formats = egl.context.dmabuf_texture_formats().clone();
-@@ -731,7 +737,7 @@
+@@ -731,10 +735,10 @@
                  render_node,
                  render_formats,
                  texture_formats,
@@ -69,4 +77,8 @@ GBM device node when enumeration is unavailable. Hardware rendering unaffected.
 +                egl.device.as_ref().map(|d| d.is_software()).unwrap_or(false),
              )
          };
- 
+-
++
+         let token = common
+             .event_loop_handle
+             .insert_source(

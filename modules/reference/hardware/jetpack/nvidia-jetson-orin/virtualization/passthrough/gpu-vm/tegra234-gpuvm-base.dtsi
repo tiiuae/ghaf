@@ -30,10 +30,10 @@
 #endif
 				 <0x00 0x03810000 0x00 0x80000000 0x00 0x00010000>,     // Dummy address for fuse
 
-				 // display window 0x66200000: NOT a full VFIO display device. Only two
-				 // keyholes are vfio-backed inside it: 13830000.disp_caps_pt at guest
-				 // 0x66230000 and 13870000.disp_chan_pt at guest 0x66270000; the rest
-				 // of nvdisplay/dpaux/hdacodec/mipical is unbacked address space.
+				 // display window 0x66200000: NOT a full VFIO display device. Only three
+				 // keyholes are vfio-backed inside it: capabilities at 0x66230000,
+				 // core/window channels at 0x66270000, and cursor PIO for heads 0-1 at
+				 // 0x662c8000. The rest of nvdisplay/dpaux/hdacodec/mipical is unbacked.
 				 <0x00 0x13800000 0x00 0x66200000 0x00 0x000EFFFF>,     // nvdisplay window
 				 <0x00 0x155C0000 0x00 0x660e0000 0x00 0x0000FFFF>,     // dpaux0 window
 				 <0x00 0x0242c000 0x00 0x66001000 0x00 0x00001000>,     // hdacodec window

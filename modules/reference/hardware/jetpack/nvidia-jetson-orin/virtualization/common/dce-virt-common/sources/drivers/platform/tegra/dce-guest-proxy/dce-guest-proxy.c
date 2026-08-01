@@ -22,7 +22,6 @@
 #include <linux/string.h>
 #include <linux/interrupt.h>
 #include <linux/delay.h>
-#include <linux/debugfs.h>
 #include <linux/platform/tegra/dce/dce-client-ipc.h>
 
 #define DEVICE_NAME "dce-guest"
@@ -47,12 +46,7 @@ MODULE_VERSION("0.1");
 				 * above so a sync send never clobbers
 				 * EVT_SEQ/EVT_ACK */
 
-/*
- * Reverse (async) window -- must match nvidia_dce_guest.c. Above FWD_SIZE so
- * sync transactions leave it untouched. QEMU publishes DCE's unsolicited
- * ch_type=3 notifications here, bumps EVT_SEQ and asserts the virtual SPI; the
- * threaded handler consumes the event and writes the seq back to EVT_ACK.
- */
+/* Reverse-event window; must match nvidia_dce_guest.c. */
 #define EVT_SEQ         0x3000  /* u32: bumped per published event */
 #define EVT_IFACE       0x3004  /* u32: event interface type (ch_type) */
 #define EVT_SIZ         0x3008  /* u32: event payload length */
@@ -60,20 +54,14 @@ MODULE_VERSION("0.1");
 #define EVT_BUF         0x4000  /* page-aligned event payload */
 #define EVT_MAX         0x1000  /* max event payload */
 
-#define DCE_MEM_SIZE    0x5000  /* total window (forward + reverse), ioremap size */
 #define DCE_MAX_PAYLOAD 0x1000  /* max tx/rx payload (== TX_BUF/RX_BUF slot) */
 
 static void __iomem *mem_iova;
+static void *evt_payload_va;
 static int dce_evt_irq = -1;
 static u32 dce_evt_last_seq;
-static struct dentry *dce_virt_dbg;
 
-/*
- * Single shared window reused per transaction; concurrent sends must serialize.
- * Spinlock not mutex: DCE client IPC may run in atomic context.
- * ponytail: global lock + single window matches host/bridge single-slot design;
- * per-interface windows only if display throughput needs it.
- */
+/* DCE IPC may be atomic; serialize the shared window with a spinlock. */
 static DEFINE_SPINLOCK(dce_guest_xfer_lock);
 
 /* Defined + exported by tegra-dce (dce-ipc.c) via the dce-virt-hooks patch. */
@@ -117,18 +105,7 @@ static int my_dce_ipc_send(u32 ch_type, struct dce_ipc_message *msg)
 	return ret;
 }
 
-/*
- * Reverse doorbell, guest end. QEMU publishes DCE's unsolicited ch_type=3
- * notifications (vblank, and the flip-completion nvidia-drm's atomic commit
- * blocks on) into the reverse window and bumps EVT_SEQ. Consume each
- * interrupting event and inject it into tegra_dce so
- * dce_client_async_event_work delivers it to nvdisplay's async client callback
- * -- the completion the guest modeset otherwise never gets -- then ack.
- *
- * QEMU asserts a level-triggered virtual SPI after publishing an event. This
- * threaded handler may sleep if tegra-dce's FIFO is temporarily full; ACKing
- * the sequence deasserts the line and lets QEMU publish the next event.
- */
+/* Inject each interrupting reverse event into tegra-dce, then ACK its slot. */
 static irqreturn_t dce_evt_irq_thread(int irq, void *arg)
 {
 	static u8 evbuf[EVT_MAX];	/* single IRQ thread; off the 8K stack */
@@ -137,8 +114,7 @@ static irqreturn_t dce_evt_irq_thread(int irq, void *arg)
 	u32 size;
 	int ret;
 
-	/* Re-ACK a repeated level so QEMU cannot remain asserted if a prior ACK
-	 * raced interrupt unmasking. Sequence zero means no event was published. */
+	/* Re-ACK repeated levels to cover interrupt-unmask races. */
 	if (!seq || seq == dce_evt_last_seq) {
 		writel(seq, mem_iova + EVT_ACK);
 		return IRQ_HANDLED;
@@ -148,11 +124,9 @@ static irqreturn_t dce_evt_irq_thread(int irq, void *arg)
 	size = readl(mem_iova + EVT_SIZ);
 	if (size > EVT_MAX)
 		size = EVT_MAX;
-	memcpy_fromio(evbuf, mem_iova + EVT_BUF, size);
+	memcpy(evbuf, evt_payload_va, size);
 
-	/* Into tegra-dce's FIFO. ACK only on success: a full FIFO leaves the
-	 * virtual SPI asserted so the threaded handler retries without dropping
-	 * the opaque event. */
+	/* A full FIFO leaves the SPI asserted for a lossless retry. */
 	ret = tegra_dce_client_ipc_inject(iface, size, evbuf);
 	if (ret == -ENOSPC) {
 		usleep_range(500, 1000);
@@ -179,13 +153,24 @@ static int dce_guest_proxy_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
-	mem_iova = ioremap(vpa, DCE_MEM_SIZE);
+	/* Match QEMU's cacheable RAM alias for the event payload. */
+	mem_iova = ioremap(vpa, EVT_BUF);
 	if (!mem_iova) {
 		dev_err(&pdev->dev, "ioremap(0x%llX) failed\n", vpa);
 		return -ENOMEM;
 	}
+	evt_payload_va = memremap(vpa + EVT_BUF, EVT_MAX, MEMREMAP_WB);
+	if (!evt_payload_va) {
+		dev_err(&pdev->dev, "memremap(0x%llX) failed\n",
+			vpa + EVT_BUF);
+		iounmap(mem_iova);
+		mem_iova = NULL;
+		return -ENOMEM;
+	}
 
-	dev_info(&pdev->dev, "dce-virtual-pa: 0x%llX -> %p\n", vpa, mem_iova);
+	dev_info(&pdev->dev,
+		 "dce-virtual-pa: 0x%llX control=%p payload-wb=%p\n",
+		 vpa, mem_iova, evt_payload_va);
 
 	/* Ordered worker for the no-drop event FIFO. Start it BEFORE publishing
 	 * the send redirect: a start failure must not leave a dangling
@@ -193,6 +178,8 @@ static int dce_guest_proxy_probe(struct platform_device *pdev)
 	ret = tegra_dce_virt_event_start();
 	if (ret) {
 		dev_err(&pdev->dev, "virt-event wq start failed: %d\n", ret);
+		memunmap(evt_payload_va);
+		evt_payload_va = NULL;
 		iounmap(mem_iova);
 		mem_iova = NULL;
 		return ret;
@@ -214,20 +201,15 @@ static int dce_guest_proxy_probe(struct platform_device *pdev)
 		goto err_event_stop;
 	}
 
-	dce_virt_dbg = debugfs_create_dir("dce-virt", NULL);
-	debugfs_create_atomic_t("enqueued",  0444, dce_virt_dbg, tegra_dce_virt_counter(0));
-	debugfs_create_atomic_t("full",      0444, dce_virt_dbg, tegra_dce_virt_counter(1));
-	debugfs_create_atomic_t("delivered", 0444, dce_virt_dbg, tegra_dce_virt_counter(2));
-	debugfs_create_atomic_t("noclient",  0444, dce_virt_dbg, tegra_dce_virt_counter(3));
-
-	/* Route every guest DCE send through the shared window -- only now the
-	 * FIFO worker is live and cannot fail this probe. */
+	/* Publish the redirect only after the FIFO and IRQ are live. */
 	tegra_dce_ipc_send_redirect = my_dce_ipc_send;
 
 	return 0;
 
 err_event_stop:
 	tegra_dce_virt_event_stop();
+	memunmap(evt_payload_va);
+	evt_payload_va = NULL;
 	iounmap(mem_iova);
 	mem_iova = NULL;
 	return ret;
@@ -241,10 +223,12 @@ static void dce_guest_proxy_remove(struct platform_device *pdev)
 		free_irq(dce_evt_irq, pdev);	/* no new injects after this */
 		dce_evt_irq = -1;
 	}
-	debugfs_remove_recursive(dce_virt_dbg);
-	dce_virt_dbg = NULL;
 	tegra_dce_virt_event_stop();		/* flush + destroy the wq */
 	tegra_dce_ipc_send_redirect = NULL;
+	if (evt_payload_va) {
+		memunmap(evt_payload_va);
+		evt_payload_va = NULL;
+	}
 	if (mem_iova) {
 		iounmap(mem_iova);		/* only after the wq is gone */
 		mem_iova = NULL;

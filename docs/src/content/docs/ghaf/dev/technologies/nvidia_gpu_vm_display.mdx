@@ -1,27 +1,39 @@
 ---
-title: NVIDIA Jetson AGX Orin Display to gpu-vm Plumbing
+title: NVIDIA Jetson AGX Orin GPU and Display Virtualization
 sidebar:
-  label: Display to gpu-vm Plumbing
+  label: Orin GPU and Display
 ---
 
-How a physical display is plumbed to the `gpu-vm` microVM on the Jetson AGX
-Orin: the guest renders with the passed-through GPU and drives a real panel,
-while the display hardware never leaves the host. Builds on
+How the Jetson AGX Orin GPU and display path are assigned to either a split
+`gpu-vm`/`disp-vm` pair or one accelerated `gui-vm`. The display owner runs
+NVIDIA's guest KMS stack while the DCE R5 and physical display hardware remain
+host-owned. This builds on
 [GPU Passthrough to gpu-vm](/ghaf/dev/technologies/nvidia_gpu_vm/) and shares
 its BPMP-virtualisation and `ghaf-qemu-bpmp` infrastructure.
 
 import { Aside } from "@astrojs/starlight/components";
 
 <Aside>
-  Verified on the NVIDIA Jetson AGX Orin devkit: the guest lights a physical
-  panel over DisplayPort (3440x1440@60, also via a passive DP-&gt;HDMI adapter
-  at up to 3440x1440@30). The modules, anchors and connector come up
-  automatically at cold boot, but the panel stays dark until a DRM client is
-  started **manually** (`modetest` here; there is no auto-modeset service yet —
-  a persistent KMS master / compositor is future work). Once a mode is held, a
-  cable replug relights it automatically. GPU-rendered frames present at a
-  locked 60Hz (`modetest -v` page-flip rate; `kmscube` at 57fps vsynced).
+  Verified on the NVIDIA Jetson AGX Orin devkit with DisplayPort and passive
+  DP-&gt;HDMI output. In split mode, `disp-vm` starts a persistent `kmscube` KMS
+  owner. In accelerated mode, `gui-vm` reaches the COSMIC login and desktop,
+  accepts keyboard and pointer input, uses the hardware cursor keyhole, and
+  presents animated Wayland clients. Long-duration compositor/display
+  stability remains under test.
 </Aside>
+
+## Supported topologies
+
+| Topology | GPU, host1x, media | Display and DCE relay | Desktop |
+| --- | --- | --- | --- |
+| Split | `gpu-vm` | `disp-vm` | Display bring-up/KMS owner |
+| Accelerated | `gui-vm` | `gui-vm` | COSMIC plus App VMs |
+
+The modes are exclusive. `disp-vm` depends on `gpu-vm` for the shared host
+BPMP allowlist, module blacklist, and passthrough overlay. Assertions reject a
+standalone `gpu-vm`, a standalone `disp-vm`, or simultaneous split and combined
+owners. Exactly one display VM sets `GHAF_DCE_GUEST=1` and consumes
+`/dev/dce-host` events.
 
 ## Why not plain vfio passthrough
 
@@ -49,7 +61,7 @@ DISPRM RPC and asynchronous DCE event crosses the VM boundary instead.
 ## Architecture
 
 ```
-        GUEST gpu-vm (vanilla 6.12 + nvidia-oot)          HOST (Jetson L4T kernel 6.6)
+   GUEST display owner (disp-vm or gui-vm)                HOST (Jetson L4T kernel 6.6)
   +--------------------------------------------+   +----------------------------------------+
   |  nvidia-drm / nvkms (nvdisplay OOT,        |   |                                        |
   |  patched: address policy, flip completion) |   |                                        |
@@ -59,7 +71,7 @@ DISPRM RPC and asynchronous DCE event crosses the VM boundary instead.
   |        v                                   |   |                                        |
   |  dce-guest-proxy.ko                        |   |                                        |
   |    forward:  MMIO window write ------------+---+--> QEMU DCE bridge (nvidia_dce_guest)  |
-  |    reverse:  poll EVT_SEQ <----------------+---+--     |         ^                      |
+  |    reverse:  virtual SPI <-----------------+---+--     |         ^                      |
   |        |                                   |   |       v         | ch3 events           |
   |        v                                   |   |  /dev/dce-host (dce-host-proxy.ko)     |
   |  tegra_dce_client_ipc_inject               |   |       |         ^                      |
@@ -210,21 +222,37 @@ and presents through it:
   `kmscube -D /dev/dri/card0` runs via a small `LD_PRELOAD` shim forcing
   no-modifier GBM surfaces (the EGLStream producer rejects modifier surfaces
   on this guest).
-- **Present rate — locked 60Hz.** Two fixes compound:
-  1. *Flip completion decoupled from the R5.* nvkms normally waits for the
-     R5's async flip-completion event before releasing the next flip; through
-     the proxy it arrives ~130ms after kickoff, capping present at ~8-11Hz.
-     The guest instead delivers the flip-occurred from the nvkms timer one
-     ~60Hz frame after each kickoff. (~11Hz → ~50Hz)
-  2. *Payload-only relay copies* (see the window section above) collapse each
-     DISPRM RPC from ~10ms to well under a millisecond, ending the RM-lock
-     contention that serialized event delivery. (~50Hz → steady 60Hz)
+- **Native flip completion.** The window notifier uses `WRITE_AWAKEN`, and the
+  stock R5 `FLIP_OCCURRED` callback is the sole DRM completion owner. There is
+  no synthetic vblank completion, notifier polling, or two-vblank fallback.
+- **Continuous vblank stream.** `drm.vblankoffdelay=0` avoids a synchronous DCE
+  notification disable/re-enable cycle between flips.
+- **Interrupt-driven reverse events.** QEMU publishes one event, asserts a
+  virtual SPI, and blocks for the guest ACK. The guest threaded IRQ handler
+  injects the event into `tegra-dce`; neither endpoint polls the MMIO window.
+- **Aligned event payload.** Only the 4 KiB reverse payload is RAM-backed and
+  page-aligned. The control words remain MMIO, avoiding roughly 1,000 KVM exits
+  for every vblank payload copy.
+
+### Accelerated COSMIC path
+
+The combined `gui-vm` uses the NVIDIA GBM node for the compositor and keeps
+Mesa available for Wayland clients. Orin-specific integration includes:
+
+- a fallback when L4T EGLDevice enumeration returns `BAD_ALLOC`;
+- no-modifier GBM surfaces for the L4T EGL platform;
+- timer-backed checks for implicit DMA-BUF fences that become readable without
+  waking epoll; explicit sync remains event-driven;
+- VT-less seatd activation and evdev-only forwarding for the Logitech
+  Unifying receiver; and
+- a dedicated cursor PIO keyhole, separate from DCE-owned registers.
 
 ## Use
 
-Display plumbing is part of the gpu-vm passthrough; enable it per-SoM as in
-[GPU Passthrough to gpu-vm](/ghaf/dev/technologies/nvidia_gpu_vm/), build and
-flash the same target, and boot with a DP monitor connected.
+The regular AGX targets enable split `gpu-vm` plus `disp-vm`. The accelerated
+desktop target is `nvidia-jetson-orin-agx-accelerated-guivm` (and its
+`-from-x86_64` cross variant). It disables the split pair and assigns the
+combined capability to `gui-vm`.
 
 ### Verify
 
@@ -243,15 +271,15 @@ confirmed functionally by the health check below: a failed retag shows up as
 back with `devmem` — the release build keeps `CONFIG_STRICT_DEVMEM=y`, blocking
 `/dev/mem` access.)
 
-In gpu-vm:
+In the display owner:
 
 ```bash
 # list outputs first: in the Connectors table, use the `connected` row's
 # id as <connector> and one of its mode names as <mode> (e.g. 32:3440x1440)
 modetest -M nvidia-drm
 
-# hold a modeset: panel shows the SMPTE pattern
-sh -c 'sleep 7200 | modetest -M nvidia-drm -s <connector>:<mode>'
+# split mode starts this persistent owner automatically
+systemctl status kms-owner
 
 # GPU-accelerated present: spinning cube on the physical panel
 eglinfo -B                  # renderer: NVIDIA Tegra Orin (nvgpu)
@@ -263,9 +291,8 @@ modetest -M nvidia-drm -s <connector>:<mode> -v
 
 Health checks: zero `Lost display notification` in guest dmesg, zero
 `nvdisplayr ... EMEM address decode error` in host dmesg. A held mode survives
-cable replug (relit automatically by the hotplug relay); at cold boot the
-modules, anchors and connector come up automatically, but a DRM client must be
-started manually to drive the modeset (no auto-modeset service yet).
+cable replug and relights through the hotplug relay. In accelerated mode,
+`systemctl status greetd` and `journalctl -u greetd` cover COSMIC startup.
 
 ## Debugging notes
 
@@ -279,17 +306,15 @@ started manually to drive the modeset (no auto-modeset service yet).
   (check host `smmu_iso`/`smmu_niso` faults and `EMEM address decode error`),
   not a mode-set failure: the DCE reports success while scanout reads garbage.
 
-## Two-VM ownership split (experiment)
-
-The `experiment/orin-two-vm-host1x` branch splits ownership across two VMs:
+## Split ownership details
 
 | Owner | Devices |
 | --- | --- |
 | GPU VM | GA10B, physical host1x, syncpoint shim, media engines |
 | Display VM | nvdisplay, DCE proxy, display keyholes, scanout, connector |
 
-Chosen from hardware measurement: nvgpu probes without physical host1x but CUDA
-rejects it (`cuInit` 801), while the display VM drives color bars host1x-free by
-forcing NVKMS's no-syncpoint path. Both then run concurrently with disjoint VFIO
-ownership — CUDA on `sm_87` alongside a held 3440x1440 DP-1 modeset. Not yet
-validated: the GUI compositor, AppVM presentation, explicit-fence behavior.
+The split follows hardware measurement: CUDA requires physical host1x, while
+the display-only guest can run NVKMS without host1x syncpoints. The two VMs use
+disjoint VFIO devices and reserved-memory mappings. The accelerated topology
+instead retains host1x syncpoints and the hardware cursor in the same VM as
+COSMIC.

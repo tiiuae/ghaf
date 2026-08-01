@@ -14,7 +14,8 @@
 		reg = <0x00 0x80000000 0x00 0x30000000>,  // 0x80000000..0xb0000000 (no scanout tail)
 		      <0x01 0x00000000 0x01 0x00000000>;  // For GPU VRAM
 #else
-		reg = <0x00 0x80000000 0x00 0x38000000>,  // For CMA regions + 128MB scanout tail
+		// Keep the scanout VFIO aperture outside System RAM.
+		reg = <0x00 0x80000000 0x00 0x30000000>,  // CMA/carveouts; ends before scanout
 		      <0x01 0x00000000 0x01 0x00000000>;  // For GPU VRAM
 #endif
 		device_type = "memory";
@@ -25,15 +26,7 @@
 		#size-cells = <2>;
 		ranges;
 
-		// Reserve the passthrough CMA ram region as CMA for the VM.
-		// Grown 64MB -> 96MB in place: the 64MB pool exhausts under the full
-		// COSMIC desktop (nvidia-drm dumb scanout-class buffers are ~20MB
-		// each; NvKmsKapiMemory then fails NV_ERR_NO_MEMORY and cosmic-comp
-		// exits, collapsing the session). vpr/fsi move into the free
-		// 0x8E000000 hole to keep the pool contiguous. 96MB is the proven
-		// ceiling: bisected on hardware, ANY resize/move of the generic
-		// carveout (and CMA placed at 0xA4000000) hangs the guest before
-		// earlycon, so vidmem/generic must stay untouched.
+		// 96MB is required by COSMIC's scanout-class buffers.
 		linux,cma {
 			compatible = "shared-dma-pool";
 			reusable;
@@ -115,14 +108,13 @@
 		// patch 0003 forces phys=bus so the host-owned DCE R5 DMAs it at
 		// the same physical address. Backed 1:1 by scanout_p in
 		// gpu_passthrough_overlay.dts (host removed-dma-pool + vfio
-		// mmio-base=0xb0000000). Sits in the 128MB tail of the extended
-		// memory@80000000 region (0xb0000000..0xb8000000).
-/* Host1x-ownership experiment: the display scanout pool drops with display. */
+		// mmio-base=0xb0000000), outside every System RAM bank.
+/* The display scanout pool is absent from compute-only guests. */
 #ifndef EXP_DROP_DISPLAY
 		dce_scanout: dce_scanout@b0000000 {
 			compatible = "shared-dma-pool";
-			reusable;
-			reg = <0x00 0xB0000000 0x00 0x01000000>; // 16MB (rest given to generic_carveout)
+			// Never lend VFIO-backed scanout pages to movable allocations.
+			reg = <0x00 0xB0000000 0x00 0x01000000>; // 16MB; remaining aperture unclaimed
 			status = "okay";
 		};
 #endif

@@ -99,15 +99,11 @@ index 92b51e5..2f2219a 100644
 +    })
 +}
  use std::{collections::VecDeque, sync::Mutex, time::Duration};
-@@ -214,2 +249,44 @@ impl CompositorHandler for State {
+@@ -214,2 +249,37 @@ impl CompositorHandler for State {
                  }
 +
-+                /*
-+                 * Tegra's implicit-fence poll can transition to readable
-+                 * without waking epoll. A timer-backed poll preserves the
-+                 * blocker contract while ensuring calloop observes readiness
-+                 * without requiring an unrelated input event.
-+                 */
++                // Tegra implicit fences can become readable without an epoll wakeup.
++                // Polling preserves the surface blocker until every plane is ready.
 +                if std::env::var_os("COSMIC_POLL_DMABUF_FENCES").is_some()
 +                    && !dmabuf_read_ready(&dmabuf)
 +                {
@@ -139,8 +135,5 @@ index 92b51e5..2f2219a 100644
 +                    }
 +                }
 +
-+                /*
-+                 * Default event-driven implicit-fence path. Keep it for
-+                 * drivers whose DMA-BUF poll wakeup is reliable.
-+                 */
++                // Default event-driven path.
                  if let Ok((blocker, source)) = dmabuf.generate_blocker(Interest::READ) {

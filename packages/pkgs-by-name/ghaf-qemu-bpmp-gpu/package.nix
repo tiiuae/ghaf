@@ -20,9 +20,10 @@
 { ghaf-qemu-bpmp }:
 ghaf-qemu-bpmp.override {
   variantName = "-gpu";
-  # irqfd fast path was validated on MGBE0 only; the GPU/host1x/display devices have
-  # not been tried on it and the display bring-up depends on their interrupt behaviour.
-  withIrqfdFastPath = false;
+  # Keep GPU VFIO IRQs on the GICv3 irqfd fast path so continuous
+  # interrupt traffic does not leave its MMIO regions trapped in QEMU userspace.
+  # The startup-rearm properties remain disabled for these multi-IRQ devices.
+  withIrqfdFastPath = true;
   extraPatches = [
     ../ghaf-qemu-bpmp/patches/0002-vfio-platform-mmio-base.patch
     ../ghaf-qemu-bpmp/patches/0003-nop-predefined-dtb-memory.patch

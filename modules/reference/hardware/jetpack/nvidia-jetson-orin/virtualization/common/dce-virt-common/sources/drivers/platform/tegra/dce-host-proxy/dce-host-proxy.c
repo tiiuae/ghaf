@@ -41,6 +41,10 @@ MODULE_VERSION("0.1");
 #define deb_error(...)    printk(KERN_ALERT DEVICE_NAME ": "__VA_ARGS__)
 #define deb_warn(...)     printk(KERN_WARNING DEVICE_NAME ": "__VA_ARGS__)
 
+#define DCE_RPC_FUNCTION_OFFSET 12
+#define DCE_RPC_POST_EVENT 0x1003
+#define DCE_RPC_POST_HEVENT_OFFSET 36
+
 static int major_number;
 
 static struct class *dce_host_proxy_class = NULL;
@@ -71,7 +75,64 @@ static unsigned int dce_evt_head, dce_evt_tail;	 /* head==tail => empty */
 static DEFINE_SPINLOCK(dce_evt_lock);
 static DECLARE_WAIT_QUEUE_HEAD(dce_evt_wq);
 static unsigned long dce_evt_dropped;
-static unsigned long dce_evt_count;
+
+static u32 dce_evt_hevent(const void *data, size_t len)
+{
+	u32 function;
+	u32 hevent;
+
+	if (!data || len < DCE_RPC_POST_HEVENT_OFFSET + sizeof(hevent))
+		return 0;
+
+	memcpy(&function, (const u8 *)data + DCE_RPC_FUNCTION_OFFSET,
+	       sizeof(function));
+	if (function != DCE_RPC_POST_EVENT)
+		return 0;
+
+	memcpy(&hevent, (const u8 *)data + DCE_RPC_POST_HEVENT_OFFSET,
+	       sizeof(hevent));
+	return hevent;
+}
+
+/* Ring helpers below are called only while dce_evt_lock is held. */
+static unsigned int dce_evt_next(unsigned int slot)
+{
+	return (slot + 1) % DCE_EVT_SLOTS;
+}
+
+static unsigned int dce_evt_find_oldest_vblank(void)
+{
+	unsigned int slot;
+
+	for (slot = dce_evt_tail; slot != dce_evt_head;
+	     slot = dce_evt_next(slot)) {
+		struct dce_host_event *e = &dce_evt_ring[slot];
+
+		if (dce_evt_hevent(e->data, e->size) == 0x72)
+			return slot;
+	}
+
+	return DCE_EVT_SLOTS;
+}
+
+/* Remove one queued slot while retaining the order of surviving events. */
+static void dce_evt_drop_slot(unsigned int victim)
+{
+	unsigned int next;
+
+	if (victim == dce_evt_tail) {
+		dce_evt_tail = dce_evt_next(dce_evt_tail);
+		return;
+	}
+
+	next = dce_evt_next(victim);
+	while (next != dce_evt_head) {
+		dce_evt_ring[victim] = dce_evt_ring[next];
+		victim = next;
+		next = dce_evt_next(next);
+	}
+	dce_evt_head = (dce_evt_head + DCE_EVT_SLOTS - 1) % DCE_EVT_SLOTS;
+}
 
 static bool dce_evt_pending(void)
 {
@@ -104,19 +165,22 @@ static struct file_operations fops =
 
 /*
  * Queue one DCE notification for the bridge. Called from tegra-dce's IPC
- * callback, which may run in atomic context, so must not sleep. When full the
- * ring drops the oldest rather than block DCE's notify channel; drops are
- * counted/warned because a lost flip completion hangs a guest modeset.
+ * callback, which may run in atomic context, so must not sleep. On overflow,
+ * discard the oldest periodic vblank event before a flip-completion event.
+ * If the full ring has no periodic event, an incoming vblank is discarded;
+ * otherwise the oldest event is dropped as a last resort.
  */
 static void dce_host_proxy_queue_event(u32 interface_type, u32 msg_length,
 				       void *msg_data)
 {
 	struct dce_host_event *e;
 	unsigned long flags;
-	unsigned int next;
+	unsigned int next, victim;
+	u32 hevent;
 
 	if (msg_length > DCE_HOST_EVENT_MAX_DATA)
 		msg_length = DCE_HOST_EVENT_MAX_DATA;
+	hevent = dce_evt_hevent(msg_data, msg_length);
 
 	spin_lock_irqsave(&dce_evt_lock, flags);
 
@@ -125,10 +189,18 @@ static void dce_host_proxy_queue_event(u32 interface_type, u32 msg_length,
 		return;
 	}
 
-	next = (dce_evt_head + 1) % DCE_EVT_SLOTS;
+	next = dce_evt_next(dce_evt_head);
 	if (next == dce_evt_tail) {
-		/* Full: drop the oldest so the newest (most relevant) survives. */
-		dce_evt_tail = (dce_evt_tail + 1) % DCE_EVT_SLOTS;
+		victim = dce_evt_find_oldest_vblank();
+		if (victim == DCE_EVT_SLOTS && hevent == 0x72) {
+			dce_evt_dropped++;
+			spin_unlock_irqrestore(&dce_evt_lock, flags);
+			return;
+		}
+		if (victim == DCE_EVT_SLOTS)
+			victim = dce_evt_tail;
+		dce_evt_drop_slot(victim);
+		next = dce_evt_next(dce_evt_head);
 		dce_evt_dropped++;
 	}
 
@@ -139,15 +211,8 @@ static void dce_host_proxy_queue_event(u32 interface_type, u32 msg_length,
 		memcpy(e->data, msg_data, msg_length);
 
 	dce_evt_head = next;
-	dce_evt_count++;
 
 	spin_unlock_irqrestore(&dce_evt_lock, flags);
-
-	// First few only: confirm async notifications arrive once RM_EVENT is
-	// claimed, without spamming the log at vblank rate.
-	if (dce_evt_count <= 4)
-		pr_info("dce_host_proxy: EVENT #%lu iface=%u len=%u\n",
-			dce_evt_count, interface_type, msg_length);
 
 	wake_up_interruptible(&dce_evt_wq);
 }
