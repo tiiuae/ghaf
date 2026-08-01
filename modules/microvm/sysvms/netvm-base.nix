@@ -27,6 +27,7 @@ let
   vmName = "net-vm";
   powerManagerEnabled = lib.ghaf.features.isEnabledFor globalConfig "power-manager" vmName;
   performanceEnabled = lib.ghaf.features.isEnabledFor globalConfig "performance" vmName;
+  fortivpnEnabled = lib.ghaf.features.isEnabledFor globalConfig "fortivpn" vmName;
   wifiEnabled = lib.ghaf.features.isEnabledFor globalConfig "wifi" vmName;
   timezoneEnabled = lib.ghaf.features.isEnabledFor globalConfig "timezone" vmName;
   netVmAddress = hostConfig.networking.thisVm.ipv4 or "192.168.100.1";
@@ -136,6 +137,8 @@ in
       wifi.enable = lib.mkDefault wifiEnabled;
 
       firmware.enable = true;
+
+      fortivpn.enable = lib.mkDefault (fortivpnEnabled && (globalConfig.givc.enable or false));
 
       power-manager = {
         enable = lib.mkDefault powerManagerEnabled;
