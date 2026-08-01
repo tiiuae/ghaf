@@ -87,9 +87,9 @@ in
       self.packages.${system}.hardware-scan
     ];
 
-    # Autostart the installer TUI on tty1, replacing the default getty
+    # Autostart the installer on tty1, replacing the default getty.
     systemd.services.ghaf-installer-tui = {
-      description = "Ghaf Installer TUI";
+      description = "Ghaf Installer";
       after = [ "multi-user.target" ];
       wantedBy = [ "multi-user.target" ];
       conflicts = [ "getty@tty1.service" ];
@@ -97,7 +97,16 @@ in
         IMG_PATH = cfg.imageSource;
       };
       serviceConfig = {
-        ExecStart = "${self.packages.${system}.ghaf-installer-tui}/bin/ghaf-installer-tui";
+        ExecStart = pkgs.writeShellScript "ghaf-installer-autostart" ''
+          # ghaf-installer reads ghaf.install_target/_encrypt/_secureboot and
+          # ghaf.image_url itself, so the dispatch here is only about which of
+          # the two front-ends to run.
+          if grep -q 'ghaf\.install_target=' /proc/cmdline 2>/dev/null; then
+            echo "ghaf.install_target= on the kernel command line: installing unattended." >&2
+            exec ${self.packages.${system}.ghaf-installer}/bin/ghaf-installer
+          fi
+          exec ${self.packages.${system}.ghaf-installer-tui}/bin/ghaf-installer-tui
+        '';
         # Suppress kernel printk noise on tty1 while TUI is active
         ExecStartPre = "${pkgs.util-linux}/bin/dmesg -n 1";
         # Restore kernel log level and hand tty1 back to getty on exit

@@ -184,6 +184,16 @@ Without `--drive`/`--recovery`, the loop skips the build+flash step (useful when
 
 Device profiles and defaults are stored in `.github/skills/ghaf-hw-test/config.yaml`.
 
+That file is shared, so it holds only what is true for the project: which image a device takes,
+which name the Robot suite expects, how it is flashed. Anything specific to the hardware on
+your desk -- `host_ip`, `ssh_identity`, `netboot_iface`, `netboot_mac`, `flash_drive`,
+`serial_device` -- belongs in **`config.local.yaml`** beside it, which is gitignored. Copy
+`config.local.yaml.example` to get started, or point `GHAF_HW_TEST_LOCAL_CONFIG` elsewhere.
+
+The local file is merged over the shared one per device and per field. A `null` in the local
+file does not blank a value in the shared one, so a partly-filled override is safe, and you can
+add devices that do not appear in `config.yaml` at all.
+
 You can override defaults via command-line arguments or by editing the config file. Each device has a `boot_wait_seconds` setting that controls how long `wait_for_device` polls SSH after flashing.
 
 ## Output Files

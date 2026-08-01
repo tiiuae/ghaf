@@ -20,6 +20,20 @@
 # Keying this file by physical machine keeps both straight: the generic image goes on
 # any of them, but the test run still has to say which machine it is talking to.
 
+# Where the machine-specific values live
+# --------------------------------------
+# This file is shared, so it holds only what is true for the *project*: which
+# image a device takes, which name the Robot suite expects, how it is flashed.
+#
+# Anything that describes whoever's desk the hardware is sitting on -- addresses,
+# MAC addresses, ssh identities, drive and serial nodes -- goes in
+# `config.local.yaml` next to this file, which is gitignored. Those fields are
+# left `null` here. See `config.local.yaml.example` for the shape, and override
+# the path with GHAF_HW_TEST_LOCAL_CONFIG if you keep it elsewhere.
+#
+# Merge rule: local wins per field; a `null` in the local file does not blank a
+# value set here.
+
 # Device profiles
 # Each device has defaults that can be overridden via CLI
 devices:
@@ -51,11 +65,31 @@ devices:
     flash_method: ghaf-flash
     connection: ssh
     boot_wait_seconds: 180
-    host_ip: null
+    host_ip: null # set in config.local.yaml
     usb_iface: ghaf-usb
+    ssh_identity: null # set in config.local.yaml if not an ssh default
     flash_drive: null
     serial_device: null
     serial_baud: 115200
+    # Netboot. Verified end to end on this machine 2026-08-01: PXE -> iPXE ->
+    # kernel+initrd over HTTP -> installer -> image written to NVMe -> boots.
+    #
+    # netboot_iface is the BUILD HOST's NIC facing the target -- deliberately
+    # NOT usb_iface, which is already overloaded as both an interface name and
+    # an ssh alias. It is the interface you would run tcpdump on.
+    netboot_iface: null # set in config.local.yaml -- the BUILD HOST's NIC
+    # The TARGET's PXE NIC. The X1 Carbon has no built-in RJ45, and a generic
+    # ASIX USB-C dongle never emits a PXE request at all -- the firmware has no
+    # UEFI driver for it. A Lenovo USB-C dock does work, so this is the DOCK's
+    # MAC, which differs from the MAC the OS shows on its usual link.
+    netboot_mac: null # set in config.local.yaml -- the TARGET's PXE NIC
+    boot_menu_key: F12
+    # An install needs far longer than a boot: PXE, initrd, then several GB
+    # fetched over HTTP and written to NVMe. boot_wait_seconds (a boot budget)
+    # is not a substitute -- using it here reports failure mid-write.
+    netboot_install_wait_seconds: 1800
+    # The netboot chain is unsigned, exactly as the installer ISO is.
+    secureboot_must_be_off: true
 
   dell-7330:
     architecture: x86_64
@@ -102,9 +136,7 @@ devices:
     flash_script_target: nvidia-jetson-orin-agx-debug-from-x86_64-flash-script
     connection: ssh
     boot_wait_seconds: 240
-    # net-vm's address, held by MGBE0 (the on-SoC ethernet passed through to it).
-    # Verified on the devkit; it is a DHCP lease, so re-check if the lab moves it.
-    host_ip: 192.168.10.149
+    host_ip: null # set in config.local.yaml
     usb_iface: ghaf-usb
     flash_drive: null
     # The AGX devkit exposes its console over the USB-C debug port as a composite

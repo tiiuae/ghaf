@@ -39,7 +39,6 @@ let
 
   imagePath = testingConfig.config.system.build.ghafImage;
   targetPath = "/dev/vdb";
-  installerInput = pkgs.lib.strings.escapeNixString "${targetPath}\ny\ny\n";
 
   # Matches what ghaf-netboot serves and what the ghaf.image_url= kernel
   # parameter points at: a base URL with ghaf-image.raw.zst and
@@ -66,11 +65,12 @@ pkgs.testers.nixosTest {
       virtualisation.emptyDiskImages = [ (1024 * 256) ];
       virtualisation.memorySize = 1024 * 16;
 
-      # The netboot equivalent of the ISO's local directory. This is the one
-      # thing that differs from tests/installer/default.nix.
-      environment.sessionVariables = {
-        IMG_PATH = imageUrl;
-      };
+      # Drive this the way netboot actually does: through the KERNEL COMMAND
+      # LINE, not an environment variable.
+      boot.kernelParams = [
+        "ghaf.image_url=${imageUrl}"
+        "ghaf.install_target=${targetPath}"
+      ];
 
       environment.systemPackages = [
         self.packages.x86_64-linux.ghaf-installer
@@ -118,17 +118,16 @@ pkgs.testers.nixosTest {
         machine.succeed("curl -sfI ${imageUrl}/ghaf-image.bmap >&2")
 
     machine.succeed("lsblk >&2")
+
+    with subtest("the kernel parameters reached the installer"):
+        machine.succeed("grep -q 'ghaf.image_url=${imageUrl}' /proc/cmdline")
+        machine.succeed("grep -q 'ghaf.install_target=${targetPath}' /proc/cmdline")
+
     with subtest("install over HTTP"):
         # bmaptool verifies each range's sha256 as it writes, so a corrupted or
         # truncated transfer fails here rather than producing a silent bad disk.
         #
-        # Measured at 110.7 s on a 128-core dev host with NVMe (whole test:
-        # 171.6 s). This step decompresses and writes several GB, so it is the
-        # one place where a slow or IO-constrained runner genuinely needs room --
-        # 900 s is ~8x measured. The ISO test next door still uses 3600 s, which
-        # predates any measurement; worth retuning it from its own log rather
-        # than copying either number forward on faith.
-        machine.succeed('printf ${installerInput} | ghaf-installer', timeout=900)
+        machine.succeed('ghaf-installer </dev/null', timeout=900)
 
     print("Shutting installer machine down")
     machine.shutdown()

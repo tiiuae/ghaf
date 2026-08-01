@@ -13,6 +13,11 @@ set -euo pipefail
 # Script location
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$SCRIPT_DIR/config.yaml"
+# Per-machine overrides: addresses, MACs, ssh identities, drive and serial nodes.
+# Gitignored, because those are properties of whoever's desk the hardware is on,
+# not of the project. config.yaml keeps the structural fields (which image to
+# build, which name the Robot suite expects) and leaves the rest null.
+LOCAL_CONFIG_FILE="${GHAF_HW_TEST_LOCAL_CONFIG:-$SCRIPT_DIR/config.local.yaml}"
 LIB_DIR="$SCRIPT_DIR/lib"
 
 # Defaults
@@ -22,6 +27,31 @@ RESULTS_DIR="/tmp/test_results"
 
 # Global flags
 YES=false
+
+# Build locally by default. Shipping a multi-GB image out to a remote builder
+# and back is usually slower than building it here, and it makes the tool behave
+# differently from a hand-run `nix build`, which is confusing when the two
+# disagree. Override with GHAF_HW_TEST_BUILDERS if a remote builder is wanted.
+#
+# Passed to every nix invocation below via NIX_BUILD_OPTS so it cannot drift
+# between call sites.
+NIX_BUILD_OPTS=(--option builders "${GHAF_HW_TEST_BUILDERS-}")
+
+# Common ssh options, plus an optional identity. Devices reached by a key that
+# is not one of ssh's defaults (a lab builder key, say) otherwise fail with
+# "Permission denied (publickey)" from every command here, which reads as "the
+# device is down" rather than "the key is missing". Set per device with
+# `ssh_identity` in config.yaml, or with --ssh-key.
+SSH_OPTS=(-o StrictHostKeyChecking=no -o ConnectTimeout=5)
+set_ssh_identity() {
+    local key="$1"
+    [[ -z "$key" ]] && return 0
+    if [[ ! -r "$key" ]]; then
+        warn "ssh identity $key is not readable; falling back to ssh defaults"
+        return 0
+    fi
+    SSH_OPTS+=(-o IdentitiesOnly=yes -i "$key")
+}
 
 # Colors for output
 RED='\033[0;31m'
@@ -66,6 +96,7 @@ COMMANDS:
     status      Check device connectivity and readiness
     test        Run Robot Framework tests on a device
     flash       Flash a Ghaf image to a device
+    netboot     Install over PXE, no USB media (also via flash_method: netboot)
     analyze     Analyze test results and propose fixes
     run         Full workflow: test → analyze → [build → flash → wait] → retest
 
@@ -75,6 +106,11 @@ OPTIONS (vary by command):
     -p, --password <PASS>   SSH password (default: ghaf)
     -t, --tag <TAG>         Test tag to run (default: pre-merge)
     --drive <PATH>          Drive to flash (e.g., /dev/sda)
+    --iface <NAME>          Build host NIC facing the target (netboot)
+    --mac <MAC>             Target PXE NIC MAC (netboot)
+    --install-target <DEV>  Unattended netboot install to <DEV> (DESTRUCTIVE)
+    --ssh-key <PATH>        SSH identity for the device (netboot)
+    --skip-preflight        Skip netboot pre-flight checks
     --recovery              Use recovery mode for Jetson flash
     --results <PATH>        Path to test results directory
     --propose-fixes         Generate fix proposals for failures
@@ -97,6 +133,12 @@ EXAMPLES:
     # Flash Jetson in recovery mode
     ghaf-hw-test flash --device Orin-AGX --recovery
 
+    # Netboot install (interactive TUI on the target)
+    ghaf-hw-test netboot --device Lenovo-X1
+
+    # Netboot install, unattended and destructive
+    ghaf-hw-test -y netboot --device Lenovo-X1 --install-target /dev/nvme0n1
+
     # Analyze failures and propose fixes
     ghaf-hw-test analyze --propose-fixes
 
@@ -114,11 +156,33 @@ get_device_config() {
     local field="$2"
     run_with_nix python3 -c "
 import yaml
-with open('$CONFIG_FILE') as f:
-    config = yaml.safe_load(f)
-devices = config.get('devices', {})
-device = devices.get('$device', {})
-print(device.get('$field', ''))
+
+
+def _load(path):
+    try:
+        with open(path) as f:
+            return yaml.safe_load(f) or {}
+    except FileNotFoundError:
+        return {}
+
+
+config = _load('$CONFIG_FILE')
+local = _load('$LOCAL_CONFIG_FILE')
+
+# Local wins, per field. A null in the local file does NOT blank a real value in
+# the base -- that would make a half-filled override file destructive, and the
+# example ships with nulls in it.
+device = dict(config.get('devices', {}).get('$device', {}))
+for k, v in local.get('devices', {}).get('$device', {}).items():
+    if v is not None:
+        device[k] = v
+value = device.get('$field', '')
+# A YAML null is None, and printing it gives the literal string 'None' -- which
+# every caller here then treats as a real value, because [[ -z \"\$x\" ]] is false
+# for 'None'. That turns an unset field into 'no such interface: None' rather
+# than a clear 'not configured'. Normalise it, along with the same trap for a
+# nested block, which would print a Python dict.
+print('' if value is None else value)
 "
 }
 
@@ -140,7 +204,7 @@ wait_for_device() {
     info "Waiting for $device ($ip) to become reachable (timeout: ${timeout_seconds}s)..."
 
     while [[ $elapsed -lt $timeout_seconds ]]; do
-        if timeout 10 ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 "ghaf@$ip" "echo OK" &>/dev/null; then
+        if timeout 10 ssh "${SSH_OPTS[@]}" "ghaf@$ip" "echo OK" &>/dev/null; then
             success "Device $device ($ip) is reachable after ${elapsed}s"
             return 0
         fi
@@ -280,7 +344,7 @@ cmd_test() {
     local exit_code=0
     (
         cd "$repo_root"
-        nix develop .#smoke-test --command robot-test -i "$ip" -d "$test_device_name" -p "$password" -t "$tag"
+        nix develop "${NIX_BUILD_OPTS[@]}" .#smoke-test --command robot-test -i "$ip" -d "$test_device_name" -p "$password" -t "$tag"
     ) || exit_code=$?
 
     if [[ $exit_code -eq 0 ]]; then
@@ -296,6 +360,404 @@ cmd_test() {
 }
 
 # FLASH command - flash device with Ghaf image
+# Run a command on ghaf-host, one hop in through net-vm.
+#
+# ProxyCommand rather than a nested `ssh ... ssh ghaf-host`: the nested form
+# needs the inner hop to authenticate from net-vm, which only works with a
+# forwarded agent, and an explicit -i key is not in an agent. Jumping keeps
+# authentication local so one identity covers both hops. Getting this wrong is
+# quiet -- the inner ssh fails and every check reads empty, which looks like
+# "the firmware cannot netboot" rather than "the key did not reach the host".
+run_on_ghaf_host() {
+    local ip="$1"
+    shift
+    local proxy="ssh ${SSH_OPTS[*]} -W %h:%p ghaf@$ip"
+    ssh "${SSH_OPTS[@]}" -o "ProxyCommand=$proxy" ghaf@192.168.100.2 "$@"
+}
+
+# Reboot the target into a network boot.
+#
+# BootNext (-n) rather than BootOrder (-o), always: it is one-shot and
+# self-clearing, so a netboot that fails falls back to disk instead of leaving a
+# machine you can only reach over the network stuck in firmware.
+netboot_trigger_reboot() {
+    local ip="$1"
+    local ebm="$2"
+    local net_entry="$3"
+    local password="${4:-}"
+
+    if [[ -n "$ebm" ]] && [[ -n "$net_entry" ]]; then
+        # Needs the NOPASSWD rule from modules/development/dt-host.nix.
+        if run_on_ghaf_host "$ip" "sudo -n $ebm -n $net_entry" &>/dev/null; then
+            success "Set BootNext to $net_entry (one-shot)"
+        else
+            warn "Could not set BootNext (no NOPASSWD rule for efibootmgr on this image?)"
+            warn "  Relying on the existing boot order instead"
+        fi
+    fi
+
+    # Record the boot id so we can prove the machine really restarted. Without
+    # this the caller cannot tell "installed and came back" from "never went
+    # down at all" -- and those look identical to an ssh reachability check.
+    local before_boot_id
+    before_boot_id=$(run_on_ghaf_host "$ip" "cat /proc/sys/kernel/random/boot_id" 2>/dev/null | tr -d '\r')
+
+    info "Rebooting $ip into netboot..."
+    # Three ladders, because over ssh the session is inactive: sudo -n needs the
+    # NOPASSWD rule, plain systemctl is refused by polkit, and sudo -S needs the
+    # lab password. Try each rather than assume the fleet is uniform.
+    local rebooted=false
+    # Same symlink trap as efibootmgr above: the sudoers rule names the
+    # /nix/store/...-systemd-*/bin/systemctl path, and `sudo -n systemctl` uses
+    # the /run/current-system/sw/bin symlink, which does not match. Resolve it
+    # so the NOPASSWD rule can actually apply; without this the password ladder
+    # below always fires and the rule looks broken when it is not.
+    if run_on_ghaf_host "$ip" 'sudo -n "$(readlink -f "$(command -v systemctl)")" reboot' &>/dev/null; then
+        rebooted=true
+    elif [[ -n "$password" ]] && run_on_ghaf_host "$ip" "echo '$password' | sudo -S systemctl reboot" &>/dev/null; then
+        rebooted=true
+    elif run_on_ghaf_host "$ip" "systemctl reboot" &>/dev/null; then
+        rebooted=true
+    fi
+
+    # A reboot cuts the connection, so a non-zero exit above proves nothing
+    # either way. What proves it is the machine going away.
+    info "Confirming $ip actually went down..."
+    local waited=0
+    while [[ $waited -lt 120 ]]; do
+        if ! timeout 5 ssh "${SSH_OPTS[@]}" "ghaf@$ip" "echo OK" &>/dev/null; then
+            success "$ip went down after ${waited}s"
+            NETBOOT_PREV_BOOT_ID="$before_boot_id"
+            return 0
+        fi
+        sleep 5
+        waited=$((waited + 5))
+    done
+
+    error "$ip never went down - the reboot did not take"
+    if [[ "$rebooted" != "true" ]]; then
+        error "  Every reboot method was refused. On this image:"
+        error "    sudo -n        needs the NOPASSWD rule in modules/development/dt-host.nix"
+        error "    systemctl      is refused by polkit for an inactive (ssh) session"
+        error "  Reboot the machine by hand, or install an image carrying that rule."
+    fi
+    return 1
+}
+
+# Pre-flight for a netboot, run over ssh BEFORE anything is rebooted.
+#
+# The point is to fail with a sentence a human can act on, rather than rebooting
+# a machine into a silent PXE timeout and leaving someone to guess. Every check
+# here corresponds to something that actually went wrong during bring-up.
+netboot_preflight() {
+    local ip="$1"
+    local ok=true
+
+    info "Pre-flight checks on $ip (nothing is rebooted yet)..."
+
+    if ! timeout 10 ssh "${SSH_OPTS[@]}" "ghaf@$ip" "echo OK" &>/dev/null; then
+        error "Cannot reach ghaf@$ip over ssh"
+        return 1
+    fi
+
+    # ghaf-host holds the firmware's efivarfs; net-vm does not. Everything below
+    # has to run there, one hop in.
+    # Findings the reboot trigger needs; empty means "could not determine".
+    PREFLIGHT_EBM=""
+    PREFLIGHT_NET_ENTRY=""
+
+    # efibootmgr is only on PATH on images built after the module change that
+    # added it; older ones still have it in the store, so fall back to that
+    # rather than failing a machine that is perfectly capable of netbooting.
+    local ebm
+    # readlink -f is load-bearing, not tidiness. `command -v efibootmgr` returns
+    # /run/current-system/sw/bin/efibootmgr, a symlink, while the sudoers rule in
+    # modules/development/dt-host.nix names the /nix/store/...-efibootmgr-18/bin
+    # path it points at. sudo matches the command as written and does NOT resolve
+    # symlinks, so the unresolved path silently misses the NOPASSWD rule and
+    # BootNext falls back to a password prompt -- reported as "no NOPASSWD rule
+    # for efibootmgr on this image?" on a machine that had the rule all along.
+    # Observed on hardware 2026-08-01. Resolving here makes the two agree.
+    ebm=$(run_on_ghaf_host "$ip" 'p=$(command -v efibootmgr || ls /nix/store/*-efibootmgr-*/bin/efibootmgr 2>/dev/null | head -1); [ -n "$p" ] && readlink -f "$p"' 2>/dev/null | tr -d '\r')
+    if [[ -z "$ebm" ]]; then
+        warn "efibootmgr not found on ghaf-host - cannot inspect boot entries"
+        ok=false
+    else
+        PREFLIGHT_EBM="$ebm"
+    fi
+
+    # SecureBoot is a 5-byte efivar: 4 attribute bytes then the value.
+    local sb
+    sb=$(run_on_ghaf_host "$ip" "od -An -t u1 /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c 2>/dev/null | awk '{print \$5}'" 2>/dev/null | tr -d ' \r')
+    if [[ "$sb" == "1" ]]; then
+        error "Secure Boot is ENABLED on $ip - the netboot chain is unsigned and will be rejected"
+        ok=false
+    elif [[ -z "$sb" ]]; then
+        warn "Could not read the SecureBoot efivar - proceeding, but the target may refuse an unsigned chain"
+    else
+        success "Secure Boot is off"
+    fi
+
+    # Do NOT test for 'MAC(' alone. Lenovo publishes network boot as an abstract
+    # VenMsg entry described 'PXE BOOT', with no MAC device path anywhere, so a
+    # MAC-only test rejects machines that netboot perfectly well.
+    if [[ -n "$ebm" ]]; then
+        local entries
+        entries=$(run_on_ghaf_host "$ip" "$ebm -v 2>/dev/null" 2>/dev/null || true)
+        if grep -qiE 'MAC\(|PXE|Network|IPv4' <<<"$entries"; then
+            success "Target has a network boot entry"
+            # Bootnum of the first network-ish entry, for a one-shot BootNext.
+            PREFLIGHT_NET_ENTRY=$(grep -iE '^Boot[0-9A-F]{4}' <<<"$entries" |
+                grep -iE 'MAC\(|PXE|Network|IPv4' | head -1 |
+                sed -E 's/^Boot([0-9A-Fa-f]{4}).*/\1/')
+            if grep -qE '^BootOrder:' <<<"$entries"; then
+                local first_entry first_desc
+                first_entry=$(grep '^BootOrder:' <<<"$entries" | awk '{print $2}' | cut -d, -f1)
+                first_desc=$(grep -iE "^Boot${first_entry}" <<<"$entries" | head -1)
+                if grep -qiE 'PXE|Network|IPv4|MAC\(' <<<"$first_desc"; then
+                    info "Network boot is FIRST in BootOrder - a plain reboot will netboot"
+                    info "  (and any netboot server left running will catch this machine again)"
+                else
+                    warn "Network boot is NOT first in BootOrder - a plain reboot boots the disk"
+                    warn "  Set BootNext by hand, or use the boot menu key, to netboot this machine"
+                fi
+            fi
+        else
+            warn "No network boot entry found in efibootmgr output"
+            warn "  The machine may still netboot from its one-time boot menu; enable"
+            warn "  the UEFI network stack in firmware setup if it does not"
+            ok=false
+        fi
+    fi
+
+    $ok && return 0
+    return 1
+}
+
+# NETBOOT command - serve a netboot install to one device
+cmd_netboot() {
+    local device="" ip="" iface="" mac="" install_target="" skip_preflight=false dry_run=false ssh_key=""
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+        --dry-run)
+            dry_run=true
+            shift
+            ;;
+        -d | --device)
+            device="$2"
+            shift 2
+            ;;
+        -i | --ip)
+            ip="$2"
+            shift 2
+            ;;
+        --iface)
+            iface="$2"
+            shift 2
+            ;;
+        --mac)
+            mac="$2"
+            shift 2
+            ;;
+        --install-target)
+            install_target="$2"
+            shift 2
+            ;;
+        --skip-preflight)
+            skip_preflight=true
+            shift
+            ;;
+        --ssh-key)
+            ssh_key="$2"
+            shift 2
+            ;;
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        *)
+            error "Unknown option: $1"
+            usage
+            exit 1
+            ;;
+        esac
+    done
+
+    [[ -z "$device" ]] && {
+        error "Device is required"
+        echo "Usage: ghaf-hw-test netboot --device <NAME> [--install-target /dev/nvme0n1]"
+        exit 1
+    }
+
+    local ghaf_target
+    ghaf_target=$(get_device_config "$device" "ghaf_target")
+    [[ -z "$iface" ]] && iface=$(get_device_config "$device" "netboot_iface")
+    [[ -z "$mac" ]] && mac=$(get_device_config "$device" "netboot_mac")
+    [[ -z "$ip" ]] && ip=$(get_device_config "$device" "host_ip")
+    [[ -z "$ssh_key" ]] && ssh_key=$(get_device_config "$device" "ssh_identity")
+    set_ssh_identity "$ssh_key"
+
+    # netboot_iface is the BUILD HOST's NIC facing the target, not the device's
+    # -- unlike usb_iface, which is overloaded as both an interface name and an
+    # ssh alias elsewhere in this config.
+    [[ -z "$iface" ]] && {
+        error "No netboot_iface for $device (the build host's NIC facing the target)"
+        echo "Set it in config.yaml or pass --iface"
+        exit 1
+    }
+    # The target's PXE NIC. On a docked laptop this is the DOCK's MAC, not the
+    # internal one, and not necessarily the MAC the OS shows on its usual link.
+    [[ -z "$mac" ]] && {
+        error "No netboot_mac for $device (the target's PXE NIC)"
+        echo "Set it in config.yaml or pass --mac"
+        exit 1
+    }
+
+    info "Netboot $device: target=$ghaf_target iface=$iface mac=$mac"
+
+    if [[ -n "$ip" ]] && [[ "$skip_preflight" != "true" ]]; then
+        if ! netboot_preflight "$ip"; then
+            error "Pre-flight failed - refusing to reboot into a probable silent failure"
+            echo "Re-run with --skip-preflight to override."
+            exit 1
+        fi
+    else
+        warn "Skipping pre-flight (no host_ip, or --skip-preflight given)"
+    fi
+
+    # Everything above this point is read-only, so --dry-run is a real
+    # pre-flight: it answers "can this machine netboot at all" without building
+    # anything, rebooting anything, or putting a DHCP server on the network.
+    if [[ "$dry_run" == "true" ]]; then
+        info "Would build: .#${ghaf_target}-netboot-installer and .#${ghaf_target}"
+        info "Would serve: -i $iface -m $mac --force-interface --open-firewall --exit-after-serve${install_target:+ --install-target $install_target}"
+        [[ -n "$install_target" ]] && warn "Would install UNATTENDED to $install_target (destructive)"
+        success "--dry-run: pre-flight only, nothing built or started"
+        return 0
+    fi
+
+    if [[ -n "$install_target" ]]; then
+        if [[ "$YES" != "true" ]]; then
+            warn "UNATTENDED INSTALL: this ERASES $install_target on $device with nobody at the console!"
+            echo "Press Ctrl+C to cancel or Enter to continue..."
+            read -r
+        else
+            warn "UNATTENDED INSTALL to $install_target (--yes: skipping confirmation)"
+        fi
+    fi
+
+    local repo_root
+    repo_root=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
+
+    info "Building netboot installer and image..."
+    (cd "$repo_root" && nix build "${NIX_BUILD_OPTS[@]}" ".#${ghaf_target}-netboot-installer" -o result-netboot)
+    (cd "$repo_root" && nix build "${NIX_BUILD_OPTS[@]}" ".#${ghaf_target}" -o result)
+
+    # --exit-after-serve is not optional here. If network boot is ahead of the
+    # disk in the target's boot order -- which it is on at least one lab X1 --
+    # a server left running catches the post-install reboot and reinstalls in a
+    # loop. --force-interface because on a shared lab LAN the NIC facing the
+    # target is also the default-route NIC, so the G1 guard can never be
+    # satisfied. --open-firewall because otherwise PXE is dropped before
+    # pixiecore ever sees it and everything looks healthy while nothing happens.
+    local netboot_args=(
+        -i "$iface" -m "$mac"
+        -n result-netboot -g result
+        --force-interface --open-firewall --exit-after-serve
+    )
+    [[ -n "$install_target" ]] && netboot_args+=(--install-target "$install_target")
+
+    info "Plan:"
+    (cd "$repo_root" && nix develop "${NIX_BUILD_OPTS[@]}" --command ghaf-netboot "${netboot_args[@]}" --dry-run) || {
+        error "ghaf-netboot refused the plan - see above"
+        exit 1
+    }
+
+    info "Starting netboot server (stops itself once the image has been served)..."
+    # Through `nix develop`, and NOT `sudo ghaf-netboot`: sudo resets PATH via
+    # secure_path, so the bare name does not resolve to the devshell's copy --
+    # nix/devshell.nix says so explicitly, and its wrapper already execs sudo on
+    # the store path itself. Adding our own sudo here just breaks it.
+    (cd "$repo_root" && nix develop "${NIX_BUILD_OPTS[@]}" --command ghaf-netboot "${netboot_args[@]}") &
+    local server_pid=$!
+
+    echo ""
+    if [[ -n "$ip" ]] && [[ "$skip_preflight" != "true" ]]; then
+        # Give the server a moment to bind before the target starts asking.
+        sleep 5
+        if ! netboot_trigger_reboot "$ip" "${PREFLIGHT_EBM:-}" "${PREFLIGHT_NET_ENTRY:-}" "$DEFAULT_PASSWORD"; then
+            kill "$server_pid" 2>/dev/null || true
+            error "Could not reboot $device - nothing was installed"
+            exit 1
+        fi
+    else
+        warn "Now boot $device from the network."
+        [[ -n "$ip" ]] && echo "  Reboot it with: ssh ghaf@$ip ssh ghaf-host systemctl reboot"
+        local menu_key
+        menu_key=$(get_device_config "$device" "boot_menu_key")
+        [[ -n "$menu_key" ]] && echo "  Or press $menu_key at power-on for the one-time boot menu."
+    fi
+    echo ""
+
+    if [[ -n "$ip" ]]; then
+        # The install itself takes minutes on top of the normal boot wait, so do
+        # not reuse boot_wait_seconds alone here.
+        # Wait for the *install* before waiting for the boot. boot_wait_seconds
+        # is a boot budget (180s by default); an install additionally has to
+        # fetch several GB and write them to disk, so reusing it here reports
+        # failure while the image is still being written -- and the old code
+        # then killed the server, severing the transfer it was waiting for.
+        #
+        # With --exit-after-serve the server exits once the image has gone out
+        # in full, so its lifetime is a far better signal than any fixed sleep.
+        local install_wait
+        install_wait=$(get_device_config "$device" "netboot_install_wait_seconds")
+        [[ -z "$install_wait" ]] && install_wait=1800
+        info "Waiting for the image to be served in full (up to ${install_wait}s)..."
+        local waited=0
+        while kill -0 "$server_pid" 2>/dev/null && [[ $waited -lt $install_wait ]]; do
+            sleep 10
+            waited=$((waited + 10))
+        done
+        if kill -0 "$server_pid" 2>/dev/null; then
+            error "Image not served within ${install_wait}s - the target never fetched it"
+            error "  Leaving the server running: a transfer may be in flight, and killing"
+            error "  it mid-write would leave the disk half-installed. Check the console."
+            exit 1
+        fi
+        success "Image served in full after ${waited}s; server stopped itself"
+
+        info "Waiting for $device to come back on the installed system..."
+        if wait_for_device "$ip" "$device"; then
+            # Reachability alone is not proof: if the machine never rebooted, or
+            # netbooted and fell back to the old disk, ssh answers just the same.
+            # Compare the boot id, and report what is actually running.
+            local now_boot_id now_system
+            now_boot_id=$(run_on_ghaf_host "$ip" "cat /proc/sys/kernel/random/boot_id" 2>/dev/null | tr -d '\r')
+            now_system=$(run_on_ghaf_host "$ip" "readlink /run/current-system" 2>/dev/null | tr -d '\r')
+            if [[ -n "${NETBOOT_PREV_BOOT_ID:-}" ]] && [[ "$now_boot_id" == "${NETBOOT_PREV_BOOT_ID}" ]]; then
+                error "$device has the same boot id as before - it never restarted"
+                kill "$server_pid" 2>/dev/null || true
+                exit 1
+            fi
+            success "Netboot install complete - $device is back up"
+            [[ -n "$now_system" ]] && info "  running: $now_system"
+        else
+            error "$device did not come back; check the console"
+            kill "$server_pid" 2>/dev/null || true
+            exit 1
+        fi
+    else
+        warn "No host_ip for $device - cannot confirm the install automatically"
+        info "Waiting for the server to finish serving (Ctrl+C to stop)..."
+        wait "$server_pid" || true
+    fi
+
+    kill "$server_pid" 2>/dev/null || true
+    success "Netboot finished for $device"
+}
+
 cmd_flash() {
     local device="" drive="" recovery=false
 
@@ -359,10 +821,10 @@ cmd_flash() {
         fi
 
         info "Building image..."
-        (cd "$repo_root" && nix build ".#$ghaf_target")
+        (cd "$repo_root" && nix build "${NIX_BUILD_OPTS[@]}" ".#$ghaf_target")
 
         info "Flashing to $drive..."
-        (cd "$repo_root" && nix develop --command ghaf-flash -d "$drive" -i result/ghaf-image.raw.zst)
+        (cd "$repo_root" && nix develop "${NIX_BUILD_OPTS[@]}" --command ghaf-flash -d "$drive" -i result/ghaf-image.raw.zst)
 
         success "Flash complete! Remove the drive and boot the device."
         ;;
@@ -383,12 +845,22 @@ cmd_flash() {
         fi
 
         info "Building flash script..."
-        (cd "$repo_root" && nix build ".#$flash_script_target")
+        (cd "$repo_root" && nix build "${NIX_BUILD_OPTS[@]}" ".#$flash_script_target")
 
         info "Running flash script (device must be in recovery mode)..."
         (cd "$repo_root" && sudo ./result/bin/flash-ghaf)
 
         success "Flash complete! The device will reboot automatically."
+        ;;
+
+    netboot)
+        # Same install as ghaf-flash, delivered over PXE. Kept behind the same
+        # flash_method switch so a device can be moved to netboot by editing
+        # config.yaml rather than by changing how it is invoked.
+        info "Device is configured for netboot; delegating to 'ghaf-hw-test netboot'"
+        local netboot_forward=(--device "$device")
+        [[ -n "$drive" ]] && netboot_forward+=(--install-target "$drive")
+        cmd_netboot "${netboot_forward[@]}"
         ;;
 
     *)
@@ -586,6 +1058,7 @@ main() {
     status) cmd_status "$@" ;;
     test) cmd_test "$@" ;;
     flash) cmd_flash "$@" ;;
+    netboot) cmd_netboot "$@" ;;
     analyze) cmd_analyze "$@" ;;
     run) cmd_run "$@" ;;
     *)

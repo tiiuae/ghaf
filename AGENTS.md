@@ -70,7 +70,9 @@ in {
 | Run hardware tests | `.github/skills/ghaf-hw-test/ghaf-hw-test test --device <name> --ip <IP>` | `ghaf-test` |
 
 Device details (addresses, drives, serial nodes, target and test names per machine) live in
-`.github/skills/ghaf-hw-test/config.yaml`. Read it rather than asking or guessing.
+`.github/skills/ghaf-hw-test/config.yaml`, with per-machine values (addresses, MACs, ssh
+identities, drive nodes) in the gitignored `config.local.yaml` beside it. Read them rather than
+asking or guessing; if a field is null in both, ask once and offer to write it to the local file.
 
 ## Things that bite
 

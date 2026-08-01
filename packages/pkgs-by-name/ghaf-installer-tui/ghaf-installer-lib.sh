@@ -165,7 +165,7 @@ resolve_image_source() {
       show_error "Could not create $rundir for the block map"
       return 1
     fi
-    if ! curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors -o "$GHAF_BMAP" "$bmap_url"; then
+    if ! curl -fsSL --connect-timeout 10 --retry 5 --retry-delay 2 --retry-all-errors -o "$GHAF_BMAP" "$bmap_url"; then
       # Deliberately fatal rather than falling back to an unverified dd. The
       # bmap carries per-range sha256 checksums that bmaptool verifies while
       # copying, and over plain HTTP that is the only integrity check there is.
@@ -194,7 +194,7 @@ feed_image() {
   if [[ ${GHAF_REMOTE:-false} == true ]]; then
     # --no-progress-meter: pv already draws the progress bar the TUI shows, and
     # curl's own meter would scribble over it on the same tty.
-    curl -fL --no-progress-meter --retry 5 --retry-delay 2 --retry-all-errors "$GHAF_RAW_SRC"
+    curl -fL --no-progress-meter --connect-timeout 10 --retry 5 --retry-delay 2 --retry-all-errors "$GHAF_RAW_SRC"
   else
     cat "$GHAF_RAW_SRC"
   fi | zstdcat -T0

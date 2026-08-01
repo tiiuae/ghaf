@@ -25,8 +25,18 @@ Fields that matter here: `host_ip` (the device's reachable address), `usb_iface`
 host-side NIC facing it, typically `ghaf-usb`), `serial_device` / `serial_baud`,
 `flash_drive`, `ghaf_target`, `test_device_name`.
 
-If `host_ip` is null, ask the user for the address once and offer to write it into the
-config — guessing an address on a lab network can land you on someone else's device.
+Per-machine values — `host_ip`, `ssh_identity`, `netboot_iface`, `netboot_mac`, `flash_drive`,
+`serial_device` — live in the gitignored `config.local.yaml` beside it, merged over the shared
+file per field. `config.yaml` deliberately leaves them null, because they describe a particular
+desk rather than the project. `config.local.yaml.example` shows the shape.
+
+If `host_ip` is null in both, ask the user for the address once and offer to write it into
+**`config.local.yaml`** — guessing an address on a lab network can land you on someone else's
+device, and writing it to the shared file leaks lab topology into the repo.
+
+Note `ssh_identity`: when a device is reached by a key ssh would not offer by default, every
+command fails with "Permission denied (publickey)", which reads like the device being down
+rather than a missing key.
 
 ## The address map
 

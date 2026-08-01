@@ -22,6 +22,10 @@ plans/
 # CLAUDE.md is tracked: it imports the shared AGENTS.md, which is how Claude Code picks up
 # the project instructions. Personal, machine-local notes belong in CLAUDE.local.md.
 CLAUDE.local.md
+# ghaf-hw-test device addresses, MACs, ssh identities and drive nodes: properties
+# of whoever's desk the hardware is on, not of the project. config.yaml keeps the
+# structural fields; see config.local.yaml.example for the shape.
+.github/skills/ghaf-hw-test/config.local.yaml
 .claude/worktrees/
 # Ignore VIM backup files (hide them from reuse lint)
 *.swp

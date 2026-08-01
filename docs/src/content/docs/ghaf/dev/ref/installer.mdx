@@ -89,3 +89,107 @@ A non-interactive installer is also available for scripted use:
 ```sh
 sudo ghaf-installer
 ```
+
+## Installing over the Network (Netboot)
+
+Instead of writing a ~7 GB ISO to a USB stick, the target can boot the installer over PXE and fetch the disk image over HTTP at install time. The boot artefacts are around 650 MB, contain no disk image, and are **target-independent** — one kernel and initrd serve the whole fleet, and only the image URL differs per target.
+
+<Aside type="caution">
+  The target must have **Secure Boot disabled**. The netboot chain is unsigned,
+  exactly as the installer ISO is — this is the same precondition the ISO's own
+  Secure Boot enrollment already imposes, since enrollment requires firmware in
+  Setup Mode.
+</Aside>
+
+### Prerequisites
+
+- The target must expose a **network boot entry** in its firmware, and the firmware must have a UEFI driver for the NIC you intend to boot from. On Lenovo machines this appears as `PXE BOOT` in the boot menu. Check from a running system with `efibootmgr -v`.
+- The build host and the target must be on the **same layer-2 network**. PXE uses broadcast; it does not cross a router.
+- The build host needs **root** (DHCP/PXE require ports 67, 69 and 4011).
+
+<Aside type="note">
+  Not every USB-C ethernet adapter can PXE boot. The firmware needs its own
+  driver for the chipset, which vendor docks generally provide and generic
+  adapters often do not — a machine with no built-in RJ45 may simply never emit
+  a PXE request. If nothing reaches the server, try a vendor dock before
+  debugging the server.
+</Aside>
+
+### Building the Artefacts
+
+```sh
+nix build .#intel-laptop-debug-netboot-installer -o result-netboot
+nix build .#intel-laptop-debug -o result
+```
+
+### Serving the Install
+
+Always start with `--dry-run`. It validates the arguments, prints the exact kernel command line and boot plan, and starts nothing:
+
+```sh
+nix develop --command ghaf-netboot \
+  --interface eth0 --mac aa:bb:cc:dd:ee:ff \
+  --netboot result-netboot --image result \
+  --dry-run
+```
+
+When the plan looks right, drop `--dry-run`:
+
+```sh
+sudo ghaf-netboot \
+  --interface eth0 --mac aa:bb:cc:dd:ee:ff \
+  --netboot result-netboot --image result \
+  --open-firewall --exit-after-serve
+```
+
+Key options:
+
+- `--mac` is an **allowlist and is mandatory**. Machines not on it are answered with a 404, which PXE treats as "ignore me". On a shared network this is the only thing preventing an unrelated machine from booting your installer.
+- `--open-firewall` opens ports 67, 69, 4011 and the HTTP port for the duration of the run, then closes them again on exit. Without it, a host that filters inbound traffic drops every PXE request **before the server sees it** — the server logs nothing and the target times out.
+- `--exit-after-serve` stops the server once the image has been transferred in full. It is **on by default with `--install-target`**, because an unattended install reboots itself when it finishes: if the target has network boot ahead of its disk, a server left running catches that reboot and reinstalls in a loop. `--no-exit-after-serve` opts out and warns. For interactive runs it is off, since nothing fetches the image and the server needs to stay up while an operator works through the TUI.
+- `--force-interface` is required when the interface facing the target also carries the default route, which is the normal case on a shared lab network.
+- `--ipxe` selects the iPXE binary served to 64-bit UEFI clients. The default is the `snponly.efi` Ghaf builds itself and is almost always what you want; see [The iPXE binary](#the-ipxe-binary) below before changing it.
+
+### Unattended Installs
+
+Adding `--install-target` writes to the given device with no prompts:
+
+```sh
+sudo ghaf-netboot ... --install-target /dev/nvme0n1
+```
+
+<Aside type="danger">
+  This destroys the contents of the target disk with nobody at the console.
+  Confirm the MAC allowlist and the device path before running it.
+</Aside>
+
+When the write finishes, the installer prints a ten-second notice and reboots into the system it just wrote — there is no installation medium to remove and nobody there to remove it. Boot with `ghaf.install_noreboot` to stay in the installer instead, which is what you want when diagnosing an install that went wrong, since otherwise the evidence reboots away.
+
+### How It Works
+
+The server runs Pixiecore in ProxyDHCP mode, so it never assigns addresses and cannot disturb an existing DHCP server. Pixiecore asks a small local HTTP API what to do with each machine that tries to boot; the API answers only for allowlisted MACs. The installer then fetches `ghaf-image.raw.zst` and `ghaf-image.bmap` over HTTP and writes the image with `bmaptool`, which verifies a SHA-256 per range as it copies. A missing `.bmap` is fatal rather than falling back to an unverified copy.
+
+### The iPXE Binary
+
+The target's firmware does not boot the kernel directly. It first loads iPXE over TFTP, and that iPXE then fetches the boot script, kernel and initrd over HTTP. Which iPXE build gets served matters more than it sounds, because the two obvious choices each fail in a different way:
+
+| iPXE build | NIC driver | Failure |
+| --- | --- | --- |
+| Pixiecore's built-in | iPXE's own native drivers | Broadcast DHCP replies never arrive on some adapters. iPXE retries ten times, reboots, and repeats forever. |
+| A stock `snp.efi` / `snponly.efi` | firmware SNP | Identifies as user-class `iPXE`, which Pixiecore reads as plain UEFI firmware, so it re-serves the iPXE binary in an endless chainload loop. |
+
+Ghaf therefore builds its own: `bin-x86_64-efi/snponly.efi`, which drives the NIC through the **firmware's** SNP driver, with an embedded script that sets **user-class `pixiecore`**. That user-class string is the entire test Pixiecore applies to decide it has already chainloaded a client, so setting it is what avoids the loop while keeping the MAC allowlist, the 404, and the assembled kernel command line on their normal path.
+
+This is the default, and on a machine whose firmware enumerates the NIC at all it should need no thought. Two escape hatches exist:
+
+- `--ipxe builtin` falls back to Pixiecore's own iPXE. Worth trying if the firmware's SNP does not cover the adapter, at the cost of the broadcast-DHCP problem above.
+- `--ipxe <FILE>` serves a binary you supply. It must carry an embedded script that sets user-class `pixiecore`, or it will chainload-loop.
+
+<Aside type="caution">
+  Recovering from the chainload loop or the DHCP retry loop can require
+  physically unplugging the adapter — a separately powered USB-C dock survives a
+  laptop power cycle. Prefer `--dry-run` and confirm the reported `ipxe` path
+  before booting a target you cannot easily reach.
+</Aside>
+
+On a non-x86_64 build host the custom binary is not built, and the server falls back to Pixiecore's built-in iPXE. Such a host can still serve an x86_64 target; it just inherits the first row of the table.
