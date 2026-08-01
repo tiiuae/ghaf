@@ -184,6 +184,8 @@ rec {
         debug = mkEnableOption "Orbing Fleet MDM debug logs";
       };
 
+      fortivpn.enable = mkEnableOption "Fortinet SSL VPN integration in gui-vm and net-vm";
+
       storage = {
         encryption.enable = mkEnableOption "storage encryption globally";
         storeOnDisk = {
@@ -514,6 +516,8 @@ rec {
 
       theming.enable = true;
 
+      fortivpn.enable = true;
+
       # Feature defaults for debug profile
       features = {
         fprint = {
@@ -621,6 +625,8 @@ rec {
 
       theming.enable = true;
 
+      fortivpn.enable = true;
+
       # Feature defaults for release profile
       features = {
         fprint = {
@@ -717,6 +723,8 @@ rec {
 
       shm.enable = false;
       idsvm.mitmproxy.enable = false;
+
+      fortivpn.enable = false;
 
       # Feature defaults for minimal profile - all disabled
       features = {
