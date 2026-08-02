@@ -13,6 +13,26 @@
 pkgs.testers.nixosTest {
   name = "uplink-resolver";
 
+  # Declares its own only interface to be the guest-facing one, so the resolver
+  # must refuse it even though it holds the default route.
+  nodes.internalonly =
+    { lib, ... }:
+    {
+      imports = [ ../../modules/common/networking/uplink-resolver.nix ];
+      networking = {
+        useDHCP = false;
+        defaultGateway = {
+          address = "192.168.1.1";
+          interface = "eth1";
+        };
+        networkmanager.enable = lib.mkForce false;
+      };
+      ghaf.networking.uplinkResolver = {
+        enable = true;
+        internalInterface = "eth1";
+      };
+    };
+
   nodes.machine =
     { lib, ... }:
     {
@@ -33,6 +53,29 @@ pkgs.testers.nixosTest {
         enable = true;
         internalInterface = "ethint0";
         expectedInterface = "wlp0s5f0";
+        dependentUnits = [ "uplink-consumer.service" ];
+      };
+
+      # Stand-in for smcroute / nw-packet-forwarder. The real ones need a
+      # patched kernel (IP_MROUTE) and the whole chromecast stack, which would
+      # make this test enormous for no extra signal: what has to be proven is
+      # the *mechanism* -- gate on the flag, read the interface from the state
+      # file, get restarted when it changes -- and that is identical here.
+      systemd.services.uplink-consumer = {
+        description = "Stand-in consumer of the resolved uplink";
+        wantedBy = [ "multi-user.target" ];
+        after = [ "ghaf-uplink-resolver.service" ];
+        unitConfig.ConditionPathExists = "/run/ghaf-uplink-ready";
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        script = ''
+          # shellcheck disable=SC1091
+          . /run/ghaf-uplink-state
+          echo "consumer: using $uplink_iface"
+          echo "$uplink_iface" >/run/uplink-consumer-saw
+        '';
       };
 
       # Keep the option's type happy without pulling NetworkManager into the
@@ -41,7 +84,7 @@ pkgs.testers.nixosTest {
     };
 
   testScript = ''
-    machine.start()
+    machine.start()  # internalonly is started later, in its own subtest
     machine.wait_for_unit("ghaf-uplink-resolver.service")
 
     with subtest("resolved: publishes the default-route interface"):
@@ -83,19 +126,47 @@ pkgs.testers.nixosTest {
         assert "uplink_state=resolved" in state, state
         machine.succeed("test -e /run/ghaf-uplink-ready")
 
-    with subtest("never claims the guest-facing interface as the uplink"):
-        # If ethint0 somehow held the default route, routing multicast onto it
-        # would bridge it straight back inwards. Rename eth1 to prove the
-        # internal-interface guard fires on name, not on address.
+    with subtest("dependent consumes the resolved uplink"):
+        machine.wait_for_unit("uplink-consumer.service")
+        assert machine.succeed("cat /run/uplink-consumer-saw").strip() == "eth1"
+
+    with subtest("dependent is SKIPPED, not failed, when the uplink goes away"):
+        machine.succeed("rm -f /run/uplink-consumer-saw")
         machine.succeed("ip route del default")
-        machine.succeed("ip link set eth1 down")
-        machine.succeed("ip link set eth1 name ethint0")
-        machine.succeed("ip link set ethint0 up")
-        machine.succeed("ip route add default via 192.168.1.1 dev ethint0")
         machine.systemctl("restart ghaf-uplink-resolver.service")
-        state = machine.succeed("cat /run/ghaf-uplink-state")
+        # The resolver restarts dependents via ExecStartPost --no-block, so give
+        # systemd a moment to settle before judging the outcome.
+        machine.wait_until_succeeds(
+            "test \"$(systemctl is-active uplink-consumer.service)\" != active", timeout=30
+        )
+        # The distinction this whole design exists for: not running, and not
+        # failed either. A failed unit here would be wrong (the dock being out
+        # is legitimate) and would train people to ignore failed units.
+        assert "failed" not in machine.succeed("systemctl is-active uplink-consumer.service || true")
+        assert machine.succeed("systemctl --failed --no-legend").strip() == ""
+        # And it must not have run and silently done nothing.
+        machine.fail("test -e /run/uplink-consumer-saw")
+        # The reason is visible rather than having to be inferred.
+        status = machine.succeed("systemctl status uplink-consumer.service || true")
+        assert "ondition" in status, status
+
+    with subtest("dependent comes back by itself when the uplink returns"):
+        machine.succeed("ip route add default via 192.168.1.1 dev eth1")
+        machine.systemctl("restart ghaf-uplink-resolver.service")
+        machine.wait_until_succeeds("test -e /run/uplink-consumer-saw", timeout=30)
+        assert machine.succeed("cat /run/uplink-consumer-saw").strip() == "eth1"
+
+    with subtest("never claims the guest-facing interface as the uplink"):
+        # Asserted on a separate node that simply declares eth1 as its internal
+        # interface, rather than by moving the default route onto ethint0 on
+        # this one. Route surgery does not hold: networkd owns eth1 and restores
+        # its default route, so the guard ends up racing the network stack
+        # instead of being tested.
+        internalonly.start()
+        internalonly.wait_for_unit("ghaf-uplink-resolver.service")
+        state = internalonly.succeed("cat /run/ghaf-uplink-state")
         assert "uplink_state=none" in state, state
         assert "internal interface" in state, state
-        machine.fail("test -e /run/ghaf-uplink-ready")
+        internalonly.fail("test -e /run/ghaf-uplink-ready")
   '';
 }
