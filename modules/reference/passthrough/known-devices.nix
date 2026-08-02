@@ -58,6 +58,11 @@ in
         productId = "b729";
         description = "System76 darp11-b Integrated Camera";
       }
+      {
+        vendorId = "1bcf";
+        productId = "2a03";
+        description = "Dell Latitude 7330 Integrated Webcam FHD (Sunplus)";
+      }
     ];
 
     fingerprintReaders = [
