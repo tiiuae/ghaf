@@ -243,6 +243,8 @@ Mesa available for Wayland clients. Orin-specific integration includes:
 - no-modifier GBM surfaces for the L4T EGL platform;
 - timer-backed checks for implicit DMA-BUF fences that become readable without
   waking epoll; explicit sync remains event-driven;
+- nonblocking eglut dispatch when NVIDIA EGL consumes shared Wayland-FD
+  readiness on its buffer-release thread;
 - VT-less seatd activation and evdev-only forwarding for the Logitech
   Unifying receiver; and
 - a dedicated cursor PIO keyhole, separate from DCE-owned registers.

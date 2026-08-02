@@ -1,0 +1,25 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+From: Ghaf contributors <ghaf@tii.ae>
+Subject: [PATCH] eglut: avoid blocking on shared Wayland display fd
+
+NVIDIA EGL dispatches buffer-release events from a private queue and may
+consume display-fd readiness before eglut handles it. Poll periodically and
+drain only pending events so eglut cannot block after a readiness race.
+---
+ src/egl/eglut/eglut_wayland.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/egl/eglut/eglut_wayland.c b/src/egl/eglut/eglut_wayland.c
+--- a/src/egl/eglut/eglut_wayland.c
++++ b/src/egl/eglut/eglut_wayland.c
+@@ -523,3 +523,3 @@ _eglutNativeEventLoop(void)
+       unsigned poll_count = 2 + (display.seat.rate > 0);
+-      if (poll(pollfds, poll_count, -1) == -1)
++      if (poll(pollfds, poll_count, 16) == -1)
+          break;
+@@ -537,3 +537,3 @@ _eglutNativeEventLoop(void)
+       if (pollfds[0].revents & POLLIN) {
+-         ret = wl_display_dispatch(display.display);
++         ret = wl_display_dispatch_pending(display.display);
+          if (ret == -1)
