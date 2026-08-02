@@ -40,7 +40,6 @@ in
         # Enable idsvm and the MiTM features
         idsvm = {
           enable = lib.mkForce true;
-          mitmproxy.enable = lib.mkForce true;
           # Use the new evaluatedConfig pattern from laptop-x86 profile
           evaluatedConfig = config.ghaf.profiles.laptop-x86.idsvmBase;
         };
