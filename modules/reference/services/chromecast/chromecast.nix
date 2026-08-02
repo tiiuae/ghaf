@@ -74,10 +74,8 @@ in
 
   config = mkIf cfg.enable {
     assertions = [
-      {
-        assertion = cfg.externalNic != "";
-        message = "External Nic must be set";
-      }
+      # externalNic is no longer required: the interface is resolved at runtime.
+      # It remains only as an optional pin for a fixed rig.
       {
         assertion = cfg.internalNic != "";
         message = "Internal Nic must be set";
@@ -92,7 +90,11 @@ in
     # the resolver compares against, and as the firewall rules' interface until
     # those move too.
     ghaf.networking.uplinkResolver = {
-      expectedInterface = lib.mkDefault cfg.externalNic;
+      # externalNic is empty by default, meaning "resolve it". If someone pins
+      # it for a fixed rig, routing that through the resolver keeps a single
+      # place where the uplink is decided -- otherwise the pin would be honoured
+      # by some consumers and ignored by others.
+      forceInterface = lib.mkDefault cfg.externalNic;
       # Both units render the uplink into their configuration at start, so they
       # have to be restarted when it changes, not merely reloaded.
       dependentUnits = [

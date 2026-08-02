@@ -18,7 +18,8 @@ in
 
   config.ghaf.reference.services.dendrite-pinecone = optionalAttrs isHost {
     enable = lib.mkDefault false;
-    externalNic = (lib.head config.ghaf.hardware.definition.network.pciDevices).name;
+    # Not set: see the note in chromecast-config.nix. The interface is resolved
+    # at runtime; set this explicitly only to pin a specific rig.
     internalNic = hosts.${config.networking.hostName}.interfaceName;
     serverIpAddr = config.ghaf.networking.hosts."comms-vm".ipv4;
   };

@@ -357,6 +357,7 @@ in
           options = {
             prerouting = mkOption {
               default = { };
+              description = "Uplink rules for the PREROUTING chain";
               type = types.submodule {
                 options = {
                   mangle = mkOption {
@@ -374,6 +375,7 @@ in
             };
             forward = mkOption {
               default = { };
+              description = "Uplink rules for the FORWARD chain";
               type = types.submodule {
                 options = {
                   filter = mkOption {
@@ -386,6 +388,7 @@ in
             };
             postrouting = mkOption {
               default = { };
+              description = "Uplink rules for the POSTROUTING chain";
               type = types.submodule {
                 options = {
                   nat = mkOption {
