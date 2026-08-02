@@ -18,6 +18,7 @@
           netboot-server = pkgs.callPackage ./installer/netboot-server.nix { inherit self; };
           # Fails after https://github.com/tiiuae/ghaf/commit/e45a8fc47dc82e37a0327bd794478277c5c7a043
           # firewall = pkgs.callPackage ./firewall { inherit self; };
+          uplink-resolver = pkgs.callPackage ./uplink-resolver { };
           logging-fss = pkgs.callPackage ./logging { inherit self; };
           fss-test = pkgs.callPackage ./logging/test_scripts/fss-test.nix { };
           fss-triage = pkgs.callPackage ./logging/test_scripts/fss-triage.nix { };

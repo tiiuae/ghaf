@@ -101,6 +101,11 @@ in
       encryption.enable = globalConfig.storage.encryption.enable or false;
     };
 
+    # net-vm is the only VM that has a LAN-facing interface, and which one it is
+    # cannot be known at build time: ethernet arrives as a dock or dongle through
+    # vhotplug at runtime. Resolve it here and publish it for whoever needs it.
+    networking.uplinkResolver.enable = lib.mkDefault true;
+
     # Networking
     virtualization.microvm = {
       swap.enable = true;
