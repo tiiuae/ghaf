@@ -178,6 +178,17 @@ in
       wantedBy = [ "multi-user.target" ];
       after = [ "network.target" ];
 
+      # No start rate limit. This unit is driven by NetworkManager events, and a
+      # dock being plugged in, a DHCP renew or a wifi roam can easily produce
+      # more than systemd's default 5 starts per 10s. Hitting that limit makes
+      # systemd refuse to run it, which leaves the published uplink stale while
+      # every dependent keeps using the old interface -- silently, which is the
+      # exact failure this whole mechanism exists to prevent. Churn is the
+      # cheaper failure. Safe here because this is a oneshot that either
+      # succeeds or is skipped; it cannot crash-loop. Long-running daemons like
+      # smcroute keep their limits, because they genuinely can.
+      unitConfig.StartLimitIntervalSec = 0;
+
       # Deliberately not ordered after network-online.target: on a device whose
       # uplink is absent that target can take its full timeout, and the resolver
       # reporting "no uplink" early is more useful than reporting it late.
