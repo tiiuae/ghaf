@@ -26,6 +26,11 @@ in
             ./cosmic-comp-tegra-dmabuf-fence-poll.patch
           ];
         });
+        mesa-demos = prev.mesa-demos.overrideAttrs (o: {
+          patches = (o.patches or [ ]) ++ [
+            ./mesa-demos-wayland-shared-fd-nonblocking.patch
+          ];
+        });
       })
     ];
 
