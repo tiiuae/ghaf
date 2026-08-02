@@ -23,9 +23,20 @@ let
     --ccastvm-mac ${chromecastVmMac} \
     --ccastvm-ip ${chromecastVmIpAddr}/24
   '';
+  # Seconds to wait for externalNic before giving up. Bounded on purpose: an
+  # unbounded wait here logged "Waiting for IPv4 address on interface ..." every
+  # 10s forever while the unit reported "active". Failing loudly once is more useful than
+  # succeeding quietly at nothing.
+  externalNicTimeout = 60;
   nw-pckt-fwd-launcher = pkgs.writeShellScriptBin "nw-pckt-fwd" ''
     # Wait until the external interface has an IPv4 address (e.g. Wi-Fi connected).
+    deadline=$(( $(${pkgs.coreutils}/bin/date +%s) + ${toString externalNicTimeout} ))
     while [ -z "$(${pkgs.iproute2}/bin/ip -4 -o addr show dev ${cfg.externalNic} scope global 2>/dev/null)" ]; do
+      if [ "$(${pkgs.coreutils}/bin/date +%s)" -ge "$deadline" ]; then
+        echo "nw-pckt-fwd: '${cfg.externalNic}' has no global IPv4 address after ${toString externalNicTimeout}s - giving up." >&2
+        echo "nw-pckt-fwd: this NIC comes from ghaf.reference.services.chromecast.externalNic; it must name the interface that actually carries the LAN." >&2
+        exit 1
+      fi
       echo "Waiting for IPv4 address on interface ${cfg.externalNic}..."
       sleep 10
     done
@@ -111,6 +122,15 @@ in
 
     systemd.services."nw-packet-forwarder" = {
       description = "Network packet forwarder daemon";
+
+      # Restart=always below has no natural end, so bounding the wait in the
+      # launcher is not enough on its own -- without a start limit it would
+      # simply trade a 10s log-spam loop for a 75s restart loop. Give up after
+      # a few attempts so the unit lands in "failed" where it is visible.
+      unitConfig = {
+        StartLimitIntervalSec = 600;
+        StartLimitBurst = 3;
+      };
 
       bindsTo = [
         "sys-subsystem-net-devices-${cfg.externalNic}.device"

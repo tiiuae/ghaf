@@ -8,6 +8,10 @@
 }:
 let
   cfg = config.services.smcroute;
+  # Seconds to wait for bindingNic to acquire an address before failing. Kept
+  # below the default TimeoutStartSec (90s) so our diagnostic is what gets
+  # logged, rather than systemd's generic "start-pre operation timed out".
+  bindingNicTimeout = 60;
 in
 {
   _file = ./smcroute.nix;
@@ -75,15 +79,34 @@ in
       wantedBy = [ "multi-user.target" ];
       after = [ "network-online.target" ];
       requires = [ "network-online.target" ];
+      # Wait for the binding NIC to get an address, but bounded. This loop used
+      # to be unbounded, which turned "the interface never comes up" into a
+      # permanent restart loop: systemd killed preStart at TimeoutStartSec (90s),
+      # Restart=on-failure started it again, and round it went every ~95s
+      # forever.
       preStart = ''
-        # wait until ${cfg.bindingNic} has an ip
-        sleep 5
-        while [ -z "$ip" ]; do
-         ip=$(${pkgs.nettools}/bin/ifconfig ${cfg.bindingNic} | ${pkgs.gawk}/bin/awk '/inet / {print $2}')
-              [ -z "$ip" ] && ${pkgs.coreutils}/bin/sleep 1
+        deadline=$(( $(${pkgs.coreutils}/bin/date +%s) + ${toString bindingNicTimeout} ))
+        while :; do
+          if [ -n "$(${pkgs.iproute2}/bin/ip -4 -o addr show dev ${cfg.bindingNic} scope global 2>/dev/null)" ]; then
+            exit 0
+          fi
+          if [ "$(${pkgs.coreutils}/bin/date +%s)" -ge "$deadline" ]; then
+            echo "smcroute: '${cfg.bindingNic}' still has no global IPv4 address after ${toString bindingNicTimeout}s - giving up." >&2
+            echo "smcroute: this NIC comes from ghaf.reference.services.chromecast.externalNic; it must name the interface that actually carries the LAN." >&2
+            exit 1
+          fi
+          ${pkgs.coreutils}/bin/sleep 2
         done
-        exit 0
       '';
+
+      # Give up after a few attempts instead of restarting forever, so the unit
+      # lands in "failed" where `systemctl --failed` and the log collector can
+      # see it. Each attempt is bindingNicTimeout + RestartSec, so the interval
+      # has to be comfortably larger than burst * that.
+      unitConfig = {
+        StartLimitIntervalSec = 600;
+        StartLimitBurst = 3;
+      };
 
       serviceConfig = {
         Type = "simple";
