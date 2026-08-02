@@ -35,15 +35,23 @@ it up front is cheaper than reading the failures afterwards.
 ## Name the device correctly
 
 `-d` takes the **physical machine**, not the image you flashed. Valid values are
-`darter-pro`, `lenovo-x1`, `dell-7330`, `x1-sec-boot`, `orin-agx`, `orin-agx-64`,
-`orin-nx`. There is no `intel-laptop` value even though that is now the image everyone
-builds.
+`darter-pro`, `darter-sec-boot`, `lenovo-x1`, `x1-sec-boot`, `dell-7330`, `orin-agx`,
+`orin-agx-64`, `orin-nx`. There is no `intel-laptop` value even though that is now the image
+everyone builds.
 
-This matters more than it looks. `Robot-Framework/config/variables.robot` compares
-`DEVICE_TYPE` against those exact lowercase strings to set `IS_LAPTOP`, and the suite
-selects tests with the include expression `<device>AND<tag>`. A wrong or wrongly-cased value
-does not error — it quietly runs a different subset, and a green run then means very little.
-The refreshed `config.yaml` carries the correct value per machine; prefer it over typing one.
+This matters more than it looks, and for a sharper reason than a typo check. The value
+becomes `DEVICE_TYPE`, which the suite uses **as a Robot tag** in the include expression
+`<device>AND<tag>` — so an unrecognised device name selects *no tests at all* and the run
+ends green having asserted nothing. `Robot-Framework/config/variables.robot` separately
+compares `DEVICE_TYPE` against the laptop names above to set `IS_LAPTOP`, so a
+near-miss value can also run a partially wrong subset. Neither case errors.
+
+The list above is the set of device tags that actually appear on tests in
+`ci-test-automation`; take it from `config.yaml`'s `test_device_name` rather than typing one
+from memory. **With one exception: `NUC` is not a testable device.** No test in the suite
+carries a `nuc` tag — the string survives only in `edit_report.py`'s label-removal list — so
+`-d NUC` runs zero tests and reports success. If you need to test a NUC, find out which tag
+its coverage lives under before believing any result.
 
 ## Choose a tag
 
@@ -156,8 +164,8 @@ regressions, and it says nothing about the change you deployed.
 Confirm before reading anything else into it:
 
 ```bash
-ssh ghaf-host-usb -- ssh gui-vm homectl list      # is testuser there at all?
-ssh ghaf-host-usb -- ssh gui-vm systemctl status user-provision-test.service
+ssh ghaf@<host_ip> -- ssh gui-vm homectl list     # is testuser there at all?
+ssh ghaf@<host_ip> -- ssh gui-vm systemctl status user-provision-test.service
 ```
 
 `Skipped due to 'exec-condition'` is the tell. The suite starts that unit and takes its
@@ -183,7 +191,7 @@ Two supported ways to get there instead:
 - **Replace the existing user**, no reflash needed:
 
   ```bash
-  ssh ghaf-host-usb -- ssh gui-vm ghaf-test-user-reset
+  ssh ghaf@<host_ip> -- ssh gui-vm ghaf-test-user-reset
   ```
 
   It lists the home areas, then asks before touching anything. **Answering yes destroys

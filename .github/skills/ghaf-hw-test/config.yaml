@@ -146,7 +146,12 @@ devices:
     architecture: x86_64
     # Not a laptop -- stays on the generic x86 target rather than intel-laptop.
     ghaf_target: generic-x86_64-debug
-    test_device_name: NUC
+    # The Robot suite has no coverage for this machine: no test carries a `nuc` tag, and
+    # DEVICE_TYPE is used as a tag in the `<device>AND<tag>` include expression. Passing
+    # this to `robot-test -d` therefore selects zero tests and exits green having asserted
+    # nothing. Kept so the build/flash/netboot paths still work; do not read a test result
+    # from it until the suite gains a tag for this device.
+    test_device_name: NUC # NOT a valid `robot-test -d` value -- see above
     default_threads: 8
     default_tag: pre-merge
     flash_method: ghaf-flash

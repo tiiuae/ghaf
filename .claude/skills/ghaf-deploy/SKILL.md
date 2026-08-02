@@ -42,12 +42,14 @@ nix develop --command ghaf-rebuild <netvm-ip> .#intel-laptop-debug switch   # al
 ```
 
 **Pass an ssh_config host alias, not a bare IP, whenever one exists.** ssh matches `Host`
-blocks against the name *as written on the command line*, never the resolved address, so an
-IP matches only `Host *` and picks up no `IdentityFile` — it then falls back to your default
+blocks against the name *as written on the command line*, never the resolved address. So
+unless you have a block that matches the address literally — a `Host 192.168.10.*` pattern,
+say — an IP falls through to `Host *`, picks up no `IdentityFile`, and uses your default
 keys. Where those are FIDO2/YubiKey-backed, the jump hop demands a touch per connection or
 fails outright, while the second hop (`root@ghaf-host`, an alias) quietly works, which makes
-the failure look like a device problem rather than a key-selection one. Check what ssh will
-actually use before blaming the device:
+the failure look like a device problem rather than a key-selection one. `ghaf-target`
+describes where these aliases come from and why distinct names per device matter beyond
+identity. Check what ssh will actually use before blaming the device:
 
 ```bash
 ssh -G root@192.168.10.135 | grep -i identityfile   # default keys — no alias matched
