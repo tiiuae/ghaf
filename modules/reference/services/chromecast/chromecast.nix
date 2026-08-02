@@ -98,6 +98,7 @@ in
       dependentUnits = [
         "smcroute.service"
         "nw-packet-forwarder.service"
+        "ghaf-firewall-uplink.service"
       ];
     };
 
@@ -127,27 +128,37 @@ in
       '';
     };
 
-    ghaf.firewall.extra = {
+    # Rules that name the uplink go into ghaf.firewall.uplink.rules rather than
+    # ghaf.firewall.extra: extra.* is rendered at build time and so can only
+    # name an interface known then, which for a wired device is the wrong one.
+    # These are applied with @UPLINK@ substituted, and withdrawn when there is
+    # no uplink. Rules touching only the internal NIC stay in extra.*, since
+    # ethint0 is static.
+    ghaf.firewall = {
+      uplink = {
+        enable = true;
 
-      prerouting.mangle = [
-        # TTL adjustments to avoid multicast loops
-        "-i ${cfg.externalNic} -d ${ssdpMcastIp} -j TTL --ttl-set 1"
+        rules.prerouting.mangle = [
+          # TTL adjustments to avoid multicast loops
+          "-i @UPLINK@ -d ${ssdpMcastIp} -j TTL --ttl-set 1"
+        ];
+        rules.forward.filter = [
+          # Forward incoming TCP traffic on ports 8008 and 8009 to the internal NIC
+          "-i @UPLINK@ -o ${cfg.internalNic} -p tcp --sport ${toString tcpChromeCastPort1} -j ACCEPT"
+          "-i @UPLINK@ -o ${cfg.internalNic} -p tcp --sport ${toString tcpChromeCastPort2} -j ACCEPT"
+        ];
+        rules.postrouting.nat = [
+          # Enable NAT for outgoing 8008 and 8009 Chromecast traffic
+          "-o @UPLINK@ -p tcp --dport ${toString tcpChromeCastPort1} -j MASQUERADE"
+          "-o @UPLINK@ -p tcp --dport ${toString tcpChromeCastPort2} -j MASQUERADE"
+          # Enable NAT for outgoing udp multicast traffic
+          "-o @UPLINK@ -p udp -d ${ssdpMcastIp} --dport ${toString ssdpMcastPort} -j MASQUERADE"
+        ];
+      };
+
+      extra.prerouting.mangle = [
         "-i ${cfg.internalNic} -d ${ssdpMcastIp} -j TTL --ttl-inc 1"
       ];
-      forward.filter = [
-        # Forward incoming TCP traffic on ports 8008 and 8009 to the internal NIC
-        "-i ${cfg.externalNic} -o ${cfg.internalNic} -p tcp --sport ${toString tcpChromeCastPort1} -j ACCEPT"
-        "-i ${cfg.externalNic} -o ${cfg.internalNic} -p tcp --sport ${toString tcpChromeCastPort2} -j ACCEPT"
-      ];
-
-      postrouting.nat = [
-        # Enable NAT for outgoing 8008 and 8009 Chromecast traffic
-        "-o ${cfg.externalNic} -p tcp --dport ${toString tcpChromeCastPort1} -j MASQUERADE"
-        "-o ${cfg.externalNic} -p tcp --dport ${toString tcpChromeCastPort2} -j MASQUERADE"
-        # Enable NAT for outgoing udp multicast traffic
-        "-o ${cfg.externalNic} -p udp -d ${ssdpMcastIp} --dport ${toString ssdpMcastPort} -j MASQUERADE"
-      ];
-
     };
 
   };

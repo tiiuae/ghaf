@@ -36,7 +36,38 @@ pkgs.testers.nixosTest {
   nodes.machine =
     { lib, ... }:
     {
-      imports = [ ../../modules/common/networking/uplink-resolver.nix ];
+      imports = [
+        ../../modules/common/networking/uplink-resolver.nix
+        ../../modules/common/firewall
+        # firewall.nix reaches into ghaf.givc.policyClient; declaring the two
+        # options it touches keeps this test from depending on the givc and
+        # storagevm stacks. Same reasoning as tests/firewall.
+        (
+          { lib, ... }:
+          {
+            options.ghaf.givc.policyClient = {
+              enable = lib.mkEnableOption "givc policy client (stub for tests)";
+              policies = lib.mkOption {
+                type = lib.types.attrsOf lib.types.anything;
+                default = { };
+              };
+            };
+          }
+        )
+      ];
+
+      # Exercise the uplink firewall chains: a rule naming @UPLINK@ must reach
+      # iptables with the resolved interface substituted, and must be withdrawn
+      # when the uplink goes away rather than left pointing at a stale one.
+      ghaf.firewall = {
+        enable = true;
+        uplink = {
+          enable = true;
+          rules.forward.filter = [
+            "-i @UPLINK@ -o ethint0 -p tcp --sport 8008 -j ACCEPT"
+          ];
+        };
+      };
 
       # eth1 is the test network. Give it a default route so there is a real
       # uplink to find, and name a deliberately wrong expectedInterface so the
@@ -53,7 +84,10 @@ pkgs.testers.nixosTest {
         enable = true;
         internalInterface = "ethint0";
         expectedInterface = "wlp0s5f0";
-        dependentUnits = [ "uplink-consumer.service" ];
+        dependentUnits = [
+          "uplink-consumer.service"
+          "ghaf-firewall-uplink.service"
+        ];
       };
 
       # Stand-in for smcroute / nw-packet-forwarder. The real ones need a
@@ -155,6 +189,31 @@ pkgs.testers.nixosTest {
         machine.systemctl("restart ghaf-uplink-resolver.service")
         machine.wait_until_succeeds("test -e /run/uplink-consumer-saw", timeout=30)
         assert machine.succeed("cat /run/uplink-consumer-saw").strip() == "eth1"
+
+    with subtest("firewall rules are applied with the resolved interface"):
+        machine.wait_for_unit("ghaf-firewall-uplink.service")
+        rules = machine.succeed("iptables -t filter -S ghaf-fw-uplink-fwd-filter")
+        # The placeholder must be gone and the real interface in its place.
+        assert "@UPLINK@" not in rules, rules
+        assert "-i eth1" in rules and "--sport 8008" in rules, rules
+        # And the chain must actually be reachable from the ghaf forward chain,
+        # not just populated in isolation.
+        parent = machine.succeed("iptables -t filter -S ghaf-fw-fwd-filter")
+        assert "ghaf-fw-uplink-fwd-filter" in parent, parent
+
+    with subtest("firewall rules are withdrawn when the uplink goes away"):
+        machine.succeed("ip route del default")
+        machine.systemctl("restart ghaf-uplink-resolver.service")
+        machine.wait_until_succeeds(
+            "test \"$(systemctl is-active ghaf-firewall-uplink.service)\" != active", timeout=30
+        )
+        # Empty chain, not stale rules naming an interface that is gone.
+        rules = machine.succeed("iptables -t filter -S ghaf-fw-uplink-fwd-filter")
+        assert "--sport 8008" not in rules, rules
+        assert machine.succeed("systemctl --failed --no-legend").strip() == ""
+        # Restore for the remaining subtests.
+        machine.succeed("ip route add default via 192.168.1.1 dev eth1")
+        machine.systemctl("restart ghaf-uplink-resolver.service")
 
     with subtest("never claims the guest-facing interface as the uplink"):
         # Asserted on a separate node that simply declares eth1 as its internal
