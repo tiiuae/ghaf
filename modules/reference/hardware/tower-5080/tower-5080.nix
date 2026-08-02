@@ -43,9 +43,11 @@
 
   # Network devices for passthrough to netvm
   network = {
-    # Network devices for passthrough to netvm detected dynamically in vhotplug
-    # This is left here because google-chromecast service depends on the static network interface name
-    # TODO: refactor google-chromecast service to avoid using staticly defined network interface name
+    # Network devices for passthrough to netvm are detected dynamically in
+    # vhotplug. This entry only supplies the stable name for whichever wireless
+    # device appears (a systemd.link rule matching Type=wlan); nothing derives
+    # "the external NIC" from it any more -- that is resolved at runtime by
+    # ghaf-uplink-resolver. See intel-laptop.nix for the full note.
     pciDevices = [
       {
         name = "wlp0s5f0";
