@@ -84,6 +84,11 @@ in
       }
     ];
 
+    # Tell the uplink resolver which interface this configuration was built
+    # against, so it can report the disagreement when they differ. Diagnostic
+    # only -- everything below is still generated from cfg.externalNic.
+    ghaf.networking.uplinkResolver.expectedInterface = lib.mkDefault cfg.externalNic;
+
     services.nw-packet-forwarder = {
       enable = true;
       inherit (cfg) externalNic;

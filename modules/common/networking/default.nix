@@ -5,5 +5,6 @@
 
   imports = [
     ./hosts.nix
+    ./uplink-resolver.nix
   ];
 }
