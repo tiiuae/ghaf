@@ -93,8 +93,13 @@ devices:
 
   dell-7330:
     architecture: x86_64
-    # Generic laptop image (was: dell-latitude-7330-debug)
-    ghaf_target: intel-laptop-debug
+    # Generic laptop image, low-mem variant (was: dell-latitude-7330-debug).
+    # This is a 16 GiB machine (15.7 GiB usable), and the per-machine
+    # dell-latitude-7330 target inlines exactly these low-mem vmConfig numbers,
+    # so the fleet-wide intel-laptop-debug would over-allocate here: flatpak-vm
+    # 18432 MB against 15360 MB, on a host that already sits near zero
+    # available. Verified on hardware 2026-08-02.
+    ghaf_target: intel-laptop-low-mem-debug
     test_device_name: dell-7330
     default_threads: 12
     default_tag: pre-merge
@@ -106,6 +111,36 @@ devices:
     flash_drive: null
     serial_device: null
     serial_baud: 115200
+    # Netboot. Verified end to end on this machine 2026-08-02: PXE -> iPXE ->
+    # kernel+initrd over HTTP -> unattended install to /dev/nvme0n1 -> boots.
+    #
+    # netboot_iface is the BUILD HOST's NIC facing the target -- deliberately
+    # NOT usb_iface, which is already overloaded as both an interface name and
+    # an ssh alias. It is the interface you would run tcpdump on.
+    netboot_iface: null # set in config.local.yaml -- the BUILD HOST's NIC
+    # The TARGET's PXE NIC. Unlike the X1 this is the BUILT-IN I219-LM
+    # (8086:15fb) at 00:1f.6, so there is no dock or dongle in the path.
+    netboot_mac: null # set in config.local.yaml -- the TARGET's PXE NIC
+    boot_menu_key: F12
+    # This firmware publishes THREE network boot entries, all on the same MAC:
+    #   Boot0000* ONBOARD NIC (IPV4)   <- the PXE entry. This is the one to use.
+    #   Boot0001  ONBOARD NIC (IPV6)
+    #   Boot0002  UEFI HTTPs Boot ...Uri()
+    # Boot the IPV4 one. UEFI HTTP Boot does NOT work: it announces DHCP option
+    # 93 arch 16, and pixiecore handles only arch 0/6/7/9, so it discards the
+    # packet and the boot API is never consulted. Observed as
+    # "unsupported client firmware type '16'" and nothing else.
+    #
+    # Note netboot_preflight matches MAC\(|PXE|Network|IPv4 and takes the first
+    # hit -- all three entries above match, and it lands on the right one only
+    # because Boot0000 sorts first. Check the bootnum before trusting BootNext.
+    #
+    # Unlike the X1, NVMe is FIRST in BootOrder here (0003,0000,0002,0001), so
+    # this machine does not netboot on every reboot: BootNext is required for a
+    # hands-off run, and a lingering server cannot cause an install loop.
+    netboot_install_wait_seconds: 1800
+    # The netboot chain is unsigned, exactly as the installer ISO is.
+    secureboot_must_be_off: true
 
   NUC:
     architecture: x86_64

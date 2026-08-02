@@ -465,6 +465,9 @@ netboot_preflight() {
     # Findings the reboot trigger needs; empty means "could not determine".
     PREFLIGHT_EBM=""
     PREFLIGHT_NET_ENTRY=""
+    # Optional escape hatch, set by the caller from netboot_boot_entry, for
+    # firmware whose entries the heuristic below cannot tell apart.
+    NETBOOT_BOOT_ENTRY="${NETBOOT_BOOT_ENTRY-}"
 
     # efibootmgr is only on PATH on images built after the module change that
     # added it; older ones still have it in the store, so fall back to that
@@ -506,20 +509,57 @@ netboot_preflight() {
         entries=$(run_on_ghaf_host "$ip" "$ebm -v 2>/dev/null" 2>/dev/null || true)
         if grep -qiE 'MAC\(|PXE|Network|IPv4' <<<"$entries"; then
             success "Target has a network boot entry"
-            # Bootnum of the first network-ish entry, for a one-shot BootNext.
-            PREFLIGHT_NET_ENTRY=$(grep -iE '^Boot[0-9A-F]{4}' <<<"$entries" |
-                grep -iE 'MAC\(|PXE|Network|IPv4' | head -1 |
-                sed -E 's/^Boot([0-9A-Fa-f]{4}).*/\1/')
-            if grep -qE '^BootOrder:' <<<"$entries"; then
-                local first_entry first_desc
+            # Which network entry, not merely whether one exists. A Dell
+            # Latitude publishes THREE on a single MAC and all match the test
+            # above, so taking the first is right only by luck of numbering:
+            #
+            #   Boot0000* ONBOARD NIC (IPV4)   <- the only one that works
+            #   Boot0001  ONBOARD NIC (IPV6)
+            #   Boot0002  UEFI HTTPs Boot ...Uri()
+            #
+            # A Uri() entry is UEFI HTTP Boot. It announces DHCP option 93 arch
+            # 16, and pixiecore handles 0/6/7/9 only (pixiecore/dhcp.go), so it
+            # discards the packet and the boot API is never consulted -- a
+            # BootNext to that entry netboots into nothing, logging only
+            # "unsupported client firmware type '16'". Observed on hardware
+            # 2026-08-02. An IPv6 entry is likewise not what our server answers.
+            if [[ -n "$NETBOOT_BOOT_ENTRY" ]]; then
+                PREFLIGHT_NET_ENTRY="$NETBOOT_BOOT_ENTRY"
+                info "Using configured netboot_boot_entry Boot$PREFLIGHT_NET_ENTRY"
+            else
+                local candidates
+                candidates=$(grep -iE '^Boot[0-9A-F]{4}' <<<"$entries" |
+                    grep -iE 'MAC\(|PXE|Network|IPv4' |
+                    grep -viE 'Uri\(\)|IPv6')
+                # Prefer an entry the firmware marks active (a trailing * on the
+                # bootnum); fall back to any surviving candidate.
+                PREFLIGHT_NET_ENTRY=$(grep -E '^Boot[0-9A-Fa-f]{4}\*' <<<"$candidates" | head -1 |
+                    sed -E 's/^Boot([0-9A-Fa-f]{4}).*/\1/')
+                [[ -z "$PREFLIGHT_NET_ENTRY" ]] && PREFLIGHT_NET_ENTRY=$(head -1 <<<"$candidates" |
+                    sed -E 's/^Boot([0-9A-Fa-f]{4}).*/\1/')
+            fi
+            if [[ -z "$PREFLIGHT_NET_ENTRY" ]]; then
+                warn "Network boot entries exist, but none is PXE-capable"
+                warn "  Only UEFI HTTP Boot (Uri()) and/or IPv6 entries were found, and"
+                warn "  pixiecore serves PXE only. Enable PXE in firmware setup, or set"
+                warn "  netboot_boot_entry in config to override this."
+                ok=false
+            else
+                info "Network boot entry: Boot$PREFLIGHT_NET_ENTRY -$(grep -iE "^Boot${PREFLIGHT_NET_ENTRY}" <<<"$entries" |
+                    head -1 | sed -E 's/^Boot[0-9A-Fa-f]{4}\*?//; s/\t.*//')"
+            fi
+            if grep -qE '^BootOrder:' <<<"$entries" && [[ -n "$PREFLIGHT_NET_ENTRY" ]]; then
+                local first_entry
                 first_entry=$(grep '^BootOrder:' <<<"$entries" | awk '{print $2}' | cut -d, -f1)
-                first_desc=$(grep -iE "^Boot${first_entry}" <<<"$entries" | head -1)
-                if grep -qiE 'PXE|Network|IPv4|MAC\(' <<<"$first_desc"; then
+                # Compare against the entry we actually chose, rather than
+                # re-running a looser description match that a Uri() or IPv6
+                # entry would also satisfy.
+                if [[ "${first_entry^^}" == "${PREFLIGHT_NET_ENTRY^^}" ]]; then
                     info "Network boot is FIRST in BootOrder - a plain reboot will netboot"
                     info "  (and any netboot server left running will catch this machine again)"
                 else
                     warn "Network boot is NOT first in BootOrder - a plain reboot boots the disk"
-                    warn "  Set BootNext by hand, or use the boot menu key, to netboot this machine"
+                    warn "  BootNext is set automatically below; the boot menu key is the manual route"
                 fi
             fi
         else
@@ -597,6 +637,9 @@ cmd_netboot() {
     [[ -z "$ip" ]] && ip=$(get_device_config "$device" "host_ip")
     [[ -z "$ssh_key" ]] && ssh_key=$(get_device_config "$device" "ssh_identity")
     set_ssh_identity "$ssh_key"
+    # Optional: pin the bootnum for BootNext when a machine publishes several
+    # network entries and the pre-flight heuristic picks the wrong one.
+    NETBOOT_BOOT_ENTRY=$(get_device_config "$device" "netboot_boot_entry")
 
     # netboot_iface is the BUILD HOST's NIC facing the target, not the device's
     # -- unlike usb_iface, which is overloaded as both an interface name and an
