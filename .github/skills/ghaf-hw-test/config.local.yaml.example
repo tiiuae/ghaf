@@ -44,6 +44,14 @@ devices:
     # and writes them, on top of a normal boot.
     netboot_install_wait_seconds: null # e.g. 1800
 
+    # Pin the bootnum used for BootNext. Normally unset: the pre-flight picks
+    # the network entry itself, preferring an active IPv4 one and skipping
+    # UEFI HTTP Boot (Uri()) and IPv6 entries, which our PXE server cannot
+    # serve. Set this only when a machine publishes several network entries
+    # that the heuristic cannot tell apart. Read it off `efibootmgr -v` on
+    # ghaf-host -- the four hex digits, no "Boot" prefix and no trailing "*".
+    netboot_boot_entry: null # e.g. "0000"
+
     # --- flashing / console ----------------------------------------------
     flash_drive: null # e.g. /dev/sda -- verify before any write
     serial_device: null # e.g. /dev/ttyUSB0, or /dev/ttyACM0 on Orin AGX
