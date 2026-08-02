@@ -43,6 +43,56 @@ let
     table: parent: suffix:
     setupChain parent table "${dynPrefix}${table}-${suffix}" "-A";
 
+  # Chains owned by the uplink applier. Deliberately separate from the dyn-*
+  # chains, which belong to the GIVC-fed rule updater and are flushed wholesale
+  # by it -- sharing them would mean each mechanism silently discarding the
+  # other's rules.
+  uplinkChains = [
+    {
+      table = "mangle";
+      parent = "${ghafFwChainPrefix}pre-mangle";
+      chain = "${ghafFwChainPrefix}uplink-pre-mangle";
+      rules = cfg.uplink.rules.prerouting.mangle;
+    }
+    {
+      table = "nat";
+      parent = "${ghafFwChainPrefix}pre-nat";
+      chain = "${ghafFwChainPrefix}uplink-pre-nat";
+      rules = cfg.uplink.rules.prerouting.nat;
+    }
+    {
+      table = "filter";
+      parent = "${ghafFwChainPrefix}fwd-filter";
+      chain = "${ghafFwChainPrefix}uplink-fwd-filter";
+      rules = cfg.uplink.rules.forward.filter;
+    }
+    {
+      table = "nat";
+      parent = "${ghafFwChainPrefix}post-nat";
+      chain = "${ghafFwChainPrefix}uplink-post-nat";
+      rules = cfg.uplink.rules.postrouting.nat;
+    }
+  ];
+
+  # Built through addIptablesRules so the uplink rules get exactly the same
+  # eval-time validation as extra.* -- the placeholder is an ordinary token and
+  # passes it. The result is executable shell with the placeholder still in it;
+  # the applier substitutes and runs it.
+  uplinkRuleTemplate = pkgs.writeText "ghaf-fw-uplink-rules.in" (
+    lib.concatStringsSep "\n" (
+      map (
+        c:
+        addIptablesRules {
+          inherit (c) table chain rules;
+        }
+      ) uplinkChains
+    )
+  );
+
+  uplinkFlush = lib.concatStringsSep "\n" (
+    map (c: "${ipt} -t ${c.table} -F ${c.chain} 2>/dev/null || true") uplinkChains
+  );
+
   bogusFlags =
     concatMapStringsSep "\n"
       (
@@ -257,6 +307,98 @@ in
       default = "ghaf-fw-";
       readOnly = true;
       description = "Prefix for all ghaf firewall chain names";
+    };
+
+    uplink = {
+      enable = mkEnableOption ''
+        rules whose interface is only known at runtime.
+
+        `extra.*` rules are rendered into the firewall at build time, so they
+        cannot name an interface that is discovered while running -- and on
+        these laptops the LAN-facing NIC is exactly that, since ethernet
+        arrives as a dock or dongle. Rules placed in `uplink.rules.*` instead
+        use `placeholder` where the interface goes, and are (re)applied into
+        their own chains whenever the resolved uplink changes
+      '';
+
+      placeholder = mkOption {
+        type = types.str;
+        default = "@UPLINK@";
+        description = ''
+          Single token in `uplink.rules.*` replaced by the resolved interface.
+          Must be one whitespace-delimited token: rule fragments are validated
+          token by token.
+        '';
+      };
+
+      stateFile = mkOption {
+        type = types.path;
+        default = "/run/ghaf-uplink-state";
+        description = "Where the uplink resolver publishes the current uplink.";
+      };
+
+      readyFlag = mkOption {
+        type = types.path;
+        default = "/run/ghaf-uplink-ready";
+        description = ''
+          Gate for the apply unit. Absent means no uplink, and the rules are
+          withdrawn rather than left pointing at a stale interface.
+        '';
+      };
+
+      rules = mkOption {
+        default = { };
+        description = ''
+          Same shape and same validation as `extra.*`, but applied at runtime
+          with `placeholder` substituted. Only the hooks that consumers
+          actually need are provided.
+        '';
+        type = types.submodule {
+          options = {
+            prerouting = mkOption {
+              default = { };
+              type = types.submodule {
+                options = {
+                  mangle = mkOption {
+                    type = types.listOf types.str;
+                    default = [ ];
+                    description = "Uplink rules for ${ghafFwChainPrefix}uplink-pre-mangle";
+                  };
+                  nat = mkOption {
+                    type = types.listOf types.str;
+                    default = [ ];
+                    description = "Uplink rules for ${ghafFwChainPrefix}uplink-pre-nat";
+                  };
+                };
+              };
+            };
+            forward = mkOption {
+              default = { };
+              type = types.submodule {
+                options = {
+                  filter = mkOption {
+                    type = types.listOf types.str;
+                    default = [ ];
+                    description = "Uplink rules for ${ghafFwChainPrefix}uplink-fwd-filter";
+                  };
+                };
+              };
+            };
+            postrouting = mkOption {
+              default = { };
+              type = types.submodule {
+                options = {
+                  nat = mkOption {
+                    type = types.listOf types.str;
+                    default = [ ];
+                    description = "Uplink rules for ${ghafFwChainPrefix}uplink-post-nat";
+                  };
+                };
+              };
+            };
+          };
+        };
+      };
     };
     iptablesPackage = lib.mkPackageOption pkgs "iptables" { } // {
       readOnly = true;
@@ -485,6 +627,9 @@ in
           ${setupChain "FORWARD" "filter" "${ghafFwChainPrefix}fwd-filter" "-I"}
           ${setupChain "OUTPUT" "filter" "${ghafFwChainPrefix}out-filter" "-I"}
           ${setupChain "POSTROUTING" "nat" "${ghafFwChainPrefix}post-nat" "-I"}
+          ${optionalString cfg.uplink.enable (
+            lib.concatStringsSep "\n" (map (c: setupChain c.parent c.table c.chain "-A") uplinkChains)
+          )}
           ${setupChain null "mangle" "${ghafFwChainPrefix}mangle-drop" "-I"}
           ${setupChain null "filter" "${ghafFwChainPrefix}filter-drop" "-I"}
           ${setupChain null "filter" "${ghafFwChainPrefix}conncheck-accept" "-I"}
@@ -652,25 +797,101 @@ in
         };
       };
     };
-    systemd = mkIf cfg.updater.enable {
-      paths.apply-dynamic-firewall-rules = {
-        description = "Watch dynamic firewall rules file for changes";
-        wantedBy = [ "multi-user.target" ];
-        pathConfig.PathModified = rulePath;
-      };
+    systemd = lib.mkMerge [
+      (mkIf cfg.uplink.enable {
+        services.ghaf-firewall-uplink = {
+          description = "Apply firewall rules for the resolved uplink interface";
+          wantedBy = [
+            "multi-user.target"
+            "firewall.service"
+          ];
+          after = [
+            "firewall.service"
+            "ghaf-uplink-resolver.service"
+          ];
+          # firewall.service recreates and flushes the ghaf chains, so the rules
+          # have to be reapplied after it restarts, not just after the uplink moves.
+          partOf = [ "firewall.service" ];
 
-      services.apply-dynamic-firewall-rules = {
-        description = "Apply dynamic firewall rules";
-        wantedBy = [
-          "multi-user.target"
-          "firewall.service"
-        ];
-        after = [ "firewall.service" ];
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = lib.getExe applyDynamicFirewallRules;
+          # No uplink => this unit is skipped and the chains stay empty, which is
+          # the correct posture: rules naming a stale interface would either match
+          # nothing or, worse, match the wrong one. Skipped is visible in
+          # `systemctl status`; it is neither a spurious failure nor a silent
+          # success.
+          unitConfig = {
+            ConditionPathExists = cfg.uplink.readyFlag;
+            # Same reasoning as the resolver: this is restarted whenever the
+            # uplink moves, and being rate-limited out of running would leave
+            # the chains holding rules for an interface that is gone. Stale
+            # firewall rules are a worse outcome than restart churn.
+            StartLimitIntervalSec = 0;
+          };
+
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            ExecStart = lib.getExe (
+              pkgs.writeShellApplication {
+                name = "ghaf-firewall-uplink-apply";
+                runtimeInputs = [
+                  cfg.iptablesPackage
+                  pkgs.gnused
+                  pkgs.coreutils
+                ];
+                text = ''
+                  # shellcheck disable=SC1091
+                  . ${cfg.uplink.stateFile}
+                  if [ -z "''${uplink_iface:-}" ]; then
+                    echo "ghaf-firewall-uplink: ${cfg.uplink.stateFile} names no uplink; leaving the chains empty." >&2
+                    exit 1
+                  fi
+                  ${uplinkFlush}
+                  sed -e "s|${cfg.uplink.placeholder}|$uplink_iface|g" ${uplinkRuleTemplate} >/run/ghaf-fw-uplink-rules
+                  # The template is generated by addIptablesRules at build time, so
+                  # it is the same validated shell those rules would have been had
+                  # they been static -- only the interface is late-bound.
+                  # shellcheck disable=SC1091
+                  . /run/ghaf-fw-uplink-rules
+                  echo "ghaf-firewall-uplink: applied uplink rules on $uplink_iface"
+                '';
+              }
+            );
+            # Withdraw the rules when the unit stops, so they can never outlive the
+            # interface they were written for.
+            ExecStop = lib.getExe (
+              pkgs.writeShellApplication {
+                name = "ghaf-firewall-uplink-clear";
+                runtimeInputs = [ cfg.iptablesPackage ];
+                text = ''
+                  ${uplinkFlush}
+                  echo "ghaf-firewall-uplink: cleared uplink rules"
+                '';
+              }
+            );
+          };
         };
-      };
-    };
+      })
+
+      (mkIf cfg.updater.enable {
+        paths.apply-dynamic-firewall-rules = {
+          description = "Watch dynamic firewall rules file for changes";
+          wantedBy = [ "multi-user.target" ];
+          pathConfig.PathModified = rulePath;
+        };
+
+        services.apply-dynamic-firewall-rules = {
+          description = "Apply dynamic firewall rules";
+          wantedBy = [
+            "multi-user.target"
+            "firewall.service"
+          ];
+          after = [ "firewall.service" ];
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = lib.getExe applyDynamicFirewallRules;
+          };
+        };
+      })
+    ];
   };
 }

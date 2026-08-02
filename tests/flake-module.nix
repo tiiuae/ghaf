@@ -16,7 +16,20 @@
           netboot-boot = pkgs.callPackage ./installer/netboot-boot.nix { inherit self; };
           netboot-fetch = pkgs.callPackage ./installer/netboot-fetch.nix { inherit self; };
           netboot-server = pkgs.callPackage ./installer/netboot-server.nix { inherit self; };
-          # Fails after https://github.com/tiiuae/ghaf/commit/e45a8fc47dc82e37a0327bd794478277c5c7a043
+          # Still disabled, but for one well-understood reason rather than two.
+          #
+          # It used to fail before booting: firewall.nix grew a reference to
+          # ghaf.givc.policyClient and the test node never declared it. That is
+          # fixed (see givcOptionStub in ./firewall), so the test now builds,
+          # boots and runs.
+          #
+          # What remains is a real behavioural disagreement, not a test-side
+          # bug. `basic_rules` pings 20 times and expects 15 drops -- ICMP
+          # rate-limited past a burst of 5 -- but firewall.nix:506 now accepts
+          # all new ICMP unconditionally, so nothing is dropped and it counts 0.
+          # Whether ICMP should be rate-limited is a security decision for
+          # whoever made that change; the test should not simply be relaxed to
+          # match. Re-enable once that is settled.
           # firewall = pkgs.callPackage ./firewall { inherit self; };
           cosmic-panels = pkgs.callPackage ./cosmic/panels.nix { inherit self; };
           cosmic-shortcuts = pkgs.callPackage ./cosmic/shortcuts.nix { inherit self; };

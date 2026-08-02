@@ -9,6 +9,26 @@ let
   basicRulesTest = import ./test_scripts/basic_rules.nix;
   banRulesTest = import ./test_scripts/ban_rules.nix;
   fw-service-cfg = import ../../modules/common/systemd/hardened-configs/firewall.nix;
+
+  # firewall.nix reaches into ghaf.givc.policyClient -- an assertion on its
+  # `enable`, and a policy it registers when the rule updater is on. Importing
+  # the real givc modules to satisfy that drags in storagevm and the rest of the
+  # stack, which would make a firewall unit test depend on most of Ghaf. Declare
+  # just the two options instead, so the test stays isolated to the module it is
+  # actually testing.
+  #
+  # This missing declaration is why the check was disabled, not a product bug.
+  givcOptionStub =
+    { lib, ... }:
+    {
+      options.ghaf.givc.policyClient = {
+        enable = lib.mkEnableOption "givc policy client (stub for tests)";
+        policies = lib.mkOption {
+          type = lib.types.attrsOf lib.types.anything;
+          default = { };
+        };
+      };
+    };
   addrs = {
     netvm-external = "192.168.1.2";
     externalvm = "192.168.1.20";
@@ -43,6 +63,7 @@ pkgs.testers.nixosTest {
       {
         imports = [
           ../../modules/common/firewall
+          givcOptionStub
         ];
         inherit users security;
         virtualisation.vlans = [ 100 ];
@@ -78,6 +99,7 @@ pkgs.testers.nixosTest {
       inherit users security;
       imports = [
         ../../modules/common/firewall
+        givcOptionStub
         ../../modules/common/security/fail2ban.nix
         ../../modules/common/security/ssh-tarpit
       ];
