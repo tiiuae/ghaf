@@ -15,6 +15,7 @@ MACHINE=""
 OUT=""
 VMS=""
 CONFIG="${GHAF_HW_TEST_CONFIG:-.github/skills/ghaf-hw-test/config.yaml}"
+LOCAL_CONFIG="${GHAF_HW_TEST_LOCAL_CONFIG:-.github/skills/ghaf-hw-test/config.local.yaml}"
 SSH_USER="${GHAF_SSH_USER:-ghaf}"
 PREV_BOOT=0
 PASSWORD="${GHAF_SSH_PASSWORD:-}"
@@ -84,21 +85,45 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+# config.local.yaml is merged over config.yaml, which this script used not to do.
+# host_ip is null in the shared file for every machine -- an address is a property
+# of a desk, not of the project -- so reading only the shared file resolved it to
+# null and reported "no device address" on a machine that was sitting right there.
+# Semantics match get_device_config() in .github/skills/ghaf-hw-test/ghaf-hw-test,
+# the canonical implementation: local wins per field, and a null in local does NOT
+# blank a real value in the base, because the example file ships full of nulls and
+# treating them as deletions would make a half-filled override destructive.
 if [ -z "$HOST_IP" ] && [ -n "$MACHINE" ]; then
   HOST_IP=$(
-    python3 - "$CONFIG" "$MACHINE" <<'PY'
-import sys, yaml
-cfg = yaml.safe_load(open(sys.argv[1]))
-dev = cfg.get("devices", {}).get(sys.argv[2])
-if dev is None:
-    sys.exit(f"No such machine in config: {sys.argv[2]}")
+    python3 - "$CONFIG" "$LOCAL_CONFIG" "$MACHINE" <<'PY'
+import os
+import sys
+
+import yaml
+
+
+def load(path):
+    if not path or not os.path.exists(path):
+        return {}
+    with open(path) as fh:
+        return yaml.safe_load(fh) or {}
+
+
+shared, local, name = load(sys.argv[1]), load(sys.argv[2]), sys.argv[3]
+if name not in (shared.get("devices") or {}) and name not in (local.get("devices") or {}):
+    sys.exit(f"No such machine in config: {name}")
+dev = dict((shared.get("devices", {}) or {}).get(name) or {})
+for key, value in ((local.get("devices", {}) or {}).get(name) or {}).items():
+    if value is not None:
+        dev[key] = value
 print(dev.get("host_ip") or "")
 PY
   ) || exit 1
 fi
 
 if [ -z "$HOST_IP" ]; then
-  echo "No device address. Pass --ip, or --machine with host_ip set in $CONFIG." >&2
+  echo "No device address. Pass --ip, or --machine with host_ip set in" >&2
+  echo "$LOCAL_CONFIG (see config.local.yaml.example for the shape)." >&2
   exit 1
 fi
 
@@ -107,9 +132,24 @@ mkdir -p "$OUT"
 
 # One multiplexed connection for the whole run: every VM command tunnels through it, so a
 # 12-VM snapshot costs one authentication instead of ~40.
+#
+# The control path is a fresh per-run directory rather than the usual ~/.ssh/master-%r@%n:%p,
+# and that is deliberate. Every Ghaf device numbers its VMs from the same 192.168.100.0/24,
+# and the default path does not include the ProxyJump, so a master left open to one device's
+# 192.168.100.2 will happily serve a later jump aimed at a different device -- silently
+# snapshotting the wrong machine. A private path cannot collide with anyone else's.
 CTRL="$(mktemp -d)/cm-%r@%h:%p"
+#
+# UserKnownHostsFile=/dev/null is load-bearing, not belt-and-braces. The shared subnet means
+# a host key recorded for one device's gui-vm is a *changed* key on the next, and ssh answers
+# a changed key by refusing and disabling password authentication -- so every VM records
+# UNREACHABLE at once and the snapshot looks exactly like a device that never booted.
+# StrictHostKeyChecking=no does not cover this: it auto-accepts keys that are new, not keys
+# that conflict. Discarding the file is right here because a throwaway diagnostic connection
+# to a lab device gains nothing from key continuity we cannot have anyway.
 SSH_OPTS=(-o ControlMaster=auto -o "ControlPath=$CTRL" -o ControlPersist=60
-  -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o BatchMode=yes)
+  -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+  -o ConnectTimeout=10 -o BatchMode=yes)
 
 dev_ssh() { ssh "${SSH_OPTS[@]}" "${SSH_USER}@${HOST_IP}" -- "$@"; }
 
@@ -137,9 +177,14 @@ proxy_ssh() {
   local ip="$1"
   shift
   if [ -n "$PASSWORD" ]; then
+    # PubkeyAuthentication=no as well as PreferredAuthentications=password: preference alone
+    # still lets ssh offer keys, and a workstation with several loaded can exhaust the
+    # server's auth attempts before the password is ever tried. The failure reads as a
+    # rejected password rather than as too many keys.
     sshpass -p "$PASSWORD" ssh -o ControlMaster=auto -o "ControlPath=$CTRL" \
-      -o ControlPersist=60 -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
-      -o PreferredAuthentications=password \
+      -o ControlPersist=60 -o StrictHostKeyChecking=no \
+      -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 \
+      -o PreferredAuthentications=password -o PubkeyAuthentication=no \
       -o "ProxyJump=${SSH_USER}@${HOST_IP}" "${SSH_USER}@${ip}" -- "$@"
   else
     ssh "${SSH_OPTS[@]}" -o "ProxyJump=${SSH_USER}@${HOST_IP}" "${SSH_USER}@${ip}" -- "$@"
@@ -149,7 +194,10 @@ proxy_ssh() {
 hop_ssh() {
   local vm="$1"
   shift
-  dev_ssh ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=10 "$vm" "$@"
+  # Same reasoning as SSH_OPTS, one level in: the device's own known_hosts outlives a VM
+  # reflash, and a VM that came back with a new host key would otherwise read as unreachable.
+  dev_ssh ssh -o BatchMode=yes -o StrictHostKeyChecking=no \
+    -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 "$vm" "$@"
 }
 
 vm_ssh() {

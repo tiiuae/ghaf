@@ -84,6 +84,70 @@ Which hop you need depends on the question. Host-level things — microvm units,
 passthrough, the hypervisor journal — live on `ghaf-host`. Anything about the desktop,
 login, or an application lives in its VM.
 
+### Host aliases are local, not repository facts
+
+Names like `ghaf-usb`, `ghaf-host-usb`, `ghaf-net` and `ghaf-ui` appear throughout these
+skills and in the netboot notes. They are **entries in the operator's `~/.ssh/config`**, not
+something the repo defines, so a command written with one is unrunnable on a machine that
+has not got that block. When you see one, treat it as shorthand for a `<host_ip>` this
+person happens to have named; when you write one, say which device it points at.
+
+```
+Host ghaf-usb                 # the device, reached over the USB-ethernet adapter
+  hostname 192.168.10.135
+  user ghaf
+  identityfile /run/secrets/builder-key
+
+Host ghaf-host-usb            # its ghaf-host, one hop further in
+  hostname 192.168.100.2
+  user ghaf
+  identityfile /run/secrets/builder-key
+  proxyjump ghaf-usb
+```
+
+Aliases earn their keep for two reasons beyond typing: they pin an `IdentityFile` (see
+`ghaf-deploy` on why a bare IP may not), and — because ssh keys its control socket on the
+name *as written* — giving each device's ghaf-host a distinct alias is what keeps the
+hazard below from happening at all.
+
+### One subnet, many devices: two ways to be silently wrong
+
+Every Ghaf device numbers its VMs from the same `192.168.100.0/24`. Both consequences are
+worth knowing before you trust anything a second device tells you, because neither announces
+itself — the commands all succeed.
+
+**A hop can land on the wrong device.** A typical `~/.ssh/config` sets `ControlMaster auto`
+with `ControlPath ~/.ssh/master-%r@%n:%p` under `Host *`. That path keys on user, name and
+port only — **the ProxyJump is not part of it** — so `ghaf@192.168.100.2:22` is a single
+shared socket across the entire fleet. A master left open by an earlier session to one
+device's ghaf-host will serve a later `-o ProxyJump=<a different device>` connection and
+ignore the jump entirely. `ssh -G` still reports the proxyjump correctly, so it will not
+reveal this. Observed in practice: a jump aimed at an Orin AGX returned an x86_64 ghaf-host
+advertising `intel_iommu=on`.
+
+```bash
+ls -la ~/.ssh/master-*                                   # is a stale master already open?
+ssh -o ControlPath=none -o ControlMaster=no …            # or just opt out per command
+ssh … ghaf-host -- 'uname -m; hostname'                  # confirm the far end is who you think
+```
+
+Opting out costs one extra authentication. Believing a snapshot from the wrong device costs
+an afternoon, and misattributing one machine's state to another is the worst failure mode in
+this workflow — every later conclusion inherits it.
+
+**A whole healthy fleet can report UNREACHABLE.** For the same reason, a `known_hosts` entry
+recorded against `192.168.100.4` on one device is a *changed host key* on the next. ssh then
+refuses and hard-disables password authentication, so every inter-VM hop fails at once.
+`StrictHostKeyChecking=no` does **not** rescue this — it only auto-accepts keys that are new,
+not keys that conflict. `UserKnownHostsFile=/dev/null` does:
+
+```bash
+ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no …
+```
+
+If every VM on a device answers "unreachable" simultaneously, suspect this before concluding
+the device failed to boot. A real boot failure rarely takes out the whole fleet so evenly.
+
 ## Two names for the same machine
 
 Keep these apart; conflating them produces failures that look like something else:

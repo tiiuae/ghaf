@@ -43,6 +43,14 @@ ip -br addr show ghaf-usb
 A USB-ethernet adapter that renumbered or a cable in the wrong port accounts for a good
 share of "the device is dead" reports, and costs seconds to rule out.
 
+Two more before you escalate, both consequences of every device sharing `192.168.100.0/24`
+and both detailed in `ghaf-target`. If *every* VM refuses at once, a `known_hosts` entry from
+another device is a likelier explanation than a fleet-wide failure — retry with
+`-o UserKnownHostsFile=/dev/null`. And if the hops succeed but what they report makes no
+sense for this hardware, a stale ssh control socket may be serving you a different device
+entirely; `uname -m` on the far end settles it in one command. Ruling these out first is
+cheap, and both otherwise send you to serial for a device that was never unwell.
+
 ## Over serial
 
 Use `scripts/serial-console.sh`. It reads `serial_device` and `serial_baud` from the shared
@@ -65,6 +73,41 @@ Serial availability is per-device: Jetsons expose a console on the micro-USB cab
 generally need a USB-serial adapter and may expose nothing at all. Read the config; do not
 assume a node exists. If `serial_device` is null and no `/dev/ttyUSB*` or `/dev/ttyACM*` is
 present, say so plainly rather than guessing a path.
+
+### Running commands over serial
+
+`serial-console.sh` captures what the device says. `scripts/serial-run.sh` **drives** it —
+logs in and runs a command list — which is what you need when the device is up but has no
+network:
+
+```bash
+.claude/skills/ghaf-connect/scripts/serial-run.sh -m Orin-AGX \
+  'systemctl --failed' 'ip -br addr' 'journalctl -b -u microvm@net-vm.service | tail -30'
+```
+
+This is the only way in when net-vm is down, and that is not a rare case: a failed NIC
+passthrough, a merged IOMMU group or a bad firewall rule all leave a perfectly healthy
+machine that no ssh-based tool here can reach. It matters most straight after an install —
+a device that flashed or netbooted successfully and then failed to start net-vm looks
+identical from outside to one that never booted, and only the console separates the two.
+
+It logs in with the debug image's account (`ghaf`/`ghaf`, from
+`modules/reference/personalize/accounts.nix`; override with `GHAF_SERIAL_USER` /
+`GHAF_SERIAL_PASSWORD`). A release image will refuse them.
+
+Two limits before you trust the output. It uses **fixed sleeps, not prompt detection** — a
+command slower than its slot gets truncated, so raise `-s`/`GHAF_SERIAL_STEP` rather than
+concluding it produced nothing. And **the target's exit statuses are not propagated**; append
+`; echo rc=$?` when you need one. A serial console is a byte stream, not a session, and
+treating it as one is how you get a tool that lies quietly.
+
+All three of these scripts — `serial-run.sh`, `serial-console.sh` and `ghaf-logs`'
+`collect-logs.sh` — merge `config.local.yaml` over `config.yaml`, matching
+`get_device_config()` in `.github/skills/ghaf-hw-test/ghaf-hw-test`: local wins per field,
+and a `null` in the local file does **not** blank a real value in the base. That matters
+because the desk-specific fields — `serial_device`, `host_ip`, `flash_drive` — are null in
+the shared config by design, so a reader that ignores the local file resolves them to null
+and reports "not configured" for hardware that is sitting right there.
 
 ## Sequencing a rescue
 

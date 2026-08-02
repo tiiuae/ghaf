@@ -35,6 +35,10 @@
                 nixVersions.latest
                 oras
                 prefetch-npm-deps
+                # The .claude/skills scripts parse .github/skills/ghaf-hw-test/
+                # config.yaml to resolve a machine's address, serial port and
+                # drive nodes, so they need pyyaml.
+                (python3.withPackages (ps: [ ps.pyyaml ]))
                 reuse
                 self'.legacyPackages.flash-script
                 self'.legacyPackages.ghaf-build-helper

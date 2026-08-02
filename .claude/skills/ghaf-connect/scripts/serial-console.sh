@@ -16,6 +16,7 @@ BAUD=""
 LOG=""
 CAPTURE=""
 CONFIG="${GHAF_HW_TEST_CONFIG:-.github/skills/ghaf-hw-test/config.yaml}"
+LOCAL_CONFIG="${GHAF_HW_TEST_LOCAL_CONFIG:-.github/skills/ghaf-hw-test/config.local.yaml}"
 MACHINE=""
 
 usage() {
@@ -74,22 +75,48 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-# Pull defaults from the shared device config so serial settings live in one place.
+# Pull defaults from the device config so serial settings live in one place.
+#
+# config.local.yaml is merged over config.yaml, which this script used not to do.
+# That mattered: serial_device is null in the shared file for every machine
+# except the Orin-AGX, because which port a cable lands on is a property of a
+# desk, not of the project. Reading only the shared file therefore resolved it to
+# null on most devices and reported "no serial device configured" on a desk where
+# one was plugged in. Semantics match get_device_config() in
+# .github/skills/ghaf-hw-test/ghaf-hw-test, which is the canonical implementation:
+# local wins per field, and a null in local does NOT blank a real value in the
+# base -- the example file ships full of nulls, so treating them as deletions
+# would make a half-filled override destructive.
 if [ -n "$MACHINE" ]; then
   if [ ! -f "$CONFIG" ]; then
     echo "Config not found: $CONFIG (run from the ghaf repo root, or set GHAF_HW_TEST_CONFIG)" >&2
     exit 1
   fi
   read -r cfg_dev cfg_baud <<<"$(
-    python3 - "$CONFIG" "$MACHINE" <<'PY'
-import sys, yaml
-cfg = yaml.safe_load(open(sys.argv[1]))
-dev = cfg.get("devices", {}).get(sys.argv[2])
-if dev is None:
-    sys.exit(f"No such machine in config: {sys.argv[2]}")
+    python3 - "$CONFIG" "$LOCAL_CONFIG" "$MACHINE" <<'PY'
+import os
+import sys
+
+import yaml
+
+
+def load(path):
+    if not path or not os.path.exists(path):
+        return {}
+    with open(path) as fh:
+        return yaml.safe_load(fh) or {}
+
+
+shared, local, name = load(sys.argv[1]), load(sys.argv[2]), sys.argv[3]
+if name not in (shared.get("devices") or {}) and name not in (local.get("devices") or {}):
+    sys.exit(f"No such machine in config: {name}")
+dev = dict((shared.get("devices", {}) or {}).get(name) or {})
+for key, value in ((local.get("devices", {}) or {}).get(name) or {}).items():
+    if value is not None:
+        dev[key] = value
 print(dev.get("serial_device") or "", dev.get("serial_baud") or "")
 PY
-  )"
+  )" || exit 1
   [ -z "$DEVICE" ] && DEVICE="$cfg_dev"
   [ -z "$BAUD" ] && BAUD="$cfg_baud"
 fi
