@@ -84,15 +84,28 @@ in
       }
     ];
 
-    # Tell the uplink resolver which interface this configuration was built
-    # against, so it can report the disagreement when they differ. Diagnostic
-    # only -- everything below is still generated from cfg.externalNic.
-    ghaf.networking.uplinkResolver.expectedInterface = lib.mkDefault cfg.externalNic;
+    # cfg.externalNic comes from (lib.head hardware.definition.network.pciDevices),
+    # which enumerates PCI-passthrough NICs and is therefore the Wi-Fi card. A
+    # wired uplink arrives via vhotplug at runtime and is not in that list at
+    # all, so the multicast routing below is driven by the resolved uplink
+    # instead. externalNic survives only as the "what the build assumed" value
+    # the resolver compares against, and as the firewall rules' interface until
+    # those move too.
+    ghaf.networking.uplinkResolver = {
+      expectedInterface = lib.mkDefault cfg.externalNic;
+      # Both units render the uplink into their configuration at start, so they
+      # have to be restarted when it changes, not merely reloaded.
+      dependentUnits = [
+        "smcroute.service"
+        "nw-packet-forwarder.service"
+      ];
+    };
 
     services.nw-packet-forwarder = {
       enable = true;
       inherit (cfg) externalNic;
       inherit (cfg) internalNic;
+      uplink.enable = true;
       chromecast = {
         enable = true;
         inherit (cfg) vmName;
@@ -102,11 +115,15 @@ in
     services.smcroute = {
       enable = true;
       bindingNic = "${cfg.externalNic}";
+      uplink.enable = true;
+      # @UPLINK@ is substituted with the resolved interface when the config is
+      # generated at start. smcroute asserts at eval time that this placeholder
+      # is actually present, so the uplink cannot be silently ignored.
       rules = ''
-        mgroup from ${cfg.externalNic} group ${ssdpMcastIp}
+        mgroup from @UPLINK@ group ${ssdpMcastIp}
         mgroup from ${cfg.internalNic} group ${ssdpMcastIp}
-        mroute from ${cfg.externalNic} group ${ssdpMcastIp} to ${cfg.internalNic}
-        mroute from ${cfg.internalNic} group ${ssdpMcastIp} to ${cfg.externalNic}
+        mroute from @UPLINK@ group ${ssdpMcastIp} to ${cfg.internalNic}
+        mroute from ${cfg.internalNic} group ${ssdpMcastIp} to @UPLINK@
       '';
     };
 

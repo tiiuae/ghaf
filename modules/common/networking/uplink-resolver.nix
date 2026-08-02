@@ -155,6 +155,21 @@ in
         a visible skip rather than as a failure or a silent no-op.
       '';
     };
+
+    dependentUnits = mkOption {
+      type = types.listOf types.str;
+      default = [ ];
+      example = [ "smcroute.service" ];
+      description = ''
+        Units to restart after the uplink changes. Consumers add themselves
+        here, so that this module needs no knowledge of them.
+
+        Restarted rather than merely reloaded because the uplink appears in
+        generated configuration, not just at runtime. A unit whose
+        `ConditionPathExists` is unmet is skipped by systemd, which is the
+        intended "no uplink" behaviour.
+      '';
+    };
   };
 
   config = mkIf cfg.enable {
@@ -170,6 +185,15 @@ in
         Type = "oneshot";
         RemainAfterExit = true;
         ExecStart = lib.getExe resolver;
+      }
+      // lib.optionalAttrs (cfg.dependentUnits != [ ]) {
+        # `restart` rather than `try-restart`: a dependent that was skipped for
+        # lack of an uplink is not running, and must actually be started once
+        # the flag appears -- try-restart would leave it stopped. When the
+        # uplink goes away the flag is gone, so the start half is skipped by
+        # ConditionPathExists and the unit correctly ends up stopped.
+        # --no-block avoids deadlocking against the resolver they depend on.
+        ExecStartPost = "${pkgs.systemd}/bin/systemctl restart --no-block ${lib.escapeShellArgs cfg.dependentUnits}";
       };
     };
 
