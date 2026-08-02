@@ -87,10 +87,7 @@ in
 
   config = mkIf cfg.enable {
     assertions = [
-      {
-        assertion = cfg.externalNic != "";
-        message = "External Nic must be set";
-      }
+      # externalNic is no longer required: the interface is resolved at runtime.
       {
         assertion = cfg.internalNic != "";
         message = "Internal Nic must be set";
@@ -101,44 +98,58 @@ in
       }
     ];
 
+    # Same treatment as chromecast: the LAN-facing interface is resolved at
+    # runtime, so @UPLINK@ stands in for it wherever it appears and is
+    # substituted when the configuration is applied. Rules naming only the
+    # internal NIC stay static, since ethint0 does not move.
+    #
+    # Note this service is currently enabled on no target at all, so unlike
+    # chromecast the change here is unexercised. It is made anyway because
+    # leaving one consumer on the old build-time NIC would quietly reintroduce
+    # the bug the moment someone switched it on.
     services.smcroute = {
       enable = true;
-      bindingNic = "${cfg.externalNic}";
+      uplink.enable = true;
       rules = ''
-        mgroup from ${cfg.externalNic} group ${cfg.McastUdpIp}
+        mgroup from @UPLINK@ group ${cfg.McastUdpIp}
         mgroup from ${cfg.internalNic} group ${cfg.McastUdpIp}
-        mroute from ${cfg.externalNic} group ${cfg.McastUdpIp} to ${cfg.internalNic}
-        mroute from ${cfg.internalNic} group ${cfg.McastUdpIp} to ${cfg.externalNic}
+        mroute from @UPLINK@ group ${cfg.McastUdpIp} to ${cfg.internalNic}
+        mroute from ${cfg.internalNic} group ${cfg.McastUdpIp} to @UPLINK@
       '';
     };
 
-    ghaf.firewall.extra = {
-      # TODO: Move all these TcpPort and things like that, to the options of
-      #       this module, away from from package itself.
-      prerouting = {
-        nat = [
+    ghaf.networking.uplinkResolver.dependentUnits = [
+      "smcroute.service"
+      "ghaf-firewall-uplink.service"
+    ];
+
+    ghaf.firewall = {
+      uplink = {
+        enable = true;
+        # TODO: Move all these TcpPort and things like that, to the options of
+        #       this module, away from from package itself.
+        rules.prerouting.nat = [
           # Forward incoming TCP traffic on port ${cfg.TcpPort} to internal network(comms-vm)
-          "-i ${cfg.externalNic} -p tcp --dport ${cfg.TcpPort} -j DNAT --to-destination  ${cfg.serverIpAddr}:${cfg.TcpPort}"
+          "-i @UPLINK@ -p tcp --dport ${cfg.TcpPort} -j DNAT --to-destination  ${cfg.serverIpAddr}:${cfg.TcpPort}"
         ];
-        mangle = [
+        rules.prerouting.mangle = [
           # https://github.com/troglobit/smcroute?tab=readme-ov-file#usage
-          "-i ${cfg.externalNic} -d ${cfg.McastUdpIp} -j TTL --ttl-set 1"
-          # ttl value must be set to 1 for avoiding multicast looping
-          "-i ${cfg.internalNic} -d ${cfg.McastUdpIp} -j TTL --ttl-inc 1"
+          "-i @UPLINK@ -d ${cfg.McastUdpIp} -j TTL --ttl-set 1"
         ];
-      };
-
-      postrouting = {
-        nat = [
+        rules.postrouting.nat = [
           # Enable NAT for outgoing traffic
-          "-o ${cfg.externalNic} -p tcp --dport ${cfg.TcpPort} -j MASQUERADE"
+          "-o @UPLINK@ -p tcp --dport ${cfg.TcpPort} -j MASQUERADE"
           # Enable NAT for outgoing traffic
-          "-o ${cfg.externalNic} -p tcp --sport ${cfg.TcpPort} -j MASQUERADE"
+          "-o @UPLINK@ -p tcp --sport ${cfg.TcpPort} -j MASQUERADE"
           # Enable NAT for outgoing udp multicast traffic
-          "-o ${cfg.externalNic} -p udp -d ${cfg.McastUdpIp} --dport ${cfg.McastUdpPort} -j MASQUERADE"
+          "-o @UPLINK@ -p udp -d ${cfg.McastUdpIp} --dport ${cfg.McastUdpPort} -j MASQUERADE"
         ];
       };
 
+      extra.prerouting.mangle = [
+        # ttl value must be set to 1 for avoiding multicast looping
+        "-i ${cfg.internalNic} -d ${cfg.McastUdpIp} -j TTL --ttl-inc 1"
+      ];
     };
   };
 }

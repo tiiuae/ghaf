@@ -103,26 +103,42 @@ in
         '';
       }
     );
-    ghaf.firewall.extra = mkIf isNetVM {
-      forward.filter = lib.concatLists (
-        map (
-          vm:
-          map (
-            port:
-            "-i ${cfg.netVmExternalNic} -o ${netVmInternalNic} -p udp --dport ${toString port} -m comment --comment \"wg-server-${vm.vmName}\" -j ACCEPT"
-          ) vm.serverPorts
-        ) cfg.serverPortsByVm
-      );
+    # These rules name the LAN-facing interface, which is only known at runtime,
+    # so they go through ghaf.firewall.uplink with @UPLINK@ standing in for it.
+    #
+    # Worth knowing before touching this: on every current target these two
+    # lists are EMPTY. wireguard-gui is enabled on the host, gui-vm, business-vm
+    # and chrome-vm but never in net-vm, and this block is `mkIf isNetVM`, so
+    # serverPortsByVm is [] here and no WireGuard server port has ever actually
+    # been DNAT'd. Switching that on is a security-relevant change -- it opens
+    # new inbound paths into app-VMs -- and is deliberately NOT part of this
+    # refactor. The migration below only ensures that if someone does enable it,
+    # the rules name the interface that carries the LAN rather than the Wi-Fi
+    # card the build happened to guess.
+    ghaf.firewall = mkIf isNetVM {
+      uplink = {
+        enable = true;
 
-      prerouting.nat = lib.concatLists (
-        map (
-          vm:
+        rules.forward.filter = lib.concatLists (
           map (
-            port:
-            "-i ${cfg.netVmExternalNic} -p udp --dport ${toString port} -m comment --comment \"wg-server-${vm.vmName}\" -j DNAT --to-destination  ${hosts.${vm.vmName}.ipv4}:${toString port}"
-          ) vm.serverPorts
-        ) cfg.serverPortsByVm
-      );
+            vm:
+            map (
+              port:
+              "-i @UPLINK@ -o ${netVmInternalNic} -p udp --dport ${toString port} -m comment --comment \"wg-server-${vm.vmName}\" -j ACCEPT"
+            ) vm.serverPorts
+          ) cfg.serverPortsByVm
+        );
+
+        rules.prerouting.nat = lib.concatLists (
+          map (
+            vm:
+            map (
+              port:
+              "-i @UPLINK@ -p udp --dport ${toString port} -m comment --comment \"wg-server-${vm.vmName}\" -j DNAT --to-destination  ${hosts.${vm.vmName}.ipv4}:${toString port}"
+            ) vm.serverPorts
+          ) cfg.serverPortsByVm
+        );
+      };
     };
   };
 }

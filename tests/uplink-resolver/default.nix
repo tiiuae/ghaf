@@ -33,6 +33,26 @@ pkgs.testers.nixosTest {
       };
     };
 
+  # Pins the uplink to an interface that is not the one carrying the default
+  # route, to prove the pin is obeyed and the disagreement is reported.
+  nodes.pinned =
+    { lib, ... }:
+    {
+      imports = [ ../../modules/common/networking/uplink-resolver.nix ];
+      networking = {
+        useDHCP = false;
+        defaultGateway = {
+          address = "192.168.1.1";
+          interface = "eth1";
+        };
+        networkmanager.enable = lib.mkForce false;
+      };
+      ghaf.networking.uplinkResolver = {
+        enable = true;
+        forceInterface = "lo";
+      };
+    };
+
   nodes.machine =
     { lib, ... }:
     {
@@ -69,9 +89,8 @@ pkgs.testers.nixosTest {
         };
       };
 
-      # eth1 is the test network. Give it a default route so there is a real
-      # uplink to find, and name a deliberately wrong expectedInterface so the
-      # mismatch warning -- the entire payload of phase 1 -- is exercised.
+      # eth1 is the test network, with a default route so there is a real uplink
+      # to find.
       networking = {
         useDHCP = false;
         defaultGateway = {
@@ -83,7 +102,7 @@ pkgs.testers.nixosTest {
       ghaf.networking.uplinkResolver = {
         enable = true;
         internalInterface = "ethint0";
-        expectedInterface = "wlp0s5f0";
+        forceInterface = "";
         dependentUnits = [
           "uplink-consumer.service"
           "ghaf-firewall-uplink.service"
@@ -129,10 +148,18 @@ pkgs.testers.nixosTest {
         # ConditionPathExists, so its presence is part of the contract.
         machine.succeed("test -e /run/ghaf-uplink-ready")
 
-    with subtest("resolved: warns that the baked externalNic disagrees"):
-        journal = machine.succeed("journalctl -u ghaf-uplink-resolver --no-pager")
+    with subtest("a pin is honoured, but not silently"):
+        # An explicit forceInterface wins -- a setting that some consumers obeyed
+        # and others ignored would be its own silent-wrongness bug -- but if it
+        # disagrees with where traffic actually goes, that has to be said.
+        pinned.start()
+        pinned.wait_for_unit("ghaf-uplink-resolver.service")
+        state = pinned.succeed("cat /run/ghaf-uplink-state")
+        assert "uplink_iface=lo" in state, state
+        assert "uplink_state=resolved" in state, state
+        journal = pinned.succeed("journalctl -u ghaf-uplink-resolver --no-pager")
         assert "WARNING" in journal, journal
-        assert "wlp0s5f0" in journal and "eth1" in journal, journal
+        assert "pinned to 'lo'" in journal and "eth1" in journal, journal
 
     with subtest("no uplink: reports it without failing"):
         machine.succeed("ip route del default")

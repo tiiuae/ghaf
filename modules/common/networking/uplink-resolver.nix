@@ -43,9 +43,15 @@ let
       # definition that always agrees with where traffic actually goes, and it
       # follows a dock being plugged in or pulled out without any extra state.
       internal=${lib.escapeShellArg cfg.internalInterface}
-      expected=${lib.escapeShellArg cfg.expectedInterface}
+      pinned=${lib.escapeShellArg cfg.forceInterface}
 
-      iface=$(ip route show default 2>/dev/null | awk '/^default/ {print $5; exit}')
+      routed=$(ip route show default 2>/dev/null | awk '/^default/ {print $5; exit}')
+
+      if [ -n "$pinned" ]; then
+        iface=$pinned
+      else
+        iface=$routed
+      fi
 
       state=resolved
       reason=""
@@ -89,12 +95,12 @@ let
         rm -f ${readyFlag}
       fi
 
-      # Phase 1 is deliberately observation-only: nothing is reconfigured yet.
-      # This warning is the whole point of the phase -- it turns a silently wrong
-      # interface into a visible, greppable fact on every affected device.
-      if [ -n "$expected" ] && [ "$state" = resolved ] && [ "$iface" != "$expected" ]; then
-        echo "ghaf-uplink: WARNING configured externalNic is '$expected' but the uplink is '$iface'" >&2
-        echo "ghaf-uplink: WARNING services bound to '$expected' (chromecast, smcroute, nw-packet-forwarder) cannot work on this device" >&2
+      # A pin that disagrees with where traffic actually goes is the original
+      # bug in miniature, so say so rather than letting it pass quietly. It is
+      # still honoured -- an explicit setting should win -- but not silently.
+      if [ -n "$pinned" ] && [ -n "$routed" ] && [ "$pinned" != "$routed" ]; then
+        echo "ghaf-uplink: WARNING uplink is pinned to '$pinned' but the default route is on '$routed'" >&2
+        echo "ghaf-uplink: WARNING multicast and NAT will be applied to '$pinned', which is probably not what carries the LAN" >&2
       fi
     '';
   };
@@ -125,13 +131,21 @@ in
       '';
     };
 
-    expectedInterface = mkOption {
+    forceInterface = mkOption {
       type = types.str;
       default = "";
+      example = "enp1s0f0";
       description = ''
-        The interface name that build-time configuration assumed. When set and
-        it disagrees with the resolved uplink, the resolver logs a warning.
-        Purely diagnostic; nothing is reconfigured on the strength of it.
+        Pin the uplink to a named interface instead of following the default
+        route. Empty (the default) means resolve it.
+
+        Consumers that expose an explicit "external NIC" setting wire it here
+        rather than using it directly, so that there is exactly one place the
+        uplink is decided. A pin that some consumers honoured and others
+        ignored would be its own silent-wrongness bug.
+
+        The resolver still checks the interface exists, and still warns when a
+        pinned interface is not the one carrying the default route.
       '';
     };
 
