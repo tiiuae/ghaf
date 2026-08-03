@@ -188,6 +188,7 @@ export default defineConfig({
                                 "ghaf/dev/technologies/nvidia_uarti_net_vm",
                                 "ghaf/dev/technologies/nvidia_mgbe0_net_vm",
                                 "ghaf/dev/technologies/nvidia_gpu_vm",
+                                "ghaf/dev/technologies/nvidia_gpu_partitioning",
                                 "ghaf/dev/technologies/nvidia_gpu_vm_display",
                               ],
                             },
