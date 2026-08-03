@@ -129,6 +129,12 @@
       };
     };
 
+    # Cooperative CUDA Green Context scheduler used by gpu-vm.
+    gpu-partition-manager = {
+      url = "github:tiiuae/ghaf-gpu-partition-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Nvidia Orin support for NixOS
     jetpack-nixos = {
       #url = "github:anduril/jetpack-nixos";

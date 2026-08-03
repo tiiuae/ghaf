@@ -30,6 +30,8 @@ in
     inputs.self.nixosModules.hardware-x86_64-guest-kernel
     inputs.self.nixosModules.vm-modules
     inputs.self.nixosModules.profiles
+    ./gpuvm-container-runtime.nix
+    ./gpuvm-partition-manager.nix
   ];
 
   ghaf = {
@@ -52,7 +54,11 @@ in
     # User configuration - from hostConfig
     users = {
       profile = hostConfig.users.profile or { };
-      admin = hostConfig.users.admin or { };
+      admin = (hostConfig.users.admin or { }) // {
+        # hostConfig is already evaluated, so preserve this copied default at
+        # default priority for the GPU-VM runtime's explicit policy override.
+        addToDockerGroup = lib.mkDefault (hostConfig.users.admin.addToDockerGroup or true);
+      };
       managed = hostConfig.users.managed or { };
     };
 
@@ -144,7 +150,7 @@ in
     ++ [
       pkgs.gcc
       # Prebuilt smoke test (driver API + embedded PTX, RPATH-wired to native
-      # libcuda), built at image time since the guest can't compile on-device.
+      # libcuda) so routine verification does not need an on-device build.
       (pkgs.callPackage ../../../packages/gpu-vm-load/package.nix {
         inherit (pkgs) nvidia-jetpack;
       })
@@ -163,10 +169,21 @@ in
       RemainAfterExit = true;
     };
     script = ''
+      for attempt in $(${pkgs.coreutils}/bin/seq 1 30); do
+        if [ -e /dev/nvgpu/igpu0/ctrl ]; then
+          break
+        fi
+        if [ "$attempt" -eq 30 ]; then
+          echo "GPU control node did not appear within 30 seconds" >&2
+          exit 1
+        fi
+        ${pkgs.coreutils}/bin/sleep 1
+      done
+
       for d in /dev/nvgpu /dev/nvhost-* /dev/nvmap; do
         [ -e "$d" ] || continue
-        chgrp -R video "$d" || true
-        chmod -R g+rw "$d" || true
+        chgrp -R video "$d"
+        chmod -R g+rw "$d"
       done
     '';
   };
