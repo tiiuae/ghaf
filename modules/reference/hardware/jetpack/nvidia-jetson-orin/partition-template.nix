@@ -128,7 +128,7 @@ let
           ${lib.optionalString cfg.flashScriptOverrides.onlyQSPI "--remove-device"} \
           --set "esp.size=${
             if cfg.flashScriptOverrides.appPartitionSizeBytes != null then
-              # Static sizing: 512 MiB ESP (every Ghaf Orin image uses 524288
+              # Static sizing: 256 MiB ESP (every Ghaf Orin image uses 524288
               # sectors); keeps flash.xml independent of the built sdImage.
               "268435456"
             else
@@ -256,10 +256,11 @@ let
         ROOT_OFFSET=$(cat "$image_source_root/root.offset")
         ROOT_SIZE=$(cat "$image_source_root/root.size")
 
-        img=$(find "$image_source_root" -maxdepth 1 -name '*.img.zst' -print -quit)
-        if [ -z "$img" ]; then
-          img=$(find "$image_source_root/sd-image" -maxdepth 1 -name '*.img.zst' -print -quit 2>/dev/null || true)
-        fi
+        # -type f is required: the sdImage output directory is itself named
+        # *.img.zst, so a bare -name match returns the directory and never
+        # descends into sd-image/. -maxdepth 2 covers both a flat layout and
+        # the standard sd-image/ subdirectory.
+        img=$(find "$image_source_root" -mindepth 1 -maxdepth 2 -type f -name '*.img.zst' -print -quit)
         if [ -z "$img" ]; then
           echo "ERROR: No .img.zst found in $image_source_root/sd-image or $image_source_root" >&2
           exit 1
