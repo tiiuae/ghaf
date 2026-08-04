@@ -777,12 +777,6 @@ in
   };
 
   config = mkIf cfg.enable {
-    # The clock-readiness barrier gates systemd-journal-flush and with it the
-    # whole userspace boot. Tegra restores a sane RTC well within a few seconds,
-    # and post-release jumps are already handled by ghaf-clock-jump-watcher, so
-    # the default 20 s stability window only adds boot latency here.
-    ghaf.logging.recovery.clockReady.stableSeconds = lib.mkDefault 5;
-
     assertions = [
       {
         assertion =
