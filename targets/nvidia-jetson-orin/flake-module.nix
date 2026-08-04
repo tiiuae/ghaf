@@ -397,14 +397,21 @@ let
     # but BOOTAA64.EFI is unsigned, leaving the board in the UEFI
     # Interactive Shell with no recoverable boot entry.
     #
-    # `-s/--signed-sd-image` is a *runtime* flag on the flash script: it
-    # only swaps in a signed BOOTAA64.EFI / kernel staged from a signed
-    # sd-image, it cannot influence the QSPI firmware that was already
-    # produced at Nix evaluation time. So the QSPI variant has to be
-    # selected *before* the script runs, which is what the wrapper does:
+    # The QSPI variant has to be selected *before* the inner script runs
+    # (it cannot be influenced at run time), which is what the wrapper
+    # does on its own `--secure-boot` flag:
     #
-    #   - no `-s`  → unsigned QSPI (no DTBO, no ESLs) + unsigned BOOTAA64.EFI
-    #   - with `-s` → SB-enabled QSPI (DTBO + ESLs) + signed BOOTAA64.EFI
+    #   - default        → unsigned QSPI (no DTBO, no ESLs)
+    #   - --secure-boot  → SB-enabled QSPI (DTBO + ESLs); pair it with a
+    #                      *signed* sd-image via `-s`, or the enrolled
+    #                      firmware will refuse the unsigned BOOTAA64.EFI
+    #                      and fall through to PXE/UEFI shell.
+    #
+    # `-s/--signed-sd-image` itself is deliberately NOT the selector:
+    # with `appPartitionSizeBytes` set the flash script carries no
+    # embedded image and `-s` is how *every* flash (signed or not)
+    # supplies one, so keying Secure Boot off it bricked all unsigned
+    # flashes.
     #
     # Both variants share substituted store paths (jetpack-nixos
     # `flashScript` is a thin wrapper around the same per-target
@@ -412,16 +419,18 @@ let
     pkgsX86.writeShellApplication {
       name = "flash-ghaf-host";
       text = ''
-        signed=0
+        sb=0
+        args=()
         for arg in "$@"; do
           case "$arg" in
-            -s|--signed-sd-image) signed=1 ;;
+            --secure-boot) sb=1 ;;
+            *) args+=("$arg") ;;
           esac
         done
-        if [ "$signed" = 1 ]; then
-          exec ${withSB}/bin/flash-${innerName} "$@"
+        if [ "$sb" = 1 ]; then
+          exec ${withSB}/bin/flash-${innerName} "''${args[@]}"
         else
-          exec ${noSB}/bin/flash-${innerName} "$@"
+          exec ${noSB}/bin/flash-${innerName} "''${args[@]}"
         fi
       '';
     };
