@@ -3,12 +3,10 @@
 {
   config,
   lib,
-  inputs,
   ...
 }:
 let
   cfg = config.ghaf.reference.profiles.mvp-user-trial;
-  hostGlobalConfig = config.ghaf.global-config;
 in
 {
   _file = ./mvp-user-trial.nix;
@@ -48,94 +46,73 @@ in
               media.enable = true;
             };
           };
+        };
 
-          # GUI VM: Extend laptop base with MVP services and feature modules
-          guivm.evaluatedConfig = config.ghaf.profiles.laptop-x86.guivmBase.extendModules {
-            modules = [
-              # Reference services and personalization
-              ../services
-              ../programs
-              ../personalize
-              {
-                # Developer SSH access is a DEBUG-build affordance.
-                #
-                # This option's default is the ghaf developer key list
-                # (../personalize/authorizedSshKeys.nix), and enabling it grants
-                # every one of those keys a shell as root and as the admin user.
-                # Enabling it unconditionally put them on release images too.
-                #
-                # Same gate as targets/imx8mp-evk/flake-module.nix and
-                # ../hardware/jetpack/profiles/debug.nix already use.
-                ghaf.reference.personalize.keys.enable = config.ghaf.profiles.debug.enable;
-                # Forward host reference services config to guivm
-                ghaf.reference.services = {
+        # System-VM policy.
+        #
+        # The COMPOSITION of the system VMs -- turning each *Base option into an
+        # evaluatedConfig and threading applyVmConfig -- now lives in
+        # modules/profiles/laptop-x86.nix, which binds all four under
+        # lib.mkDefault. This profile supplies only what makes it the Ghaf
+        # reference product, and it does so through
+        # ghaf.virtualization.vmConfig.sysvms.<vm>.extraModules: the same
+        # declared option a downstream project uses.
+        #
+        # It also means this file no longer calls lib.ghaf.vm.applyVmConfig,
+        # mkSpecialArgs or mkHostConfig -- it has no dependency on ghaf
+        # internals.
+        vmConfig.sysvms = {
+          guivm.extraModules = [
+            # Reference services and personalization
+            ../services
+            ../programs
+            ../personalize
+            {
+              # Developer SSH access is a DEBUG-build affordance.
+              #
+              # This option's default is the ghaf developer key list
+              # (../personalize/authorizedSshKeys.nix), and enabling it grants
+              # every one of those keys a shell as root and as the admin user.
+              # Enabling it unconditionally put them on release images too.
+              #
+              # Same gate as targets/imx8mp-evk/flake-module.nix and
+              # ../hardware/jetpack/profiles/debug.nix already use.
+              ghaf.reference.personalize.keys.enable = config.ghaf.profiles.debug.enable;
+              # Forward host reference services config to guivm
+              ghaf.reference.services = {
+                inherit (config.ghaf.reference.services)
+                  enable
+                  wireguard-gui
+                  ;
+              };
+            }
+          ];
+
+          netvm.extraModules = [
+            # Reference services and personalization
+            ../services
+            ../personalize
+            # Forward host reference services config to netvm
+            {
+              ghaf.reference = {
+                # Debug-only; see the gui-vm block above.
+                personalize.keys.enable = config.ghaf.profiles.debug.enable;
+                services = {
                   inherit (config.ghaf.reference.services)
                     enable
-                    wireguard-gui
+                    dendrite
+                    proxy-business
                     ;
-                };
-              }
-              # Feature modules (auto-include based on feature flags)
-              inputs.self.nixosModules.guivm-desktop-features
-            ]
-            # Apply vmConfig (resource allocation + hardware + profile modules)
-            ++ lib.ghaf.vm.applyVmConfig {
-              inherit config;
-              vmName = "guivm";
-            };
-            specialArgs = lib.ghaf.vm.mkSpecialArgs {
-              inherit lib inputs;
-              globalConfig = hostGlobalConfig;
-              hostConfig = lib.ghaf.vm.mkHostConfig {
-                inherit config;
-                vmName = "gui-vm";
-              };
-            };
-          };
-
-          # Admin VM: Use laptop base directly (no customization needed for MVP)
-          adminvm.evaluatedConfig = config.ghaf.profiles.laptop-x86.adminvmBase;
-
-          # Audio VM: Use laptop base with vmConfig
-          audiovm.evaluatedConfig = config.ghaf.profiles.laptop-x86.audiovmBase.extendModules {
-            modules = lib.ghaf.vm.applyVmConfig {
-              inherit config;
-              vmName = "audiovm";
-            };
-          };
-
-          # Net VM: Use laptop base with reference services and vmConfig
-          netvm.evaluatedConfig = config.ghaf.profiles.laptop-x86.netvmBase.extendModules {
-            modules = [
-              # Reference services and personalization
-              ../services
-              ../personalize
-              # Forward host reference services config to netvm
-              {
-                ghaf.reference = {
-                  # Debug-only; see the gui-vm block above.
-                  personalize.keys.enable = config.ghaf.profiles.debug.enable;
-                  services = {
-                    inherit (config.ghaf.reference.services)
-                      enable
-                      dendrite
-                      proxy-business
-                      ;
-                    google-chromecast = {
-                      inherit (config.ghaf.reference.services.google-chromecast) enable vmName;
-                    };
-                    chromecast = {
-                      inherit (config.ghaf.reference.services.chromecast) externalNic internalNic;
-                    };
+                  google-chromecast = {
+                    inherit (config.ghaf.reference.services.google-chromecast) enable vmName;
+                  };
+                  chromecast = {
+                    inherit (config.ghaf.reference.services.chromecast) externalNic internalNic;
                   };
                 };
-              }
-            ]
-            ++ lib.ghaf.vm.applyVmConfig {
-              inherit config;
-              vmName = "netvm";
-            };
-          };
+              };
+            }
+          ];
         };
       };
 
