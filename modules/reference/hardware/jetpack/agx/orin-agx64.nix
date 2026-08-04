@@ -3,7 +3,7 @@
 #
 # Reference hardware modules
 #
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 {
   _file = ./orin-agx64.nix;
 
@@ -76,7 +76,9 @@
           ];
         }
         ../../../personalize
-        { ghaf.reference.personalize.keys.enable = true; }
+        # Developer SSH access is a DEBUG-build affordance: this option defaults to
+        # the ghaf developer key list and grants each of those keys a shell.
+        { ghaf.reference.personalize.keys.enable = config.ghaf.profiles.debug.enable; }
       ];
     };
   };
