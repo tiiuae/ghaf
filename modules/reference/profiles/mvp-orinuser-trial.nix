@@ -34,7 +34,11 @@ in
         vmConfig.sysvms.netvm.extraModules = [
           ../services
           ../personalize
-          { ghaf.reference.personalize.keys.enable = true; }
+          # Developer SSH access is a DEBUG-build affordance: this option's
+          # default is the ghaf developer key list
+          # (../personalize/authorizedSshKeys.nix), and enabling it grants every
+          # one of those keys a shell as root and as the admin user.
+          { ghaf.reference.personalize.keys.enable = config.ghaf.profiles.debug.enable; }
           # Forward host reference services config to netvm
           {
             ghaf.reference.services = {
@@ -53,7 +57,8 @@ in
         };
 
         personalize = {
-          keys.enable = true;
+          # Debug-only; see the net-vm block above.
+          keys.enable = config.ghaf.profiles.debug.enable;
         };
 
         desktop.applications.enable = false;
