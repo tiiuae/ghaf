@@ -278,16 +278,34 @@ in
           };
         };
 
+        # System VM composition.
+        #
+        # These bindings turn the *Base options declared above into the
+        # evaluatedConfig each VM module requires. They are MECHANICAL: identical
+        # for every x86 laptop that will ever exist, and carrying no product
+        # policy. modules/profiles/orin.nix already does exactly this for its own
+        # VMs; this brings laptop-x86 into line.
+        #
+        # To put your own modules inside one of these VMs, do NOT redefine
+        # evaluatedConfig. Set ghaf.virtualization.vmConfig.sysvms.<vm>.extraModules;
+        # applyVmConfig below appends it last, at the highest priority.
         microvm = {
           netvm = {
             enable = true;
             # wifi is now controlled via ghaf.global-config.features.wifi
-            # evaluatedConfig is set by profile (e.g., mvp-user-trial.nix)
+            evaluatedConfig = lib.mkDefault (
+              cfg.netvmBase.extendModules {
+                modules = lib.ghaf.vm.applyVmConfig {
+                  inherit config;
+                  vmName = "netvm";
+                };
+              }
+            );
           };
 
           adminvm = {
             enable = true;
-            # evaluatedConfig is set by profile (e.g., mvp-user-trial.nix)
+            evaluatedConfig = lib.mkDefault cfg.adminvmBase;
           };
 
           idsvm = {
@@ -298,13 +316,32 @@ in
           guivm = {
             enable = true;
             # fprint/yubikey/brightness now controlled via ghaf.global-config.features
-            # evaluatedConfig is set by profile (e.g., mvp-user-trial.nix)
-            # Profile extends guivmBase and collects extraModules
+            evaluatedConfig = lib.mkDefault (
+              cfg.guivmBase.extendModules {
+                modules = [
+                  # Feature modules, auto-included from globalConfig.features.
+                  # Mechanical, not policy.
+                  inputs.self.nixosModules.guivm-desktop-features
+                ]
+                ++ lib.ghaf.vm.applyVmConfig {
+                  inherit config;
+                  vmName = "guivm";
+                };
+              }
+            );
           };
 
           audiovm = {
             enable = true;
             # audio is now controlled via ghaf.global-config.features.audio
+            evaluatedConfig = lib.mkDefault (
+              cfg.audiovmBase.extendModules {
+                modules = lib.ghaf.vm.applyVmConfig {
+                  inherit config;
+                  vmName = "audiovm";
+                };
+              }
+            );
           };
         };
       };
