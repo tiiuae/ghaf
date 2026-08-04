@@ -539,7 +539,16 @@ in
 
       clockReady = {
         enable = (mkEnableOption "clock readiness barrier for persistent sealed logging") // {
-          default = true;
+          # The barrier exists for hosts whose RTC needs to settle after
+          # power-on. A VM starts with its emulated RTC seeded from host wall
+          # time at VM creation (microvm sets rtc = "on") and runs timesyncd
+          # afterwards, so it boots with an already-settled clock and the
+          # barrier (plus the ghaf-clock-sync NTP wait it gates) only delays
+          # boot there. Disabling it in guests is a deliberate choice: guest
+          # FSS setup/verify no longer waits for NTP, which also uncouples it
+          # from net-vm availability; clock-jump recovery stays active.
+          default = config.ghaf.type == "host";
+          defaultText = lib.literalExpression ''config.ghaf.type == "host"'';
         };
 
         stableSeconds = mkOption {
