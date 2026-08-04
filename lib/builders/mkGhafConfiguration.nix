@@ -7,7 +7,7 @@
 # This builder unifies mkLaptopConfiguration and mkOrinConfiguration into
 # a single, composable API with vmConfig support for resource allocation.
 #
-# Usage:
+# Usage (inside ghaf, where self/inputs are ghaf's own):
 #   let
 #     ghafConfig = ghaf.builders.mkGhafConfiguration {
 #       inherit self inputs;
@@ -25,6 +25,19 @@
 #     };
 #   }
 #
+# DOWNSTREAM projects should use the PRE-BOUND form exported alongside this one
+# (see ./flake-module.nix), which is already bound to ghaf's self/inputs/lib:
+#
+#   inputs.ghaf.builders.ghafConfiguration {
+#     name = "my-laptop";
+#     system = "x86_64-linux";
+#     profile = "laptop-x86";
+#     hardwareModule = inputs.ghaf.nixosModules.hardware-intel-laptop;
+#     # reach your own flake from inside your modules, host and VMs alike,
+#     # as `inputs.mine`:
+#     extraInputs = { mine = self; };
+#   }
+#
 # Parameters:
 #   name           - Target machine name (e.g., "lenovo-x1-carbon-gen11")
 #   system         - Target system architecture ("x86_64-linux" or "aarch64-linux")
@@ -35,6 +48,12 @@
 #   extraConfig    - Additional ghaf.* configuration (default: {})
 #   vmConfig       - VM resource allocation and modules (default: {})
 #                    Maps to ghaf.virtualization.vmConfig
+#   extraInputs    - Extra names merged into `inputs` (default: {}). Visible as
+#                    module arguments of the host and, because ghaf's profiles
+#                    forward the same attrset, of every VM. This is how a
+#                    DOWNSTREAM reaches its own flake from inside a module --
+#                    `self` and `inputs` there are ghaf's. Cannot shadow `lib`
+#                    or `inputs`.
 #
 # Output:
 #   {
@@ -64,6 +83,7 @@ let
       extraModules ? [ ],
       extraConfig ? { },
       vmConfig ? { },
+      extraInputs ? { },
       buildSysupdateImage ? false,
     }:
     let
@@ -123,10 +143,25 @@ let
         );
       };
 
+      # Extra names a downstream wants visible from inside its own modules.
+      #
+      # These are merged into `inputs` rather than added alongside it, and that
+      # is deliberate: `inputs` is the ONLY part of the host's specialArgs that
+      # reaches the VMs. The profiles build each VM with
+      # lib.ghaf.vm.mkSpecialArgs { inherit lib inputs; globalConfig; hostConfig; }
+      # (modules/profiles/laptop-x86.nix), so a name added to the host's
+      # specialArgs but not to `inputs` resolves on the host and is missing in
+      # every guest -- which fails only once a guest module happens to read it.
+      #
+      # Merging here means `inputs.<name>` resolves identically in host,
+      # system-VM and app-VM modules.
+      allInputs = inputs // extraInputs;
+
       # Build the host NixOS configuration
       hostConfiguration = lib.nixosSystem {
-        specialArgs = inputs // {
-          inherit lib inputs;
+        specialArgs = allInputs // {
+          inherit lib;
+          inputs = allInputs;
         };
         modules = [
           profileModule
@@ -159,6 +194,7 @@ let
             variant
             extraConfig
             vmConfig
+            extraInputs
             ;
           extraModules = extraModules ++ modules;
         };
@@ -200,6 +236,7 @@ let
             variant
             extraModules
             extraConfig
+            extraInputs
             ;
           vmConfig = updatedVmConfig;
         };
