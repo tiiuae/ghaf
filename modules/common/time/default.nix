@@ -188,6 +188,13 @@ in
           # No public fallback: a client that silently reaches the internet instead
           # of net-vm hides a broken internal time path until something expires.
           fallbackServers = [ ];
+          # Allow clients to synchronize promptly while net-vm's clock stabilizes.
+          settings.Time = {
+            RootDistanceMaxSec = "30s";
+            PollIntervalMinSec = "16s";
+            PollIntervalMaxSec = "32s";
+            ConnectionRetrySec = "5s";
+          };
         };
       })
 

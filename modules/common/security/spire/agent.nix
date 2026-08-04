@@ -156,6 +156,8 @@ let
       trust_domain = "${agent.trustDomain}"
       ${trustBundleConfig agent}
       socket_path = "${agent.socketPath}"
+      rebootstrap_mode = "auto"
+      rebootstrap_delay = "0s"
     }
 
     plugins {
@@ -181,6 +183,16 @@ let
   configFiles = mapAttrs (
     name: agent: pkgs.writeText "${serviceName name}.conf" (agentConf agent)
   ) configuredAgents;
+
+  agentServiceUnits = map (name: "${serviceName name}.service") (builtins.attrNames configuredAgents);
+
+  reattestAgentsApp = pkgs.writeShellApplication {
+    name = "spire-reattest-agents";
+    runtimeInputs = [ pkgs.systemd ];
+    text = ''
+      systemctl restart ${escapeShellArgs agentServiceUnits}
+    '';
+  };
 
   waitForAgent =
     name: agent:
@@ -243,21 +255,13 @@ let
     nameValuePair unitName {
       description = "SPIRE agent ${name}";
       wantedBy = [ "multi-user.target" ];
-      # ghaf-clock-synced.target is not decoration: SVIDs carry a 24h TTL, so an
-      # agent that attests before NTP has corrected the clock receives an
-      # identity that is already months expired once it is. The agent then
-      # crash-loops on "certificate signed by unknown authority" forever, while
-      # Restart= keeps the unit in auto-restart so it never reaches "failed" and
-      # never shows up in `systemctl --failed`.
       requires = [
-        "network-online.target"
+        "network.target"
         "local-fs.target"
-        "ghaf-clock-synced.target"
       ];
       after = [
-        "network-online.target"
+        "network.target"
         "local-fs.target"
-        "ghaf-clock-synced.target"
         "givc-key-setup.service"
       ];
 
@@ -342,7 +346,26 @@ in
     };
 
     systemd = {
-      services = agentServices;
+      services = agentServices // {
+        spire-reattest-agents-after-time-sync = {
+          description = "Re-attest SPIRE agents after time synchronisation";
+          wantedBy = [ "ghaf-clock-synced.target" ];
+          after = [ "ghaf-wait-time-sync.service" ];
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = getExe reattestAgentsApp;
+          };
+        };
+      };
+      timers.spire-clock-sync-trigger = {
+        description = "Start the Ghaf clock synchronisation barrier asynchronously";
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnBootSec = "0s";
+          AccuracySec = "1us";
+          Unit = "ghaf-clock-synced.target";
+        };
+      };
       tmpfiles.rules = filter (rule: rule != "") (
         mapAttrsToList (
           name: agent:
