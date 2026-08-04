@@ -255,6 +255,16 @@ let
 
       last_real="$(date +%s)"
       last_up="$(cut -d' ' -f1 /proc/uptime)"
+      last_attested=0
+
+      # journald's own jump attestations ("Time jumped backwards, rotating").
+      # The realtime-vs-monotonic delta below misses a step that goes out and
+      # back inside one poll interval, but journald rotates and logs it either
+      # way -- so count its attestations and recover when new ones appear.
+      attested_jump_count() {
+        journalctl -b -u systemd-journald.service --output=cat --quiet --no-pager 2>/dev/null \
+          | { grep -Fc "jumped backwards" || true; }
+      }
 
       while true; do
         sleep "$interval"
@@ -266,10 +276,17 @@ let
 
         abs="$(awk -v d="$drift" 'BEGIN{print (d<0)?-d:d}')"
 
-        if awk -v a="$abs" -v t="$threshold" 'BEGIN{exit !(a>=t)}'; then
+        attested="$(attested_jump_count)"
+
+        if awk -v a="$abs" -v t="$threshold" 'BEGIN{exit !(a>=t)}' \
+          || [ "$attested" -gt "$last_attested" ]; then
           systemctl start ghaf-journal-alloy-recover.service || true
+          # Re-running setup lets it detect a time-poisoned sealing epoch and
+          # re-key (see recover_from_time_poisoned_sealing in fss.nix).
+          systemctl restart --no-block journal-fss-setup.service 2>/dev/null || true
         fi
 
+        last_attested="$attested"
         last_real="$real"
         last_up="$up"
       done
