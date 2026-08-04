@@ -138,10 +138,10 @@ sudo -E $(which nix) run \
   '.#nvidia-jetson-orin-agx-debug-from-x86_64-flash-script'
 ```
 
-The accelerated single-gui-vm target is **native aarch64 only**: the
-`-from-x86_64` form cannot build its full closure because chromium does not
-cross-compile (waypipe and osquery are fixed by overlays in this tree). Build
-it on an aarch64 machine or a remote aarch64 builder:
+The accelerated single-gui-vm target is built **native aarch64** by CI. The
+`-from-x86_64` form needs the cross-compile overlays carried in this tree
+(waypipe, osquery, chromium); chromium cross is multi-hour and not cached, so
+the native attribute stays the recommended path:
 
 ```bash
 nix build .#packages.aarch64-linux.nvidia-jetson-orin-agx-accelerated-guivm-debug
