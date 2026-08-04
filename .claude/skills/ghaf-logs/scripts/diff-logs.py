@@ -29,6 +29,17 @@ NORMALISERS: list[tuple[re.Pattern[str], str]] = [
         ),
         "",
     ),
+    # The same again but UNANCHORED, because structured loggers embed their own
+    # timestamp inside the message: givc, spire, docker and most Go services all
+    # emit `time="2026-08-03T10:45:50Z" level=warning msg=...`. The anchored rule
+    # above only strips journald's leading stamp, so those lines stayed unique
+    # across boots and every one of them was reported as new.
+    (
+        re.compile(
+            r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?(?:[+-]\d{2}:?\d{2}|Z)?"
+        ),
+        "TIMESTAMP",
+    ),
     (re.compile(r"\[\s*\d+\.\d+\]"), "[TIME]"),  # kernel monotonic stamp
     (re.compile(r"\[\d+\]"), "[PID]"),
     (re.compile(r"/nix/store/[a-z0-9]{32}-"), "/nix/store/HASH-"),
