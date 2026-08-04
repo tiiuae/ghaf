@@ -249,11 +249,15 @@ let
       }
 
       # Journal paths journald named as uncleanly shut down in the current boot.
+      # journalctl --grep needs PCRE2, which the deployed journalctl is built
+      # without ("PCRE2 support is not compiled in") -- it then exits non-zero
+      # having matched nothing, silently disabling this detection. Filter the
+      # plain output with grep -F instead.
       unclean_shutdown_named_paths() {
         journalctl -b -u systemd-journald.service \
-          --grep="corrupted or uncleanly shut down, renaming and replacing" \
           --output=cat --quiet --no-pager 2>/dev/null \
-          | grep -oE '/var/log/journal/[^ ]+\.journal' \
+          | { grep -F "corrupted or uncleanly shut down, renaming and replacing" || true; } \
+          | { grep -oE '/var/log/journal/[^ ]+\.journal' || true; } \
           | sort -u
       }
 
@@ -310,6 +314,18 @@ let
         find "$journal_dir" -maxdepth 1 -type f -name 'system@*.journal' -print 2>/dev/null | sort
       }
 
+      # A time-jump rotation freezes every journal kind, so jump receipting has
+      # to cover more than the system@ archives: user journals and the renamed
+      # "~" corpses carry the same journald-attested poisoning and otherwise
+      # keep failing verification with no receipt to excuse them.
+      list_time_jump_receiptable_journals() {
+        local journal_dir="$1"
+
+        find "$journal_dir" -maxdepth 1 -type f \
+          \( -name 'system@*.journal' -o -name 'user-*@*.journal' -o -name '*.journal~' \) \
+          -print 2>/dev/null | sort -u
+      }
+
       boot_start_epoch() {
         awk -v now="$(date +%s)" '{printf "%d\n", now - $1}' /proc/uptime
       }
@@ -324,19 +340,22 @@ let
         [ "$(tr -d '[:space:]' < "$FSS_BOOT_BASELINE_FILE")" = "$(fss_current_boot_id)" ]
       }
 
+      # journalctl --grep needs PCRE2, which the deployed journalctl is built
+      # without ("PCRE2 support is not compiled in") -- it then matched nothing,
+      # so time-jump archives were never receipted and journal-fss-verify kept
+      # failing forever after a clock step journald had already attested.
+      # Filter the plain output with grep -F instead.
       current_boot_time_jump_epochs() {
-        {
-          journalctl -b -u systemd-journald.service \
-            --grep="Time jumped backwards, rotating" \
-            --output=short-unix \
-            --quiet \
-            --no-pager 2>/dev/null || true
-          journalctl -b -u systemd-journald.service \
-            --grep="Realtime clock jumped backwards relative to last journal entry, rotating" \
-            --output=short-unix \
-            --quiet \
-            --no-pager 2>/dev/null || true
-        } | awk '
+        journalctl -b -u systemd-journald.service \
+          --output=short-unix \
+          --quiet \
+          --no-pager 2>/dev/null \
+          | {
+            grep -F -e "Time jumped backwards, rotating" \
+              -e "Realtime clock jumped backwards relative to last journal entry, rotating" \
+              || true
+          } \
+          | awk '
           $1 ~ /^[0-9]+([.][0-9]+)?$/ {
             split($1, ts, ".")
             print ts[1]
@@ -394,7 +413,7 @@ let
               record_recovery_receipt "$archive_path" "clock-jump-recovery"
             fi
           fi
-        done < <(list_archived_system_journals "$journal_dir")
+        done < <(list_time_jump_receiptable_journals "$journal_dir")
       }
 
       # Receipt archived system journals that newly appeared immediately after the
@@ -730,11 +749,64 @@ let
         esac
       }
 
+      # Highest "newer tag" epoch (microseconds) named by failed verification
+      # output; empty when the output carries no such line.
+      fss_max_future_tag_epoch_us() {
+        printf '%s\n' "$1" \
+          | { grep -oE 'Older entry after newer tag \([0-9]+ < [0-9]+\)' || true; } \
+          | { grep -oE '< [0-9]+' || true; } \
+          | tr -d '< ' | sort -n | tail -1
+      }
+
+      # A backward realtime step after sealing leaves the FSPRG epoch ahead of
+      # the wall clock: every entry sealed until real time catches up fails
+      # with "Older entry after newer tag" -- including the freshly rotated
+      # active journal -- so setup fails closed on every boot for the length
+      # of the step, and the key-divergence diagnosis below misfires on it.
+      # journald itself attests the jump ("Time jumped backwards, rotating"),
+      # so this state is recoverable: freeze and receipt the sealed history,
+      # discard the poisoned key pair, and re-run key setup from the current
+      # clock. Bounded to one attempt per invocation chain, and only when the
+      # future tag sits beyond any plausible in-flight sealing interval.
+      recover_from_time_poisoned_sealing() {
+        local verify_output="$1" future_us now_us margin_us archive_path
+
+        [ "''${FSS_REKEY_ATTEMPTED:-0}" = 0 ] || return 1
+        future_us=$(fss_max_future_tag_epoch_us "$verify_output")
+        [ -n "$future_us" ] || return 1
+        now_us=$(( $(date +%s) * 1000000 ))
+        margin_us=$(( 300 * 1000000 ))
+        [ "$future_us" -gt $(( now_us + margin_us )) ] || return 1
+
+        fss_log warn "Sealing epoch is $(( (future_us - now_us) / 1000000 ))s ahead of the wall clock (journald-attested clock jump); recovering by re-keying FSS"
+        # Open a re-key transaction: journals sealed under the discarded key
+        # keep surfacing as failing archives for a while (frozen at the next
+        # rotation or at shutdown), so the receipting below cannot be one-shot.
+        # finish_setup reconciles against this stamp on every later run until
+        # the transition window is clean, then closes it.
+        date +%s > "$STATE_DIR/fss-rekey-epoch"
+        chmod 0644 "$STATE_DIR/fss-rekey-epoch"
+        journalctl --rotate 2>/dev/null || true
+        journalctl --sync 2>/dev/null || true
+        while IFS= read -r archive_path || [ -n "$archive_path" ]; do
+          [ -n "$archive_path" ] || continue
+          record_recovery_receipt "$archive_path" "clock-jump-rekey"
+        done < <(list_time_jump_receiptable_journals "$JOURNAL_DIR")
+        rm -f "$FSS_KEY_FILE" "$VERIFY_KEY_FILE"
+        clear_initialized_state
+        rm -f "$STATE_DIR/fss-rotated" "$ACTIVATION_STATE_FILE" "$FSS_BOOT_BASELINE_FILE"
+        FSS_REKEY_ATTEMPTED=1 exec "$0"
+      }
+
       verify_live_sealing_after_activation() {
         local verify_key verify_output verify_exit marker
 
         [ "$ACTIVATION_ENABLED" = 1 ] || return 0
-        [ "$ACTIVATION_RESTARTED_THIS_RUN" = 1 ] || return 0
+        # Also probe when sealing is already active without a restart this
+        # run: the clock-jump watcher re-runs setup precisely so a live
+        # time-poisoned sealing epoch is detected (and re-keyed) mid-boot,
+        # not just on the boot after the jump.
+        [ "$ACTIVATION_RESTARTED_THIS_RUN" = 1 ] || journald_activation_already_current || return 0
         [ "$ACTIVATION_FAILED" = 0 ] || return 1
         [ -s "$VERIFY_KEY_FILE" ] && [ -r "$VERIFY_KEY_FILE" ] || return 0
 
@@ -751,6 +823,11 @@ let
           || [ -n "$FSS_OTHER_FAILURES" ] \
           || [ "$FSS_KEY_PARSE_ERROR" = 1 ] \
           || [ "$FSS_KEY_REQUIRED_ERROR" = 1 ]; then
+          # Checked before the key-divergence diagnosis: a time-poisoned
+          # sealing epoch produces the same active-journal failure signature
+          # and would be misreported as a diverged key pair. On success this
+          # re-execs the setup script and does not return.
+          recover_from_time_poisoned_sealing "$verify_output" || true
           if [ -n "$FSS_ACTIVE_SYSTEM_FAILURES" ] \
             && verification_key_diverged_from_sealing_key "$verify_key"; then
             fss_log fail "FSS verification key does not match the sealing key in use"
@@ -797,11 +874,75 @@ let
         fi
       }
 
+      # Re-key transition reconciliation. After recover_from_time_poisoned_sealing
+      # discards a poisoned key pair, journals sealed under the old key keep
+      # surfacing as failing archives: the generation journald sealed with the
+      # old in-memory key between the freeze rotation and the activation
+      # restart (user journals included), and old-lineage actives that only
+      # freeze at the next rotation or at shutdown. Reconcile on every setup
+      # run while the transaction stamp exists: rotate so old lineages freeze,
+      # receipt failing archived files whose mtime falls inside the stamp
+      # window, and close the transaction once nothing in-window fails.
+      # Unrelated failures (outside the window, or with no stamp) still fail
+      # closed.
+      receipt_rekey_transition_remainder() {
+        local stamp_file="$STATE_DIR/fss-rekey-epoch"
+        local stamp grace remaining verify_key sweep_output sweep_path sweep_mtime
+
+        [ -f "$stamp_file" ] || return 0
+        [ "$ACTIVATION_FAILED" = 0 ] || return 0
+        [ -s "$VERIFY_KEY_FILE" ] && [ -r "$VERIFY_KEY_FILE" ] || return 0
+        stamp=$(tr -d '[:space:]' < "$stamp_file")
+        case "$stamp" in
+        "" | *[!0-9]*)
+          rm -f "$stamp_file"
+          return 0
+          ;;
+        esac
+        grace=900
+
+        # A transaction that cannot reconcile within a day is not transition
+        # residue; stop sweeping and let the remaining failures stand.
+        if [ $(( $(date +%s) - stamp )) -gt 86400 ]; then
+          rm -f "$stamp_file"
+          fss_log warn "Re-key transaction expired unreconciled; remaining verification failures stand"
+          return 0
+        fi
+
+        journalctl --rotate 2>/dev/null || true
+        journalctl --sync 2>/dev/null || true
+        verify_key=$(tr -d '[:space:]' < "$VERIFY_KEY_FILE")
+        sweep_output=$(journalctl --verify --verify-key="$verify_key" 2>&1) || true
+        remaining=0
+        while IFS= read -r sweep_path || [ -n "$sweep_path" ]; do
+          [ -n "$sweep_path" ] || continue
+          case "$sweep_path" in
+          *@* | *.journal~) ;;
+          *) continue ;; # never receipt a live journal
+          esac
+          sweep_mtime=$(stat -c %Y "$sweep_path" 2>/dev/null || echo 0)
+          if [ "$sweep_mtime" -le $(( stamp + grace )) ]; then
+            record_recovery_receipt "$sweep_path" "clock-jump-rekey"
+          else
+            remaining=1
+          fi
+        done < <(fss_unique_fail_paths_from_output "$sweep_output")
+
+        # Old-lineage actives only freeze at the next rotation or shutdown, so
+        # a clean sweep now does not mean the window is done producing
+        # stragglers: close only once the grace window itself has elapsed.
+        if [ "$remaining" = 0 ] && [ "$(date +%s)" -gt $(( stamp + grace )) ]; then
+          rm -f "$stamp_file"
+          fss_log info "Re-key transition reconciled; closing the re-key transaction"
+        fi
+      }
+
       # Exit the setup service, failing closed if sealing activation did not take
       # effect. journald keeps running either way; a non-zero exit makes the
       # unsealed state visible (failed unit + journal-fss-verify alert) instead of
       # silently passing.
       finish_setup() {
+        receipt_rekey_transition_remainder
         if [ "$ACTIVATION_FAILED" = 1 ]; then
           fss_log fail "FSS setup finished but sealing activation failed; logs are unsealed"
           exit 1
@@ -862,7 +1003,9 @@ let
         rm -f "$SETUP_ARCHIVES_BEFORE"
       }
       trap cleanup_setup_tmp EXIT
-      list_archived_system_journals "$JOURNAL_DIR" > "$SETUP_ARCHIVES_BEFORE" 2>/dev/null || true
+      # Broad list: the jump-receipt path gates on membership here, and a
+      # time-jump rotation freezes user journals and corpses too.
+      list_time_jump_receiptable_journals "$JOURNAL_DIR" > "$SETUP_ARCHIVES_BEFORE" 2>/dev/null || true
       if activation_boundary_recording_needed; then
         RECORD_PRE_ACTIVATION_THIS_RUN=1
       fi
