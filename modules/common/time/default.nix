@@ -189,16 +189,45 @@ in
           # of net-vm hides a broken internal time path until something expires.
           fallbackServers = [ ];
           # Allow clients to synchronize promptly while net-vm's clock stabilizes.
+          #
+          # The poll interval governs how often a client retries a server it has
+          # rejected, so it sets how long a client waits out the server's initial
+          # convergence. Measured on an X1 with PollIntervalMaxSec=32s: three
+          # "Server has too large root distance" rejections 32.25s apart, and the
+          # first accepted reply only at 127s. Keeping the ceiling next to the
+          # floor roughly halves that.
+          #
+          # 16s/17s is as tight as systemd allows: PollIntervalMinSec must not be
+          # smaller than 16s, and PollIntervalMaxSec must be strictly larger than
+          # PollIntervalMinSec (timesyncd.conf(5)).
           settings.Time = {
             RootDistanceMaxSec = "30s";
             PollIntervalMinSec = "16s";
-            PollIntervalMaxSec = "32s";
+            PollIntervalMaxSec = "17s";
             ConnectionRetrySec = "5s";
           };
         };
       })
 
       (mkIf cfg.server.enable {
+        # Without its driftfile chronyd re-estimates frequency and skew from
+        # scratch on every boot, and until it converges its root dispersion stays
+        # above the clients' RootDistanceMaxSec -- so the whole fleet waits on a
+        # server that is running but not yet acceptable. Observed on an X1 as
+        # "Could not read valid frequency and skew from driftfile" followed by
+        # clients rejecting net-vm for ~96s.
+        #
+        # rtcfile is persisted for the same reason: it is what lets chronyd
+        # correct the RTC at shutdown and trust it at the next boot.
+        ghaf.storagevm.directories = lib.mkIf config.ghaf.storagevm.enable [
+          {
+            directory = "/var/lib/chrony";
+            user = "chrony";
+            group = "chrony";
+            mode = "0750";
+          }
+        ];
+
         services.timesyncd.enable = false;
         services.chrony = {
           enable = true;

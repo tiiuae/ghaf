@@ -97,7 +97,28 @@ let
       sync_result="not-started"
       sync_value="unknown"
 
-      while true; do
+      # Fast path. The observation window below exists to catch a clock that is
+      # still moving, but nothing that could move it is running yet: this unit is
+      # ordered before sysinit.target, so networking and timesyncd have not
+      # started -- that is precisely why the NTP wait was split out into
+      # ghaf-clock-sync (see the note further down). So when a previous good boot
+      # left an anchor and the current realtime already sits inside
+      # [anchor, max_epoch], every check the loop performs has already passed on
+      # the first sample, and repeating it for stable_seconds only delays the
+      # journal flush.
+      #
+      # Deliberately conditional on anchor_status=accepted: with no anchor, a
+      # corrupt one, or a realtime outside the window, there is no trustworthy
+      # floor to compare against and the full observation still applies.
+      now_real="$(date +%s)"
+      if [ "$anchor_status" = "accepted" ] &&
+        [ "$now_real" -ge "$min_allowed" ] &&
+        [ "$now_real" -le "$max_epoch" ]; then
+        echo "Clock readiness established immediately: realtime $now_real within [$min_allowed, $max_epoch] against an accepted anchor"
+        ready_established=1
+      fi
+
+      while [ "$ready_established" -eq 0 ]; do
         sleep 1
         now_up="$(uptime_seconds)"
         now_real="$(date +%s)"
