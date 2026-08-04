@@ -25,7 +25,8 @@ Creates a Ghaf configuration for any supported target type (laptop-x86, orin).
 - `package`: The built system image
 - `extendHost`: Function to extend host with additional modules
 - `extendVm`: Function to extend a specific VM with additional modules
-- `getVmConfig`: Function to get a VM's final configuration
+- `getVmConfig`: Function to get a VM's final configuration. Takes the `microvm.vms` key, i.e. the
+  hyphenated name (`"gui-vm"`, `"net-vm"`), not the `vmConfig.sysvms` key that `extendVm` takes
 
 ### mkGhafInstaller
 

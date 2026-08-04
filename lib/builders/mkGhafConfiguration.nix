@@ -205,12 +205,17 @@ let
         };
 
       # Helper: Get a VM's final configuration
-      getVmConfig =
-        vmName:
-        lib.ghaf.vm.getConfig {
-          inherit vmName;
-          inherit (hostConfiguration) config;
-        };
+      #
+      # `vmName` is the microvm.vms key, i.e. the hyphenated form ("gui-vm").
+      # That is what lib.ghaf.vm.getConfig documents as its argument and what
+      # every other caller in the tree passes.
+      #
+      # Note this differs from extendVm above, which takes the
+      # ghaf.virtualization.vmConfig.sysvms key ("guivm"). Both conventions
+      # exist across the codebase -- global-config's features.targetVms is
+      # hyphenated, hardware.definition.<vm> is not -- and reconciling them is
+      # a separate change.
+      getVmConfig = vmName: lib.ghaf.vm.getConfig hostConfiguration.config.microvm.vms.${vmName};
 
     in
     {
