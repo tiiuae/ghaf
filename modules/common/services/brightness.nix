@@ -15,7 +15,6 @@ let
     types
     ;
   cfg = config.ghaf.services.brightness;
-  nvidiaEnabled = config.ghaf.graphics.nvidia-setup.enable;
 in
 {
   _file = ./brightness.nix;
@@ -30,8 +29,11 @@ in
     };
   };
 
-  # Currently we need acpi forwarder for NVidia platform where acpi is enabled
-  config = mkIf (cfg.enable && nvidiaEnabled) {
+  # cfg.enable alone. This used to also require nvidia-setup.enable as a
+  # stand-in for "the host owns the backlight", but hybrid-setup enables that on
+  # plain Intel laptops, so the forwarder was created on machines with no virtio
+  # port to write to. The platform now states it via hostBacklight instead.
+  config = mkIf cfg.enable {
 
     assertions = [
       {
@@ -64,7 +66,15 @@ in
         description = "ACPI Brightness Key Forwarder to Host via VirtIO";
         wantedBy = [ "multi-user.target" ];
         # Start after /dev/virtio-ports/brightness (systemd escapes '-' as \x2d in unit names)
-        after = [ "dev-virtio\\x2dports-brightness.device" ];
+        # acpid too: acpi_listen connects to its socket, and without ordering
+        # the first start loses that race and fails.
+        after = [
+          "dev-virtio\\x2dports-brightness.device"
+          "acpid.service"
+        ];
+        # `after` only orders. This stops the unit starting at all when the
+        # device never appears, so a mismatch is inert rather than restart-looping.
+        unitConfig.ConditionPathExists = "/dev/virtio-ports/brightness";
         serviceConfig = {
           Type = "simple";
           ExecStart = "${brightnessForwarder}/bin/brightness-forwarder";

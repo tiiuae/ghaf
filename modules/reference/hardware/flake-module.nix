@@ -12,6 +12,14 @@
       inputs.self.nixosModules.hardware-x86_64-workstation
       { ghaf.hardware.definition = import ./alienware/alienware-m18.nix; }
       {
+        # The host owns this machine's panel backlight, not the GUI VM driving
+        # the display, so brightness keys must be forwarded. This turns on all
+        # three pieces: guest forwarder, virtio-serial port, host receiver.
+        ghaf.global-config.features.brightness = {
+          enable = true;
+          hostBacklight = "nvidia_wmi_ec_backlight";
+        };
+
         # Hardware-specific VM configs via hardware definition
         ghaf.hardware.definition.guivm.extraModules = [
           (import ./alienware/extra-config.nix)
