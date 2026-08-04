@@ -82,8 +82,9 @@ let
         sleep 1
       done
 
-      if [ ! -S "${socketPath}" ]; then
-        echo "ERROR: SPIRE server socket not found at ${socketPath}" >&2
+      if [ ! -S "${socketPath}" ] \
+        || ! spire-server healthcheck -socketPath "${socketPath}" >/dev/null 2>&1; then
+        echo "ERROR: SPIRE server is not ready at ${socketPath}" >&2
         exit 1
       fi
 
@@ -97,6 +98,35 @@ let
       install -m 0644 -o root -g root "$tmp" "$out"
       rm -f "$tmp"
       echo "Wrote $out"
+    '';
+  };
+
+  spireRefreshIdentityApp = pkgs.writeShellApplication {
+    name = "spire-refresh-identity";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.jq
+      spire-package
+    ];
+    text = ''
+      state="$(spire-server localauthority x509 show \
+        -socketPath "${socketPath}" -output json)"
+      active_id="$(printf '%s' "$state" | jq -er '.active.authority_id')"
+      active_expires_at="$(printf '%s' "$state" | jq -er '.active.expires_at | tonumber')"
+
+      if [ "$active_expires_at" -le "$(date +%s)" ]; then
+        prepared="$(spire-server localauthority x509 prepare \
+          -socketPath "${socketPath}" -output json)"
+        prepared_id="$(printf '%s' "$prepared" | jq -er '.prepared_authority.authority_id')"
+
+        spire-server localauthority x509 activate \
+          -socketPath "${socketPath}" -authorityID "$prepared_id"
+        # Tainting the expired authority makes SPIRE rotate its server SVID now.
+        spire-server localauthority x509 taint \
+          -socketPath "${socketPath}" -authorityID "$active_id"
+      fi
+
+      exec ${getExe spirePublishBundleApp}
     '';
   };
 
@@ -187,10 +217,7 @@ in
             description = "SPIRE server setup";
             wantedBy = [ "spire-server.service" ];
             before = [ "spire-server.service" ];
-            # Ordered after the clock barrier as well, so the bundle is not
-            # deleted and republished around a CA minted against a bad clock.
-            requires = [ "ghaf-clock-synced.target" ];
-            after = [ "ghaf-clock-synced.target" ];
+            unitConfig.RequiresMountsFor = [ cfg.trustBundlePath ];
             serviceConfig = {
               Type = "oneshot";
               ExecStart = "${setupScript}";
@@ -198,20 +225,14 @@ in
             };
           };
         spire-server = {
-          # The server mints its CA and its own SVID with a 24h TTL at startup.
-          # Started against the boot-time fallback clock those are born expired,
-          # the server cannot rotate its own identity, and it emergency-rotates
-          # to a CA that no published bundle matches.
           requires = [
-            "network-online.target"
+            "network.target"
             "local-fs.target"
-            "ghaf-clock-synced.target"
             "spire-server-setup.service"
           ];
           after = [
-            "network-online.target"
+            "network.target"
             "local-fs.target"
-            "ghaf-clock-synced.target"
             "spire-server-setup.service"
           ];
 
@@ -236,21 +257,37 @@ in
 
         spire-publish-bundle = {
           description = "Publish SPIRE trust bundle (PoC)";
-          wantedBy = [ "multi-user.target" ];
+          wantedBy = [
+            "multi-user.target"
+            "spire-server.service"
+          ];
           after = [ "spire-server.service" ];
           wants = [ "spire-server.service" ];
+          unitConfig.RequiresMountsFor = [ cfg.trustBundlePath ];
 
           serviceConfig = {
             Type = "oneshot";
             ExecStart = getExe spirePublishBundleApp;
-            # Publishing once per boot is not enough. The bundle only matches the
-            # server while the CA it was exported from is still the active one;
-            # any later rotation silently invalidates it and every agent fails
-            # with "certificate signed by unknown authority" until the next
-            # reboot. Retry on failure, and re-export on a period well inside the
-            # 24h CA lifetime so the two cannot drift apart unnoticed.
+            # Retry failures and refresh hourly so the file follows CA rotation.
             Restart = "on-failure";
             RestartSec = "30s";
+          };
+        };
+        spire-refresh-identity-after-time-sync = {
+          description = "Refresh SPIRE identities after time synchronisation";
+          wantedBy = [ "ghaf-clock-synced.target" ];
+          wants = [ "spire-server.service" ];
+          after = [
+            "ghaf-wait-time-sync.service"
+            "spire-server.service"
+          ];
+          unitConfig.RequiresMountsFor = [ cfg.trustBundlePath ];
+
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = getExe spireRefreshIdentityApp;
+            Restart = "on-failure";
+            RestartSec = "5s";
           };
         };
         spire-create-workload-entries = {
