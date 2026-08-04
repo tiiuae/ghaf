@@ -96,6 +96,34 @@ in
       default = [ ];
     };
 
+    # The applications supplied through the mkAppVm call, carried into a TYPED
+    # option purely so the module system checks them.
+    #
+    # They arrive as hostConfig.appvm.applications -- a specialArg, which the
+    # module system never validates -- and were previously used straight from
+    # the `baseApplications` let-binding. A caller that passed a wrong field
+    # name got no error here at all: the value flowed untouched into
+    # ghaf.appvm.vmDef, and only blew up much later and elsewhere, wherever
+    # something happened to read `app.exec`. That is how a downstream ends up
+    # debugging a missing launcher instead of reading a message naming the
+    # field it got wrong.
+    #
+    # Note this is NOT the same as folding them into `applications` above:
+    # these two lists are concatenated below, so merging them would duplicate
+    # every base application.
+    baseApplications = lib.mkOption {
+      description = ''
+        Applications supplied by the mkAppVm call for this VM.
+
+        Set internally from hostConfig.appvm.applications; declared as an
+        option so that its contents are type-checked. Use `applications`
+        above to add apps from an extension.
+      '';
+      internal = true;
+      type = lib.types.listOf lib.types.ghafApplication;
+      default = [ ];
+    };
+
     # Export vmDef so host can read values from evaluatedConfig.config.ghaf.appvm.vmDef
     # This includes merged applications from both base and extensions
     vmDef = lib.mkOption {
@@ -108,7 +136,12 @@ in
   config =
     let
       # All applications = base (from mkAppVm) + extensions (from ghaf.appvm.applications)
-      allApplications = baseApplications ++ config.ghaf.appvm.applications;
+      #
+      # Read through the option rather than the let-binding, so everything
+      # downstream of here sees type-checked values. The raw `baseApplications`
+      # binding is still used for the packages and extraModules above, because
+      # those feed `imports`, which cannot depend on `config`.
+      allApplications = config.ghaf.appvm.baseApplications ++ config.ghaf.appvm.applications;
 
       # Process applications for GIVC
       givcApps = map (app: {
@@ -123,6 +156,11 @@ in
       );
     in
     {
+      # Carry the mkAppVm-supplied applications into the typed option. This
+      # assignment is what makes the module system check them; see the option's
+      # declaration above.
+      ghaf.appvm.baseApplications = baseApplications;
+
       # Set vmDef with merged applications and unwrapped vtpm values
       # vtpm values use mkDefault which wraps them - unwrap for host-side access
       ghaf.appvm.vmDef = vm // {
