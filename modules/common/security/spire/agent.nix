@@ -188,8 +188,22 @@ let
 
   reattestAgentsApp = pkgs.writeShellApplication {
     name = "spire-reattest-agents";
-    runtimeInputs = [ pkgs.systemd ];
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.systemd
+    ];
     text = ''
+      # Same gate as the server-side refresh: with ghaf.time.requireSync = false
+      # the barrier releases on a timeout without the clock ever being trusted,
+      # and restarting the agents then just re-mints the same bad identities.
+      sync_state="$(cat /run/ghaf-clock-synced 2>/dev/null || echo missing)"
+      if [ "$sync_state" != "synchronised" ]; then
+        echo "spire-reattest-agents: clock barrier reports '$sync_state', not 'synchronised';" \
+             "not re-attesting. Agents keep identities minted against an untrusted clock." >&2
+        exit 0
+      fi
+
+      echo "spire-reattest-agents: clock synchronised, re-attesting ${toString (length agentServiceUnits)} agent(s)"
       systemctl restart ${escapeShellArgs agentServiceUnits}
     '';
   };
@@ -265,10 +279,28 @@ let
         "givc-key-setup.service"
       ];
 
-      unitConfig.RequiresMountsFor =
-        optional (agent.trustBundleUrl == null) agent.trustBundlePath
-        ++ credentialPaths agent
-        ++ optional (!hasPrefix "/run/" agent.dataDir) agent.dataDir;
+      unitConfig = {
+        RequiresMountsFor =
+          optional (agent.trustBundleUrl == null) agent.trustBundlePath
+          ++ credentialPaths agent
+          ++ optional (!hasPrefix "/run/" agent.dataDir) agent.dataDir;
+
+        # An agent that cannot attest retries every 5s. Without a limit it never
+        # reaches "failed", so it never appears in `systemctl --failed` and a
+        # permanently broken identity looks exactly like a healthy device. That
+        # is the failure mode the clock barrier used to prevent by refusing to
+        # start the agent at all; now that the agent deliberately starts before
+        # the clock is trusted, the visibility has to come from here instead.
+        #
+        # The window is wide enough to ride out the expected transient: after
+        # the clock syncs, agents re-attest at roughly the same moment the
+        # server rotates its CA, so a few failures against the old bundle are
+        # normal. rebootstrap_mode = "auto" is the intended backstop for that
+        # race -- if it is not permitted server-side the agent says so, and this
+        # limit is what makes the resulting dead end visible rather than silent.
+        StartLimitIntervalSec = 600;
+        StartLimitBurst = 20;
+      };
 
       serviceConfig = {
         ExecStartPre = [

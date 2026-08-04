@@ -12,6 +12,13 @@ let
   runtimeDataDir = "/run/spire-server";
   credSourceDir = "/etc/givc";
   socketPath = "${runtimeDataDir}/api.sock";
+
+  # SPIRE's default CA lifetime is 24h. Anything expiring further out than a
+  # generous multiple of that cannot have been minted against a correct clock,
+  # which is how a clock that was running *ahead* is detected after it is
+  # corrected downwards. Slack rather than an exact bound, so a future change to
+  # ca_ttl does not silently start forcing a rotation on every sync.
+  caLifetimeSlackSeconds = 7 * 24 * 3600;
   dataDir = "${runtimeDataDir}";
 
   spire-package = config.ghaf.common.spire.package;
@@ -109,21 +116,46 @@ let
       spire-package
     ];
     text = ''
+      # Only meaningful once the clock is actually trusted. With
+      # ghaf.time.requireSync = false the barrier releases on a timeout and
+      # writes "released" instead, and rotating onto a CA minted against a clock
+      # we already know is wrong would buy nothing. Say so rather than exiting
+      # quietly, so "no refresh happened" is never mistaken for "refreshed".
+      sync_state="$(cat /run/ghaf-clock-synced 2>/dev/null || echo missing)"
+      if [ "$sync_state" != "synchronised" ]; then
+        echo "spire-refresh-identity: clock barrier reports '$sync_state', not 'synchronised';" \
+             "leaving the CA alone. Identities remain minted against an untrusted clock." >&2
+        exit 0
+      fi
+
       state="$(spire-server localauthority x509 show \
         -socketPath "${socketPath}" -output json)"
       active_id="$(printf '%s' "$state" | jq -er '.active.authority_id')"
       active_expires_at="$(printf '%s' "$state" | jq -er '.active.expires_at | tonumber')"
+      now="$(date +%s)"
 
-      if [ "$active_expires_at" -le "$(date +%s)" ]; then
+      # Rotate in BOTH directions. Expiry alone only catches a clock that was
+      # behind real time; a clock that was *ahead* (dead RTC battery, a fallback
+      # epoch in the future) mints a CA whose notBefore is in the future, which
+      # agents reject as "certificate is not yet valid" while expires_at still
+      # looks comfortably distant. Treat an expiry further out than the CA could
+      # legitimately reach as the same kind of evidence that it was minted
+      # against a bad clock.
+      max_plausible=$(( now + ${toString caLifetimeSlackSeconds} ))
+      if [ "$active_expires_at" -le "$now" ] || [ "$active_expires_at" -gt "$max_plausible" ]; then
+        echo "spire-refresh-identity: active CA expires_at=$active_expires_at is implausible" \
+             "against now=$now; rotating."
         prepared="$(spire-server localauthority x509 prepare \
           -socketPath "${socketPath}" -output json)"
         prepared_id="$(printf '%s' "$prepared" | jq -er '.prepared_authority.authority_id')"
 
         spire-server localauthority x509 activate \
           -socketPath "${socketPath}" -authorityID "$prepared_id"
-        # Tainting the expired authority makes SPIRE rotate its server SVID now.
+        # Tainting the old authority makes SPIRE rotate its server SVID now.
         spire-server localauthority x509 taint \
           -socketPath "${socketPath}" -authorityID "$active_id"
+      else
+        echo "spire-refresh-identity: active CA is plausible against the synchronised clock; no rotation needed."
       fi
 
       exec ${getExe spirePublishBundleApp}
@@ -281,7 +313,15 @@ in
             "ghaf-wait-time-sync.service"
             "spire-server.service"
           ];
-          unitConfig.RequiresMountsFor = [ cfg.trustBundlePath ];
+          unitConfig = {
+            RequiresMountsFor = [ cfg.trustBundlePath ];
+            # Bound the retries. Without a limit a malformed localauthority
+            # response (jq -er exits non-zero under set -e) retries every 5s
+            # forever while the unit never reaches "failed", so nothing shows up
+            # in `systemctl --failed` and the CA silently never rotates.
+            StartLimitIntervalSec = 300;
+            StartLimitBurst = 5;
+          };
 
           serviceConfig = {
             Type = "oneshot";
