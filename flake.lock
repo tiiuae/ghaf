@@ -334,15 +334,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1784755592,
-        "narHash": "sha256-/8xligffWLxeDy6+18+FTMAz60aTMATwPTvEYRBS8U4=",
-        "owner": "tiiuae",
+        "lastModified": 1785845933,
+        "narHash": "sha256-Qz9Uor7iaXF3NaiFauPBi9JK6h/4q7VBKhpaYI6V11o=",
+        "owner": "avnik",
         "repo": "ghaf-givc",
-        "rev": "4d0b205982b6828e9545ceb8c6a38f26797b7b7c",
+        "rev": "d4ac6f768a1eb3756efc063710b48f9cf61a232a",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "avnik",
+        "ref": "avnik/ota-efi",
         "repo": "ghaf-givc",
         "type": "github"
       }
