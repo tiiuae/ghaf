@@ -48,6 +48,15 @@ Creates a bootable ISO installer for any Ghaf configuration.
 
 ## Usage in Downstream Projects
 
+Use the **pre-bound** builders — `ghafConfiguration`, `ghafInstaller`,
+`ghafNetbootInstaller`. They are the same builders already bound to ghaf's own `self`, `inputs`
+and `lib`, so a downstream never has to construct that bundle by hand.
+
+Getting the bundle right by hand is genuinely hard: `inputs` inside a flake-parts module contains
+`self` (the `outputs` function receives it), but the `inputs` **output attribute** of a built flake
+does not. So `inputs.ghaf.inputs` is missing exactly the key every ghaf module reads as
+`inputs.self`, and the failure surfaces deep inside module evaluation as `attribute 'self' missing`.
+
 ### Basic Usage
 
 ```nix
@@ -57,30 +66,12 @@ Creates a bootable ISO installer for any Ghaf configuration.
     nixpkgs.follows = "ghaf/nixpkgs";
   };
 
-  outputs = { ghaf, nixpkgs, ... }:
+  outputs = { self, ghaf, ... }:
   let
     system = "x86_64-linux";
 
-    # Initialize builders from ghaf
-    mkGhafConfiguration = ghaf.builders.mkGhafConfiguration {
-      self = ghaf;
-      inputs = { inherit ghaf nixpkgs; };
-      lib = ghaf.lib;
-    };
-
-    mkGhafInstaller = ghaf.builders.mkGhafInstaller {
-      self = ghaf;
-      lib = ghaf.lib;
-      inherit system;
-      extraModules = [
-        {
-          networking.wireless.networks."MyWiFi".psk = "password";
-        }
-      ];
-    };
-
     # Create laptop configuration
-    myLaptop = mkGhafConfiguration {
+    myLaptop = ghaf.builders.ghafConfiguration {
       name = "my-laptop";
       inherit system;
       profile = "laptop-x86";
@@ -95,15 +86,20 @@ Creates a bootable ISO installer for any Ghaf configuration.
         partitioning.disko.enable = true;
       };
       vmConfig = {
-        guivm = {
+        sysvms.guivm = {
           mem = 8192;
           vcpu = 4;
         };
       };
+      # Reach your OWN flake from inside your modules, as `inputs.mine`.
+      # `self` and `inputs` in a module are ghaf's; this is how you add a name
+      # that resolves on the host AND inside every VM.
+      extraInputs = { mine = self; };
     };
 
-    # Create installer
-    myInstaller = mkGhafInstaller {
+    # Create installer. The first argument set configures the shared installer
+    # system; the second names the image it installs.
+    myInstaller = ghaf.builders.ghafInstaller { inherit system; } {
       name = myLaptop.name;
       imagePath = myLaptop.package;
     };
@@ -122,24 +118,28 @@ The `vmConfig` parameter allows you to customize VM resource allocation per-targ
 
 ```nix
 vmConfig = {
-  # System VMs
-  guivm = {
-    mem = 16384;        # Memory in MB
-    vcpu = 8;           # Virtual CPUs
-    extraModules = [ ./custom-gui.nix ];
-  };
-  netvm = {
-    mem = 1024;
-  };
-  audiovm = {
-    mem = 512;
+  # System VMs, keyed by the unhyphenated name (guivm, netvm, audiovm,
+  # adminvm, idsvm)
+  sysvms = {
+    guivm = {
+      mem = 16384;        # Memory in MB
+      vcpu = 8;           # Virtual CPUs
+      extraModules = [ ./custom-gui.nix ];
+    };
+    netvm = {
+      mem = 1024;
+    };
+    audiovm = {
+      mem = 512;
+    };
   };
 
-  # App VMs (use ramMb/cores for consistency with appvm definitions)
+  # App VMs
   appvms = {
     chromium = {
-      ramMb = 8192;
-      cores = 4;
+      mem = 8192;
+      vcpu = 4;
+      balloonRatio = 2;
       extraModules = [ ./chromium-tweaks.nix ];
     };
   };
