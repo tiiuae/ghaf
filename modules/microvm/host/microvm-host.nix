@@ -353,10 +353,12 @@ in
           };
         };
     })
-    {
+    # Applies brightness keys forwarded from the GUI VM to a backlight the host
+    # owns. The hardware states which device that is; it used to be hardcoded.
+    (mkIf (config.ghaf.global-config.features.brightness.hostBacklight != null) {
       systemd.services."nvidia-brightness-control" =
         let
-          backlightDevice = "nvidia_wmi_ec_backlight";
+          backlightDevice = config.ghaf.global-config.features.brightness.hostBacklight;
           controlBrightnessScript = pkgs.writeShellApplication {
             name = "nvidia-brightness-control";
             runtimeInputs = with pkgs; [
@@ -395,7 +397,7 @@ in
             RestartSec = "1";
           };
         };
-    }
+    })
     (mkIf (config.security.tpm2.enable && config.security.tpm2.tssGroup != null) {
       users.users.microvm.extraGroups = [
         config.security.tpm2.tssGroup

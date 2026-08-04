@@ -211,13 +211,27 @@ rec {
         };
 
         brightness = {
-          enable = mkEnableOption "brightness control via VirtIO" // {
-            default = true;
-          };
+          # Only meaningful where the panel backlight lives on the host rather
+          # than in the VM that owns the display. Platforms that need it opt in
+          # together with hostBacklight.
+          enable = mkEnableOption "brightness control via VirtIO";
           targetVms = mkOption {
             type = types.listOf types.str;
             default = [ "gui-vm" ];
             description = "VMs that should have brightness control";
+          };
+          hostBacklight = mkOption {
+            type = types.nullOr types.str;
+            default = null;
+            example = "nvidia_wmi_ec_backlight";
+            description = ''
+              Backlight device on the host that forwarded brightness keys are
+              applied to, as it appears in /sys/class/backlight. null means this
+              platform does not forward.
+
+              Do not infer this from the GPU vendor: hybrid-setup enables
+              nvidia-setup on plain Intel machines to keep images generic.
+            '';
           };
         };
 
@@ -410,7 +424,7 @@ rec {
           targetVms = [ "gui-vm" ];
         };
         brightness = {
-          enable = true;
+          enable = false;
           targetVms = [ "gui-vm" ];
         };
         wifi = {
@@ -511,7 +525,7 @@ rec {
           targetVms = [ "gui-vm" ];
         };
         brightness = {
-          enable = true;
+          enable = false;
           targetVms = [ "gui-vm" ];
         };
         wifi = {
