@@ -313,68 +313,25 @@ let
       ESP_MOUNT="/mnt-esp"
       ESP_DEVICE="/dev/disk/by-label/${espLabel}"
 
-      # Marker check comes FIRST: it needs no root/LUKS resolution, and doing it
-      # after the device hunt made every post-resize boot pay the full 30 s
-      # not-found timeout below before discovering there was nothing to do.
-      mkdir -p "$ESP_MOUNT"
-      # The marker check no longer runs after the (slow) device hunt, so it can
-      # now race udev publishing /dev/disk/by-label/*. Settling first keeps a
-      # missing symlink from silently redoing the whole resize on every boot.
-      udevadm settle || true
-      if [[ -b $ESP_DEVICE ]]; then
-        if mount "$ESP_DEVICE" "$ESP_MOUNT"; then
-          if [ -f "$ESP_MOUNT/$RESIZE_MARKER" ]; then
-            echo "Resize already performed, skipping."
-            umount "$ESP_MOUNT"
-            exit 0
-          fi
-          umount "$ESP_MOUNT"
-        else
-          echo "Failed to mount ESP $ESP_DEVICE, continuing without marker check."
-        fi
-      else
-        echo "ESP partition not found, continuing without marker check."
-      fi
-
+      # Resolve the root partition by the pinned LUKS header UUID rather than a
+      # hardcoded device name or a partition-table PARTUUID (which differs between
+      # the USB sd-image (MBR) and the eMMC/NVMe flash (GPT)). blkid matches the
+      # crypto_LUKS container by its own UUID, identical on both media.
       PART_DEV=""
-      ${
-        if cfg.diskEncryption.enable then
-          ''
-            # Resolve the root partition by the pinned LUKS header UUID rather than a
-            # hardcoded device name or a partition-table PARTUUID (which differs between
-            # the USB sd-image (MBR) and the eMMC/NVMe flash (GPT)). blkid matches the
-            # crypto_LUKS container by its own UUID, identical on both media.
-            for _ in $(seq 1 30); do
-              for d in $(blkid -o device -t UUID=${luksUuid} 2>/dev/null); do
-                [ "$(blkid -o value -s TYPE "$d" 2>/dev/null)" = "crypto_LUKS" ] || continue
-                PART_DEV="$d"
-                break
-              done
-              if [ -n "$PART_DEV" ]; then break; fi
-              sleep 1
-            done
-          ''
-        else
-          ''
-            # Plain (unencrypted) image: the root is the sd-image ext4 partition,
-            # Resolve it through the same option upstream sd-image.nix uses for
-            # fileSystems."/" rather than a hardcoded literal, with the `or`
-            # fallback for module sets where sdImage is absent (verity builds).
-            # The pinned LUKS UUID never matches here, so hunting for it only
-            # burned the full 30 s timeout before the resize could run.
-            ROOT_DEVICE="/dev/disk/by-label/${config.sdImage.rootVolumeLabel or "NIXOS_SD"}"
-            for _ in $(seq 1 30); do
-              if [ -b "$ROOT_DEVICE" ]; then
-                PART_DEV="$ROOT_DEVICE"
-                break
-              fi
-              sleep 1
-            done
-          ''
-      }
+      for _ in $(seq 1 30); do
+        for d in $(blkid -o device -t UUID=${luksUuid} 2>/dev/null); do
+          ${lib.optionalString cfg.diskEncryption.enable ''
+            [ "$(blkid -o value -s TYPE "$d" 2>/dev/null)" = "crypto_LUKS" ] || continue
+          ''}
+          PART_DEV="$d"
+          break
+        done
+        if [ -n "$PART_DEV" ]; then break; fi
+        sleep 1
+      done
 
       if [ -z "$PART_DEV" ]; then
-        echo "Root partition not found, skipping resize."
+        echo "Root partition (LUKS UUID=${luksUuid}) not found, skipping resize."
         exit 0
       fi
 
@@ -389,6 +346,22 @@ let
         MAPPER_NAME="${cfg.diskEncryption.mapperName}"
         RESIZE_TARGET="/dev/mapper/$MAPPER_NAME"
       ''}
+
+      mkdir -p "$ESP_MOUNT"
+      if [[ -b $ESP_DEVICE ]]; then
+        if mount "$ESP_DEVICE" "$ESP_MOUNT"; then
+          if [ -f "$ESP_MOUNT/$RESIZE_MARKER" ]; then
+            echo "Resize already performed, skipping."
+            umount "$ESP_MOUNT"
+            exit 0
+          fi
+          umount "$ESP_MOUNT"
+        else
+          echo "Failed to mount ESP $ESP_DEVICE, continuing without marker check."
+        fi
+      else
+        echo "ESP partition not found, continuing without marker check."
+      fi
 
       for _ in {1..30}; do
         [ -b "$RESIZE_TARGET" ] && break
@@ -999,11 +972,7 @@ in
       '';
 
       systemd.services = {
-        # Verity images have no resizable root here: their root is a tmpfs
-        # overlay, their ESP label never matches the marker check, and
-        # firstboot-persist.nix does its own growing -- so the unit only
-        # burned its 30 s device hunt on every boot. Skip it entirely.
-        resize-partitions = mkIf (!verityEnabled) {
+        resize-partitions = {
           description = "Resize partitions to fill the disk on first boot";
           wantedBy = [ "initrd.target" ];
           before = [
