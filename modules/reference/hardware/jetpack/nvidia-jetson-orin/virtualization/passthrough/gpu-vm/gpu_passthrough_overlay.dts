@@ -49,6 +49,7 @@
                     reg = <0x0 0xB0000000 0x0 0x08000000>;				// 128MB
                     status = "okay";
                 };
+#ifdef GHAF_INCLUDE_DISPVM_RAM
                 // disp-vm guest RAM = SPLIT carveout (1:1 GPA=HPA). LOW bank:
                 // kernel/initrd + 672MB RAM + 64MB CMA (QEMU -M virt loads kernel
                 // low; all-high -> init killed; <672MB -> init SIGSEGV). HIGH bank
@@ -64,6 +65,7 @@
                     reg = <0x2 0x00000000 0x0 0x1A000000>;				// 416MB @ 8GB (0x200..0x21a)
                     status = "okay";
                 };
+#endif
             };
 
             // Bind the VM reserved-memory regions to a dummy driver so they can
@@ -93,6 +95,7 @@
                 dma-coherent;
                 status = "okay";
             };
+#ifdef GHAF_INCLUDE_DISPVM_RAM
             // disp-vm RAM carveout, 1:1 vfio (mmio-base=0x200000000).
             // GHAF_SID_DISPVM -> same IOMMU group as the other disp-vm wrappers,
             // disjoint from GPU.
@@ -110,6 +113,7 @@
                 dma-coherent;
                 status = "okay";
             };
+#endif
         };
     };
 
