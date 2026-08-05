@@ -45,3 +45,19 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
 ## carried in tiiuae/nixpkgs/...
 
 The following are in staging at the moment, so carry for some time until they reach unstable.
+
+## Carried workarounds in ghaf modules
+
+Not every carried change is an overlay. These live in ghaf's own modules and only
+exist until an upstream fix lands, so they should be reverted rather than maintained.
+
+- `fix(microvm): wait for a stopping guest instead of killing it immediately`
+
+  Appends a waiter to `microvm@`'s `ExecStop` in `modules/microvm/host/microvm-host.nix`,
+  because microvm.nix's own `ExecStop` returns immediately under systemd and the guest is
+  killed before it can shut down.
+
+  Revert that commit when
+  [microvm.nix#578](https://github.com/microvm-nix/microvm.nix/pull/578) is merged and the
+  `microvm` input is bumped past it — find it with
+  `git log --grep 'wait for a stopping guest'`.
