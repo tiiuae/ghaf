@@ -10,13 +10,11 @@
 #ifdef EXP_SHRINK_BANK1
 		// Concurrent GPU VM (compute-with-host1x): bank1 ends at 0xb0000000, so
 		// the guest no longer spans the scanout carveout -> scanout_p is dropped
-		// and 0xb0000000 is released to the GUI VM. (bank2 GPU VRAM unchanged.)
-		reg = <0x00 0x80000000 0x00 0x30000000>,  // 0x80000000..0xb0000000 (no scanout tail)
-		      <0x01 0x00000000 0x01 0x00000000>;  // For GPU VRAM
+		// and 0xb0000000 is released to the GUI VM.
+		reg = <0x00 0x80000000 0x00 0x30000000>;  // 0x80000000..0xb0000000 (no scanout tail)
 #else
 		// Keep the scanout VFIO aperture outside System RAM.
-		reg = <0x00 0x80000000 0x00 0x30000000>,  // CMA/carveouts; ends before scanout
-		      <0x01 0x00000000 0x01 0x00000000>;  // For GPU VRAM
+		reg = <0x00 0x80000000 0x00 0x30000000>;  // CMA/carveouts; ends before scanout
 #endif
 		device_type = "memory";
 	};
@@ -66,16 +64,8 @@
 		// to the in-frame offset -> white screen + smmu_iso faults).
 		// 0xA0000000..0xB0000000 is plain guest RAM, 1:1 vfio-backed by
 		// vm_cma_p and already inside the anchor's ISO hi map.
-		// The 4GB VFIO-backed region must STAY reserved even without the
-		// nvmap compatible: it is declared in the memory node, and without
-		// a no-map cover the kernel allocates from it at early boot and
-		// hangs before the console (learned the hard way, twice).
-		vram_reserved: vram_reserved@100000000 {
-			reg = <0x01 0x00000000 0x01 0x00000000>; // 4GB
-			no-map;
-			status = "okay";
-		};
-
+		// The former 4GB bank at 0x100000000 had no remaining consumer after
+		// this move, so it is no longer declared as guest memory or reserved.
 		// (0xA0000000 attempt hung the guest silently; 0xB2000000 sits in
 		// the scanout vfio region, untouched by the loader.)
 		generic_reserved: generic_carveout {

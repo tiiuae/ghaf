@@ -11,8 +11,8 @@
 	// not reliably back the guest in this tegra passthrough setup (virt -m base !=
 	// DTB memory@), so RAM comes from a reserved host carveout mapped 1:1 via vfio
 	// mmio-base. 0xb8000000..0x100000000 sits between disp-vm's scanout (0xb0..0xb8)
-	// and gpu-vm's vram (0x100000000+), disjoint from every gpu-vm carveout. No GPU
-	// VRAM bank (no GPU here). Split: LOW bank (0xb8000000..0xe6000000, 736MB =
+	// and the 4GB boundary, disjoint from every gpu-vm carveout. Split: LOW bank
+	// (0xb8000000..0xe6000000, 736MB =
 	// 672MB normal + 64MB CMA) holds kernel/initrd + working set; HIGH bank
 	// (0x200000000..0x21a000000, 416MB) holds GPU-style carveouts (generic/vpr/fsi).
 	// DMA32 hole 0xe6000000..0x100000000 left to the host for PCIe MSI / WLAN.
