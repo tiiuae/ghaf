@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # waypipe does not cross-compile out of the box (aarch64-from-x86_64). Three
-# independent gaps, all in how its meson wrapper drives cargo:
+# independent gaps, all in how its meson wrapper drives cargo. Every fix below
+# is cross-only, so a native build's derivation is byte-identical to nixpkgs'.
 #
 #   1. meson.build does `find_program('objcopy', native: true)`, but the
 #      derivation ships no plain `objcopy`; native builds find it via the
@@ -16,7 +17,7 @@
 #      target/<triple>/<profile>/, but compile_wrapper.sh copies from
 #      target/<profile>/. Insert the triple subdir when cross.
 #
-# All harmless for native builds.
+# Native builds are left entirely alone.
 { prev }:
 let
   inherit (prev) stdenv lib;
@@ -24,15 +25,22 @@ let
 in
 prev.waypipe.overrideAttrs (
   old:
-  {
+  lib.optionalAttrs cross {
+    # Native builds already find objcopy through the stdenv cc-wrapper, so this
+    # whole block is cross-only. Applying it unconditionally changed waypipe's
+    # derivation hash for every target -- x86 laptops included -- to fix a
+    # problem only the cross build has.
     nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ stdenv.cc.bintools ];
     preConfigure = (old.preConfigure or "") + ''
+      if ! objcopy_bin="$(command -v ${stdenv.cc.targetPrefix}objcopy)"; then
+        echo "waypipe overlay: ${stdenv.cc.targetPrefix}objcopy not on PATH" >&2
+        exit 1
+      fi
       mkdir -p "$TMPDIR/objcopy-shim"
-      ln -sf "$(command -v ${stdenv.cc.targetPrefix}objcopy)" "$TMPDIR/objcopy-shim/objcopy"
+      ln -sf "$objcopy_bin" "$TMPDIR/objcopy-shim/objcopy"
       export PATH="$TMPDIR/objcopy-shim:$PATH"
     '';
-  }
-  // lib.optionalAttrs cross {
+
     # compile_wrapper.sh runs a bare `cargo build`; without an explicit target
     # cargo ignores CARGO_TARGET_<triple>_LINKER and links with the native cc.
     # Naming the target makes the linker env apply and moves the output under
