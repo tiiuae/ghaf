@@ -202,9 +202,10 @@ let
           # disconnects, killing sshd on the test-net IP.
           mem = 2048;
         };
-        # The carveouts (~6.1GB) come out of the 16GB, leaving ~9.5GB for
-        # host + all QEMU RAM. Keep the VM total at or under 7GB: 10.1GB
-        # OOM-killed a VM and hung PID 1 on every boot.
+        # The split topology reserves ~2.1GiB after dropping the old 4GiB VRAM
+        # bank. Keep the VM total at or under 7GiB until this reduced layout is
+        # validated on NX; 10.1GiB under the former ~6.1GiB layout OOM-killed a
+        # VM and hung PID 1 on every boot.
         sysvms.gpuvm = {
           mem = 2048;
         };

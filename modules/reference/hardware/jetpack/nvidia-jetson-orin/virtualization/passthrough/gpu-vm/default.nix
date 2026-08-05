@@ -106,6 +106,8 @@ in
         dtsFile = ./gpu_passthrough_overlay.dts;
       }
     ];
+    # The split topology needs the fixed 1:1 RAM banks used by disp-vm.
+    hardware.deviceTree.dtboBuildExtraPreprocessorFlags = [ "-DGHAF_INCLUDE_DISPVM_RAM" ];
 
     ghaf.hardware.definition.gpuvm.extraModules = [
       (mkOrinGpuGuestModule {
