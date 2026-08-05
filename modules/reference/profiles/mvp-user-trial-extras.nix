@@ -42,7 +42,12 @@ in
           enable = lib.mkForce true;
           mitmproxy.enable = lib.mkForce true;
           # Use the new evaluatedConfig pattern from laptop-x86 profile
-          evaluatedConfig = config.ghaf.profiles.laptop-x86.idsvmBase;
+          evaluatedConfig = config.ghaf.profiles.laptop-x86.idsvmBase.extendModules {
+            modules = lib.ghaf.vm.applyVmConfig {
+              inherit config;
+              vmName = "idsvm";
+            };
+          };
         };
       };
 

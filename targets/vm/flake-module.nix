@@ -122,20 +122,37 @@ let
                     netvm = {
                       enable = true;
                       evaluatedConfig = vmProfile.netvmBase.extendModules {
-                        modules = [ netvmGivcModule ];
+                        modules = [
+                          netvmGivcModule
+                        ]
+                        ++ lib.ghaf.vm.applyVmConfig {
+                          inherit config;
+                          vmName = "netvm";
+                        };
                       };
                     };
 
                     audiovm = {
                       enable = true;
                       evaluatedConfig = vmProfile.audiovmBase.extendModules {
-                        modules = [ audiovmGivcModule ];
+                        modules = [
+                          audiovmGivcModule
+                        ]
+                        ++ lib.ghaf.vm.applyVmConfig {
+                          inherit config;
+                          vmName = "audiovm";
+                        };
                       };
                     };
 
                     adminvm = {
                       enable = true;
-                      evaluatedConfig = vmProfile.adminvmBase;
+                      evaluatedConfig = vmProfile.adminvmBase.extendModules {
+                        modules = lib.ghaf.vm.applyVmConfig {
+                          inherit config;
+                          vmName = "adminvm";
+                        };
+                      };
                     };
 
                     # NOTE: GUI runs on host, not in a gui-vm
