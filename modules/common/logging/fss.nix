@@ -1410,8 +1410,36 @@ let
               fi
             fi
 
-            VERIFY_EXIT=0
-            VERIFY_OUTPUT=$(journalctl --verify --verify-key="$VERIFY_KEY" 2>&1) || VERIFY_EXIT=$?
+            # journalctl walks the live journal while journald is still
+            # appending to it, so the object counts it accumulates can
+            # disagree with the header counters by the time it compares them.
+            # That surfaces as an active-system failure on a perfectly healthy
+            # machine -- observed on a freshly flashed device one second after
+            # setup's own probe passed the same file.
+            #
+            # --sync alone does not close it: the append continues for the
+            # duration of the walk. So re-verify, and only for that signature:
+            # anything that indicts the content (tag, hash, epoch) is believed
+            # on the first attempt, and a counter mismatch that survives every
+            # attempt is reported as a failure exactly as before.
+            attempt=1
+            while :; do
+              journalctl --sync 2>/dev/null || true
+              VERIFY_EXIT=0
+              VERIFY_OUTPUT=$(journalctl --verify --verify-key="$VERIFY_KEY" 2>&1) || VERIFY_EXIT=$?
+              fss_classify_verify_output "$VERIFY_OUTPUT"
+
+              if ! fss_active_failure_retryable "$VERIFY_OUTPUT" "$FSS_ACTIVE_SYSTEM_FAILURES"; then
+                break
+              fi
+              if [ "$attempt" -ge "${toString cfg.verifyRetries}" ]; then
+                fss_log warn "Active-journal counter mismatch persisted across ${toString cfg.verifyRetries} verifies; reporting it"
+                break
+              fi
+              fss_log info "Active-journal counter mismatch on attempt $attempt; journald was appending during the walk, re-verifying"
+              attempt=$((attempt + 1))
+              sleep 2
+            done
 
             # Content-bind lifecycle receipts to disk. Missing archives may be
             # journald retention, but an existing path with different content is
@@ -1799,6 +1827,25 @@ in
 
         Examples: "hourly", "daily", "weekly", "*:0/30" (every 30 min)
         See systemd.time(7) for full syntax.
+      '';
+    };
+
+    verifyRetries = mkOption {
+      type = types.ints.positive;
+      default = 3;
+      description = ''
+        How many times to verify before believing an active-journal counter
+        mismatch.
+
+        journalctl walks the live journal while journald appends to it, so the
+        object counts it accumulates can disagree with the header counters it
+        compares them against -- a failure on a healthy machine, and one that
+        --sync cannot prevent because the append continues for the duration of
+        the walk. Only that signature is retried; anything indicting the
+        content is believed on the first attempt, and a mismatch surviving
+        every attempt is still reported as a failure.
+
+        Set to 1 to disable retrying.
       '';
     };
   };
