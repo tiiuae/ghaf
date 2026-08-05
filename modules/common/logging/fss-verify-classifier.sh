@@ -249,6 +249,33 @@ fss_clock_jump_stamp_state() {
   fi
 }
 
+# Counter mismatches are what a verifier sees when journald appends while it is
+# walking the file: it counts objects, then compares against header counters
+# that have moved since. systemd emits six variants of this
+# (journal-verify.c:1266-1315). On the LIVE journal it is an artefact of the
+# file being open for append, not evidence of tampering.
+fss_output_has_counter_mismatch() {
+  printf '%s\n' "$1" |
+    grep -qE '(Object|Entry|Data|Field|Tag|Entry array) number mismatch \([0-9]+ != [0-9]+\)'
+}
+
+# Signatures that mean the content itself is wrong. Never retried away.
+fss_output_has_tamper_signature() {
+  printf '%s\n' "$1" |
+    grep -qE 'Tag failed verification|Hash value mismatch|Older entry after newer tag|Epoch sequence|realtime timestamp out of synchronization'
+}
+
+# Whether an active-journal failure is worth re-verifying rather than believing
+# outright: a counter mismatch and nothing that indicts the content. A real
+# defect survives the re-verify; a live-write race does not.
+fss_active_failure_retryable() {
+  local output="$1" active_failures="$2"
+
+  [ -n "$active_failures" ] || return 1
+  fss_output_has_counter_mismatch "$output" || return 1
+  ! fss_output_has_tamper_signature "$output"
+}
+
 fss_path_list_contains() {
   local path_list="$1"
   local needle="$2"

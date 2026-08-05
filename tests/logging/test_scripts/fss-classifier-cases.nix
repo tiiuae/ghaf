@@ -492,6 +492,44 @@ writeShellApplication {
     [ "$(fss_clock_jump_stamp_state "	$CURBOOT	e" "$CURBOOT" "$NOW" "$TTL")" = malformed ]
     [ "$(fss_clock_jump_stamp_state "-5	$CURBOOT	e" "$CURBOOT" "$NOW" "$TTL")" = malformed ]
 
+    # Live-write race vs real defect. Only the counter-mismatch family is
+    # retryable, and only when nothing indicts the content.
+    ACT="$FSS_ACTIVE_SYSTEM_FAILURES"
+    assert_verdict fail "FAIL: $ACTIVE (Bad message)"
+    ACT="$FSS_ACTIVE_SYSTEM_FAILURES"
+    [ -n "$ACT" ]
+
+    # All six variants systemd emits (journal-verify.c:1266-1315).
+    for kind in Object Entry Data Field Tag "Entry array"; do
+      fss_output_has_counter_mismatch "0000d0: $kind number mismatch (208 != 207)" \
+        || { echo "counter mismatch not recognised: $kind" >&2; exit 1; }
+      fss_active_failure_retryable "0000d0: $kind number mismatch (208 != 207)" "$ACT" \
+        || { echo "should be retryable: $kind" >&2; exit 1; }
+    done
+
+    # The exact output observed on hardware.
+    OBSERVED="$(printf '%s\n%s\n%s' \
+      "0000d0: Data number mismatch (208 != 207)" \
+      "File corruption detected at /var/log/journal/mid/system.journal:2997544 (of 8388608 bytes, 35%)." \
+      "FAIL: $ACTIVE (Bad message)")"
+    fss_active_failure_retryable "$OBSERVED" "$ACT"
+
+    # Nothing else is retryable: no counter mismatch, no active failure, or a
+    # signature that indicts the content.
+    refute fss_output_has_counter_mismatch "FAIL: $ACTIVE (Bad message)"
+    refute fss_active_failure_retryable "FAIL: $ACTIVE (Bad message)" "$ACT"
+    refute fss_active_failure_retryable "0000d0: Data number mismatch (208 != 207)" ""
+    for bad in "2cb2e0: Tag failed verification" \
+               "0000d0: Hash value mismatch in hash entry 3 of 9" \
+               "0002a8: Older entry after newer tag (1 < 2)" \
+               "352a58: Epoch sequence not continuous (0 vs 0)" \
+               "0002a8: tag/entry realtime timestamp out of synchronization (5 >= 4)"; do
+      fss_output_has_tamper_signature "$bad" \
+        || { echo "tamper signature not recognised: $bad" >&2; exit 1; }
+      refute fss_active_failure_retryable \
+        "$(printf '%s\n%s' "0000d0: Data number mismatch (208 != 207)" "$bad")" "$ACT"
+    done
+
     echo "fss-classifier-cases: all cases passed against $CLASSIFIER"
   '';
 }
