@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // SPDX-FileCopyrightText: Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
 // nvdisplay node driven through the host-owned DCE R5 (see
-// docs: nvidia_gpu_vm_display). DCB payload is included from
-// generated/agx-p3737-p3701-dcb.dtsi and hash-verified at build.
+// docs: nvidia_gpu_vm_display). DCB payload is included from the
+// board-selected generated/<board>-dcb.dtsi (payload/default.nix
+// boards.<key>.dcbDtsi) and hash-verified at build.
 
 / {
 	platform-bus@70000000 {
@@ -168,7 +169,8 @@
 			//iommus = <&smmu_iso TEGRA234_SID_ISO_NVDISPLAY>;
 			non-coherent;
 
-#include "generated/agx-p3737-p3701-dcb.dtsi"
+/* Board DCB selected at build time (payload/default.nix boards.<key>.dcbDtsi). */
+#include GHAF_DCB_DTSI
 
 			/* nvdisplay RM requires this child at probe or it bails
 			 * with "no nvdisplay-niso child node" -> no crtc/format.

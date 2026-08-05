@@ -127,7 +127,26 @@ let
       needsDceBridge = cap.display;
       noSyncpointPatch = cap.noSyncpointDisplay;
     };
+
+  # The DCB image is the only board-specific piece; the rest is SoC-level.
+  agxBoard = {
+    dcbDtsi = "generated/agx-p3737-p3701-dcb.dtsi";
+    dcbSha256 = "e0d92e6dbf1ffef266cfd2e192847e76f8d88c19c55430f2f5d4aaf69494a2fc";
+    dcbBytes = "8407";
+  };
+  boards = {
+    agx = agxBoard;
+    # Stock L4T r36.5 ships one DCB for both devkits (verified against the
+    # NX host DTB), so nx aliases agx: one pin to update on a DCB bump.
+    nx = agxBoard;
+  };
+  boardFor = somType: if somType == "nx" then boards.nx else boards.agx;
 in
 {
-  inherit capabilities mkPayload;
+  inherit
+    capabilities
+    mkPayload
+    boards
+    boardFor
+    ;
 }

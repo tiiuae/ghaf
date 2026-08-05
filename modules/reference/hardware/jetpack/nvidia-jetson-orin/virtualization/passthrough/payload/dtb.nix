@@ -5,6 +5,7 @@
   lib,
   pkgs,
   cap,
+  board,
   kernel,
   dtsDir ? ../gpu-vm,
 }:
@@ -35,12 +36,10 @@ pkgs.stdenv.mkDerivation {
   buildPhase =
     let
       mainInc = "${kernel.dev}/lib/modules/${kernel.modDirVersion}/source/include";
-      # Stock R36.5 P3737/P3701 AGX DCB payload.
-      dcbSha256 = "e0d92e6dbf1ffef266cfd2e192847e76f8d88c19c55430f2f5d4aaf69494a2fc";
-      dcbBytes = "8407";
+      inherit (board) dcbSha256 dcbBytes;
     in
     ''
-      $CC -E -nostdinc -undef -D__DTS__ ${expDtDefines}-x assembler-with-cpp \
+      $CC -E -nostdinc -undef -D__DTS__ ${expDtDefines}-DGHAF_DCB_DTSI='"${board.dcbDtsi}"' -x assembler-with-cpp \
         -I${mainInc} \
         -I${dtsDir + "/nv-dt-bindings"} \
         -I. \

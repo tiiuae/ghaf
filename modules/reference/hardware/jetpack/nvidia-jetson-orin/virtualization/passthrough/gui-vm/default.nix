@@ -12,15 +12,20 @@ let
 
   virt = config.ghaf.hardware.nvidia.virtualization;
 
-  inherit (import ../payload { inherit lib pkgs; }) capabilities mkPayload;
+  inherit (import ../payload { inherit lib pkgs; })
+    capabilities
+    mkPayload
+    boardFor
+    ;
   cap = capabilities.guivm;
   payload = mkPayload cap;
+  board = boardFor config.ghaf.hardware.nvidia.orin.somType;
 
   mkOrinGpuDtb = import ../payload/dtb.nix;
   mkOrinGpuGuestModule = import ../payload/guest-module.nix;
 
   guivm-dtb = mkOrinGpuDtb {
-    inherit lib pkgs;
+    inherit lib pkgs board;
     cap = capabilities.guivm;
     kernel = config.boot.kernelPackages.kernel;
   };
