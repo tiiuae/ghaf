@@ -55,10 +55,6 @@ let
             dev = "80000000.vm_cma_p";
             base = "0x80000000";
           }
-          {
-            dev = "100000000.vm_cma_vram_p";
-            base = "0x100000000";
-          }
         ]
         ++ lib.optional (!computeWithHost1x) {
           dev = "b0000000.scanout_p";

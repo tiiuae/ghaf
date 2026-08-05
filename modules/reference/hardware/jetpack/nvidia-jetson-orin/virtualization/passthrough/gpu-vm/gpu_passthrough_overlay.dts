@@ -34,11 +34,8 @@
                     reg = <0x0 0x80000000 0x0 0x30000000>;				// 768MB
                     status = "okay";
                 };
-                // Reserved CMA for VM GPU VRAM
-                vm_cma_vram: vm_cma_vram@100000000 {
-                    compatible = "removed-dma-pool";
-                    reg = <0x01 0x00000000 0x01 0x00000000>;            // 4GB
-                };
+                // The active GPU/NVMAP heaps all live in vm_cma. Do not reserve
+                // the former 4GB vm_cma_vram bank: no guest consumer uses it.
                 // Reserved CMA for VM host1x sem-syncpt-shim
                 vm_hs: vm_hs@60000000 {
                     compatible = "removed-dma-pool";
@@ -75,14 +72,6 @@
                 compatible = "nvidia,dummy";
                 iommus = <&smmu_niso0 TEGRA234_SID_PASSTHROUGH>;
                 reg = <0x0 0x80000000 0x0 0x30000000>;              	// 768MB
-                dma-coherent;
-                status = "okay";
-            };
-
-            vm_cma_vram_p: vm_cma_vram_p@100000000 {
-                compatible = "nvidia,dummy";
-                iommus = <&smmu_niso0 TEGRA234_SID_PASSTHROUGH>;
-                reg = <0x01 0x00000000 0x01 0x00000000>;                // 4GB
                 dma-coherent;
                 status = "okay";
             };
