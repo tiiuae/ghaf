@@ -147,7 +147,16 @@ let
       UNCLEAN_SHUTDOWN_RECEIPTS_FILE="$STATE_DIR/fss-unclean-shutdown-receipts"
       ACTIVATION_STATE_FILE="$STATE_DIR/fss-activation-state"
       FSS_BOOT_BASELINE_FILE="$STATE_DIR/fss-baseline-boot"
+      CLOCK_JUMP_STAMP_FILE="$STATE_DIR/fss-clock-jump-attested"
+      REKEY_COUNT_FILE="$STATE_DIR/fss-rekey-count"
+      LIVE_PROBE_STATE_FILE="$STATE_DIR/fss-live-probe-state"
       ACTIVATION_ENABLED="${if activationEnabled then "1" else "0"}"
+      REKEY_ENABLED="${if cfg.rekey.enable then "1" else "0"}"
+      REKEY_ATTESTATION_TTL="${toString cfg.rekey.attestationValiditySeconds}"
+      REKEY_MAX_ATTEMPTS="${toString cfg.rekey.maxAttempts}"
+      REKEY_ATTEMPT_WINDOW="${toString cfg.rekey.attemptWindowSeconds}"
+      REKEY_RETAINED_KEYS="${toString cfg.rekey.retainedKeys}"
+      REKEY_HISTORY_FILE="$KEY_DIR/rekey-history"
       PRE_ACTIVATION_MAX_RECEIPTS="${toString cfg.activation.maxReceipts}"
       RECOVERY_MAX_RECEIPTS="${toString config.ghaf.logging.recovery.maxReceipts}"
       UNCLEAN_SHUTDOWN_MAX_RECEIPTS="${toString cfg.uncleanShutdown.maxReceipts}"
@@ -314,15 +323,14 @@ let
         find "$journal_dir" -maxdepth 1 -type f -name 'system@*.journal' -print 2>/dev/null | sort
       }
 
-      # A time-jump rotation freezes every journal kind, so jump receipting has
-      # to cover more than the system@ archives: user journals and the renamed
-      # "~" corpses carry the same journald-attested poisoning and otherwise
-      # keep failing verification with no receipt to excuse them.
+      # Archived system journals only: user and temp failures warn regardless of
+      # the allowlist, so receipting them just consumes the bounded store. "~" is
+      # journald's disposed-ARCHIVE name, so the live journal cannot match.
       list_time_jump_receiptable_journals() {
         local journal_dir="$1"
 
         find "$journal_dir" -maxdepth 1 -type f \
-          \( -name 'system@*.journal' -o -name 'user-*@*.journal' -o -name '*.journal~' \) \
+          \( -name 'system@*.journal' -o -name 'system@*.journal~' \) \
           -print 2>/dev/null | sort -u
       }
 
@@ -340,50 +348,106 @@ let
         [ "$(tr -d '[:space:]' < "$FSS_BOOT_BASELINE_FILE")" = "$(fss_current_boot_id)" ]
       }
 
-      # journalctl --grep needs PCRE2, which the deployed journalctl is built
-      # without ("PCRE2 support is not compiled in") -- it then matched nothing,
-      # so time-jump archives were never receipted and journal-fss-verify kept
-      # failing forever after a clock step journald had already attested.
-      # Filter the plain output with grep -F instead.
+      # Not journalctl --grep: the deployed journalctl has no PCRE2, so it
+      # matched nothing and silently disabled this. Filtering now lives in
+      # fss_time_jump_epochs_from_lines. journalctl stays guarded because the
+      # caller assigns this in a command substitution under errexit.
       current_boot_time_jump_epochs() {
-        journalctl -b -u systemd-journald.service \
+        { journalctl -b -u systemd-journald.service \
           --output=short-unix \
           --quiet \
-          --no-pager 2>/dev/null \
-          | {
-            grep -F -e "Time jumped backwards, rotating" \
-              -e "Realtime clock jumped backwards relative to last journal entry, rotating" \
-              || true
-          } \
-          | awk '
-          $1 ~ /^[0-9]+([.][0-9]+)?$/ {
-            split($1, ts, ".")
-            print ts[1]
-          }
-        ' | sort -u
+          --no-pager 2>/dev/null || true; } \
+          | fss_time_jump_epochs_from_lines
       }
 
-      archive_mtime_matches_time_jump_epoch() {
-        local archive_mtime="$1"
-        local time_jump_epochs="$2"
-        local event_epoch=""
-        local window_sec=10
-        local lower=0
-        local upper=0
+      # Persist journald's attestation of a backward step. A poisoned sealing
+      # epoch usually surfaces on the boot AFTER the jump, when `journalctl -b`
+      # no longer shows one. ghaf-clock-jump-watcher writes the same stamp.
+      record_clock_jump_attestation() {
+        local epochs
 
-        while IFS= read -r event_epoch || [ -n "$event_epoch" ]; do
-          case "$event_epoch" in
-          "" | *[!0-9]*) continue ;;
-          esac
+        epochs="$(current_boot_time_jump_epochs)"
+        [ -n "$epochs" ] || return 0
+        printf '%s\t%s\t%s\n' \
+          "$(date +%s)" \
+          "$(fss_current_boot_id)" \
+          "$(printf '%s' "$epochs" | tr '\n' ',')" \
+          > "$CLOCK_JUMP_STAMP_FILE"
+        chmod 0644 "$CLOCK_JUMP_STAMP_FILE"
+      }
 
-          lower=$((event_epoch - window_sec))
-          upper=$((event_epoch + window_sec))
-          if [ "$archive_mtime" -ge "$lower" ] && [ "$archive_mtime" -le "$upper" ]; then
-            return 0
-          fi
-        done <<< "$time_jump_epochs"
+      # Whether journald attested a backward step recently enough to authorise
+      # discarding the key pair. Only reached after the future-tag gate, so the
+      # history scan below never runs on a healthy boot.
+      clock_jump_attested() {
+        local now state epochs
+
+        now=$(date +%s)
+
+        if [ -n "$(current_boot_time_jump_epochs)" ]; then
+          fss_log info "Clock-jump attestation: journald attested a backward step this boot"
+          return 0
+        fi
+
+        state=$(fss_clock_jump_stamp_state \
+          "$(head -n1 "$CLOCK_JUMP_STAMP_FILE" 2>/dev/null || true)" \
+          "$(fss_current_boot_id)" "$now" "$REKEY_ATTESTATION_TTL")
+        case "$state" in
+        current-boot | persisted-stamp)
+          fss_log info "Clock-jump attestation: accepted from $state"
+          return 0
+          ;;
+        malformed | expired)
+          fss_log warn "Clock-jump attestation: discarding $state stamp $CLOCK_JUMP_STAMP_FILE"
+          rm -f "$CLOCK_JUMP_STAMP_FILE"
+          ;;
+        esac
+
+        # First jump on a machine whose watcher never ran: no stamp, and the
+        # attestation sits in an earlier boot's journal. Bounded by the window.
+        epochs=$({ journalctl -u systemd-journald.service \
+          --since="@$(( now - REKEY_ATTESTATION_TTL ))" \
+          --output=short-unix \
+          --quiet \
+          --no-pager 2>/dev/null || true; } | fss_time_jump_epochs_from_lines)
+        if [ -n "$epochs" ]; then
+          fss_log info "Clock-jump attestation: found in journal history within the last ''${REKEY_ATTESTATION_TTL}s"
+          return 0
+        fi
 
         return 1
+      }
+
+      # Cross-invocation bound on re-keying. FSS_REKEY_ATTEMPTED only bounds one
+      # exec chain, and the watcher restarts setup on every new attestation.
+      rekey_attempt_budget_available() {
+        local record first count now
+
+        now=$(date +%s)
+        record=$(head -n1 "$REKEY_COUNT_FILE" 2>/dev/null || true)
+        first=""
+        count=0
+        [ -z "$record" ] || IFS=$'\t' read -r first count <<< "$record"
+        case "$first" in "" | *[!0-9]*) first="" ;; esac
+        case "$count" in "" | *[!0-9]*) count=0 ;; esac
+
+        # Either direction: a backward step can leave the start in the future.
+        if [ -z "$first" ] \
+          || [ "$(( now - first ))" -gt "$REKEY_ATTEMPT_WINDOW" ] \
+          || [ "$(( first - now ))" -gt "$REKEY_ATTEMPT_WINDOW" ]; then
+          first="$now"
+          count=0
+        fi
+
+        if [ "$count" -ge "$REKEY_MAX_ATTEMPTS" ]; then
+          fss_log fail "FSS re-key refused: $count automatic re-keys already within ''${REKEY_ATTEMPT_WINDOW}s (limit $REKEY_MAX_ATTEMPTS)"
+          fss_log fail "Sealing stays broken and visible rather than re-keying in a loop."
+          fss_log fail "Investigate, then clear $REKEY_COUNT_FILE to allow another attempt."
+          return 1
+        fi
+
+        printf '%s\t%s\n' "$first" "$(( count + 1 ))" > "$REKEY_COUNT_FILE"
+        chmod 0644 "$REKEY_COUNT_FILE"
       }
 
       record_current_boot_time_jump_archives() {
@@ -406,7 +470,7 @@ let
 
           if [ "$archive_mtime" -ge "$boot_epoch" ] \
             && [ "$archive_mtime" -le "$cutoff_epoch" ] \
-            && archive_mtime_matches_time_jump_epoch "$archive_mtime" "$time_jump_epochs"; then
+            && fss_mtime_matches_time_jump_epoch "$archive_mtime" "$time_jump_epochs"; then
             if [ "$ACTIVATION_ENABLED" = 1 ]; then
               record_pre_activation_receipt "$archive_path" "pre-activation-time-jump"
             else
@@ -749,15 +813,6 @@ let
         esac
       }
 
-      # Highest "newer tag" epoch (microseconds) named by failed verification
-      # output; empty when the output carries no such line.
-      fss_max_future_tag_epoch_us() {
-        printf '%s\n' "$1" \
-          | { grep -oE 'Older entry after newer tag \([0-9]+ < [0-9]+\)' || true; } \
-          | { grep -oE '< [0-9]+' || true; } \
-          | tr -d '< ' | sort -n | tail -1
-      }
-
       # A backward realtime step after sealing leaves the FSPRG epoch ahead of
       # the wall clock: every entry sealed until real time catches up fails
       # with "Older entry after newer tag" -- including the freshly rotated
@@ -768,45 +823,201 @@ let
       # discard the poisoned key pair, and re-run key setup from the current
       # clock. Bounded to one attempt per invocation chain, and only when the
       # future tag sits beyond any plausible in-flight sealing interval.
+      # Superseded keys, newest first. Sorted on the epoch suffix, not the whole
+      # path, so a dot in cfg.keyPath cannot reorder them.
+      list_retained_verification_keys() {
+        find "$KEY_DIR" -maxdepth 1 -type f -name 'verification-key.*' -print 2>/dev/null \
+          | awk -F'verification-key.' '{ printf "%s\t%s\n", $NF, $0 }' \
+          | sort -k1,1nr \
+          | cut -f2-
+      }
+
+      # Keep the outgoing verification key: a re-key regenerates seed and
+      # start_usec, so nothing sealed before it verifies under the new key.
+      # Non-zero if retention failed, so the caller aborts before deleting the
+      # sealing key.
+      retain_previous_verification_key() {
+        local rekey_epoch="$1" retained
+
+        [ -s "$VERIFY_KEY_FILE" ] || return 0
+        if [ "$REKEY_RETAINED_KEYS" -le 0 ]; then
+          return 0
+        fi
+
+        retained="$KEY_DIR/verification-key.$rekey_epoch"
+        if ! mv -f "$VERIFY_KEY_FILE" "$retained"; then
+          fss_log fail "Could not retain the outgoing FSS verification key at $retained"
+          fss_log fail "Refusing to re-key: that would leave pre-jump sealed history permanently unverifiable."
+          return 1
+        fi
+        chown root:root "$retained" 2>/dev/null || true
+        chmod 0400 "$retained" 2>/dev/null || true
+        fss_log warn "Retained the superseded FSS verification key at $retained"
+        return 0
+      }
+
+      prune_retained_verification_keys() {
+        local kept=0 path
+
+        while IFS= read -r path || [ -n "$path" ]; do
+          [ -n "$path" ] || continue
+          kept=$(( kept + 1 ))
+          [ "$kept" -gt "$REKEY_RETAINED_KEYS" ] || continue
+          rm -f "$path"
+          fss_log info "Pruned superseded verification key $path (keeping newest $REKEY_RETAINED_KEYS)"
+        done < <(list_retained_verification_keys)
+      }
+
+      # Append-only re-key log. A silent re-key invalidates the off-host copy of
+      # the verification key that the keyPath docs tell operators to keep.
+      record_rekey_history() {
+        local rekey_epoch="$1" retained="$2" attestation="$3" retained_sha
+
+        retained_sha=$(sha256sum "$retained" 2>/dev/null | cut -d' ' -f1 || true)
+        printf '%s\t%s\t%s\t%s\n' \
+          "$rekey_epoch" "$retained" "''${retained_sha:--}" "''${attestation:--}" \
+          >> "$REKEY_HISTORY_FILE" 2>/dev/null || true
+        chmod 0600 "$REKEY_HISTORY_FILE" 2>/dev/null || true
+        printf '%s\n' \
+          "AUDIT_LOG_FSS_REKEY: FSS re-keyed after an attested backward clock step at $rekey_epoch; superseded verification key retained at $retained" \
+          | systemd-cat -t journal-fss -p crit 2>/dev/null || true
+      }
+
+      # Proof an archive belongs to a lineage sealed before the re-key. One
+      # tampered with beforehand fails under the old key too, so is not excused.
+      archive_verifies_under_retained_key() {
+        local archive_path="$1" key_file key
+
+        while IFS= read -r key_file || [ -n "$key_file" ]; do
+          [ -n "$key_file" ] || continue
+          [ -s "$key_file" ] && [ -r "$key_file" ] || continue
+          key=$(tr -d '[:space:]' < "$key_file")
+          if journalctl --verify --verify-key="$key" --file="$archive_path" >/dev/null 2>&1; then
+            return 0
+          fi
+        done < <(list_retained_verification_keys)
+
+        return 1
+      }
+
       recover_from_time_poisoned_sealing() {
         local verify_output="$1" future_us now_us margin_us archive_path
+        local rekey_epoch attestation_epoch retained
+        local failing_paths before_file receipted
 
+        [ "$REKEY_ENABLED" = 1 ] || return 1
         [ "''${FSS_REKEY_ATTEMPTED:-0}" = 0 ] || return 1
-        future_us=$(fss_max_future_tag_epoch_us "$verify_output")
-        [ -n "$future_us" ] || return 1
         now_us=$(( $(date +%s) * 1000000 ))
         margin_us=$(( 300 * 1000000 ))
-        [ "$future_us" -gt $(( now_us + margin_us )) ] || return 1
+        future_us=$(fss_time_poisoned_sealing_epoch_us "$verify_output" "$now_us" "$margin_us") \
+          || return 1
+
+        # A future tag alone is not evidence of a jump: B is derived entirely
+        # from $VERIFY_KEY_FILE, so a far-future key makes every journal report
+        # one -- and the response below is to delete both keys and excuse the
+        # history. Require journald's own attestation first.
+        if ! clock_jump_attested; then
+          fss_log fail "Sealing epoch is $(( (future_us - now_us) / 1000000 ))s ahead of the wall clock, but journald never attested a backward clock step"
+          fss_log fail "Refusing to re-key: verification stays failed rather than discarding the key pair on unverified evidence."
+          fss_log fail "If the clock really did step back, re-provision the FSS state by hand."
+          return 1
+        fi
+        rekey_attempt_budget_available || return 1
 
         fss_log warn "Sealing epoch is $(( (future_us - now_us) / 1000000 ))s ahead of the wall clock (journald-attested clock jump); recovering by re-keying FSS"
+        rekey_epoch=$(date +%s)
+        attestation_epoch=$(cut -f1 "$CLOCK_JUMP_STAMP_FILE" 2>/dev/null | head -n1 || true)
+
+        # Before anything destructive: on failure nothing has been lost yet.
+        retained="$KEY_DIR/verification-key.$rekey_epoch"
+        retain_previous_verification_key "$rekey_epoch" || return 1
+
         # Open a re-key transaction: journals sealed under the discarded key
         # keep surfacing as failing archives for a while (frozen at the next
         # rotation or at shutdown), so the receipting below cannot be one-shot.
         # finish_setup reconciles against this stamp on every later run until
         # the transition window is clean, then closes it.
-        date +%s > "$STATE_DIR/fss-rekey-epoch"
+        printf '%s\n' "$rekey_epoch" > "$STATE_DIR/fss-rekey-epoch"
         chmod 0644 "$STATE_DIR/fss-rekey-epoch"
+
+        # Receipt what the jump broke, not every archive: a blanket pass excuses
+        # unrelated failures and can overrun recovery.maxReceipts, where one
+        # eviction turns the unit red. Two sources, since the output predates
+        # the rotation: what was failing, plus what the rotation froze.
+        failing_paths=$(fss_unique_fail_paths_from_output "$verify_output")
+        before_file=$(mktemp)
+        list_time_jump_receiptable_journals "$JOURNAL_DIR" > "$before_file"
         journalctl --rotate 2>/dev/null || true
         journalctl --sync 2>/dev/null || true
+        receipted=0
         while IFS= read -r archive_path || [ -n "$archive_path" ]; do
           [ -n "$archive_path" ] || continue
-          record_recovery_receipt "$archive_path" "clock-jump-rekey"
+          if ! grep -Fxq "$archive_path" "$before_file" 2>/dev/null \
+            || printf '%s\n' "$failing_paths" | grep -Fxq "$archive_path"; then
+            record_recovery_receipt "$archive_path" "clock-jump-rekey"
+            receipted=$(( receipted + 1 ))
+          fi
         done < <(list_time_jump_receiptable_journals "$JOURNAL_DIR")
-        rm -f "$FSS_KEY_FILE" "$VERIFY_KEY_FILE"
+        rm -f "$before_file"
+        if [ "$receipted" = 0 ]; then
+          fss_log warn "Re-key receipted no archives; the freeze rotation may not have taken effect"
+        fi
+        prune_recovery_receipts
+        rm -f "$FSS_KEY_FILE"
+        record_rekey_history "$rekey_epoch" "$retained" "$attestation_epoch"
+        prune_retained_verification_keys
         clear_initialized_state
         rm -f "$STATE_DIR/fss-rotated" "$ACTIVATION_STATE_FILE" "$FSS_BOOT_BASELINE_FILE"
+        # Consume the attestation: it authorises exactly one re-key. Kept out of
+        # the lifecycle wipe above because it is evidence, not lifecycle state.
+        fss_log info "Consuming clock-jump attestation; it authorised this re-key and no further one"
+        rm -f "$CLOCK_JUMP_STAMP_FILE"
+        # exec skips the EXIT trap, so drop the tempfile here.
+        cleanup_setup_tmp
         FSS_REKEY_ATTEMPTED=1 exec "$0"
       }
 
+      write_live_probe_state() {
+        printf '%s\t%s\n' "$(fss_current_boot_id)" "$1" > "$LIVE_PROBE_STATE_FILE"
+        chmod 0644 "$LIVE_PROBE_STATE_FILE"
+      }
+
+      live_probe_unclean_this_boot() {
+        local record boot result
+
+        record=$(head -n1 "$LIVE_PROBE_STATE_FILE" 2>/dev/null || true)
+        [ -n "$record" ] || return 1
+        IFS=$'\t' read -r boot result <<< "$record"
+        [ "$boot" = "$(fss_current_boot_id)" ] && [ "$result" = unclean ]
+      }
+
+      # Whether a re-entrant run has any reason to probe. With none it does not,
+      # which is what keeps a journal-wide verify off every watcher trigger.
+      live_probe_warranted() {
+        if [ -f "$CLOCK_JUMP_STAMP_FILE" ] || [ -f "$STATE_DIR/fss-rekey-epoch" ]; then
+          return 0
+        fi
+        # Sticky until a probe comes back clean.
+        live_probe_unclean_this_boot
+      }
+
       verify_live_sealing_after_activation() {
-        local verify_key verify_output verify_exit marker
+        local verify_key verify_output verify_exit marker probe_scope
 
         [ "$ACTIVATION_ENABLED" = 1 ] || return 0
-        # Also probe when sealing is already active without a restart this
-        # run: the clock-jump watcher re-runs setup precisely so a live
-        # time-poisoned sealing epoch is detected (and re-keyed) mid-boot,
-        # not just on the boot after the jump.
-        [ "$ACTIVATION_RESTARTED_THIS_RUN" = 1 ] || journald_activation_already_current || return 0
+
+        if [ "$ACTIVATION_RESTARTED_THIS_RUN" = 1 ]; then
+          # Activation boundary, once per boot: verify everything, as before.
+          probe_scope=full
+        elif journald_activation_already_current && live_probe_warranted; then
+          # Re-entrant run, typically the watcher. Probe the live journal
+          # alone: a live poisoned epoch shows there by definition, and the
+          # archived set is covered by the boundary probe and the verify timer.
+          probe_scope=live
+        else
+          return 0
+        fi
+
         [ "$ACTIVATION_FAILED" = 0 ] || return 1
         [ -s "$VERIFY_KEY_FILE" ] && [ -r "$VERIFY_KEY_FILE" ] || return 0
 
@@ -816,7 +1027,12 @@ let
 
         verify_key=$(tr -d '[:space:]' < "$VERIFY_KEY_FILE")
         verify_exit=0
-        verify_output=$(journalctl --verify --verify-key="$verify_key" 2>&1) || verify_exit=$?
+        if [ "$probe_scope" = live ]; then
+          verify_output=$(journalctl --verify --verify-key="$verify_key" \
+            --file="$JOURNAL_DIR/system.journal" 2>&1) || verify_exit=$?
+        else
+          verify_output=$(journalctl --verify --verify-key="$verify_key" 2>&1) || verify_exit=$?
+        fi
         fss_classify_verify_output "$verify_output"
 
         if [ -n "$FSS_ACTIVE_SYSTEM_FAILURES" ] \
@@ -843,6 +1059,7 @@ let
           fi
           printf '%s\n' "$verify_output" | fss_log_block
           write_activation_state failed
+          write_live_probe_state unclean
           return 1
         fi
 
@@ -854,10 +1071,12 @@ let
           fss_log fail "journalctl --verify exited $verify_exit after FSS activation without a classified exception"
           printf '%s\n' "$verify_output" | fss_log_block
           write_activation_state failed
+          write_live_probe_state unclean
           return 1
         fi
 
-        fss_log info "Confirmed active system journal verifies after FSS activation"
+        write_live_probe_state clean
+        fss_log info "Confirmed active system journal verifies after FSS activation ($probe_scope probe)"
       }
 
       activate_journald_for_fss_setup() {
@@ -878,16 +1097,13 @@ let
       # discards a poisoned key pair, journals sealed under the old key keep
       # surfacing as failing archives: the generation journald sealed with the
       # old in-memory key between the freeze rotation and the activation
-      # restart (user journals included), and old-lineage actives that only
-      # freeze at the next rotation or at shutdown. Reconcile on every setup
-      # run while the transaction stamp exists: rotate so old lineages freeze,
-      # receipt failing archived files whose mtime falls inside the stamp
-      # window, and close the transaction once nothing in-window fails.
-      # Unrelated failures (outside the window, or with no stamp) still fail
-      # closed.
+      # restart, and old-lineage actives that only freeze at the next rotation.
+      # Decided by key, not timestamp: under the new key an old-lineage archive
+      # and a tampered one both report "Tag failed verification", and an mtime
+      # window selects FOR archives modified during it, since writing sets mtime.
       receipt_rekey_transition_remainder() {
         local stamp_file="$STATE_DIR/fss-rekey-epoch"
-        local stamp grace remaining verify_key sweep_output sweep_path sweep_mtime
+        local stamp grace remaining verify_key sweep_output sweep_path
 
         [ -f "$stamp_file" ] || return 0
         [ "$ACTIVATION_FAILED" = 0 ] || return 0
@@ -899,10 +1115,11 @@ let
           return 0
           ;;
         esac
+        # Old-lineage actives freeze only at the next rotation, so a clean sweep
+        # does not mean the window is done producing stragglers.
         grace=900
 
-        # A transaction that cannot reconcile within a day is not transition
-        # residue; stop sweeping and let the remaining failures stand.
+        # Cost bound, not correctness: stop sweeping and let failures stand.
         if [ $(( $(date +%s) - stamp )) -gt 86400 ]; then
           rm -f "$stamp_file"
           fss_log warn "Re-key transaction expired unreconciled; remaining verification failures stand"
@@ -917,24 +1134,22 @@ let
         while IFS= read -r sweep_path || [ -n "$sweep_path" ]; do
           [ -n "$sweep_path" ] || continue
           case "$sweep_path" in
-          *@* | *.journal~) ;;
+          *@*) ;;
           *) continue ;; # never receipt a live journal
           esac
-          sweep_mtime=$(stat -c %Y "$sweep_path" 2>/dev/null || echo 0)
-          if [ "$sweep_mtime" -le $(( stamp + grace )) ]; then
+          if archive_verifies_under_retained_key "$sweep_path"; then
             record_recovery_receipt "$sweep_path" "clock-jump-rekey"
           else
             remaining=1
           fi
         done < <(fss_unique_fail_paths_from_output "$sweep_output")
 
-        # Old-lineage actives only freeze at the next rotation or shutdown, so
-        # a clean sweep now does not mean the window is done producing
-        # stragglers: close only once the grace window itself has elapsed.
         if [ "$remaining" = 0 ] && [ "$(date +%s)" -gt $(( stamp + grace )) ]; then
           rm -f "$stamp_file"
           fss_log info "Re-key transition reconciled; closing the re-key transaction"
         fi
+        # Prune here: this runs from finish_setup, after every other prune site.
+        prune_recovery_receipts
       }
 
       # Exit the setup service, failing closed if sealing activation did not take
@@ -989,6 +1204,9 @@ let
 
       # Ensure journal directory exists (for persistent storage)
       mkdir -p "$STATE_DIR"
+      # Record any attested backward step first, so the evidence survives into
+      # later boots even if this run fails.
+      record_clock_jump_attestation
       # Set permissions if possible (may fail in restricted environments like MicroVMs)
       chmod 0755 "/var/log/journal" 2>/dev/null || true
       chmod 2755 "$STATE_DIR" 2>/dev/null || true
@@ -1435,6 +1653,84 @@ in
       '';
     };
 
+    rekey = {
+      enable = mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          Whether setup may recover automatically from a sealing epoch left
+          ahead of the wall clock by a backward realtime step.
+
+          journald cannot walk an FSPRG epoch backwards, and stops writing tags
+          entirely while its epoch is ahead of realtime, so without recovery
+          the machine fails verification on every boot for the length of the
+          step. Recovery is nonetheless destructive: it discards the key pair
+          and re-keys, after which journals sealed before the jump no longer
+          verify under the live key. It runs only when journald itself attested
+          the step. Set this to false for a deployment that would rather fail
+          closed and have a human decide.
+        '';
+      };
+
+      attestationValiditySeconds = mkOption {
+        type = types.int;
+        default = 604800;
+        description = ''
+          How long journald's attestation of a backward clock step authorises
+          an automatic re-key.
+
+          Time-based expiry is admittedly the wrong shape: a poisoned sealing
+          epoch persists for the magnitude of the step, which can outlast any
+          window. But a stamp that never expires is a standing authorisation to
+          destroy keys, which is worse. Past the window an operator
+          re-provisions by hand, which is the correct fail-closed default.
+        '';
+      };
+
+      maxAttempts = mkOption {
+        type = types.int;
+        default = 3;
+        description = ''
+          Automatic re-keys permitted within attemptWindowSeconds.
+
+          The in-process guard only bounds a single setup invocation chain, and
+          ghaf-clock-jump-watcher restarts setup on every new attestation, so
+          this is what stops a condition that survives a re-key from destroying
+          the key pair again on every trigger.
+        '';
+      };
+
+      attemptWindowSeconds = mkOption {
+        type = types.int;
+        default = 86400;
+        description = "Window over which rekey.maxAttempts is counted.";
+      };
+
+      retainedKeys = mkOption {
+        type = types.int;
+        default = 2;
+        description = ''
+          How many superseded verification keys to keep alongside the live one.
+
+          A re-key regenerates the seed and start_usec, so journals sealed
+          before it can never be verified with the new key. Retaining the
+          outgoing key keeps that history auditable offline, and lets the
+          transition sweep prove an archive belongs to a pre-re-key lineage
+          cryptographically instead of inferring it from timestamps.
+
+          The cost is exposure: an FSS verification key is seed + start +
+          interval, so possession allows forging entries from that epoch
+          forward, not merely verifying them. Retained keys are 0400 root
+          inside the 0700 key directory. On a guest that directory is a
+          virtiofs share from the host, so retained guest keys are readable to
+          whatever on the host can read the share -- the same class of exposure
+          as the live key, but N times more of it. Set to 0 to keep none,
+          accepting that pre-jump history becomes permanently unverifiable and
+          that the sweep loses its discriminator.
+        '';
+      };
+    };
+
     sealInterval = mkOption {
       type = types.str;
       default = "15min";
@@ -1447,6 +1743,17 @@ in
 
         Shorter intervals provide more granular tamper detection but increase
         storage overhead.
+
+        Do not lower this without measuring. A FORWARD clock step -- which is
+        what an RTC-less board does on every boot once NTP answers -- costs
+        journald one 1536-bit modular squaring and one 64-byte tag object per
+        missed interval, walked synchronously on the log-append path with no
+        cap (journal_file_fsprg_evolve; the epoch cannot be sought forward
+        because journald holds no seed). The cost is linear in 1/sealInterval:
+        at the 15min default a multi-month step is some thousands of
+        evolutions and unnoticeable, at "10s" the same step is over a million,
+        which is tens of seconds of blocked journald and enough tag objects to
+        drive rotation and vacuuming of real log data.
 
         Format: time span (e.g., "15min", "1h", "30s")
         Recommended: 15min (systemd default)

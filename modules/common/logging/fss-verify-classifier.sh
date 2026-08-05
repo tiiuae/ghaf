@@ -132,6 +132,123 @@ fss_unique_fail_paths_from_output() {
   printf '%s' "$unique"
 }
 
+# Clock-jump and FSS re-key predicates. Pure, so they are testable: see
+# tests/logging/test_scripts/fss-classifier-cases.nix.
+
+# Epochs of journald's backward-jump attestations, from --output=short-unix
+# lines on stdin. Excludes the monotonic variant, which does not move realtime
+# and so cannot leave the FSPRG sealing epoch ahead of it.
+fss_time_jump_epochs_from_lines() {
+  {
+    grep -F \
+      -e "Time jumped backwards, rotating" \
+      -e "Realtime clock jumped backwards relative to last journal entry, rotating" ||
+      true
+  } | awk '
+        $1 ~ /^[0-9]+([.][0-9]+)?$/ {
+          split($1, ts, ".")
+          print ts[1]
+        }
+      ' | sort -u
+}
+
+# Return success when archive_mtime lands within window_sec of any of the
+# newline-separated time-jump epochs.
+fss_mtime_matches_time_jump_epoch() {
+  local archive_mtime="$1"
+  local time_jump_epochs="$2"
+  local window_sec="${3:-10}"
+  local event_epoch="" lower=0 upper=0
+
+  while IFS= read -r event_epoch || [ -n "$event_epoch" ]; do
+    case "$event_epoch" in
+    "" | *[!0-9]*) continue ;;
+    esac
+
+    lower=$((event_epoch - window_sec))
+    upper=$((event_epoch + window_sec))
+    if [ "$archive_mtime" -ge "$lower" ] && [ "$archive_mtime" -le "$upper" ]; then
+      return 0
+    fi
+  done <<<"$time_jump_epochs"
+
+  return 1
+}
+
+# Highest B from journal-verify.c's "Older entry after newer tag (A < B)", usec
+# since epoch; empty when absent. The sibling tag diagnostics carry unrelated
+# numbers and must not match. Over-wide values are dropped rather than returned:
+# the caller feeds this to shell arithmetic, where they wrap. Always exits 0.
+fss_max_future_tag_epoch_us() {
+  local candidate
+
+  candidate=$(
+    printf '%s\n' "$1" |
+      { grep -oE 'Older entry after newer tag \([0-9]+ < [0-9]+\)' || true; } |
+      { grep -oE '< [0-9]+' || true; } |
+      tr -d '< ' | sort -n | tail -1
+  )
+
+  case "$candidate" in
+  "" | *[!0-9]*) return 0 ;;
+  esac
+  [ "${#candidate}" -le 19 ] || return 0
+
+  printf '%s' "$candidate"
+}
+
+# Print the sealing epoch (usec) when a tag sits far enough ahead of the wall
+# clock to mean realtime stepped backwards after sealing; else return non-zero.
+# The margin covers a tag legitimately up to one sealing interval ahead; a
+# smaller step self-heals once wall time passes the tag's window.
+fss_time_poisoned_sealing_epoch_us() {
+  local verify_output="$1" now_us="$2" margin_us="$3"
+  local future_us
+
+  future_us=$(fss_max_future_tag_epoch_us "$verify_output")
+  [ -n "$future_us" ] || return 1
+  [ "$future_us" -gt $((now_us + margin_us)) ] || return 1
+
+  printf '%s' "$future_us"
+}
+
+# Classify a clock-jump attestation stamp (<epoch>\t<boot_id>\t<jump epochs>),
+# printing current-boot | persisted-stamp | expired | malformed | none.
+# The window is on the ABSOLUTE age: the stamp records the event that moves the
+# clock, so it can legitimately read as future-dated afterwards.
+fss_clock_jump_stamp_state() {
+  local record="$1" current_boot="$2" now="$3" ttl="$4"
+  local observed boot rest age
+
+  if [ -z "$record" ]; then
+    printf '%s' none
+    return 0
+  fi
+
+  # shellcheck disable=SC2034  # rest is a positional placeholder
+  IFS=$'\t' read -r observed boot rest <<<"$record"
+
+  case "$observed" in
+  "" | *[!0-9]*)
+    printf '%s' malformed
+    return 0
+    ;;
+  esac
+
+  if [ -n "$boot" ] && [ "$boot" = "$current_boot" ]; then
+    printf '%s' current-boot
+    return 0
+  fi
+
+  age=$((now - observed))
+  [ "$age" -ge 0 ] || age=$((-age))
+  if [ "$age" -le "$ttl" ]; then
+    printf '%s' persisted-stamp
+  else
+    printf '%s' expired
+  fi
+}
+
 fss_path_list_contains() {
   local path_list="$1"
   local needle="$2"

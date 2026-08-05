@@ -30,6 +30,10 @@ jobs:
               uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0
             - name: Check nix flake show runs successfully
               run: nix flake show --all-systems --accept-flake-config
+            - name: Check FSS verification policy and clock-jump predicates
+              # Sub-second, no remote builder. Here rather than build.yml so it
+              # also covers pull requests from forks.
+              run: nix build .#checks.x86_64-linux.fss-classifier-unit --accept-flake-config -L
             - name: Check templates
               run: |
                   set -eux -o pipefail

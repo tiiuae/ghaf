@@ -88,6 +88,7 @@ pkgs.testers.nixosTest {
           gnugrep
           util-linux
           (callPackage ./test_scripts/fss-test.nix { })
+          (callPackage ./test_scripts/fss-classifier-cases.nix { })
           (callPackage ../../packages/pkgs-by-name/fss-triage/package.nix { })
         ];
       };

@@ -180,6 +180,8 @@ let
   # networking/timesyncd and does not block the early journal flush. It best-effort
   # waits for NTP synchronization up to the configured bound before FSS activation,
   # then releases boot regardless (clock readiness is a gate, not a time authority).
+  # Publishes to /run/ghaf-clock-sync-state only. /run/ghaf-clock-synced belongs
+  # to ghaf-wait-time-sync, whose literal "synchronised" SPIRE gates on.
   ghafClockSync = pkgs.writeShellApplication {
     name = "ghaf-clock-sync";
     runtimeInputs = with pkgs; [
@@ -190,7 +192,6 @@ let
     text = ''
       sync_wait_seconds="${toString effectiveSyncWaitSeconds}"
       sync_state_file="/run/ghaf-clock-sync-state"
-      synced_file="/run/ghaf-clock-synced"
 
       uptime_seconds() {
         awk '{printf "%d\n", $1}' /proc/uptime
@@ -237,8 +238,6 @@ let
       fi
 
       write_sync_state
-      touch "$synced_file"
-      chmod 0644 "$synced_file"
     '';
   };
 
@@ -247,24 +246,91 @@ let
     runtimeInputs = with pkgs; [
       coreutils
       gawk
+      gnugrep
       systemd
     ];
+    # /etc/fss-verify-classifier.sh is populated at runtime by fss.nix
+    # (unconditionally, since this consumer runs even when FSS is disabled);
+    # shellcheck cannot follow it statically.
+    excludeShellChecks = [ "SC1091" ];
     text = ''
+      source /etc/fss-verify-classifier.sh
+
       threshold="${toString recCfg.thresholdSeconds}"
       interval="${toString recCfg.intervalSeconds}"
+      machine_id="$(cat /etc/machine-id 2>/dev/null || echo unknown)"
+      state_dir="/var/log/journal/$machine_id"
+      stamp_file="$state_dir/fss-clock-jump-attested"
+      restart_stamp="/run/ghaf-clock-jump-watcher.setup-restart"
+      restart_cooldown="${toString recCfg.cooldownSeconds}"
 
       last_real="$(date +%s)"
       last_up="$(cut -d' ' -f1 /proc/uptime)"
-      last_attested=0
 
-      # journald's own jump attestations ("Time jumped backwards, rotating").
-      # The realtime-vs-monotonic delta below misses a step that goes out and
-      # back inside one poll interval, but journald rotates and logs it either
-      # way -- so count its attestations and recover when new ones appear.
-      attested_jump_count() {
-        journalctl -b -u systemd-journald.service --output=cat --quiet --no-pager 2>/dev/null \
-          | { grep -Fc "jumped backwards" || true; }
+      # journald's attestations that REALTIME stepped backwards, for steps the
+      # delta below misses. Read from a cursor, not a full `journalctl -b` pass
+      # every tick; cursors are file-order, so immune to the jumps being watched
+      # for. Guarded because an exit under errexit would kill the watcher.
+      cursor=""
+
+      read_journald_since_cursor() {
+        if [ -n "$cursor" ]; then
+          journalctl -u systemd-journald.service --after-cursor="$cursor" \
+            --show-cursor --output=short-unix --quiet --no-pager 2>/dev/null || true
+        else
+          journalctl -b -u systemd-journald.service \
+            --show-cursor --output=short-unix --quiet --no-pager 2>/dev/null || true
+        fi
       }
+
+      cursor_from_output() {
+        printf '%s\n' "$1" | { grep '^-- cursor: ' || true; } | tail -1 \
+          | sed 's/^-- cursor: //'
+      }
+
+      # Shares setup's filter, so a monotonic jump is not counted.
+      jump_epochs_from_output() {
+        printf '%s\n' "$1" | { grep -v '^-- cursor: ' || true; } \
+          | fss_time_jump_epochs_from_lines
+      }
+
+      # Evidence for journal-fss-setup, which gates its re-key on an attestation
+      # and usually looks a boot later. Best effort: a write failure must not
+      # take the watcher down.
+      record_attestation() {
+        local epochs="$1"
+
+        [ -n "$epochs" ] || return 0
+        [ -d "$state_dir" ] || return 0
+        printf '%s\t%s\t%s\n' \
+          "$(date +%s)" \
+          "$(fss_current_boot_id)" \
+          "$(printf '%s' "$epochs" | tr '\n' ',')" \
+          > "$stamp_file" 2>/dev/null || return 0
+        chmod 0644 "$stamp_file" 2>/dev/null || true
+      }
+
+      # Rate-limit the setup restart: it restarts journald, and the unit sets
+      # StartLimitIntervalSec=0 so systemd imposes no limit. Monotonic, since
+      # the event being handled is a realtime jump.
+      setup_restart_due() {
+        local now last
+
+        now=$(awk '{printf "%d\n", $1}' /proc/uptime)
+        last=$(cat "$restart_stamp" 2>/dev/null || true)
+        case "$last" in "" | *[!0-9]*) last="" ;; esac
+        if [ -n "$last" ] && [ "$(( now - last ))" -lt "$restart_cooldown" ]; then
+          return 1
+        fi
+        printf '%s\n' "$now" > "$restart_stamp" 2>/dev/null || true
+      }
+
+      # Baseline: advance past what this boot already recorded and discard it.
+      # Otherwise the first sample looks new on every boot that logged a jump
+      # before the watcher started, restarting setup seconds into each one.
+      raw="$(read_journald_since_cursor)"
+      seen_cursor="$(cursor_from_output "$raw")"
+      [ -z "$seen_cursor" ] || cursor="$seen_cursor"
 
       while true; do
         sleep "$interval"
@@ -276,17 +342,22 @@ let
 
         abs="$(awk -v d="$drift" 'BEGIN{print (d<0)?-d:d}')"
 
-        attested="$(attested_jump_count)"
+        raw="$(read_journald_since_cursor)"
+        seen_cursor="$(cursor_from_output "$raw")"
+        [ -z "$seen_cursor" ] || cursor="$seen_cursor"
+        new_epochs="$(jump_epochs_from_output "$raw")"
 
         if awk -v a="$abs" -v t="$threshold" 'BEGIN{exit !(a>=t)}' \
-          || [ "$attested" -gt "$last_attested" ]; then
+          || [ -n "$new_epochs" ]; then
+          record_attestation "$new_epochs"
           systemctl start ghaf-journal-alloy-recover.service || true
           # Re-running setup lets it detect a time-poisoned sealing epoch and
           # re-key (see recover_from_time_poisoned_sealing in fss.nix).
-          systemctl restart --no-block journal-fss-setup.service 2>/dev/null || true
+          if setup_restart_due; then
+            systemctl restart --no-block journal-fss-setup.service 2>/dev/null || true
+          fi
         fi
 
-        last_attested="$attested"
         last_real="$real"
         last_up="$up"
       done
