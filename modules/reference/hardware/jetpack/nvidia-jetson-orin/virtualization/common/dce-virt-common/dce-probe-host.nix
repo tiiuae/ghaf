@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# DCE display-proxy HOST integration (AGX only).
+# DCE display-proxy HOST integration.
 #
 # Companion to gpu-vm's guest overlay (../../passthrough/gpu-vm). Guest takes
 # display@13800000 and drives the panel via a synthetic DCE proxy; HOST keeps
@@ -14,7 +14,8 @@
 #     the guest's DCE IPC through it to the R5);
 #   - keep gpu_vm ENABLED (unlike the Phase-0 spike, which forced it off).
 #
-# AGX-only: imported from agx/orin-agx.nix, never hoisted into a shared orin.nix.
+# Shared by AGX and NX (both Tegra234 + host-owned DCE): imported from
+# agx/orin-agx.nix and nx/orin-nx.nix.
 {
   lib,
   pkgs,
