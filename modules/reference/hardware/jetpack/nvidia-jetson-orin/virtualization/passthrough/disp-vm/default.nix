@@ -47,9 +47,14 @@ let
     "vfio-platform,host=${r.dev},mmio-base=${r.base}"
   ]) mappings;
 
-  inherit (import ../payload { inherit lib pkgs; }) capabilities mkPayload;
+  inherit (import ../payload { inherit lib pkgs; })
+    capabilities
+    mkPayload
+    boardFor
+    ;
   cap = capabilities.dispvm;
   payload = mkPayload cap;
+  board = boardFor config.ghaf.hardware.nvidia.orin.somType;
   _capOk =
     payload.needsDceBridge
     && payload.noSyncpointPatch
@@ -85,7 +90,7 @@ let
         };
       in
       ''
-        $CC -E -nostdinc -undef -D__DTS__ -DEXP_DROP_HOST1X -DEXP_DROP_GPU -x assembler-with-cpp \
+        $CC -E -nostdinc -undef -D__DTS__ -DEXP_DROP_HOST1X -DEXP_DROP_GPU -DGHAF_DCB_DTSI='"${board.dcbDtsi}"' -x assembler-with-cpp \
           -I${mainInc} \
           -I${../gpu-vm/nv-dt-bindings} \
           -I${gpuvmDtsi} \
