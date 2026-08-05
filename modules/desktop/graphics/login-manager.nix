@@ -59,6 +59,17 @@ in
       }
     ];
 
+    # The panel arrives at 0, and with nothing saved to restore
+    # systemd-backlight only lifts it to its 1% floor. The host carries the same
+    # rule from when it owned the display; the GUI VM holds the eDP backlight now
+    # and needs its own.
+    #
+    # A floor, not an override: systemd-backlight's `load` runs after udev, so a
+    # remembered value still wins.
+    services.udev.extraRules = ''
+      ACTION=="add", SUBSYSTEM=="backlight", ATTR{brightness}="$attr{max_brightness}"
+    '';
+
     systemd.services.greetd.serviceConfig = {
       RestartSec = "5";
     };
