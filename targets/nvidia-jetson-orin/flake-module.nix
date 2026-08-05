@@ -71,6 +71,47 @@ let
     }
   ];
 
+  # Shared by the AGX and NX accelerated-guivm variants.
+  acceleratedGuivmUsbRules = [
+
+    {
+      description = "USB Devices for GUIVM";
+      targetVm = "gui-vm";
+      allow = [
+        {
+          interfaceClass = 3;
+          interfaceProtocol = 1;
+          description = "HID Keyboard";
+        }
+        {
+          interfaceClass = 3;
+          interfaceProtocol = 2;
+          description = "HID Mouse";
+        }
+        {
+          interfaceClass = 11;
+          description = "Chip/SmartCard (e.g. YubiKey)";
+        }
+        {
+          interfaceClass = 8;
+          interfaceSubclass = 6;
+          description = "Mass Storage - SCSI (USB drives)";
+        }
+        {
+          interfaceClass = 17;
+          description = "USB-C alternate modes supported by device";
+        }
+      ];
+      deny = [
+        {
+          vendorId = "046d";
+          productId = "c52b";
+          description = "Logitech Unifying Receiver: evdev-only on Orin (usb-host interrupt-IN broken)";
+        }
+      ];
+    }
+  ];
+
   # Non-verity Orin configurations using mkGhafConfiguration
   target-configs = [
     # ============================================================
@@ -104,44 +145,7 @@ let
         hardware.nvidia.passthroughs.disp_vm.enable = lib.mkForce false;
 
         # Keep the Unifying receiver on the working evdev path.
-        hardware.passthrough.usb.guivmRules = lib.mkForce [
-          {
-            description = "USB Devices for GUIVM";
-            targetVm = "gui-vm";
-            allow = [
-              {
-                interfaceClass = 3;
-                interfaceProtocol = 1;
-                description = "HID Keyboard";
-              }
-              {
-                interfaceClass = 3;
-                interfaceProtocol = 2;
-                description = "HID Mouse";
-              }
-              {
-                interfaceClass = 11;
-                description = "Chip/SmartCard (e.g. YubiKey)";
-              }
-              {
-                interfaceClass = 8;
-                interfaceSubclass = 6;
-                description = "Mass Storage - SCSI (USB drives)";
-              }
-              {
-                interfaceClass = 17;
-                description = "USB-C alternate modes supported by device";
-              }
-            ];
-            deny = [
-              {
-                vendorId = "046d";
-                productId = "c52b";
-                description = "Logitech Unifying Receiver: evdev-only on Orin (usb-host interrupt-IN broken)";
-              }
-            ];
-          }
-        ];
+        hardware.passthrough.usb.guivmRules = lib.mkForce acceleratedGuivmUsbRules;
       };
     })
 
@@ -197,6 +201,52 @@ let
           # then evicts page cache backing the USB-eth driver and the dongle
           # disconnects, killing sshd on the test-net IP.
           mem = 2048;
+        };
+        # The carveouts (~6.1GB) come out of the 16GB, leaving ~9.5GB for
+        # host + all QEMU RAM. Keep the VM total at or under 7GB: 10.1GB
+        # OOM-killed a VM and hung PID 1 on every boot.
+        sysvms.gpuvm = {
+          mem = 2048;
+        };
+        # disp-vm runs on the 1:1 dispram carveout; -m only backs the
+        # machine's default RAM window.
+        sysvms.dispvm = {
+          mem = 1536;
+        };
+      };
+    })
+
+    (ghaf-configuration {
+      name = "nvidia-jetson-orin-nx-accelerated-guivm";
+      inherit system;
+      profile = "orin";
+      hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-nx;
+      variant = "debug";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-orinuser-trial.enable = true;
+        # Accelerated topology has one combined GPU/display owner.
+        hardware.nvidia.passthroughs.gui_vm.enable = true;
+        hardware.nvidia.passthroughs.gpu_vm.enable = lib.mkForce false;
+        hardware.nvidia.passthroughs.disp_vm.enable = lib.mkForce false;
+
+        # Pin APP so the flash script carries no embedded image: every flash
+        # supplies one with -s, which also keeps the script buildable without
+        # the image.
+        hardware.nvidia.orin.flashScriptOverrides.appPartitionSizeBytes = 34359738368;
+
+        # Keep the Unifying receiver on the working evdev path.
+        hardware.passthrough.usb.guivmRules = lib.mkForce acceleratedGuivmUsbRules;
+      };
+      vmConfig = {
+        sysvms.netvm = {
+          vcpu = 4;
+          mem = 2048;
+        };
+        # VFIO pins all guest RAM up front, so 4096 only fits alongside the
+        # host zram in orin-nx.nix; without it this OOM-crash-looped.
+        sysvms.guivm = {
+          mem = 4096;
         };
       };
     })

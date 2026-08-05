@@ -11,7 +11,12 @@
 {
   _file = ./orin-nx.nix;
 
-  imports = [ ../../../../common/services/hwinfo ];
+  imports = [
+    ../../../../common/services/hwinfo
+    # Host keeps the real DCE R5 and loads dce-host-proxy so the guest drives
+    # the panel through it. Shared by AGX and NX.
+    ../nvidia-jetson-orin/virtualization/common/dce-virt-common/dce-probe-host.nix
+  ];
 
   ghaf = {
     # Enable hardware info generation on host
@@ -27,14 +32,18 @@
         somType = "nx";
         nx.enableNetvmEthernetPCIPassthrough = true;
         carrierBoard = "xavierNxDevkit";
-        # Orin NX p3768 devkit boots rootfs from NVMe and USB (no eMMC on this SoM);
-        # Default is set to USB
+        # No eMMC on this SoM; jetpack flashes the QSPI+NVMe layout below.
         flashScriptOverrides = {
-          deviceDisk = "sda";
-          deviceDiskEspPartition = "sda1";
-          deviceDiskRootfsPartition = "sda2";
+          deviceDisk = "nvme0n1";
+          deviceDiskEspPartition = "nvme0n1p1";
+          deviceDiskRootfsPartition = "nvme0n1p2";
         };
       };
+
+      # Split topology, as on AGX. The accelerated-guivm target variant
+      # forces these off and enables gui_vm instead.
+      nvidia.passthroughs.gpu_vm.enable = true;
+      nvidia.passthroughs.disp_vm.enable = true;
 
       # Net VM hardware-specific modules - use hardware.definition for composition model
       definition.netvm.extraModules = [
@@ -116,5 +125,12 @@
         ];
       };
     };
+  };
+
+  # 16GB SoM: VM RAM is memfd shmem and host RAM after the carveouts is
+  # thin; without zram a spike OOM-kills a qemu.
+  zramSwap = {
+    enable = true;
+    memoryPercent = 50;
   };
 }

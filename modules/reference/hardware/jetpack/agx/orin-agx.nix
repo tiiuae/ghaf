@@ -9,12 +9,8 @@
 
   imports = [
     ../../../../common/services/hwinfo
-    # DCE display-proxy HOST integration (AGX only). Keeps gpu_vm
-    # enabled, runs the host headless, force-loads tegra-dce so the host owns
-    # the real DCE R5, and builds + loads the dce-host-proxy .ko (with an
-    # injected nvidia,dce-host-proxy DT node) so the guest can drive the panel
-    # through the host-owned DCE. AGX-only on purpose -- do not hoist into a
-    # shared orin.nix.
+    # Host keeps the real DCE R5 and loads dce-host-proxy so the guest drives
+    # the panel through it. Shared by AGX and NX.
     ../nvidia-jetson-orin/virtualization/common/dce-virt-common/dce-probe-host.nix
   ];
 
