@@ -131,6 +131,9 @@ in
               (srcDir + "/patches/0020-synthesize-boot-hotplug-long-pulse.patch")
               # Keep the stock R5 FLIP_OCCURRED path as the sole completion owner.
               (srcDir + "/patches/0011-window-notifier-plain-write.patch")
+              # Keep the R5's flip-completion binding across modesets, or the
+              # desktop session after the greeter never sees a completion.
+              (srcDir + "/patches/0024-nvkms-keep-flip-completion-binding.patch")
             ]
             # disp-vm has no guest-owned host1x syncpoints.
             ++ lib.optional payload.noSyncpointPatch (
