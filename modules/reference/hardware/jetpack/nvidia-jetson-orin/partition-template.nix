@@ -296,6 +296,20 @@ let
         echo "QSPI-only mode: skipping ESP and root partition extraction."
       ''}
 
+      ${lib.optionalString config.ghaf.profiles.debug.enable ''
+        # NVIDIA's blkdiscard fallback dd-zeroes the whole partition at
+        # 512 bytes a write: hours on a 256GB NVMe. Wiping the head is enough
+        # to drop the old structures; the image write covers the rest. Blocks
+        # the sparse write skips keep old data -- debug only, never release.
+        eraser=tools/kernel_flash/l4t_flash_from_kernel.sh
+        if grep -q 'dd if=/dev/zero of=[^ ]* status=progress oflag=direct' "$eraser"; then
+          sed -i 's#dd if=/dev/zero of=\([^ ]*\) status=progress oflag=direct#dd if=/dev/zero of=\1 bs=4M count=8 conv=notrunc oflag=direct#g' "$eraser"
+          echo "Debug flash: capped erase-partition dd fallback to a 32MiB head wipe"
+        else
+          echo "WARNING: erase fallback pattern not found in $eraser; full-partition zeroing still active" >&2
+        fi
+      ''}
+
       echo ""
       echo "Ready to flash!"
       echo "============================================================"
