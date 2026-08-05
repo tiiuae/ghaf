@@ -192,6 +192,73 @@ the display engine's ISO/NISO SMMU streams.
   completions the guest can never receive (the awaken interrupt path does not
   cross the relay).
 
+### Host-Memory Footprint
+
+The identity mappings are removed from the host's normal RAM before Linux
+boots. Count them separately from each VM's ordinary QEMU RAM:
+
+| Mapping | Size | Accelerated | Split | Purpose |
+| --- | ---: | :---: | :---: | --- |
+| `vm_cma` | 768 MiB | yes | yes | GPU, NVMAP, and guest CMA heaps |
+| `vm_hs` | 64 MiB | yes | yes | host1x semaphore/syncpoint shim |
+| `scanout` | 128 MiB | yes | yes | 1:1 display scanout aperture |
+| `dispram_lo` | 736 MiB | no | yes | `disp-vm` kernel and working RAM |
+| `dispram_hi` | 416 MiB | no | yes | `disp-vm` display carveouts |
+| **Total** |  | **960 MiB** | **2112 MiB** |  |
+
+The former `vm_cma_vram` mapping reserved another 4 GiB at `0x100000000`, but
+no active guest heap used it after GPU allocations moved below 4 GiB. It is no
+longer present in the host overlay, guest memory node, QEMU VFIO arguments, or
+guest `reserved-memory`. The `disp-vm` banks are emitted only for the split
+topology; the combined `gui-vm` therefore releases a further 1152 MiB.
+
+On an AGX accelerated target, removing the split-only banks increased host
+`MemTotal` from 29,303,456 KiB to 30,483,120 KiB: exactly 1,179,664 KiB after
+kernel accounting, matching the 1152 MiB DT reservation. The host and
+`gui-vm` remained healthy, and the live host DT contained `vm_cma`, `vm_hs`,
+and `scanout`, but no old VRAM or `dispram` nodes.
+
+#### QEMU RAM Is a Separate Budget
+
+The fixed mappings above do not replace a graphics VM's ordinary
+`microvm.mem` allocation. QEMU exposes that allocation as a separate high
+guest memory bank. VFIO locks its address range, so lowering `microvm.mem`
+reduces the amount that can become unreclaimable on the host. Residency can be
+lazy: the complete range is locked even when not all pages are resident yet.
+
+Measurements from the accelerated targets on 2026-08-05 illustrate the
+difference:
+
+| Board | `gui-vm` QEMU RAM | Host `VmLck` | Host `VmRSS` | Guest used | Guest available |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| AGX | 6144 MiB | 6144 MiB | 6298 MiB | 1336 MiB | 4712 MiB |
+| NX 16 GB | 4096 MiB | 4096 MiB | 1845 MiB | 1255 MiB | 2723 MiB |
+
+All graphics system VMs already enable LZO-RLE zram at 25 percent of guest
+RAM with swappiness 10. Neither measured `gui-vm` was using zram. Zram can
+provide headroom after reducing QEMU RAM, but enabling or enlarging it alone
+does not release a host carveout or shrink the VFIO-locked range.
+
+Tune normal VM RAM independently for each topology and workload:
+
+- The AGX accelerated target can first test `gui-vm` at 4096 MiB, matching the
+  current NX allocation. This lowers the locked ceiling by 2 GiB.
+- On NX, test 3072 MiB before considering a smaller `gui-vm`; idle use does not
+  cover COSMIC login, application, graphics, and first-boot peaks.
+- In split mode, AGX defaults of 6000 MiB for `gpu-vm` and 4000 MiB for
+  `disp-vm` can be tested against the existing NX allocations of 2048 MiB and
+  1536 MiB. Validate `gpu-vm` with the intended CUDA or unified-memory workload.
+- Do not reduce the NX `net-vm` from 2048 MiB based on idle data. A 1024 MiB
+  configuration previously OOM-killed during the logging and networking
+  first-boot burst.
+
+For each step, cold boot the board, compare host `VmLck`/`VmRSS` and guest
+`MemAvailable`, then exercise modesets, COSMIC login, applications, and the
+intended GPU workload. Treat OOM events, sustained zram use, memory-pressure
+stalls, or GPU/DCE faults as a failed size. Guest kernel `mem=` limits,
+offlining, ballooning, and huge pages do not by themselves shrink these static
+VFIO mappings; change `microvm.mem` to reduce the host ceiling.
+
 ## Asynchronous events: hotplug and vblank
 
 The DCE pushes unsolicited notifications (channel type 3) for hotplug, vblank
