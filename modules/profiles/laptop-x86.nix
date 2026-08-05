@@ -305,7 +305,14 @@ in
 
           adminvm = {
             enable = true;
-            evaluatedConfig = lib.mkDefault cfg.adminvmBase;
+            evaluatedConfig = lib.mkDefault (
+              cfg.adminvmBase.extendModules {
+                modules = lib.ghaf.vm.applyVmConfig {
+                  inherit config;
+                  vmName = "adminvm";
+                };
+              }
+            );
           };
 
           idsvm = {

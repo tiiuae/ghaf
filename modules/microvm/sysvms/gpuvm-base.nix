@@ -217,8 +217,6 @@ in
     # profile/vmConfig can shrink it.
     vcpu = 4;
     mem = lib.mkDefault 6000;
-    hypervisor = "qemu";
-
     shares = [
       {
         tag = "ghaf-common";
