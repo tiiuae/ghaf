@@ -14,6 +14,7 @@ let
     mkIf
     types
     mapAttrs
+    literalExpression
     ;
   inherit (config.ghaf.networking) hosts;
   inherit (config.networking) hostName;
@@ -27,6 +28,15 @@ in
       type = types.listOf types.attrs;
       default = [ { } ];
       description = "Applications to run in the appvm.";
+    };
+    services = mkOption {
+      type = types.listOf types.str;
+      default = [ ];
+      example = literalExpression ''services = [ "maintenance-task.service" ];'';
+      description = ''
+        Systemd units the appvm exposes for remote administration. The appvm
+        agent runs as a user service, hence these must be user units.
+      '';
     };
   };
 
@@ -52,7 +62,7 @@ in
         tls.enable = config.ghaf.givc.enableTls;
       };
       capabilities = {
-        inherit (cfg) applications;
+        inherit (cfg) applications services;
         policy = mkIf policycfg.enable {
           enable = true;
           inherit (policycfg) storePath;
