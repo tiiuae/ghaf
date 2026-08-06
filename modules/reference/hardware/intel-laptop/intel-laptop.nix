@@ -35,9 +35,18 @@
     ];
   };
 
-  # Network devices for passthrough to netvm detected dynamically in vhotplug
-  # This is left here because google-chromecast service depends on the static network interface name
-  # TODO: refactor google-chromecast service to avoid using staticly defined network interface name
+  # Network devices for passthrough to netvm are detected dynamically in vhotplug.
+  #
+  # This entry is NOT a passthrough declaration -- it has no PCI path, so it is
+  # skipped for passthrough (devices.nix filters on path/vendor+product). What it
+  # does is generate a systemd.link rule matching Type=wlan, giving whichever
+  # wireless device shows up the stable name below. That is still worth having.
+  #
+  # It used to exist for a second reason: chromecast and friends took
+  # `(lib.head network.pciDevices).name` as "the external NIC". That was wrong on
+  # any wired device -- ethernet arrives as a dock or dongle via vhotplug and is
+  # not in this list at all -- and is now resolved at runtime by
+  # ghaf-uplink-resolver instead. Nothing derives the uplink from here any more.
   network = {
     pciDevices = [
       {

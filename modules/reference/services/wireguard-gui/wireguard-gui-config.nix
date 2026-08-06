@@ -82,7 +82,9 @@ in
 
     ghaf.reference.services.wireguard-gui-vmconfig = lib.mkMerge [
       (mkIf isHost {
-        netVmExternalNic = mkForce (lib.head config.ghaf.hardware.definition.network.pciDevices).name;
+        # netVmExternalNic is no longer derived from the hardware definition --
+        # see the note in chromecast-config.nix. net-vm resolves the interface
+        # at runtime instead.
         enabledVmNames = mkIf (wgEnabledVmNames != [ ]) (mkForce wgEnabledVmNames);
         serverPortsByVm = mkIf (wgServerPortsByVm != [ ]) (mkForce wgServerPortsByVm);
       })
