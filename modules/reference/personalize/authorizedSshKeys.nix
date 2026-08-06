@@ -1,11 +1,9 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ lib, ... }:
-{
+{ lib, ... }: {
   _file = ./authorizedSshKeys.nix;
 
   options.ghaf.reference.personalize.keys = {
-
     #TODO: shhould we turn this into a module with this default setting?
     authorizedSshKeys = lib.mkOption {
       description = "List of authorized ssh keys for the development team.";
@@ -41,6 +39,7 @@
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPE/CgI8MXyHiiUyt7BXWjQG1pb25b4N3als/dKKPZyD samuli@nixos"
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJpTkKsWyFQxWKwL22fghfJnLaOhUtZLlF9h2gdWcoJz everton.dematos@tii.ae"
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHkq2GqA7XfW4JN8kiDLjaYf8j2zOsw1DABA7wLmk1qN janne.pirskanen@tii.ae"
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFGzGy5vw2+bdwcGpQ7gwyiNvZ1HlolSHTP3tEUpzpoC emrah.billur@unikie.com"
 
         # For ghaf-installer automated testing:
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAolaKCuIUBQSBFGFZI1taNX+JTAr8edqUts7A6k2Kv7"
