@@ -21,7 +21,7 @@ let
 
   ghaf-cosmic-config = import ./config/cosmic-config.nix {
     inherit lib pkgs;
-    inherit (cfg) topPanelApplets bottomPanelApplets;
+    inherit (cfg) topPanelApplets bottomPanelApplets panels;
     idle =
       let
         ms = v: if cfg.idleManagement.enable then v * 1000 else 0;
@@ -242,6 +242,31 @@ in
         Cosmic top panel applets configuration.
 
         Used only when the bottom-only panel layout is selected.
+      '';
+    };
+
+    panels = mkOption {
+      type = types.listOf (
+        types.enum [
+          "Panel"
+          "Dock"
+        ]
+      );
+      default = [
+        "Panel"
+        "Dock"
+      ];
+      example = literalExpression "[ ]";
+      description = ''
+        Which COSMIC panels the session has. `[ ]` produces a session with
+        neither panel nor dock.
+
+        Applies to the selectable panel layouts as well, so a layout cannot
+        restore a panel that was removed here. Applet options for an absent
+        panel are a no-op.
+
+        This is build-time only. Toggling panels within a running session is
+        not supported; see the COSMIC reference documentation for why.
       '';
     };
 
