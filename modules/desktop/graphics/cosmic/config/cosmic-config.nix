@@ -20,6 +20,8 @@
     right = [ ];
   },
   extraShortcuts ? [ ],
+  disabledShortcuts ? [ ],
+  systemActions ? { },
   panels ? [
     "Panel"
     "Dock"
@@ -64,6 +66,11 @@ let
     "Panel"
     "Dock"
   ];
+
+  shortcutsDir = "$out/share/cosmic/com.system76.CosmicSettings.Shortcuts/v1";
+
+  # A system action's value ends up inside a RON string, written by sed.
+  mkActionValue = value: lib.escape [ "\\" "&" "|" ] (lib.escape [ "\\" "\"" ] value);
 
   hasTopPanelApplets = topPanelApplets != null && topPanelApplets != { };
 
@@ -279,11 +286,35 @@ pkgs.stdenv.mkDerivation {
     --replace-fail 'VolumeLower: ""' 'VolumeLower: "${lib.getExe ghaf-volume} down"' \
     --replace-fail 'VolumeRaise: ""' 'VolumeRaise: "${lib.getExe ghaf-volume} up"'
   ''
+  # After the volume actions above, so that an explicit override wins.
+  + lib.concatStrings (
+    lib.mapAttrsToList (name: value: ''
+      grep -q '^[[:space:]]*${name}: ' ${shortcutsDir}/system_actions \
+        || { echo "systemActions: no system action named ${name}" >&2; exit 1; }
+      sed -i 's|^\([[:space:]]*\)${name}: ".*",$|\1${name}: "${mkActionValue value}",|' \
+        ${shortcutsDir}/system_actions
+    '') systemActions
+  )
   + lib.optionalString (extraShortcuts != [ ]) ''
     if [ -f "$out/share/cosmic/com.system76.CosmicSettings.Shortcuts/v1/defaults" ]; then
       substituteInPlace "$out/share/cosmic/com.system76.CosmicSettings.Shortcuts/v1/defaults" \
         --replace "}" "$(cat ${extraShortcutsConfig}) }"
     fi
+  ''
+  # Disabled by action, not by binding: an action can have several bindings, so
+  # naming them individually goes stale when a default changes. Runs last, so
+  # extraShortcuts are visible in defaults too.
+  + lib.optionalString (disabledShortcuts != [ ]) ''
+    disabled=""
+    for action in ${lib.escapeShellArgs disabledShortcuts}; do
+      matched=$(grep -F ": $action," ${shortcutsDir}/defaults || true)
+      if [ -z "$matched" ]; then
+        echo "disabledShortcuts: no binding uses $action" >&2
+        exit 1
+      fi
+      disabled="$disabled''${matched//: $action,/: Disable,}"$'\n'
+    done
+    { printf '{\n'; printf '%s' "$disabled"; printf '}\n'; } > ${shortcutsDir}/custom
   '';
 
   meta = {
