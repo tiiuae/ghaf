@@ -146,7 +146,7 @@ let
       '';
 
   # preFlashCommands: Extract images from sdImage and patch flash.xml
-  preFlashScript = pkgs.writeShellApplication {
+  preFlashScript = pkgs.pkgsBuildBuild.writeShellApplication {
     name = "pre-flash-commands";
     runtimeInputs = [
       pkgs.pkgsBuildBuild.zstd
