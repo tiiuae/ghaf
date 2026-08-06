@@ -20,6 +20,7 @@
           # firewall = pkgs.callPackage ./firewall { inherit self; };
           cosmic-panels = pkgs.callPackage ./cosmic/panels.nix { inherit self; };
           cosmic-shortcuts = pkgs.callPackage ./cosmic/shortcuts.nix { inherit self; };
+          flatpak-options = pkgs.callPackage ./flatpak/options.nix { inherit self; };
           logging-fss = pkgs.callPackage ./logging { inherit self; };
           fss-classifier-unit = pkgs.callPackage ./logging/classifier-unit.nix { };
           fss-test = pkgs.callPackage ./logging/test_scripts/fss-test.nix { };

@@ -16,6 +16,15 @@ let
   mkAppVm =
     if onLaptop then config.ghaf.profiles.laptop-x86.mkAppVm else config.ghaf.profiles.orin.mkAppVm;
 
+  needsNetwork = lib.any (remote: !lib.hasPrefix "file://" remote.url) cfg.remotes;
+
+  # Unresolved, for whoever builds installing from a local medium on top of
+  # `remotes`: GIVC runs app-VM commands as appUser, so `flatpak install
+  # --system` goes through the polkit rule below rather than running as root;
+  # and whether installing a newer single-file .flatpak over an installed ref
+  # upgrades it or errors is untested, which decides whether an offline medium
+  # should carry an ostree repo or plain bundles.
+
   runCosmicStore = pkgs.writeShellApplication {
     name = "run-cosmic-store";
     text = ''
@@ -284,6 +293,60 @@ in
 
   options.ghaf.reference.appvms.flatpak = {
     enable = lib.mkEnableOption "Flatpak App Store VM";
+
+    remotes = lib.mkOption {
+      type = lib.types.listOf (
+        lib.types.submodule {
+          options = {
+            name = lib.mkOption {
+              type = lib.types.str;
+              description = "Name the remote is registered under.";
+            };
+            url = lib.mkOption {
+              type = lib.types.str;
+              description = "Repository location, either a URL or a `file://` path.";
+            };
+            gpgVerify = lib.mkOption {
+              type = lib.types.bool;
+              default = true;
+              description = ''
+                Whether to verify signatures from this remote. A local ostree
+                repository assembled offline is usually unsigned.
+              '';
+            };
+          };
+        }
+      );
+      default = [
+        {
+          name = "flathub";
+          url = "https://flathub.org/repo/flathub.flatpakrepo";
+        }
+      ];
+      example = lib.literalExpression ''
+        [
+          {
+            name = "local";
+            url = "file:///mnt/ssd/repo";
+            gpgVerify = false;
+          }
+        ]
+      '';
+      description = ''
+        Flatpak remotes to register in the VM. An empty list registers none and
+        generates no unit at all, for a device whose applications arrive by
+        other means.
+      '';
+    };
+
+    store.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Whether to offer the App Store application. A device that must not have
+        arbitrary software installed on it has no use for the entry.
+      '';
+    };
   };
 
   # Only configure when both enabled AND laptop-x86 profile is available
@@ -323,20 +386,18 @@ in
               noDisplay = true;
             };
           in
-          [
-            {
-              name = "com.system76.CosmicStore";
-              desktopName = "App Store";
-              categories = [
-                "System"
-                "PackageManager"
-              ];
-              description = "App Store to install Flatpak applications";
-              packages = [ runCosmicStore ];
-              icon = "rocs";
-              exec = "run-cosmic-store";
-            }
-          ]
+          lib.optional cfg.store.enable {
+            name = "com.system76.CosmicStore";
+            desktopName = "App Store";
+            categories = [
+              "System"
+              "PackageManager"
+            ];
+            description = "App Store to install Flatpak applications";
+            packages = [ runCosmicStore ];
+            icon = "rocs";
+            exec = "run-cosmic-store";
+          }
           ++ map flatpakManagerApp [
             "run"
             "uninstall"
@@ -420,11 +481,14 @@ in
 
             systemd = {
               services = {
-                flatpak-repo = {
-                  description = "Add Flathub system-wide Flatpak repository";
+                flatpak-repo = lib.mkIf (cfg.remotes != [ ]) {
+                  description = "Add system-wide Flatpak repositories";
                   wantedBy = [ "multi-user.target" ];
-                  after = [ "network-online.target" ];
-                  requires = [ "network-online.target" ];
+                  # Only wait for the network if a remote actually needs it,
+                  # otherwise an offline device blocks on a target that is
+                  # never reached.
+                  after = lib.optional needsNetwork "network-online.target";
+                  requires = lib.optional needsNetwork "network-online.target";
                   serviceConfig = {
                     Type = "oneshot";
                     Restart = "on-failure";
@@ -432,7 +496,12 @@ in
                   };
                   path = [ pkgs.flatpak ];
                   script = ''
-                    flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+                    ${lib.concatMapStringsSep "\n" (
+                      remote:
+                      "flatpak remote-add --if-not-exists ${
+                        lib.optionalString (!remote.gpgVerify) "--no-gpg-verify "
+                      }${remote.name} ${remote.url}"
+                    ) cfg.remotes}
                     flatpak update --appstream --noninteractive
                   '';
                 };

@@ -1,0 +1,101 @@
+---
+title: Flatpak Application VM
+description: Configuring the Flatpak app VM in Ghaf - remotes, the App Store entry, and the GIVC actions it exposes.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+## Overview
+
+The Flatpak application VM runs Flatpak applications in their own microVM, separate from the VMs that hold the reference applications. It is enabled with:
+
+```nix
+ghaf.reference.appvms.flatpak.enable = true;
+```
+
+Out of the box the VM registers Flathub as a remote and offers an App Store entry, which suits a developer machine. A fielded product often wants neither. Two options cover that.
+
+## Options
+
+| Option | Type | Default |
+| --- | --- | --- |
+| `ghaf.reference.appvms.flatpak.enable` | boolean | `false` |
+| `ghaf.reference.appvms.flatpak.remotes` | list of `{ name; url; gpgVerify }` | the Flathub entry |
+| `ghaf.reference.appvms.flatpak.store.enable` | boolean | `true` |
+
+### remotes
+
+Each entry becomes one `flatpak remote-add --if-not-exists` in the VM's `flatpak-repo` unit. `gpgVerify` defaults to `true` and adds `--no-gpg-verify` when set to `false`.
+
+The default reproduces the behaviour Ghaf has always had:
+
+```nix
+ghaf.reference.appvms.flatpak.remotes = [
+  {
+    name = "flathub";
+    url = "https://flathub.org/repo/flathub.flatpakrepo";
+  }
+];
+```
+
+An empty list registers nothing, and no `flatpak-repo` unit is generated at all — rather than a unit that exists and does nothing, which is only a debugging trap:
+
+```nix
+ghaf.reference.appvms.flatpak.remotes = [ ];
+```
+
+A `url` may also be a local path, which is the case that motivated the option. Applications arrive on a removable medium, are installed from it, and the device never talks to a repository over the network. A repository assembled offline is normally unsigned, so verification has to be turned off explicitly:
+
+```nix
+ghaf.reference.appvms.flatpak.remotes = [
+  {
+    name = "local";
+    url = "file:///mnt/ssd/repo";
+    gpgVerify = false;
+  }
+];
+```
+
+<Aside type="caution">
+  `gpgVerify = false` means Flatpak will install whatever the medium contains.
+  It is appropriate when the medium is itself part of the trusted supply chain -
+  prepared and physically controlled by the operator - and not otherwise.
+</Aside>
+
+The unit waits for `network-online.target` only when at least one remote needs the network. A VM whose remotes are all `file://` does not order against it, because on a device with no network that target is never reached and the unit would block until it timed out.
+
+### store.enable
+
+`com.system76.CosmicStore` is declared alongside the VM's other applications. Setting `store.enable = false` omits it:
+
+```nix
+ghaf.reference.appvms.flatpak.store.enable = false;
+```
+
+The applications the VM exposes to GIVC are otherwise unaffected, which matters more than it looks — see below.
+
+## Applications the VM exposes
+
+The VM declares four applications. GIVC addresses each by an **identifier derived from `desktopName`**, lowercased with spaces replaced by dashes, not by `name`:
+
+| `name` in the module | GIVC identifier |
+| --- | --- |
+| `com.system76.CosmicStore` | `app-store` |
+| `flatpak-run` | `run-flatpak-app` |
+| `flatpak-uninstall` | `uninstall-flatpak-app` |
+| `flatpak-force-quit` | `kill-flatpak-app` |
+
+<Aside>
+  A caller that names `flatpak-run` instead of `run-flatpak-app` gets a control
+  that silently does nothing, and the only evidence appears in the target VM's
+  journal rather than at the caller. If you add or rename an application here,
+  the identifier changes with `desktopName`. Setting `store.enable = false`
+  removes only `app-store` and leaves the other three identifiers untouched.
+</Aside>
+
+## Installing from a local medium
+
+These options make an offline device possible; they do not implement the update mechanism itself. Two questions are still open for whoever builds it:
+
+- GIVC runs application VM commands as the application user rather than as root, so `flatpak install --system` goes through polkit. The VM ships a rule permitting `org.freedesktop.Flatpak.*` for that user, which is worth an explicit test rather than an assumption.
+- Whether installing a newer single-file `.flatpak` bundle over an already installed reference upgrades it or fails has not been established. The answer decides whether an offline medium should carry an ostree repository, which supports `flatpak update`, or plain bundles.

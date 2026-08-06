@@ -94,6 +94,7 @@ export default defineConfig({
                         "ghaf/dev/ref/cross_compilation",
                         "ghaf/dev/ref/deferred-disk-encryption",
                         "ghaf/dev/ref/creating_appvm",
+                        "ghaf/dev/ref/flatpak",
                         "ghaf/dev/ref/hw-config",
                         "ghaf/dev/ref/profiles-config",
                         "ghaf/dev/ref/packages",
