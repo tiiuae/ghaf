@@ -21,7 +21,14 @@ let
 
   ghaf-cosmic-config = import ./config/cosmic-config.nix {
     inherit lib pkgs;
-    inherit (cfg) topPanelApplets bottomPanelApplets panels;
+    inherit (cfg)
+      topPanelApplets
+      bottomPanelApplets
+      panels
+      extraShortcuts
+      disabledShortcuts
+      systemActions
+      ;
     idle =
       let
         ms = v: if cfg.idleManagement.enable then v * 1000 else 0;
@@ -32,17 +39,6 @@ let
         suspendOnAC = ms cfg.idleManagement.suspendOnAC;
       };
     secctx = cfg.securityContext;
-    extraShortcuts = lib.optionals cfg.screenRecorder.enable [
-      {
-        modifiers = [
-          "Ctrl"
-          "Shift"
-          "Alt"
-        ];
-        key = "r";
-        command = "ghaf-screen-record";
-      }
-    ];
   };
 
   autostart = pkgs.writeShellApplication {
@@ -242,6 +238,80 @@ in
         Cosmic top panel applets configuration.
 
         Used only when the bottom-only panel layout is selected.
+      '';
+    };
+
+    extraShortcuts = mkOption {
+      type = types.listOf (
+        types.submodule {
+          options = {
+            modifiers = mkOption {
+              type = types.listOf types.str;
+              default = [ ];
+              description = "COSMIC modifier names, for example `[ \"Super\" \"Shift\" ]`.";
+            };
+            key = mkOption {
+              type = types.str;
+              description = "Key name as COSMIC spells it, for example `r` or `XF86LaunchA`.";
+            };
+            command = mkOption {
+              type = types.str;
+              description = "Command to spawn when the shortcut is pressed.";
+            };
+          };
+        }
+      );
+      default = lib.optionals cfg.screenRecorder.enable [
+        {
+          modifiers = [
+            "Ctrl"
+            "Shift"
+            "Alt"
+          ];
+          key = "r";
+          command = "ghaf-screen-record";
+        }
+      ];
+      defaultText = literalExpression "the screen recorder binding when `screenRecorder.enable`";
+      description = ''
+        Shortcuts appended to COSMIC's defaults, each spawning a command.
+      '';
+    };
+
+    disabledShortcuts = mkOption {
+      type = types.listOf types.str;
+      default = [ ];
+      example = literalExpression ''[ "System(AppLibrary)" "System(Launcher)" ]'';
+      description = ''
+        COSMIC actions to disable, named exactly as they appear on the
+        right-hand side of a binding in the shipped shortcut defaults.
+
+        Every binding for a named action is disabled, which is why this names
+        actions rather than bindings: `System(AppLibrary)` is bound both to
+        `Super+A` and to `Super` alone, and `System(WorkspaceOverview)` to
+        `Super+W` and to the `XF86LaunchA` key some keyboards have. Naming an
+        action that no binding uses fails the build, so the list cannot go
+        stale unnoticed when a default binding changes.
+
+        Bindings that are not named keep working; this is a partial override.
+      '';
+    };
+
+    systemActions = mkOption {
+      type = types.attrsOf types.str;
+      default = { };
+      example = literalExpression ''{ Launcher = ""; AppLibrary = ""; }'';
+      description = ''
+        Overrides for COSMIC's system actions, keyed by action name. The value
+        is run as `sh -c "<value>"`, so `""` is a working no-op.
+
+        Actions that are not named keep their values. Naming an action COSMIC
+        does not have fails the build.
+
+        Disabling the bindings for an action and neutering the action itself
+        are worth doing together: the first covers the bindings shipped today,
+        the second also covers a dedicated key or a binding a later COSMIC
+        adds.
       '';
     };
 
