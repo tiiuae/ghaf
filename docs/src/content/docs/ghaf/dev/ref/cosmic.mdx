@@ -76,6 +76,25 @@ The `cosmic.nix` module in Ghaf customizes COSMIC to better align with the syste
 
 These changes ensure that COSMIC in Ghaf is tailored to the system's specific needs.
 
+### 3. Panels and Dock
+
+`ghaf.graphics.cosmic.panels` decides which panels the session has. It defaults to `[ "Panel" "Dock" ]`, which is COSMIC's usual top panel and bottom dock. An empty list produces a session with neither — the configuration a kiosk product needs, where the panel and dock are a route out of the application the device exists to run.
+
+```nix
+ghaf.graphics.cosmic.panels = [ ]; # no panel, no dock
+```
+
+The option filters `com.system76.CosmicPanel/v1/entries`, the key that decides which panels exist at all. It is applied to the selectable panel layouts as well as to the session default, so switching layout cannot restore a panel that was removed. Emptying `topPanelApplets` or `bottomPanelApplets` is not a substitute: it leaves two empty bars occupying the screen edges. Conversely, applet options for a panel that is not in `panels` are a no-op.
+
+The option is build-time only. If you need to toggle panels within a running session, note what was measured on a Dell running cosmic-comp 1.2.0, after source reading gave the wrong answer three times:
+
+- Emptying `entries` at runtime does remove the panel and dock.
+- **Restoring `entries` does not bring them back.** cosmic-panel tears the panels down on the config event and never rebuilds them, and logs nothing about it.
+- A working revert must also kill cosmic-panel. cosmic-session respawns it through launch-pad with exponential backoff, so allow more than 30 seconds before concluding it has not come back. The fresh process reads the restored `entries` and rebuilds both panels.
+- Per-panel `autohide` has no effect on this build, whether written at runtime or already present when cosmic-panel starts. It is not a way to hide a panel.
+- A file renamed into the config directory is never seen by the watcher: correct on disk, silently never applied. Overrides must be written in place.
+- Every file under `<component>/v1/` is treated as a config key. A backup left beside one becomes a bogus key whose read failure aborts the entire reload.
+
 ## Configuration Files
 
 The main configuration files are located in the `modules/desktop/graphics/` directory:

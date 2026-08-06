@@ -20,6 +20,10 @@
     right = [ ];
   },
   extraShortcuts ? [ ],
+  panels ? [
+    "Panel"
+    "Dock"
+  ],
   ...
 }:
 
@@ -53,6 +57,13 @@ let
   '';
 
   mkRonList = list: "[${lib.concatMapStringsSep ",\n  " (x: "\"${x}\"") list}\n]";
+
+  # Panels are removed by deleting their line from the unpacked `entries` files
+  # rather than by regenerating them, so the default list is a no-op.
+  removedPanels = lib.subtractLists panels [
+    "Panel"
+    "Dock"
+  ];
 
   hasTopPanelApplets = topPanelApplets != null && topPanelApplets != { };
 
@@ -188,6 +199,15 @@ pkgs.stdenv.mkDerivation {
         content=$(yq e --unwrapScalar=false ".\"$entry\".\"$subentry\"" $src/cosmic-config.yaml | grep -vE '^\s*\|')
         echo -ne "$content" > "cosmic-unpacked/$entry/v1/$subentry"
       done
+    done
+  ''
+  # Filter every panel list, including the -bottom-panel variant, so that
+  # selecting a layout cannot bring a removed panel back.
+  + lib.optionalString (removedPanels != [ ]) ''
+    for entries in cosmic-unpacked/com.system76.CosmicPanel*/v1/entries; do
+      ${lib.concatMapStringsSep "\n      " (
+        panel: ''sed -i '/^[[:space:]]*"${panel}",$/d' "$entries"''
+      ) removedPanels}
     done
   '';
 
