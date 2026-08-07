@@ -13,7 +13,7 @@ let
     "hardware"
     "usb"
     "authorization"
-    "enable"
+    "hostAllow"
   ] options;
   inherit (lib)
     concatMapStrings
@@ -68,8 +68,7 @@ in
     }
 
     (lib.optionalAttrs hasUsbAuthorization {
-      ghaf.hardware.passthrough.vhotplug.usbAuthorization.hostAllow =
-        mkIf config.ghaf.hardware.usb.authorization.enable usbSerialHostAllow;
+      ghaf.hardware.usb.authorization.hostAllow = usbSerialHostAllow;
     })
   ]);
 }
