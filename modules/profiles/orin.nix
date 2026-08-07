@@ -131,6 +131,8 @@ in
 
       global-config.features.performance.enable = false;
 
+      global-config.features.power-manager.enable = false;
+
       profiles = {
         # Export Net VM base for profiles to extend
         orin.netvmBase = lib.nixosSystem {

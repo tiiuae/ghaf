@@ -142,10 +142,12 @@ in
             gui.enable = config.ghaf.profiles.graphics.enable;
           };
           power-manager = {
+            enable = config.ghaf.global-config.features.power-manager.enable;
             host.enable = true;
             gui.enable = config.ghaf.profiles.graphics.enable;
           };
           performance = {
+            enable = config.ghaf.global-config.features.performance.enable;
             host.enable = true;
             gui.enable = config.ghaf.profiles.graphics.enable;
           };

@@ -193,12 +193,6 @@ in
       security.audit.enable = false;
 
       services = {
-        # Enable power management
-        power-manager.enable = true;
-
-        # Enable performance optimizations
-        performance.enable = true;
-
         # Enable kill switch
         kill-switch.enable = true;
       };
