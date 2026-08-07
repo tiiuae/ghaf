@@ -31,7 +31,12 @@ let
     ;
 
   useGivc = config.ghaf.givc.enable;
-  givc-cli = "${pkgs.givc-cli}/bin/givc-cli ${replaceString "/run" "/etc" config.ghaf.givc.cliArgs}";
+  givcCliArgs =
+    if config.ghaf.givc.spireWorkload.enable then
+      config.ghaf.givc.cliArgs
+    else
+      replaceString "/run" "/etc" config.ghaf.givc.cliArgs;
+  givc-cli = "${pkgs.givc-cli}/bin/givc-cli ${givcCliArgs}";
   ghaf-powercontrol = pkgs.ghaf-powercontrol.override { ghafConfig = config.ghaf; };
 
   # List of all passthrough nic and audio PCI devices. The generated list of "vendorId:productId" strings

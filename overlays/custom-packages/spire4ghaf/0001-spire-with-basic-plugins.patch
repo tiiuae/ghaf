@@ -336,7 +336,7 @@ new file mode 100644
 index 000000000..17727a4a5
 --- /dev/null
 +++ b/pkg/server/catalog/keymanager_base.go
-@@ -0,0 +1,37 @@
+@@ -0,0 +1,39 @@
 +//go:build !withplugins
 +
 +package catalog
@@ -345,6 +345,7 @@ index 000000000..17727a4a5
 +	"github.com/spiffe/spire/pkg/common/catalog"
 +
 +	"github.com/spiffe/spire/pkg/server/plugin/keymanager"
++	"github.com/spiffe/spire/pkg/server/plugin/keymanager/disk"
 +	"github.com/spiffe/spire/pkg/server/plugin/keymanager/memory"
 +)
 +
@@ -366,6 +367,7 @@ index 000000000..17727a4a5
 +
 +func (repo *keyManagerRepository) BuiltIns() []catalog.BuiltIn {
 +	return []catalog.BuiltIn{
++		disk.BuiltIn(),
 +		memory.BuiltIn(),
 +	}
 +}
@@ -544,4 +546,3 @@ index 000000000..b7a4defbc
 +func (upstreamAuthorityV1) Deprecated() bool    { return false }
 -- 
 2.51.2
-

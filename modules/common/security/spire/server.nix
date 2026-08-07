@@ -19,7 +19,7 @@ let
   # corrected downwards. Slack rather than an exact bound, so a future change to
   # ca_ttl does not silently start forcing a rotation on every sync.
   caLifetimeSlackSeconds = 7 * 24 * 3600;
-  dataDir = "${runtimeDataDir}";
+  dataDir = "/var/lib/spire-server";
 
   spire-package = config.ghaf.common.spire.package;
   spireAgents = config.ghaf.common.spire.agents;
@@ -64,8 +64,10 @@ let
           connection_string = "${dataDir}/datastore.sqlite3"
         }
       }
-      KeyManager "memory" {
-        plugin_data {}
+      KeyManager "disk" {
+        plugin_data {
+          keys_path = "${dataDir}/keys.json"
+        }
       }
       ${x509popPlugin}
     }
@@ -335,6 +337,7 @@ in
           wantedBy = [ "multi-user.target" ];
           after = [ "spire-server.service" ];
           wants = [ "spire-server.service" ];
+          restartTriggers = [ spireCreateWorkloadEntriesApp ];
 
           serviceConfig = {
             Type = "oneshot";
@@ -354,6 +357,12 @@ in
         };
       };
     };
+    ghaf.storagevm.directories = mkIf (config.ghaf.storagevm.enable or false) [
+      {
+        directory = "/var/lib/private/spire-server";
+        mode = "0700";
+      }
+    ];
     networking.firewall.allowedTCPPorts = [
       config.ghaf.common.spire.server.port
       config.ghaf.common.spire.server.healthCheckPort
