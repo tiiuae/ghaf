@@ -393,16 +393,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1781773180,
-        "narHash": "sha256-VtaK7KGlQRS4hKlYAMGAy3exjGjE0wB0upk8+EKRcq0=",
+        "lastModified": 1786040753,
+        "narHash": "sha256-yazxijtId1x+roCrSJ3Smcn3iPTN4lZj2cIjA2aBPU0=",
         "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "8c59a2ac4f226a2275247e535ba5aafa180177b3",
+        "rev": "06305c64c3a152c5a55f7d1fa98f6485c6f934c9",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "hotfix-ghaf-bump",
+        "ref": "uki-sec-boot",
         "repo": "jetpack-nixos",
         "type": "github"
       }

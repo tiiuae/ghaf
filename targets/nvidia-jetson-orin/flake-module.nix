@@ -464,6 +464,8 @@ let
     # supplies one, so keying Secure Boot off it bricked all unsigned
     # flashes.
     #
+    # Use the `-u` flag if the image contains a UKI.
+    #
     # Both variants share substituted store paths (jetpack-nixos
     # `flashScript` is a thin wrapper around the same per-target
     # derivations), so the second build is mostly a Nix-eval cost.
