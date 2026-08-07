@@ -210,6 +210,7 @@ in
       wantedBy = [ "multi-user.target" ];
       after = [ "local-fs.target" ];
       before = [ "microvm@.service" ];
+      restartTriggers = [ config.environment.etc."vhotplug.conf".source ];
       serviceConfig = {
         Type = "simple";
         Restart = "always";
