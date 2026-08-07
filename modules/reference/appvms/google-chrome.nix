@@ -69,6 +69,10 @@ in
             {
               interfaceClass = 14;
               description = "Video (USB Webcams)";
+              removable = [
+                "removable"
+                "unknown"
+              ];
             }
           ];
           # Ignore internal webcams since they are attached to business-vm
