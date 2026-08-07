@@ -7,6 +7,13 @@ declare -A PCI_DATA          # PCI data; associative array with key = PCI bus ID
 declare -a PCI_INPUT_DEVICES # Array to hold input PCI device identifiers
 declare ACTION_FLAG          # Action flag to determine whether to bind or unbind
 declare STATE_DIR=""
+declare AUTO_DETECT=0 # Detect this guest's passthrough devices instead of taking ids
+
+# Base PCI classes ghaf assigns to vfio-pci for passthrough (see extraVfioPciIds in the
+# hardware definitions): 0x02 network, 0x03 display, 0x04 multimedia.
+readonly PASSTHROUGH_CLASSES=(2 3 4)
+# Virtio. A guest's own virtio-net is class 0x02 and must never be unbound.
+readonly VIRTIO_VENDOR="0x1af4"
 
 # Helpers for clearer logging
 TAG="pci-binder"
@@ -31,11 +38,20 @@ log_debug() {
 usage() {
   if [[ $- == *i* ]]; then
     cat <<EOF
-Usage: $(basename "$0") [(-s|--state-dir) <state_directory>] (unbind [<pci_device> ...] | bind)
+Usage: $(basename "$0") [(-s|--state-dir) <state_directory>] (unbind (--auto | <pci_device> ...) | bind)
 
 Options:
   unbind
-    Unbind the drivers from the specified PCI devices. Requires at least one <pci_device> argument.
+    Unbind the drivers from the specified PCI devices. Requires at least one <pci_device>
+    argument, or --auto.
+
+  --auto
+    Detect the passthrough devices in this guest instead of being given their ids: every PCI
+    device whose base class is one of the classes ghaf assigns to vfio-pci (0x02 network,
+    0x03 display, 0x04 multimedia), excluding virtio (0x1af4) so the guest's own virtio-net
+    is never unbound. For boards whose passthrough is resolved dynamically by vhotplug there
+    is no static id list to pass. Detecting nothing is success, not an error -- a guest with
+    no passthrough PCI devices has nothing to unbind.
 
   bind
     Bind the previously unbound PCI devices to their drivers.
@@ -54,6 +70,7 @@ Examples:
   $(basename "$0") --state-dir /run/pci-binding bind
 
   $(basename "$0") unbind 8086:a7a1 8086:51f1
+  $(basename "$0") unbind --auto
 EOF
   fi
 }
@@ -131,6 +148,15 @@ parse_input() {
   # Validate the array of device identifiers
   if [[ $ACTION_FLAG == "unbind" ]]; then
 
+    if [[ ${1:-} == "--auto" ]]; then
+      AUTO_DETECT=1
+      shift 1
+      if [[ $# -ne 0 ]]; then
+        log_error_exit "--auto takes no device identifiers, but received: $*"
+      fi
+      return 0
+    fi
+
     if [[ $# -eq 0 ]]; then
       log_error_exit "No device identifiers found."
     fi
@@ -152,21 +178,58 @@ parse_input() {
   fi
 }
 
+# Detect this guest's passthrough devices by class, for boards where vhotplug resolves
+# passthrough dynamically and there is no static id list to pass.
+detect_passthrough_devices() {
+  local -n out=$1
+  local device_path class vendor base wanted
+
+  for device_path in /sys/bus/pci/devices/*; do
+    [ -r "$device_path/class" ] && [ -r "$device_path/vendor" ] || continue
+    class=$(cat "$device_path/class")
+    vendor=$(cat "$device_path/vendor")
+
+    [[ $vendor == "$VIRTIO_VENDOR" ]] && continue
+
+    base=$(((class >> 16) & 0xff))
+    for wanted in "${PASSTHROUGH_CLASSES[@]}"; do
+      if [[ $base -eq $wanted ]]; then
+        # No driver bound means nothing to unbind, not an error.
+        if [ -e "$device_path/driver" ]; then
+          out+=("$device_path")
+        else
+          log_debug "No driver bound to '$(basename "$device_path")', skipping..."
+        fi
+        break
+      fi
+    done
+  done
+}
+
 # Function to determine suitable devices and populate the PCI_DATA array
 init_pci_unbind() {
 
   # Add all PCI devices that are passed through to this guest
   declare -a pci_device_paths=()
 
-  for device in "${PCI_INPUT_DEVICES[@]}"; do
-    if guest_pci_id=$(lspci -n | grep -i "${device}" | awk '{print $1}'); then
-      pci_device_paths+=("/sys/bus/pci/devices/0000:$guest_pci_id")
-    else
-      log_debug "No matching PCI device '${device}', skipping..."
+  if [[ $AUTO_DETECT -eq 1 ]]; then
+    detect_passthrough_devices pci_device_paths
+    if [ ${#pci_device_paths[@]} -eq 0 ]; then
+      # A guest with no passthrough PCI devices -- an app VM, say -- has nothing to do.
+      log_info "No passthrough PCI devices detected, nothing to unbind."
+      return 0
     fi
-  done
-  if [ ${#pci_device_paths[@]} -eq 0 ]; then
-    log_error_exit "No PCI devices found to unbind."
+  else
+    for device in "${PCI_INPUT_DEVICES[@]}"; do
+      if guest_pci_id=$(lspci -n | grep -i "${device}" | awk '{print $1}'); then
+        pci_device_paths+=("/sys/bus/pci/devices/0000:$guest_pci_id")
+      else
+        log_debug "No matching PCI device '${device}', skipping..."
+      fi
+    done
+    if [ ${#pci_device_paths[@]} -eq 0 ]; then
+      log_error_exit "No PCI devices found to unbind."
+    fi
   fi
   log_info "Detected PCI device paths: ${pci_device_paths[*]}"
 
