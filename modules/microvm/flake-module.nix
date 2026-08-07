@@ -36,6 +36,7 @@ _: {
       ./common/vm-qemu.nix
       ./common/vm-swap.nix
       ./common/vm-tpm.nix
+      ./common/vm-watchdog.nix
       ./common/waypipe.nix
       ./common/xdghandlers.nix
       ./common/xdgitems.nix
