@@ -717,9 +717,15 @@ in
             "${pkgs.coreutils}/bin/true"
           ];
 
-        # Pre-suspend actions for the VM
-        ExecStartPre = optionals cfg.vm.pciSuspend [
-          "${getExe guest-power-actions} suspend"
+        # Pre-suspend actions for the VM.
+        #
+        # `pci-binder unbind` exits 1 with no device ids, and pciDevices is empty on any
+        # board whose ghaf.common.hardware.{nics,audio} carry no vendorId/productId
+        # (hardware-intel-laptop reports one NIC with both null). An ExecStartPre failure
+        # takes the whole unit down, so the guest never reaches guest-fake-suspend -- hence
+        # both the gate and the `-`.
+        ExecStartPre = optionals (cfg.vm.pciSuspend && pciDevices != [ ]) [
+          "-${getExe guest-power-actions} suspend"
         ];
       };
     })
