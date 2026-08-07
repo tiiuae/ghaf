@@ -58,6 +58,28 @@ in
 
       enable = lib.mkDefault true;
 
+      usbPassthrough = [
+        {
+          description = "External Webcams for ChromeVM and BusinessVM";
+          allowedVms = [
+            "chrome-vm"
+            "business-vm"
+          ];
+          allow = [
+            {
+              interfaceClass = 14;
+              description = "Video (USB Webcams)";
+              removable = [
+                "removable"
+                "unknown"
+              ];
+            }
+          ];
+          # Ignore internal webcams since they are attached to business-vm
+          deny = config.ghaf.reference.passthrough.usb.internalWebcams;
+        }
+      ];
+
       evaluatedConfig = config.ghaf.profiles.laptop-x86.mkAppVm {
         name = "chrome";
         packages = lib.optional config.ghaf.development.debug.tools.enable pkgs.alsa-utils;
