@@ -814,12 +814,6 @@ in
             };
           };
         }
-        // {
-          # Ensure systemd-logind never crashes during suspension
-          # Ref. https://github.com/systemd/systemd/issues/41562
-          # TODO: Remove when fixed
-          systemd-logind.serviceConfig.WatchdogSec = lib.mkForce 0;
-        }
         // optionalAttrs cfg.gui.gpuSuspend {
           gpu-suspend = {
             description = "GPU suspend for GUI VM";
