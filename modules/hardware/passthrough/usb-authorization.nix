@@ -16,7 +16,7 @@ let
   cfg = config.ghaf.hardware.usb.authorization;
 in
 {
-  _file = ./authorization.nix;
+  _file = ./usb-authorization.nix;
 
   options.ghaf.hardware.usb.authorization = {
     enable = mkEnableOption "host USB authorization policy";
@@ -25,8 +25,10 @@ in
       type = types.bool;
       default = false;
       description = ''
-        Deauthorize already connected USB devices on system boot that
-        do not match USB passthrough rules.
+        At startup, deauthorize every connected USB device that is not a hub,
+        not the USB boot device, not currently attached to a VM, and not
+        listed in hostAllow. Devices are authorized again as their target VM
+        claims them; passthrough rules are not consulted by this sweep.
       '';
     };
 
@@ -49,9 +51,14 @@ in
       );
       default = null;
       description = ''
-        Optional boot-time usbcore.authorized_default kernel parameter. Leave
-        this unset when the system may boot from USB media. Set it to 0 only
-        for configurations that do not require USB storage during early boot.
+        Optional boot-time usbcore.authorized_default kernel parameter. This
+        applies from initrd, before vhotplug runs. Do not set it to 0 on a
+        system that needs USB during early boot: booting from USB media,
+        typing a disk-encryption passphrase on a USB keyboard, and the fido2
+        disk-encryption backend all break. 2 authorizes only ACPI-described
+        internal ports, and degrades to 0 on firmware without ACPI port data.
+        Changing this option changes the kernel command line and requires
+        reflashing the image; ghaf-rebuild switch is insufficient.
       '';
     };
   };

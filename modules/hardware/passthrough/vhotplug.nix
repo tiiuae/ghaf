@@ -152,7 +152,7 @@ in
 
       deauthorizeUnmatched = mkOption {
         type = types.bool;
-        default = true;
+        default = false;
         description = ''
           Deauthorize USB devices that do not match configured USB passthrough
           rules.
@@ -270,6 +270,8 @@ in
         description = "vhotplug";
         wantedBy = [ "multi-user.target" ];
         after = [ "local-fs.target" ];
+        before = [ "microvm@.service" ];
+        restartTriggers = [ config.environment.etc."vhotplug.conf".source ];
         serviceConfig = {
           Type = "simple";
           Restart = "always";
