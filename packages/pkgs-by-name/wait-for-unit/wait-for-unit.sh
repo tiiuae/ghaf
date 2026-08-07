@@ -64,4 +64,7 @@ while [ $SECONDS -lt "$TIMEOUT" ]; do
   fi
   sleep 0.5
 done
-echo "Timeout reached: Unit '$UNIT' in VM '$VM' did not reach the desired state within $TIMEOUT seconds. Exit gracefully."
+# The last observed state is what separates "slow to start" from "this never ran"; without
+# it a permanently failing unit is indistinguishable from a timing hiccup. stderr so the
+# caller's journal shows it as an error rather than progress.
+echo "Timeout reached: Unit '$UNIT' in VM '$VM' did not reach the desired state within $TIMEOUT seconds (last observed: ${active_status:-unknown}/${sub_status:-unknown}). Exit gracefully." >&2
