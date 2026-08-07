@@ -354,8 +354,10 @@ let
         suspend)
           # Script to unbind PCI devices for suspend
           # For convenience, we pass IDs of all passthrough PCI devices,
-          # each guest will automatically determine the correct PCI devices
-          pci-binder unbind ${lib.concatStringsSep " " pciDevices}
+          # each guest will automatically determine the correct PCI devices.
+          # Boards that resolve passthrough dynamically in vhotplug populate no static ids
+          # (hardware-intel-laptop is one), so there the guest detects its own devices.
+          pci-binder unbind ${if pciDevices == [ ] then "--auto" else lib.concatStringsSep " " pciDevices}
           ;;
         *)
           echo "Usage: $0 (suspend|reboot|poweroff)"
@@ -719,12 +721,10 @@ in
 
         # Pre-suspend actions for the VM.
         #
-        # `pci-binder unbind` exits 1 with no device ids, and pciDevices is empty on any
-        # board whose ghaf.common.hardware.{nics,audio} carry no vendorId/productId
-        # (hardware-intel-laptop reports one NIC with both null). An ExecStartPre failure
-        # takes the whole unit down, so the guest never reaches guest-fake-suspend -- hence
-        # both the gate and the `-`.
-        ExecStartPre = optionals (cfg.vm.pciSuspend && pciDevices != [ ]) [
+        # `-` because an ExecStartPre failure takes the whole unit down, and losing the
+        # guest's fake suspend -- which is what stops its watchdogs firing on resume -- is
+        # far worse than a PCI device that did not reach low power.
+        ExecStartPre = optionals cfg.vm.pciSuspend [
           "-${getExe guest-power-actions} suspend"
         ];
       };
