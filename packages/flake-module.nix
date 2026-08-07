@@ -14,6 +14,7 @@
     {
       pkgs,
       lib,
+      self',
       ...
     }:
     let
@@ -23,6 +24,11 @@
       #use the pkgs-by-name-for-flake-parts to get the packages
       # exposed to downstream projects
       pkgsDirectory = ./pkgs-by-name;
+
+      apps.ghaf-mk-manifest = {
+        type = "app";
+        program = "${self'.packages.ghaf-mk-manifest}/bin/ghaf-mk-manifest";
+      };
 
       # Generate comprehensive documentation with enhanced module coverage
       packages.doc =
