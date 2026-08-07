@@ -6,6 +6,7 @@
 prev.cosmic-reader.overrideAttrs (oldAttrs: {
   postFixup = (oldAttrs.postFixup or "") + ''
     wrapProgram $out/bin/cosmic-reader \
+      --set LIBGL_ALWAYS_SOFTWARE "1" \
       --set RUST_LOG "cosmic_reader=trace" \
       --set WAYLAND_DEBUG "1" \
       --set WGPU_LOG_LEVEL "debug"
