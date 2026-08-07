@@ -99,7 +99,7 @@ in
             }
             ''
               mkdir -p $out
-              dtc -I dtb -O dtb -p ${toString cfg.uki.dtbPadding} ${fdtPath} -o $out/padded.dtb
+              dtc -I dtb -O dtb -p ${toString cfg.uki.dtbPadding} -o $out/padded.dtb ${fdtPath}
             '';
       in
       {
@@ -151,7 +151,7 @@ in
               mkdir -pv firmware/loader
 
               # Install systemd-boot as the UEFI bootloader
-              cp -v ${pkgs.systemd}/lib/systemd/boot/efi/systemd-boot${efiArch}.efi \
+              cp -v ${config.systemd.package}/lib/systemd/boot/efi/systemd-boot${efiArch}.efi \
                     firmware/EFI/BOOT/BOOT${lib.toUpper efiArch}.EFI
 
               # Install the UKI (Type #2 entry). systemd-boot discovers it

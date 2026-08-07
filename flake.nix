@@ -132,7 +132,7 @@
     # Nvidia Orin support for NixOS
     jetpack-nixos = {
       #url = "github:anduril/jetpack-nixos";
-      url = "github:tiiuae/jetpack-nixos/hotfix-ghaf-bump";
+      url = "github:tiiuae/jetpack-nixos/uki-sec-boot";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
