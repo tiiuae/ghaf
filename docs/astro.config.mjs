@@ -108,6 +108,7 @@ export default defineConfig({
                         "ghaf/dev/ref/fleet",
                         "ghaf/dev/ref/memory-wipe",
                         "ghaf/dev/ref/kill_switch",
+                        "ghaf/dev/ref/fortinet-vpn",
                         "ghaf/dev/ref/wireguard-gui",
                         "ghaf/dev/ref/yubikey",
                         "ghaf/dev/ref/ghaf-vms",

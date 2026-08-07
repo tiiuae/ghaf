@@ -42,6 +42,7 @@ let
   fprintEnabled = lib.ghaf.features.isEnabledFor globalConfig "fprint" vmName;
   yubikeyEnabled = lib.ghaf.features.isEnabledFor globalConfig "yubikey" vmName;
   brightnessEnabled = lib.ghaf.features.isEnabledFor globalConfig "brightness" vmName;
+  fortivpnEnabled = lib.ghaf.features.isEnabledFor globalConfig "fortivpn" vmName;
   powerManagerEnabled = lib.ghaf.features.isEnabledFor globalConfig "power-manager" vmName;
   performanceEnabled = lib.ghaf.features.isEnabledFor globalConfig "performance" vmName;
   localeEnabled = lib.ghaf.features.isEnabledFor globalConfig "locale" vmName;
@@ -215,6 +216,7 @@ in
       fprint.enable = lib.mkDefault fprintEnabled;
       yubikey.enable = lib.mkDefault yubikeyEnabled;
       brightness.enable = lib.mkDefault brightnessEnabled;
+      fortivpn.enable = lib.mkDefault (fortivpnEnabled && (globalConfig.givc.enable or false));
 
       user-provisioning.enable = true;
 
