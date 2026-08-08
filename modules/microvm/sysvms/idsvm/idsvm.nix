@@ -68,22 +68,6 @@ in
         }
       ];
 
-      ghaf.common = {
-        extraNetworking.hosts.${vmName} = cfg.extraNetworking;
-        policies = lib.mkIf cfg.evaluatedConfig.config.ghaf.givc.policyClient.enable {
-          "${vmName}" = cfg.evaluatedConfig.config.ghaf.givc.policyClient.policies;
-        };
-        spire.agents =
-          let
-            localAgent = cfg.evaluatedConfig.config.ghaf.security.spire.agents.downstream or null;
-          in
-          lib.mkIf (localAgent != null && localAgent.enable) {
-            "${vmName}" = {
-              inherit (localAgent) nodeAttestationMode workloads;
-            };
-          };
-      };
-
       microvm.vms."${vmName}" = {
         autostart = true;
         inherit (inputs) nixpkgs;

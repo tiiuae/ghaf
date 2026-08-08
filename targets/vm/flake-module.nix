@@ -206,6 +206,15 @@ let
                 ];
 
                 givc = {
+                  # GIVC is enabled only on the host; it is disabled on all other target VMs.
+                  # Because of this, access control is not meaningful here. Additionally, the host
+                  # enables two GIVC agents (givc-host and givc-gui-vm), which causes an ACL file
+                  # path collision that needs to be resolved in GIVC itself.
+                  #
+                  # TODO: Fix the ACL file collision in GIVC and enable ACL here, even though it
+                  # provides no practical benefit in this configuration.
+
+                  accessControl.enable = lib.mkForce false;
                   enable = withGraphics;
                   debug = true;
                   # We enable the gui-vm module as the desktop runs on the host

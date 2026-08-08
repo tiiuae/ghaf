@@ -156,6 +156,7 @@ in
         ghafAudio.enable = lib.mkDefault true;
         vtpm.enable = lib.mkDefault true;
         yubiProxy = true;
+        permitStartApplication = true;
         applications = [
           {
             name = "google-chrome-business";

@@ -130,6 +130,7 @@ in
           withDebug = config.ghaf.profiles.debug.enable;
           withHardenedConfigs = true;
         };
+        givc.accessControl.enable = true;
         givc.host.enable = true;
         graphics.boot = {
           enable = true; # Enable graphical boot on host
@@ -182,6 +183,7 @@ in
               inherit (config.ghaf.security.spire.agents.downstream) nodeAttestationMode workloads;
             };
           };
+          adminRules = config.ghaf.givc.accessControl.adminRules or [ ];
         };
 
         security.spire.agents.downstream = {
