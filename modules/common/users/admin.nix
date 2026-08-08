@@ -79,6 +79,11 @@ in
       type = types.listOf types.str;
       default = [ ];
     };
+    addToDockerGroup = mkOption {
+      description = "Whether to add the admin user to the root-equivalent Docker group when Docker is enabled.";
+      type = types.bool;
+      default = true;
+    };
   };
 
   config = mkIf cfg.enable {
@@ -118,7 +123,7 @@ in
           ]
           ++ cfg.extraGroups
           ++ optionals config.security.tpm2.enable [ "tss" ]
-          ++ optionals config.virtualisation.docker.enable [ "docker" ];
+          ++ optionals (config.virtualisation.docker.enable && cfg.addToDockerGroup) [ "docker" ];
         };
       };
       groups = {

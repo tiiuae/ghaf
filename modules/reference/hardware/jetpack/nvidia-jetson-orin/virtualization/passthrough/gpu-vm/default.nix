@@ -33,10 +33,29 @@ in
 {
   _file = ./default.nix;
 
-  options.ghaf.hardware.nvidia.passthroughs.gpu_vm.enable = lib.mkOption {
-    type = lib.types.bool;
-    default = false;
-    description = "Pass the Tegra234 GPU and engines through to gpu-vm on NVIDIA Orin AGX";
+  options.ghaf.hardware.nvidia.passthroughs.gpu_vm = {
+    enable = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Pass the Tegra234 GPU and engines through to gpu-vm on NVIDIA Orin AGX or NX";
+    };
+
+    containerRuntime = {
+      enable = lib.mkEnableOption "Docker with NVIDIA CDI devices in gpu-vm";
+      addGhafUserToDockerGroup = lib.mkEnableOption ''
+        root-equivalent Docker access for the ghaf user in gpu-vm
+      '';
+    };
+
+    partitionManager = {
+      enable = lib.mkEnableOption "the cooperative CUDA Green Context job manager in gpu-vm; a downstream configuration must also supply trusted workload plugins";
+
+      plugins = lib.mkOption {
+        type = lib.types.listOf lib.types.package;
+        default = [ ];
+        description = "Trusted Nix-built workload plugins loaded by gpu-partition-manager.";
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -117,6 +136,14 @@ in
         inherit (payload) vfioArgs;
         inherit (virt) sourcesPatch;
       })
+      {
+        ghaf.virtualization.gpuPartitionManager = {
+          inherit (cfg.partitionManager) enable plugins;
+        };
+        ghaf.virtualization.gpuContainerRuntime = {
+          inherit (cfg.containerRuntime) enable addGhafUserToDockerGroup;
+        };
+      }
     ];
   };
 }

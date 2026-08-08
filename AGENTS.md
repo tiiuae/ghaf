@@ -80,6 +80,10 @@ asking or guessing; if a field is null in both, ask once and offer to write it t
   exist but are no longer the default path.
 - **Jetson targets must be named `-from-x86_64` on an x86 build host.** The native aarch64
   attributes are not in `packages.x86_64-linux`, so the plain name resolves to nothing.
+- **JetPack-only packages cannot use `packages/pkgs-by-name/`.** That directory and
+  `packages/own-pkgs-overlay.nix` expose packages for every system, while the JetPack overlay
+  is applied only inside Jetson configurations. Use a relative-path `callPackage` from a
+  JetPack-configured module, as `gpu-vm-load` does, to avoid breaking x86_64 evaluation.
 - **The image you flash is always `result/ghaf-image.raw.zst`** (plus `ghaf-image.bmap`,
   used automatically). No target emits `result/<target>.img` any more.
 - **The test suite names the physical machine, not the image**: `robot-test -d` takes
