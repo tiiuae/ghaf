@@ -44,7 +44,7 @@ diff --git a/drivers/char/tpm/tpm_virtio.c b/drivers/char/tpm/tpm_virtio.c
 new file mode 100644
 --- /dev/null
 +++ b/drivers/char/tpm/tpm_virtio.c
-@@ -0,0 +1,471 @@
+@@ -0,0 +1,472 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Copyright 2019 Google Inc.
@@ -231,9 +231,9 @@ new file mode 100644
 +	return 0;
 +}
 +
-+static int vtpm_op_send(struct tpm_chip *chip, u8 *caller_buf, size_t len
++static int vtpm_op_send(struct tpm_chip *chip, u8 *caller_buf, size_t bufsiz
 +#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 97)
-+			, size_t max_response_size
++			, size_t cmd_len
 +#endif
 +)
 +{
@@ -243,16 +243,16 @@ new file mode 100644
 +	struct scatterlist *sgs[2] = { &sg_outbuf, &sg_inbuf };
 +	struct vtpm_device *dev = dev_get_drvdata(&chip->dev);
 +	u8 *virtqueue_buf = dev->virtqueue_buffer;
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 97)
-+	(void)max_response_size;
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 97)
++	size_t cmd_len = bufsiz;
 +#endif
 +
-+	dev_dbg(&chip->dev, "vtpm_op_send %zu bytes\n", len);
++	dev_dbg(&chip->dev, "vtpm_op_send %zu bytes\n", cmd_len);
 +
-+	if (len > TPM_BUFSIZE) {
++	if (cmd_len > TPM_BUFSIZE) {
 +		dev_err(&chip->dev,
 +				"command is too long, %zu > %zu\n",
-+				len, (size_t) TPM_BUFSIZE);
++				cmd_len, (size_t) TPM_BUFSIZE);
 +		return -EINVAL;
 +	}
 +
@@ -273,7 +273,7 @@ new file mode 100644
 +	}
 +
 +	/* Driver owns virtqueue buffer and may now write into it. */
-+	memcpy(virtqueue_buf, caller_buf, len);
++	memcpy(virtqueue_buf, caller_buf, cmd_len);
 +
 +	/*
 +	 * Enqueue the virtqueue buffer once as outgoing virtio data (written by
@@ -290,8 +290,8 @@ new file mode 100644
 +	 * implementations that want to produce a different verbosity of
 +	 * response depending on the receiver's buffer size.
 +	 */
-+	sg_init_one(&sg_outbuf, virtqueue_buf, len);
-+	sg_init_one(&sg_inbuf, virtqueue_buf, TPM_BUFSIZE);
++	sg_init_one(&sg_outbuf, virtqueue_buf, cmd_len);
++	sg_init_one(&sg_inbuf, virtqueue_buf, min(bufsiz, (size_t)TPM_BUFSIZE));
 +	ret = virtqueue_add_sgs(dev->vq, sgs, 1, 1, virtqueue_buf, GFP_KERNEL);
 +	if (ret) {
 +		dev_err(&chip->dev, "failed virtqueue_add_sgs\n");
@@ -501,6 +501,7 @@ new file mode 100644
 +	},
 +	{},
 +};
++MODULE_DEVICE_TABLE(virtio, id_table);
 +
 +static struct virtio_driver vtpm_driver = {
 +	.driver.name = KBUILD_MODNAME,
