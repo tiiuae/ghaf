@@ -245,6 +245,25 @@
         "type": "github"
       }
     },
+    "ghaf-crosvm": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1786183829,
+        "narHash": "sha256-Uhq88AoOu5itnbMZvUoSVAPz3U5N8gKjNy2nEFy/PL8=",
+        "ref": "feat/swtpm-backend",
+        "rev": "e7bb1c575045ec77a530657151d8f68196081ee6",
+        "revCount": 11710,
+        "submodules": true,
+        "type": "git",
+        "url": "https://github.com/tiiuae/ghaf-crosvm"
+      },
+      "original": {
+        "ref": "feat/swtpm-backend",
+        "submodules": true,
+        "type": "git",
+        "url": "https://github.com/tiiuae/ghaf-crosvm"
+      }
+    },
     "ghafpkgs": {
       "inputs": {
         "crane": [
@@ -272,15 +291,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1785510724,
-        "narHash": "sha256-DYSllw9ibXiB1EJ0rwxh79+y3NqSkpWcn289FFc/Z9U=",
-        "owner": "tiiuae",
+        "lastModified": 1786185270,
+        "narHash": "sha256-Au3EOWS30UNGqH35GgeR7DsPunefP1CIc0niKO3jdQ4=",
+        "owner": "vadika",
         "repo": "ghafpkgs",
-        "rev": "28877975035dce209ff46359e7fa5c4ddbefbc6d",
+        "rev": "77d57f2f8044a020b7ce4dad843183f3d1308e40",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "vadika",
+        "ref": "feat/crosvm-balloon",
         "repo": "ghafpkgs",
         "type": "github"
       }
@@ -574,6 +594,7 @@
         "flake-parts": "flake-parts",
         "flake-root": "flake-root",
         "flake-utils": "flake-utils",
+        "ghaf-crosvm": "ghaf-crosvm",
         "ghafpkgs": "ghafpkgs",
         "git-hooks-nix": "git-hooks-nix",
         "givc": "givc",
@@ -741,15 +762,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1785232333,
-        "narHash": "sha256-7Gpe8Lpid0tvObOrvqAn0UZLEcLygmM2OnYuplJups0=",
-        "owner": "tiiuae",
+        "lastModified": 1786185853,
+        "narHash": "sha256-B+9Mt2aEYJowZ/A+BTPdrQ4+cmkmMPx0srXA9Yl96GM=",
+        "owner": "vadika",
         "repo": "vhotplug",
-        "rev": "4a0f407b2f96fc169f3cc83cda1924c456c169da",
+        "rev": "0f42be5226984203ba8bd5f4d2bc6cce9e4b8333",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "vadika",
+        "ref": "fix/crosvm-usb-vhotplug",
         "repo": "vhotplug",
         "type": "github"
       }

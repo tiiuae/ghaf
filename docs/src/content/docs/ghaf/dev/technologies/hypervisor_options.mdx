@@ -40,8 +40,8 @@ therefore use the VM's configured network CID without raw QEMU arguments.
 
 ### Selecting an App VM VMM
 
-Unencrypted App VMs use crosvm by default on both x86 and NVIDIA platforms.
-The default and individual App VMs can be overridden through the same
+App VMs use crosvm by default on both x86 and NVIDIA platforms. The default
+and individual App VMs can be overridden through the same
 `ghaf.virtualization.vmConfig` interface:
 
 ```nix
@@ -55,19 +55,20 @@ vmConfig = {
 ```
 
 App VM keys use their unhyphenated base names, such as `chrome`, `flatpak`, and
-`chromium`. If storage encryption is enabled in the global VM profile, an App
-VM with no explicit `vmm` selection automatically retains QEMU. An explicit
-crosvm selection fails evaluation in that configuration because the pinned
-crosvm does not implement Ghaf's swtpm backend.
+`chromium`. Encrypted App VMs remain on the crosvm default. Ghaf's crosvm build
+connects its virtio TPM frontend to the same swtpm proxy socket as QEMU, and
+the App VM guest kernel includes ChromiumOS's virtio TPM transport driver.
 
-crosvm App VMs also run without virtio ballooning. Ghaf's current memory
-manager controls balloons through QEMU QMP, so crosvm receives the App VM's
-configured `mem` allocation directly instead of the QEMU
-`mem * (balloonRatio + 1)` allocation. The guest still uses zram swap.
+crosvm App VMs use the same `mem * (balloonRatio + 1)` allocation and
+virtio-balloon policy as QEMU App VMs. `ghaf-mem-manager` selects QEMU QMP or
+the crosvm control command from the VM's configured VMM. It also translates
+between QEMU's guest-visible memory value and crosvm's reclaimed-memory value.
 
 App VMs declare their vsock CID through `microvm.vsock.cid`, so QEMU and crosvm
 use the same configured CID. Runtime USB attachment through vhotplug is
-supported by crosvm; runtime PCI attachment remains QEMU-only.
+supported by crosvm. vhotplug records the crosvm guest port for each host USB
+device so identical devices can be detached independently and restored safely
+after daemon restarts. Runtime PCI attachment remains QEMU-only.
 
 ### crosvm Sandbox Boundary
 

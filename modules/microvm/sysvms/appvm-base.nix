@@ -52,7 +52,7 @@ let
 
   storageEncryption = globalConfig.storage.encryption.enable or false;
   requestedVtpm = (unwrap (vm.vtpm.enable or false)) || storageEncryption;
-  effectiveVtpm = requestedVtpm && vmm == "qemu";
+  effectiveVtpm = requestedVtpm;
 
   # Base applications from hostConfig (defined in mkAppVm call)
   baseApplications = vm.applications or [ ];
@@ -177,25 +177,6 @@ in
         };
       };
 
-      assertions = [
-        {
-          assertion = vmm != "crosvm" || !storageEncryption;
-          message = ''
-            AppVM ${vmName} cannot use Crosvm while storage encryption is enabled.
-            Leave ghaf.virtualization.microvm.appvms.${vm.name}.vmm unset to select QEMU
-            automatically, or set it explicitly to "qemu".
-          '';
-        }
-        {
-          assertion = vmm != "crosvm" || !(config.microvm.balloon or false);
-          message = "AppVM ${vmName} cannot enable memory ballooning with Crosvm.";
-        }
-      ];
-
-      warnings = lib.optional (
-        vmm == "crosvm" && requestedVtpm
-      ) "AppVM ${vmName}: disabling vTPM because the pinned Crosvm does not support the swtpm backend";
-
       ghaf = {
         # Common namespace - from hostConfig (for appHosts, systemHosts, etc.)
         common = hostConfig.common or { };
@@ -278,11 +259,11 @@ in
         };
         # vTPM support
         #
-        # QEMU App VMs use emulated TPM (swtpm) exclusively. Unlike system VMs
+        # App VMs use emulated TPM (swtpm) exclusively. Unlike system VMs
         # (netvm, guivm, etc.) which can use hardware TPM passthrough on x86_64,
-        # App VMs rely on the admin-vm proxy chain: App VM (QEMU tpm-tis) → host
-        # swtpm-proxy-shim → admin-vm swtpm. The pinned crosvm has no swtpm
-        # backend, so unencrypted crosvm App VMs disable vTPM above.
+        # App VMs rely on the admin-vm proxy chain: App VM TPM frontend → host
+        # swtpm-proxy-shim → admin-vm swtpm. QEMU uses tpm-tis while Crosvm
+        # exposes the ChromiumOS virtio TPM transport.
         #
         # When storage encryption is enabled globally, every app VM needs a TPM to satisfy
         # the storagevm assertion. We auto-enable emulated TPM here so downstream consumers
@@ -391,6 +372,17 @@ in
         ./idsvm/mitmproxy/mitmproxy-ca/mitmproxy-ca-cert.pem
       ];
 
+      # Crosvm's TPM frontend uses ChromiumOS virtio device ID 62. The
+      # transport driver is not in mainline Linux, so add the current
+      # ChromiumOS driver to Crosvm App VM guest kernels.
+      boot.kernelPatches = lib.optionals (effectiveVtpm && vmm == "crosvm") [
+        {
+          name = "chromiumos-virtio-tpm";
+          patch = ./patches/chromiumos-virtio-tpm.patch;
+          structuredExtraConfig.TCG_VIRTIO_VTPM = lib.kernel.module;
+        }
+      ];
+
       microvm = {
         optimize.enable = false;
         # Sensible defaults based on vm definition - can be further overridden via vmConfig
@@ -400,7 +392,7 @@ in
         vcpu = lib.mkDefault (vm.vcpu or 4);
         hypervisor = vmm;
         vsock.cid = hostConfig.networking.thisVm.cid or 100;
-        crosvm.extraArgs = lib.mkDefault (lib.optionals (vmm == "crosvm") [ "--disable-sandbox" ]);
+        crosvm.extraArgs = lib.optionals (vmm == "crosvm") [ "--disable-sandbox" ];
 
         shares = [
           {
