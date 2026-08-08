@@ -258,12 +258,8 @@ in
         orin.mkAppVm =
           vmDef:
           let
-            vmCfg = config.ghaf.virtualization.vmConfig.appvms.${vmDef.name} or { };
-            effectiveDef =
-              vmDef
-              // lib.optionalAttrs ((vmCfg.mem or null) != null) { inherit (vmCfg) mem; }
-              // lib.optionalAttrs ((vmCfg.vcpu or null) != null) { inherit (vmCfg) vcpu; }
-              // lib.optionalAttrs ((vmCfg.balloonRatio or null) != null) { inherit (vmCfg) balloonRatio; };
+            resolved = lib.ghaf.vm.resolveAppVmConfig { inherit config vmDef; };
+            inherit (resolved) effectiveDef selectedVmm;
           in
           lib.nixosSystem {
             modules = [
@@ -277,7 +273,7 @@ in
                 };
               }
             ]
-            ++ (vmCfg.extraModules or [ ]);
+            ++ resolved.extraModules;
             specialArgs = lib.ghaf.vm.mkSpecialArgs {
               inherit lib inputs;
               globalConfig = hostGlobalConfig;
@@ -288,6 +284,7 @@ in
                 }
                 // {
                   appvm = effectiveDef;
+                  appvmVmm = selectedVmm;
                   sharedVmDirectory =
                     config.ghaf.virtualization.microvm-host.sharedVmDirectory or {
                       enable = false;
@@ -376,8 +373,12 @@ in
 
           adminvm = {
             enable = true;
-            # Use evaluatedConfig pattern - common is passed via hostConfig
-            evaluatedConfig = cfg.adminvmBase;
+            evaluatedConfig = cfg.adminvmBase.extendModules {
+              modules = lib.ghaf.vm.applyVmConfig {
+                inherit config;
+                vmName = "adminvm";
+              };
+            };
           };
 
           # GPU VM: enable comes from the gpu-vm passthrough module

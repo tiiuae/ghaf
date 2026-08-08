@@ -96,7 +96,6 @@ in
   ++ (lib.optional (globalConfig.debug.enable or false) pkgs.tcpdump);
 
   microvm = {
-    hypervisor = "qemu";
     optimize.enable = true;
     # Sensible defaults - can be overridden via vmConfig
     vcpu = lib.mkDefault 2;

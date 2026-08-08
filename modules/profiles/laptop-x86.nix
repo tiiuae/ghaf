@@ -214,13 +214,8 @@ in
         mkAppVm =
           vmDef:
           let
-            # Apply vmConfig.appvms overrides (mem, vcpu)
-            vmCfg = config.ghaf.virtualization.vmConfig.appvms.${vmDef.name} or { };
-            effectiveDef =
-              vmDef
-              // lib.optionalAttrs ((vmCfg.mem or null) != null) { inherit (vmCfg) mem; }
-              // lib.optionalAttrs ((vmCfg.vcpu or null) != null) { inherit (vmCfg) vcpu; }
-              // lib.optionalAttrs ((vmCfg.balloonRatio or null) != null) { inherit (vmCfg) balloonRatio; };
+            resolved = lib.ghaf.vm.resolveAppVmConfig { inherit config vmDef; };
+            inherit (resolved) effectiveDef selectedVmm;
           in
           lib.nixosSystem {
             modules = [
@@ -235,7 +230,7 @@ in
                 };
               }
             ]
-            ++ (vmCfg.extraModules or [ ]);
+            ++ resolved.extraModules;
             specialArgs = lib.ghaf.vm.mkSpecialArgs {
               inherit lib inputs;
               globalConfig = hostGlobalConfig;
@@ -247,6 +242,7 @@ in
                 // {
                   # App VM-specific hostConfig fields
                   appvm = effectiveDef;
+                  appvmVmm = selectedVmm;
                   # Pass shared directory config for storage
                   sharedVmDirectory =
                     config.ghaf.virtualization.microvm-host.sharedVmDirectory or {
@@ -305,7 +301,14 @@ in
 
           adminvm = {
             enable = true;
-            evaluatedConfig = lib.mkDefault cfg.adminvmBase;
+            evaluatedConfig = lib.mkDefault (
+              cfg.adminvmBase.extendModules {
+                modules = lib.ghaf.vm.applyVmConfig {
+                  inherit config;
+                  vmName = "adminvm";
+                };
+              }
+            );
           };
 
           idsvm = {

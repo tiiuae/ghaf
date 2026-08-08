@@ -16,7 +16,7 @@ Creates a Ghaf configuration for any supported target type (laptop-x86, orin).
 - `variant`: String - Build variant, "debug" (default) or "release"
 - `extraModules`: List - Additional NixOS modules (default: [])
 - `extraConfig`: Attrs - Additional ghaf.* configuration (default: {})
-- `vmConfig`: Attrs - VM resource allocation and modules (default: {})
+- `vmConfig`: Attrs - VMM selection, VM resource allocation, and modules (default: {})
 
 **Returns:**
 - `name`: Full configuration name (e.g., "lenovo-x1-carbon-gen11-debug")
@@ -112,12 +112,18 @@ does not. So `inputs.ghaf.inputs` is missing exactly the key every ghaf module r
 }
 ```
 
-### Using vmConfig for Resource Allocation
+### Using vmConfig for VMM and Resource Configuration
 
-The `vmConfig` parameter allows you to customize VM resource allocation per-target:
+The `vmConfig` parameter selects a default system-VM VMM and supports
+per-VM VMM and resource overrides. The default VMM is QEMU, while
+AdminVM defaults to crosvm on every target. crosvm VMs run as Ghaf's
+unprivileged `microvm` user with crosvm's internal minijail disabled, because
+its namespace setup requires `CAP_SYS_ADMIN`.
 
 ```nix
 vmConfig = {
+  defaultVmm = "qemu";
+
   # System VMs, keyed by the unhyphenated name (guivm, netvm, audiovm,
   # adminvm, idsvm)
   sysvms = {
@@ -132,6 +138,7 @@ vmConfig = {
     audiovm = {
       mem = 512;
     };
+    adminvm.vmm = "qemu"; # Optional AdminVM fallback
   };
 
   # App VMs
@@ -263,4 +270,5 @@ Key differences:
 - Named parameters instead of positional
 - `hardwareModule` separated from `extraModules`
 - `extraConfig` sets `ghaf.*` attributes directly
-- `vmConfig` for resource allocation (replaces `hardware.definition.<vm>.mem/vcpu`)
+- `vmConfig` for VMM selection and resource allocation (replaces
+  `hardware.definition.<vm>.mem/vcpu`)
