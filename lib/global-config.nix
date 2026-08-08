@@ -883,5 +883,45 @@ rec {
         };
       in
       [ vmSettingsModule ] ++ hwModules ++ vmConfigModules;
+
+    # Resolve an App VM definition against the host's vmConfig policy.
+    #
+    # Unlike singleton system VMs, App VMs are created by mkAppVm functions in
+    # multiple profiles. Keeping the resolution here prevents the laptop, Orin,
+    # and generic VM profiles from drifting apart.
+    resolveAppVmConfig =
+      {
+        config,
+        vmDef,
+      }:
+      let
+        vmCfg = config.ghaf.virtualization.vmConfig.appvms.${vmDef.name} or { };
+        requestedVmm = vmCfg.vmm or null;
+        storageEncryption = config.ghaf.global-config.storage.encryption.enable or false;
+        selectedVmm =
+          if requestedVmm != null then
+            requestedVmm
+          else if storageEncryption then
+            "qemu"
+          else
+            config.ghaf.virtualization.vmConfig.defaultAppVmVmm;
+        configuredBalloonRatio =
+          if (vmCfg.balloonRatio or null) != null then vmCfg.balloonRatio else vmDef.balloonRatio or 2;
+        # ghaf-mem-manager currently speaks QEMU QMP. Until it has a crosvm
+        # backend, give crosvm App VMs their real allocation and do not start
+        # the incompatible manager.
+        effectiveBalloonRatio = if selectedVmm == "crosvm" then 0 else configuredBalloonRatio;
+        effectiveDef =
+          vmDef
+          // lib.optionalAttrs ((vmCfg.mem or null) != null) { inherit (vmCfg) mem; }
+          // lib.optionalAttrs ((vmCfg.vcpu or null) != null) { inherit (vmCfg) vcpu; }
+          // {
+            balloonRatio = effectiveBalloonRatio;
+          };
+      in
+      {
+        inherit effectiveDef selectedVmm;
+        extraModules = vmCfg.extraModules or [ ];
+      };
   };
 }

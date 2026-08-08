@@ -43,11 +43,16 @@ let
   # Get VM definition from hostConfig
   vm = hostConfig.appvm;
   vmName = "${vm.name}-vm";
+  vmm = hostConfig.appvmVmm or "qemu";
 
   # Helper to unwrap mkDefault values for use in lib.mkIf conditions
   # Values like `lib.mkDefault true` become { _type = "override"; content = true; priority = 1000; }
   # This extracts the actual boolean for use in conditionals
   unwrap = val: if val._type or null == "override" then val.content else val;
+
+  storageEncryption = globalConfig.storage.encryption.enable or false;
+  requestedVtpm = (unwrap (vm.vtpm.enable or false)) || storageEncryption;
+  effectiveVtpm = requestedVtpm && vmm == "qemu";
 
   # Base applications from hostConfig (defined in mkAppVm call)
   baseApplications = vm.applications or [ ];
@@ -166,11 +171,30 @@ in
       ghaf.appvm.vmDef = vm // {
         applications = allApplications;
         vtpm = {
-          enable = (unwrap (vm.vtpm.enable or false)) || (globalConfig.storage.encryption.enable or false);
-          runInVM = (unwrap (vm.vtpm.runInVM or false)) || (globalConfig.storage.encryption.enable or false);
+          enable = effectiveVtpm;
+          runInVM = effectiveVtpm && (unwrap (vm.vtpm.runInVM or false) || storageEncryption);
           basePort = vm.vtpm.basePort or null;
         };
       };
+
+      assertions = [
+        {
+          assertion = vmm != "crosvm" || !storageEncryption;
+          message = ''
+            AppVM ${vmName} cannot use Crosvm while storage encryption is enabled.
+            Leave ghaf.virtualization.microvm.appvms.${vm.name}.vmm unset to select QEMU
+            automatically, or set it explicitly to "qemu".
+          '';
+        }
+        {
+          assertion = vmm != "crosvm" || !(config.microvm.balloon or false);
+          message = "AppVM ${vmName} cannot enable memory ballooning with Crosvm.";
+        }
+      ];
+
+      warnings = lib.optional (
+        vmm == "crosvm" && requestedVtpm
+      ) "AppVM ${vmName}: disabling vTPM because the pinned Crosvm does not support the swtpm backend";
 
       ghaf = {
         # Common namespace - from hostConfig (for appHosts, systemHosts, etc.)
@@ -254,9 +278,11 @@ in
         };
         # vTPM support
         #
-        # App VMs use emulated TPM (swtpm) exclusively. Unlike system VMs (netvm, guivm,
-        # etc.) which can use hardware TPM passthrough on x86_64, app VMs rely on the
-        # admin-vm proxy chain: App VM (QEMU tpm-tis) → host swtpm-proxy-shim → admin-vm swtpm.
+        # QEMU App VMs use emulated TPM (swtpm) exclusively. Unlike system VMs
+        # (netvm, guivm, etc.) which can use hardware TPM passthrough on x86_64,
+        # App VMs rely on the admin-vm proxy chain: App VM (QEMU tpm-tis) → host
+        # swtpm-proxy-shim → admin-vm swtpm. The pinned crosvm has no swtpm
+        # backend, so unencrypted crosvm App VMs disable vTPM above.
         #
         # When storage encryption is enabled globally, every app VM needs a TPM to satisfy
         # the storagevm assertion. We auto-enable emulated TPM here so downstream consumers
@@ -266,8 +292,8 @@ in
         # passthrough with per-VM NV indexes, or a TrustZone-based TA on aarch64), this
         # logic should be made platform-conditional, mirroring the pattern in netvm-base.nix.
         virtualization.microvm.tpm.emulated = {
-          enable = (unwrap (vm.vtpm.enable or false)) || (globalConfig.storage.encryption.enable or false);
-          runInVM = (unwrap (vm.vtpm.runInVM or false)) || (globalConfig.storage.encryption.enable or false);
+          enable = effectiveVtpm;
+          runInVM = effectiveVtpm && (unwrap (vm.vtpm.runInVM or false) || storageEncryption);
           inherit (vm) name;
         };
 
@@ -372,7 +398,9 @@ in
         balloon = (vm.balloonRatio or 2) > 0;
         deflateOnOOM = true;
         vcpu = lib.mkDefault (vm.vcpu or 4);
-        hypervisor = "qemu";
+        hypervisor = vmm;
+        vsock.cid = hostConfig.networking.thisVm.cid or 100;
+        crosvm.extraArgs = lib.mkDefault (lib.optionals (vmm == "crosvm") [ "--disable-sandbox" ]);
 
         shares = [
           {
@@ -418,8 +446,6 @@ in
               # rejects it ("Property 'virt-*-machine.sata' not found") and the
               # App VM exits at startup.
               "accel=kvm:tcg,mem-merge=on${lib.optionalString (effectiveMachine == "q35") ",sata=off"}"
-              "-device"
-              "vhost-vsock-pci,guest-cid=${toString (hostConfig.networking.thisVm.cid or 100)}"
             ]
             # qemu-xhci is a PCI device; not available on the microvm machine type
             ++ lib.optionals (!isMicrovm) [

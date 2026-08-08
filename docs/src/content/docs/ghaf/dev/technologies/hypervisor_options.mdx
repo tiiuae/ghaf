@@ -38,12 +38,43 @@ AdminVM declares its vsock CID through the VMM-independent
 `microvm.vsock.cid` option. Both the QEMU fallback and the crosvm default
 therefore use the VM's configured network CID without raw QEMU arguments.
 
-#### crosvm Sandbox Boundary
+### Selecting an App VM VMM
+
+Unencrypted App VMs use crosvm by default on both x86 and NVIDIA platforms.
+The default and individual App VMs can be overridden through the same
+`ghaf.virtualization.vmConfig` interface:
+
+```nix
+vmConfig = {
+  defaultAppVmVmm = "crosvm";
+  appvms = {
+    chrome.vmm = "qemu";
+    flatpak.vmm = "crosvm";
+  };
+};
+```
+
+App VM keys use their unhyphenated base names, such as `chrome`, `flatpak`, and
+`chromium`. If storage encryption is enabled in the global VM profile, an App
+VM with no explicit `vmm` selection automatically retains QEMU. An explicit
+crosvm selection fails evaluation in that configuration because the pinned
+crosvm does not implement Ghaf's swtpm backend.
+
+crosvm App VMs also run without virtio ballooning. Ghaf's current memory
+manager controls balloons through QEMU QMP, so crosvm receives the App VM's
+configured `mem` allocation directly instead of the QEMU
+`mem * (balloonRatio + 1)` allocation. The guest still uses zram swap.
+
+App VMs declare their vsock CID through `microvm.vsock.cid`, so QEMU and crosvm
+use the same configured CID. Runtime USB attachment through vhotplug is
+supported by crosvm; runtime PCI attachment remains QEMU-only.
+
+### crosvm Sandbox Boundary
 
 Ghaf runs VMM services as the unprivileged `microvm` user. crosvm's internal
 multiprocess minijail requires `CAP_SYS_ADMIN` to create PID and mount
 namespaces, which the service intentionally does not have. Ghaf consequently
-adds `--disable-sandbox` to crosvm VM runners by default.
+adds `--disable-sandbox` to crosvm system VM and App VM runners by default.
 
 This keeps the VMM process behind the unprivileged systemd service boundary,
 but it disables crosvm's additional per-device-process isolation. Treat this as
