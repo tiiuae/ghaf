@@ -145,6 +145,18 @@ in
           tag = "cam";
           allow = config.ghaf.reference.passthrough.usb.internalWebcams;
         }
+        {
+          description = "Internal Webcams for BusinessVM (fixed)";
+          targetVm = "business-vm";
+          tag = "cam";
+          allow = [
+            {
+              interfaceClass = 14;
+              description = "Video (USB Webcams)";
+              removable = [ "fixed" ];
+            }
+          ];
+        }
       ];
 
       evaluatedConfig = config.ghaf.profiles.laptop-x86.mkAppVm {

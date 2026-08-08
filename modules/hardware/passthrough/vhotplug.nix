@@ -96,6 +96,28 @@ in
       default = [ ];
     };
 
+    usbAuthorization = {
+      enable = mkEnableOption "USB authorization policy enforcement";
+
+      deauthorizeUnmatched = mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          Deauthorize USB devices that do not match configured USB passthrough
+          rules.
+        '';
+      };
+
+      hostAllow = mkOption {
+        type = types.listOf types.attrs;
+        default = [ ];
+        description = ''
+          List of USB devices that vhotplug may authorize for use by the host.
+          Rules use the same matching attributes as USB passthrough rules.
+        '';
+      };
+    };
+
     api = {
       enable = mkOption {
         description = ''
@@ -160,6 +182,7 @@ in
 
     environment.etc."vhotplug.conf".text = builtins.toJSON {
       usbPassthrough = cfg.prependUsbRules ++ cfg.usbRules ++ cfg.postpendUsbRules;
+      inherit (cfg) usbAuthorization;
       pciPassthrough = cfg.pciRules;
       evdevPassthrough = cfg.evdevRules;
       acpiPassthrough = cfg.acpiRules;
@@ -187,6 +210,7 @@ in
       wantedBy = [ "multi-user.target" ];
       after = [ "local-fs.target" ];
       before = [ "microvm@.service" ];
+      restartTriggers = [ config.environment.etc."vhotplug.conf".source ];
       serviceConfig = {
         Type = "simple";
         Restart = "always";
