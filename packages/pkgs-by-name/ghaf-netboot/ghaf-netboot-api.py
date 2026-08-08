@@ -32,6 +32,7 @@ import re
 import socketserver
 import sys
 import threading
+from typing import ClassVar
 
 MAC_RE = re.compile(r"^[0-9a-f]{2}(:[0-9a-f]{2}){5}$")
 
@@ -48,14 +49,12 @@ def normalise_mac(value):
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     # Set by main(); class attributes so every thread sees the same values.
-    allowed = frozenset()
-    boot_json = {}
-    exit_after_serve = False
+    allowed: ClassVar[frozenset] = frozenset()
+    boot_json: ClassVar[dict] = {}
+    exit_after_serve: ClassVar[bool] = False
 
     def log_message(self, fmt, *args):
-        sys.stderr.write(
-            "ghaf-netboot: %s - %s\n" % (self.address_string(), fmt % args)
-        )
+        sys.stderr.write(f"ghaf-netboot: {self.address_string()} - {fmt % args}\n")
 
     def do_GET(self):
         if self.path.startswith("/v1/boot/"):

@@ -8,12 +8,13 @@ This module parses Robot Framework test results and generates
 actionable fix proposals for failing tests.
 """
 
-import sys
 import re
+import sys
 from pathlib import Path
 
 try:
     import xml.etree.ElementTree as ET
+
     import yaml
 except ImportError as e:
     print(f"Missing dependency: {e}", file=sys.stderr)
@@ -25,7 +26,7 @@ class TestResult:
     """Represents a single test result."""
 
     def __init__(self, name: str, status: str, message: str = "",
-                 suite: str = "", tags: list = None):
+                 suite: str = "", tags: list | None = None):
         self.name = name
         self.status = status  # PASS, FAIL, SKIP
         self.message = message
@@ -239,7 +240,7 @@ def main():
     print("TEST RESULTS SUMMARY")
     print("=" * 60)
     print(parser.summary())
-    print("")
+    print()
 
     # Get failures
     failures = parser.get_failures()
@@ -261,13 +262,13 @@ def main():
             if len(failure.message) > 200:
                 msg += "..."
             print(f"    Message: {msg}")
-        print("")
+        print()
 
     if propose_fixes:
         print("=" * 60)
         print("FIX PROPOSALS")
         print("=" * 60)
-        print("")
+        print()
 
         analyzer = FailureAnalyzer(config_path)
         proposer = FixProposer()
@@ -277,7 +278,7 @@ def main():
             proposal = proposer.propose(analysis)
             print(proposal)
             print("-" * 60)
-            print("")
+            print()
 
     sys.exit(1)  # Exit with error code since there are failures
 
