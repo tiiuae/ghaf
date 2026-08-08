@@ -5,7 +5,8 @@
 #
 # Creates a Ghaf configuration for any supported target type.
 # This builder unifies mkLaptopConfiguration and mkOrinConfiguration into
-# a single, composable API with vmConfig support for resource allocation.
+# a single, composable API with vmConfig support for VMM selection and
+# resource allocation.
 #
 # Usage (inside ghaf, where self/inputs are ghaf's own):
 #   let
@@ -46,7 +47,8 @@
 #   variant        - Build variant: "debug" or "release" (default: "debug")
 #   extraModules   - Additional NixOS modules for the host (default: [])
 #   extraConfig    - Additional ghaf.* configuration (default: {})
-#   vmConfig       - VM resource allocation and modules (default: {})
+#   vmConfig       - VMM selection, resource allocation, and modules
+#                    (default: {})
 #                    Maps to ghaf.virtualization.vmConfig
 #   extraInputs    - Extra names merged into `inputs` (default: {}). Visible as
 #                    module arguments of the host and, because ghaf's profiles
