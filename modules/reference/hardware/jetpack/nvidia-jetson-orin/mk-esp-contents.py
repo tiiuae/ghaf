@@ -197,16 +197,15 @@ def main() -> None:
     # Validate paths don't contain suspicious path traversal patterns
     # Allow absolute paths (needed for Nix store paths) but reject relative traversal
     for path_arg in [args.toplevel, args.output, args.device_tree, args.random_seed]:
-        if path_arg:
-            # Check for path traversal patterns that could escape intended directories
-            if (
-                "../" in path_arg
-                or "/.." in path_arg
-                or path_arg == ".."
-                or path_arg.endswith("/..")
-            ):
-                eprint("Error: path traversal detected in path")
-                sys.exit(1)
+        # Check for path traversal patterns that could escape intended directories
+        if path_arg and (
+            "../" in path_arg
+            or "/.." in path_arg
+            or path_arg == ".."
+            or path_arg.endswith("/..")
+        ):
+            eprint("Error: path traversal detected in path")
+            sys.exit(1)
 
     create_esp_contents(
         args.toplevel, args.output, args.machine_id, args.random_seed, args.device_tree
