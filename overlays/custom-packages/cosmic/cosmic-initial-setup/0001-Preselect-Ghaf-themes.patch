@@ -1,4 +1,4 @@
-From 130b8142b5791612125db4576ad0abb46e4055bc Mon Sep 17 00:00:00 2001
+From aa6fb0fe666b137188a7e407487748725a0627ea Mon Sep 17 00:00:00 2001
 From: Kajus Naujokaitis <kajusn@gmail.com>
 Date: Thu, 18 Jun 2026 10:35:53 +0300
 Subject: [PATCH] Preselect Ghaf themes
@@ -9,13 +9,13 @@ Signed-off-by: Kajus Naujokaitis <kajusn@gmail.com>
  1 file changed, 7 insertions(+), 16 deletions(-)
 
 diff --git a/src/page/appearance.rs b/src/page/appearance.rs
-index a46b8c9..f0599e7 100644
+index 016f43a..2cc655a 100644
 --- a/src/page/appearance.rs
 +++ b/src/page/appearance.rs
-@@ -80,20 +80,7 @@ impl Page {
+@@ -86,20 +86,7 @@ impl Page {
              }
          };
-
+ 
 -        let mut themes = vec![
 -            Theme {
 -                name: "COSMIC Dark".to_string(),
@@ -31,22 +31,22 @@ index a46b8c9..f0599e7 100644
 -            },
 -        ];
 +        let mut themes = vec![];
-
+ 
          #[cfg(feature = "nixos")]
          let themes_dir_path = "/run/current-system/sw/share/cosmic-themes/";
-@@ -148,7 +135,7 @@ impl Page {
+@@ -154,7 +141,7 @@ impl Page {
              themes.extend(extra_themes);
          }
-
+ 
 -        Self {
 +        let mut page = Self {
              theme_mode_config,
              dark_theme_config: cosmic::cosmic_theme::Theme::dark_config().ok(),
              dark_theme_builder_config: ThemeBuilder::dark_config().ok(),
-@@ -156,7 +143,11 @@ impl Page {
-             light_theme_builder_config: ThemeBuilder::light_config().ok(),
+@@ -163,7 +150,11 @@ impl Page {
              themes,
              selected: if ThemeMode::default().is_dark { 0 } else { 1 },
+             frosted_glass: false,
 -        }
 +        };
 +
@@ -54,8 +54,5 @@ index a46b8c9..f0599e7 100644
 +
 +        page
      }
-
+ 
      pub fn update(&mut self, message: Message) -> Task<page::Message> {
---
-2.54.0
-

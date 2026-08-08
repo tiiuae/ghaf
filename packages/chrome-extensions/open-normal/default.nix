@@ -98,9 +98,19 @@ stdenvNoCC.mkDerivation {
     substituteInPlace "$workdir/manifest.json" "$out/share/update.xml" \
       --replace-fail "VERSION_HERE" "$version"
 
-    # Pack extension
+    # Pack extension.
+    #
+    # --user-data-dir is load-bearing since chromium 151: without it headless
+    # mode derives a "user data directory container" from $HOME, which is
+    # /homeless-shelter in the nix sandbox and cannot be created, so chromium
+    # exits 1 before packing anything:
+    #   ERROR:chrome/app/chrome_main.cc:207] Failed to create headless user
+    #   data directory container.
+    # Pointing it at $TMPDIR skips that derivation entirely. The profile is
+    # write-only scratch for this one invocation and is not installed.
     chromium \
       --headless \
+      --user-data-dir="$TMPDIR/chromium-user-data" \
       --disable-gpu \
       --no-sandbox \
       --disable-software-rasterizer \
