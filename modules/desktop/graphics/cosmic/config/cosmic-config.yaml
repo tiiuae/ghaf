@@ -94,11 +94,15 @@ com.system76.CosmicPanel-bottom-panel:
 com.system76.CosmicPanel.Dock:
   anchor: Bottom
   anchor_gap: true
+  # unhide_delay is mandatory from COSMIC epoch 1.5 on. Up to 1.2 it carried a
+  # #[serde(default)] of 200 and could be omitted; 1.5 split AutoHide into an
+  # enum plus a separate AutoHideBehavior struct and dropped the default
   autohide: |
     Some((
         wait_time: 1000,
         transition_time: 200,
         handle_size: 4,
+        unhide_delay: 200,
     ))
   autohover_delay_ms: Some(500)
   background: ThemeDefault
