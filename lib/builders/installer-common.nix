@@ -43,6 +43,7 @@ in
   imports = [
     # Enable plymouth graphical boot
     "${self}/modules/desktop/graphics/boot.nix"
+    "${self}/modules/development/usb-serial.nix"
   ];
 
   options.ghaf.installer.imageSource = lib.mkOption {
@@ -143,10 +144,18 @@ in
     # https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/profiles/installation-device.nix#L112
     boot.swraid.mdadmConf = "PROGRAM ${pkgs.coreutils}/bin/true";
 
+    ghaf.development.usb-serial.enable = true;
+
     boot = {
       kernelPackages = pkgs.linuxPackages_latest;
       # Disable ZFS support - not compatible with latest. only supported on LTS.
       supportedFilesystems.zfs = lib.mkForce false;
+
+      # Serial console in the installers.
+      kernelParams = [
+        "console=tty0"
+        "console=ttyUSB0,115200"
+      ];
     };
 
     # Configure nixpkgs with Ghaf overlays for extended lib support
