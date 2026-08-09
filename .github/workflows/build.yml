@@ -113,9 +113,16 @@ jobs:
             exit 1
             ;;
           esac
+          # --always-upload-source forces nix-fast-build onto its `nix flake
+          # archive` path. Its default fast path takes the store path from
+          # `nix flake metadata --json` and `nix copy`s it, but nix 2.35 no
+          # longer materialises that path, so the copy fails with "no
+          # substituter that can build it". Drop this once nix-fast-build
+          # handles unmaterialised flake sources.
           nix run --inputs-from .# nixpkgs#nix-fast-build -- \
             --flake .#${{ matrix.target }} \
             --remote "$BUILDER" \
+            --always-upload-source \
             --option accept-flake-config true \
             --eval-workers 1 \
             --eval-max-memory-size 4096 \
