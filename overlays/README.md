@@ -46,8 +46,21 @@ The following are in staging at the moment, so carry for some time until they re
 
 ## Carried workarounds in ghaf modules
 
-Not every carried change is an overlay. These live in ghaf's own modules and only
-exist until an upstream fix lands, so they should be reverted rather than maintained.
+Not every carried change is an overlay. These live in ghaf's own modules and CI, and
+only exist until an upstream fix lands, so they should be reverted rather than maintained.
+
+- `fix(ci): pin nix-eval-jobs to 2.34.3 for the eval workflow`
+
+  Pins the `nix-eval-jobs` used by `.github/eval.py` to a nixpkgs rev carrying 2.34.3,
+  instead of taking it from the flake's own nixpkgs input. 2.35.0 fails a shard with
+  `BUG: while sending exit, worker pipe got closed ...` after every attribute has
+  evaluated successfully, whenever the worker crosses `--max-memory-size` on the last
+  attribute.
+
+  Drop the pin when
+  [nix-eval-jobs#433](https://github.com/NixOS/nix-eval-jobs/issues/433) is fixed and a
+  release carrying the fix reaches our nixpkgs — find it with
+  `git log --grep 'pin nix-eval-jobs'`.
 
 - `fix(microvm): wait for a stopping guest instead of killing it immediately`
 

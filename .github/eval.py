@@ -10,6 +10,13 @@ import sys
 import time
 from typing import Any
 
+# nix-eval-jobs is pinned rather than taken from the flake's own nixpkgs.
+# Tracked upstream as https://github.com/NixOS/nix-eval-jobs/issues/433 - drop
+# the pin once a release carrying the fix lands in our nixpkgs.
+NIX_EVAL_JOBS = (
+    "github:NixOS/nixpkgs/624af665418d3c65d544145b4d34ad696439570e#nix-eval-jobs"
+)
+
 SELECT_EXPR = """
 flake: let
   lib = flake.inputs.nixpkgs.lib;
@@ -51,9 +58,7 @@ def run_eval(
     cmd = [
         "nix",
         "run",
-        "--inputs-from",
-        ".#",
-        "nixpkgs#nix-eval-jobs",
+        NIX_EVAL_JOBS,
         "--",
         "--flake",
         ".#",
@@ -73,9 +78,7 @@ def run_eval(
 
     print("[+] Starting nix-eval-jobs...", flush=True)
 
-    with subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, text=True
-    ) as proc:
+    with subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True) as proc:
         assert proc.stdout is not None
         for line in proc.stdout:
             line = line.strip()
@@ -97,7 +100,12 @@ def run_eval(
 
         exit_code = proc.wait()
         if exit_code != 0 and not errors:
-            errors.append({"attr": "nix-eval-jobs", "error": f"Process exited with code {exit_code}"})
+            errors.append(
+                {
+                    "attr": "nix-eval-jobs",
+                    "error": f"Process exited with code {exit_code}",
+                }
+            )
 
     return successes, errors
 
