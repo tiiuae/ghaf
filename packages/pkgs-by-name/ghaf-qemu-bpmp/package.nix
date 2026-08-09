@@ -42,21 +42,40 @@ ghaf-qemu.overrideAttrs (
       hash = "sha256-HxIJtNuC5sRBfq9ufgsHNWNXKgQtn7dJKwhLplqcBpM=";
     };
 
-    # ghaf-qemu's base patch set advanced to target QEMU 11; the x86 laptop-ACPI
-    # series (extended-GPE / Battery / AC-adapter / lid-button) no longer applies
-    # to the pinned 10.1.5 and is irrelevant to the Orin aarch64 microvm. Drop it
-    # so the package builds; keep everything else.
+    # ghaf-qemu's base patch set advanced to target QEMU 11; anything in it written
+    # against 11 has to be dropped here or it fails to apply to the pinned 10.1.5:
+    #
+    #   hw-acpi-*                     the x86 laptop-ACPI series (extended-GPE /
+    #                                 Battery / AC-adapter / lid-button), irrelevant
+    #                                 to the Orin aarch64 microvm.
+    #   fix-tls-tests-without-tasn1   nixpkgs' fix for compiling the TLS migration
+    #                                 tests when gnutls is present but libtasn1 is
+    #                                 not (NixOS/nixpkgs#547163). It moves an
+    #                                 #ifdef CONFIG_TASN1 around
+    #                                 test_precopy_tcp_tls_no_hostname, which does
+    #                                 not exist in 10.1.5's
+    #                                 tests/qtest/migration/tls-tests.c at all, so
+    #                                 there is nothing here for it to fix.
+    #
+    # Keep everything else.
     #
     # 0004-0006 fix vfio-platform's irqfd fast path on GICv3 (the GICv3 model never
     # registered the qemu_irq->GSI map, so every IRQ trapped to userspace). One unit,
     # do not split: 0004 alone kills the NIC. With 0001's AXI config: 76 -> 944 Mbit/s.
     # net-vm only; the GPU variant sets withIrqfdFastPath = false.
     # The hw-acpi- series is x86-only in base ghaf-qemu (isx86_64-guarded), so on
-    # the aarch64 Orin guest prev.patches carries none and this filter is a no-op;
-    # it only bites if base ever makes them cross-platform. No count assert: the
-    # expected number is 0 here and 4 on x86, so a fixed check would be wrong.
+    # the aarch64 Orin guest prev.patches carries none and that entry is a no-op;
+    # it only bites if base ever makes them cross-platform. fix-tls-tests- comes
+    # from nixpkgs' own qemu and is present on both. No count assert: the expected
+    # number varies by platform, so a fixed check would be wrong.
     patches =
-      (lib.filter (p: !(lib.hasInfix "hw-acpi-" (baseNameOf p))) (prev.patches or [ ]))
+      (lib.filter (
+        p:
+        !(lib.any (dropped: lib.hasInfix dropped (baseNameOf p)) [
+          "hw-acpi-"
+          "fix-tls-tests-without-tasn1"
+        ])
+      ) (prev.patches or [ ]))
       ++ [
         ./patches/0001-nvidia-bpmp-guest-hooks.patch
         ./patches/0002-nvidia-dce-guest-hooks.patch
