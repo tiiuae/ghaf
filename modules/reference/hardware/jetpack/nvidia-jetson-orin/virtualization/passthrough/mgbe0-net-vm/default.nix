@@ -155,14 +155,6 @@ in
               patch = ./0001-dwmac-tegra-fixed-stream-id.patch;
             }
             {
-              # stmmac_mac_link_up() has no SPEED_10000 case in its generic
-              # branch, so it returns before re-enabling the MAC: eth1 keeps
-              # carrier but passes no traffic after a cable unplug. Mainline
-              # bug, not passthrough-specific; drop this once it lands upstream.
-              name = "stmmac enable mac on 10gbase-r link up";
-              patch = ./0002-stmmac-enable-mac-on-10gbase-r-link-up.patch;
-            }
-            {
               name = "bpmp-virt proxy drivers";
               patch = virt.sourcesPatch;
             }
