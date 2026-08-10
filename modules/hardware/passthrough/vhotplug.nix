@@ -176,6 +176,7 @@ in
         };
         modprobe = lib.getExe' pkgs.kmod "modprobe";
         modinfo = lib.getExe' pkgs.kmod "modinfo";
+        crosvm = lib.getExe pkgs.crosvm;
         ovmfCode = "${pkgs.OVMF.fd}/FV/OVMF_CODE.fd";
         ovmfVars = "${pkgs.OVMF.fd}/FV/OVMF_VARS.fd";
       };

@@ -92,6 +92,13 @@
       };
     };
 
+    # Crosvm with Ghaf's swtpm backend. This is a non-flake source input
+    # because nixpkgs supplies the package expression and Rust dependencies.
+    ghaf-crosvm = {
+      url = "git+https://github.com/tiiuae/ghaf-crosvm?submodules=1";
+      flake = false;
+    };
+
     # To ensure that checks are run locally to enforce cleanliness
     git-hooks-nix = {
       url = "github:cachix/git-hooks.nix";
@@ -198,7 +205,8 @@
 
     # Hot-plugging USB devices into virtual machines
     vhotplug = {
-      url = "github:tiiuae/vhotplug";
+      # TODO: switch back to tiiuae/vhotplug after vhotplug#21 merges.
+      url = "github:vadika/vhotplug/fix/crosvm-usb-vhotplug";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
