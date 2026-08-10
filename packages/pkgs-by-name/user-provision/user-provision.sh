@@ -554,7 +554,15 @@ setup_wifi() {
   local wifi_ssid
   wifi_ssid=$(prompt_input "Enter WiFi network name:" "network SSID") || return 1
 
-  if nmcli device wifi connect "$wifi_ssid" --ask; then
+  local wifi_password
+  wifi_password=$(prompt_password "Enter WiFi password (leave blank for open networks):" "password") || return 1
+
+  local connect_cmd=("nmcli" "device" "wifi" "connect" "$wifi_ssid")
+  if [[ -n $wifi_password ]]; then
+    connect_cmd+=("password" "$wifi_password")
+  fi
+
+  if "${connect_cmd[@]}"; then
     show_success "Successfully connected to '$wifi_ssid'"
   else
     show_error "Failed to connect to WiFi network '$wifi_ssid'"
