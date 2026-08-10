@@ -501,9 +501,12 @@ let
         if [[ -z "$luksSerial" ]]; then
            printf "error: Failed to get luksDev serial\n"
            handle_error
-        else
-          echo "$luksSerial"
         fi
+
+        # Context = sha256 of the serial cut to 32 chars, under nvluks-srv-app's 40-char context cap.
+        luksSerial=$(printf "%s" "$luksSerial" | sha256sum | cut -c1-32)
+
+        echo "$luksSerial"
       }
 
       switch_to_use_device_unique_key() {
