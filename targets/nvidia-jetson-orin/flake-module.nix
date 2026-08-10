@@ -41,6 +41,59 @@ let
     self.nixosModules.profiles
   ];
 
+  # Exercise the complete manager/CDI integration in an existing CI-built
+  # image without making example workloads part of Ghaf. The manager-owned
+  # mock plugin is sufficient for build and boot validation; downstream
+  # configurations replace this default with real workload plugins.
+  nxGpuPartitioningDebugModule =
+    { pkgs, ... }:
+    let
+      managerSdk = inputs.gpu-partition-manager.lib.mkSdk { inherit pkgs; };
+      managerMockPlugin = pkgs.stdenv.mkDerivation {
+        pname = "gpu-partition-manager-mock-plugin";
+        version = "1.0";
+
+        dontUnpack = true;
+        dontConfigure = true;
+
+        buildPhase = ''
+          runHook preBuild
+          $CC -std=c11 -Wall -Wextra -Werror -fPIC -shared \
+            -I${managerSdk}/include \
+            -I${pkgs.nvidia-jetpack.cudaPackages.cuda_cudart}/include \
+            ${inputs.gpu-partition-manager}/tests/mock-plugin.c \
+            -o plugin.so
+          runHook postBuild
+        '';
+
+        installPhase = ''
+          runHook preInstall
+          install -Dm755 plugin.so \
+            $out/lib/gpu-partition-manager/plugin.so
+          runHook postInstall
+        '';
+
+        passthru = {
+          gpuPartitionPluginName = "mock";
+          requiredPluginAbiVersion = managerSdk.pluginAbiVersion;
+        };
+
+        meta = {
+          description = "Manager-owned mock plugin for NX debug integration validation";
+          platforms = [ "aarch64-linux" ];
+        };
+      };
+    in
+    {
+      ghaf.hardware.nvidia.passthroughs.gpu_vm = {
+        containerRuntime.enable = true;
+        partitionManager = {
+          enable = true;
+          plugins = lib.mkDefault [ managerMockPlugin ];
+        };
+      };
+    };
+
   # A/B verity boot targets: LVM-based A/B slots + UKI instead of the sd-card
   # format module
   orinVerityModules = [
@@ -179,7 +232,7 @@ let
       profile = "orin";
       hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-nx;
       variant = "debug";
-      extraModules = commonModules;
+      extraModules = commonModules ++ [ nxGpuPartitioningDebugModule ];
       extraConfig = {
         reference.profiles.mvp-orinuser-trial.enable = true;
         # Crucial for Orin devices to use the correct render device

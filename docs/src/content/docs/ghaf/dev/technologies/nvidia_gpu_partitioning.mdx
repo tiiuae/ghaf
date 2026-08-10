@@ -79,8 +79,10 @@ directory or install a privileged runtime discovery helper.
 
 ## Configure Ghaf
 
-Both features are opt-in. A downstream module enables them and supplies at
-least one trusted plugin:
+Both features are opt-in for general configurations. The existing NX debug
+target enables them with the manager repository's mock plugin so CI evaluates
+and builds the complete integration. A downstream module supplies real trusted
+plugins:
 
 ```nix
 ghaf.hardware.nvidia.passthroughs.gpu_vm = {
@@ -125,9 +127,17 @@ not apply to the combined accelerated `gui-vm` topology.
 
 ## Build and Deploy an Example
 
-The standard Ghaf AGX and NX targets leave both options disabled. Use a
-downstream configuration, or build the complete configurations maintained in
-the examples repository:
+The Ghaf NX debug target builds the manager, probe, plugin validation, and CDI
+generator with the manager-owned mock plugin. It is integration coverage, not a
+GPU workload example:
+
+```bash
+nix build .#nvidia-jetson-orin-nx-debug-from-x86_64
+```
+
+The AGX target and NX release target leave both options disabled. Use a
+downstream configuration for real workloads, or build the complete
+configurations maintained in the examples repository:
 
 <Tabs>
   <TabItem label="AGX">
@@ -257,11 +267,12 @@ cd ghaf-gpu-partition-manager
 nix build -L .#checks.x86_64-linux.tests
 ```
 
-The standard AGX and NX targets keep both integration options disabled. A
-downstream configuration must enable them and supply a trusted ABI plugin, then
-build that exact configuration to compile the manager and probe, validate the
-plugin contract, and generate both CDI devices. This integration build is not
-a replacement for hardware testing.
+The existing NX debug target enables both options with the manager-owned mock
+plugin. Building it compiles the manager and probe, validates the plugin
+contract, and generates both CDI devices. AGX, NX release, and other
+configurations remain opt-in. Downstream configurations replace the default
+mock plugin with trusted workload plugins. Integration builds are not a
+replacement for hardware testing.
 
 Before claiming support on a board, verify the queried split, direct and
 managed CDI paths, simultaneous managed jobs, cancellation, endurance, guest
