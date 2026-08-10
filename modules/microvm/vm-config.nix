@@ -8,7 +8,8 @@
 #
 # This is separate from hardware.definition which handles physical
 # hardware properties. vmConfig handles:
-# - VMM selection - QEMU by default, crosvm for AdminVM, and per-VM overrides
+# - VMM selection - QEMU by default for system VMs, crosvm for AdminVM and
+#   AppVMs, and per-VM overrides
 # - Resource allocation (mem, vcpu) - varies by profile
 # - Profile-specific modules (apps, services)
 # - Downstream customizations
@@ -102,6 +103,21 @@ let
   # App VM configuration submodule (uses mem/vcpu for consistency with system VM definitions)
   appVmConfigType = types.submodule {
     options = {
+      vmm = mkOption {
+        type = types.nullOr (
+          types.enum [
+            "qemu"
+            "crosvm"
+          ]
+        );
+        default = null;
+        description = ''
+          VMM used for this App VM.
+          If null, uses ghaf.virtualization.vmConfig.defaultAppVmVmm.
+        '';
+        example = "qemu";
+      };
+
       mem = mkOption {
         type = types.nullOr types.int;
         default = null;
@@ -118,9 +134,10 @@ let
         type = types.nullOr types.int;
         default = null;
         description = ''
-          Memory balloon ratio. The VM is allocated mem * (balloonRatio + 1)
-          bytes of memory, with ballooning enabled when balloonRatio > 0.
-          If null, uses the default from the VM definition (typically 2).
+          Memory balloon ratio. The VM is allocated
+          mem * (balloonRatio + 1) bytes of memory, with ballooning enabled
+          when balloonRatio > 0. If null, uses the default from the VM
+          definition (typically 2).
         '';
       };
 
@@ -143,6 +160,17 @@ in
       ];
       default = "qemu";
       description = "Default VMM for system VMs without a per-VM override.";
+    };
+
+    defaultAppVmVmm = mkOption {
+      type = types.enum [
+        "qemu"
+        "crosvm"
+      ];
+      default = "crosvm";
+      description = ''
+        Default VMM for App VMs without a per-VM override.
+      '';
     };
 
     sysvms = mkOption {
@@ -169,7 +197,7 @@ in
       '';
       example = literalExpression ''
         {
-          chromium = { mem = 8192; extraModules = [ ./chrome.nix ]; };
+          chromium = { vmm = "qemu"; mem = 8192; extraModules = [ ./chrome.nix ]; };
           comms = { mem = 4096; };
         }
       '';

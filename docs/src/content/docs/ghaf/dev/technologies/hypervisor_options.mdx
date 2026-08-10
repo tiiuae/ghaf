@@ -38,12 +38,44 @@ AdminVM declares its vsock CID through the VMM-independent
 `microvm.vsock.cid` option. Both the QEMU fallback and the crosvm default
 therefore use the VM's configured network CID without raw QEMU arguments.
 
-#### crosvm Sandbox Boundary
+### Selecting an App VM VMM
+
+App VMs use crosvm by default on both x86 and NVIDIA platforms. The default
+and individual App VMs can be overridden through the same
+`ghaf.virtualization.vmConfig` interface:
+
+```nix
+vmConfig = {
+  defaultAppVmVmm = "crosvm";
+  appvms = {
+    chrome.vmm = "qemu";
+    flatpak.vmm = "crosvm";
+  };
+};
+```
+
+App VM keys use their unhyphenated base names, such as `chrome`, `flatpak`, and
+`chromium`. Encrypted App VMs remain on the crosvm default. Ghaf's crosvm build
+connects its virtio TPM frontend to the same swtpm proxy socket as QEMU, and
+the App VM guest kernel includes ChromiumOS's virtio TPM transport driver.
+
+crosvm App VMs use the same `mem * (balloonRatio + 1)` allocation and
+virtio-balloon policy as QEMU App VMs. `ghaf-mem-manager` selects QEMU QMP or
+the crosvm control command from the VM's configured VMM. It also translates
+between QEMU's guest-visible memory value and crosvm's reclaimed-memory value.
+
+App VMs declare their vsock CID through `microvm.vsock.cid`, so QEMU and crosvm
+use the same configured CID. Runtime USB attachment through vhotplug is
+supported by crosvm. vhotplug records the crosvm guest port for each host USB
+device so identical devices can be detached independently and restored safely
+after daemon restarts. Runtime PCI attachment remains QEMU-only.
+
+### crosvm Sandbox Boundary
 
 Ghaf runs VMM services as the unprivileged `microvm` user. crosvm's internal
 multiprocess minijail requires `CAP_SYS_ADMIN` to create PID and mount
 namespaces, which the service intentionally does not have. Ghaf consequently
-adds `--disable-sandbox` to crosvm VM runners by default.
+adds `--disable-sandbox` to crosvm system VM and App VM runners by default.
 
 This keeps the VMM process behind the unprivileged systemd service boundary,
 but it disables crosvm's additional per-device-process isolation. Treat this as

@@ -883,5 +883,35 @@ rec {
         };
       in
       [ vmSettingsModule ] ++ hwModules ++ vmConfigModules;
+
+    # Resolve an App VM definition against the host's vmConfig policy.
+    #
+    # Unlike singleton system VMs, App VMs are created by mkAppVm functions in
+    # multiple profiles. Keeping the resolution here prevents the laptop, Orin,
+    # and generic VM profiles from drifting apart.
+    resolveAppVmConfig =
+      {
+        config,
+        vmDef,
+      }:
+      let
+        vmCfg = config.ghaf.virtualization.vmConfig.appvms.${vmDef.name} or { };
+        requestedVmm = vmCfg.vmm or null;
+        selectedVmm =
+          if requestedVmm != null then requestedVmm else config.ghaf.virtualization.vmConfig.defaultAppVmVmm;
+        configuredBalloonRatio =
+          if (vmCfg.balloonRatio or null) != null then vmCfg.balloonRatio else vmDef.balloonRatio or 2;
+        effectiveDef =
+          vmDef
+          // lib.optionalAttrs ((vmCfg.mem or null) != null) { inherit (vmCfg) mem; }
+          // lib.optionalAttrs ((vmCfg.vcpu or null) != null) { inherit (vmCfg) vcpu; }
+          // {
+            balloonRatio = configuredBalloonRatio;
+          };
+      in
+      {
+        inherit effectiveDef selectedVmm;
+        extraModules = vmCfg.extraModules or [ ];
+      };
   };
 }

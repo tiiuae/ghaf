@@ -8,6 +8,8 @@
 }:
 let
   cfg = config.ghaf.virtualization.microvm.tpm;
+  emulatedSocket =
+    if cfg.emulated.runInVM then "vtpm.sock" else "/var/lib/swtpm/${cfg.emulated.name}/sock";
   inherit (lib)
     types
     mkEnableOption
@@ -83,9 +85,7 @@ in
     (mkIf cfg.emulated.enable {
       microvm.qemu.extraArgs = [
         "-chardev"
-        "socket,id=chrtpm,path=${
-          if cfg.emulated.runInVM then "vtpm.sock" else "/var/lib/swtpm/${cfg.emulated.name}/sock"
-        }"
+        "socket,id=chrtpm,path=${emulatedSocket}"
         "-tpmdev"
         "emulator,id=tpm0,chardev=chrtpm"
         "-device"
@@ -93,6 +93,10 @@ in
         # sysbus variant tpm-tis-device (plain tpm-tis fails "not a valid
         # device model name" and the VM exits at startup).
         "${if pkgs.stdenv.isx86_64 then "tpm-tis" else "tpm-tis-device"},tpmdev=tpm0"
+      ];
+      microvm.crosvm.extraArgs = lib.mkAfter [
+        "--swtpm"
+        emulatedSocket
       ];
     })
   ];
