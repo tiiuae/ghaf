@@ -859,6 +859,13 @@ rec {
         vmConfigModules = vmCfg.extraModules or [ ];
         selectedVmm =
           if (vmCfg.vmm or null) != null then vmCfg.vmm else config.ghaf.virtualization.vmConfig.defaultVmm;
+        vhotplugVmNames = {
+          audiovm = "audio-vm";
+          guivm = "gui-vm";
+          netvm = "net-vm";
+        };
+        usesPciVhotplug = selectedVmm == "crosvm" && builtins.hasAttr vmName vhotplugVmNames;
+        pciBusPrefix = config.ghaf.hardware.passthrough.pciPorts.pcieBusPrefix;
 
         # VM settings module (applies the VMM and vmConfig.mem/vcpu)
         #
@@ -866,21 +873,34 @@ rec {
         # update, so combining { microvm.mem = ...; } with
         # { microvm.vcpu = ...; } would replace the whole microvm attrset and
         # silently drop mem whenever both are set.
-        vmSettingsModule = {
-          microvm = {
-            # microvm.nix calls its VMM selector `hypervisor`.
-            hypervisor = if (vmCfg.vmm or null) != null then selectedVmm else lib.mkDefault selectedVmm;
-          }
-          // lib.optionalAttrs (vmCfg.mem or null != null) { inherit (vmCfg) mem; }
-          // lib.optionalAttrs (vmCfg.vcpu or null != null) { inherit (vmCfg) vcpu; }
-          // lib.optionalAttrs (selectedVmm == "crosvm") {
-            # The host runs VMMs as the unprivileged `microvm` user. crosvm's
-            # multiprocess minijail needs CAP_SYS_ADMIN to create PID and mount
-            # namespaces, so retain the unprivileged service boundary and use
-            # single-process mode until a capability-scoped sandbox is wired.
-            crosvm.extraArgs = lib.mkDefault [ "--disable-sandbox" ];
+        vmSettingsModule =
+          { config, pkgs, ... }:
+          {
+            microvm = {
+              # microvm.nix calls its VMM selector `hypervisor`.
+              hypervisor = if (vmCfg.vmm or null) != null then selectedVmm else lib.mkDefault selectedVmm;
+            }
+            // lib.optionalAttrs (vmCfg.mem or null != null) { inherit (vmCfg) mem; }
+            // lib.optionalAttrs (vmCfg.vcpu or null != null) { inherit (vmCfg) vcpu; }
+            // lib.optionalAttrs (selectedVmm == "crosvm") {
+              # The host runs VMMs as the unprivileged `microvm` user. crosvm's
+              # multiprocess minijail needs CAP_SYS_ADMIN to create PID and mount
+              # namespaces, so retain the unprivileged service boundary and use
+              # single-process mode until a capability-scoped sandbox is wired.
+              crosvm.extraArgs = lib.mkBefore [ "--disable-sandbox" ];
+            }
+            // lib.optionalAttrs usesPciVhotplug {
+              devices = lib.mkForce [ ];
+              extraArgsScript = lib.mkForce "${lib.getExe' pkgs.vhotplug "vhotplugcli"} vmm args --vm ${vhotplugVmNames.${vmName}} --qemu-bus-prefix ${pciBusPrefix} --qemu-bus-start-index 1";
+            };
+
+            assertions = lib.optionals (selectedVmm == "crosvm") [
+              {
+                assertion = !lib.any (arg: lib.hasInfix "vfio-platform" arg) (config.microvm.qemu.extraArgs or [ ]);
+                message = "Crosvm system VMs cannot contain QEMU vfio-platform arguments";
+              }
+            ];
           };
-        };
       in
       [ vmSettingsModule ] ++ hwModules ++ vmConfigModules;
 

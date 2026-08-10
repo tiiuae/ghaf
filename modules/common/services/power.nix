@@ -110,6 +110,19 @@ let
         vmConfig = lib.ghaf.vm.getConfig vm;
       in
       vmConfig != null
+      && vmConfig.microvm.hypervisor == "qemu"
+      && !(vmConfig.ghaf.services.power-manager.enable && vmConfig.ghaf.services.power-manager.gui.enable)
+    ) config.microvm.vms
+  );
+
+  crosvmShutdownVms = lib.attrNames (
+    filterAttrs (
+      _: vm:
+      let
+        vmConfig = lib.ghaf.vm.getConfig vm;
+      in
+      vmConfig != null
+      && vmConfig.microvm.hypervisor == "crosvm"
       && !(vmConfig.ghaf.services.power-manager.enable && vmConfig.ghaf.services.power-manager.gui.enable)
     ) config.microvm.vms
   );
@@ -231,9 +244,13 @@ let
               echo "Signaling kernel GPU resume to $vm_name..."
               if [ ! -S "$wake_socket" ]; then
                 echo "Wake socket $wake_socket does not exist, $vm_name will resume after fallback timeout (${toString cfg.gui.gpuSuspendDuration}s)"
-                exit 1
+                # Crosvm has no QEMU ISA serial wake socket.  The guest kernel's bounded
+                # pm_test_delay is the intended wake source in that case, so wait for it instead
+                # of reporting a failed post-resume unit while the guest is recovering normally.
+                sleep ${toString cfg.gui.gpuSuspendDuration}
+              else
+                printf 'resume\n' | socat -u - "UNIX-CONNECT:$wake_socket"
               fi
-              printf 'resume\n' | socat -u - "UNIX-CONNECT:$wake_socket"
               ;;
             *)
               echo "Invalid action: $action"
@@ -970,8 +987,10 @@ in
                     (nameValuePair "post-resume-${suspendAction}@" {
                       description = "post-resume ${suspendAction} action for '%i'";
                       partOf = [ "post-resume-actions.target" ];
-                      after = [ "suspend.target" ];
-                      before = optionals (suspendAction == "pci-suspend") [ "post-resume-fake-suspend@%i.service" ];
+                      after = [
+                        "suspend.target"
+                      ]
+                      ++ optionals (suspendAction == "pci-suspend") [ "post-resume-fake-suspend@%i.service" ];
                       serviceConfig = {
                         Type = "oneshot";
                         ExecStart = "${getExe host-suspend-actions} %i ${suspendAction} resume";
@@ -1155,6 +1174,51 @@ in
                 };
               }
             ) qmpShutdownVms
+          ))
+          # Crosvm guests use the same ACPI power-button path, delivered through
+          # the Crosvm control socket instead of QMP.
+          (lib.listToAttrs (
+            map (
+              vmName:
+              nameValuePair "microvm@${vmName}" {
+                serviceConfig = {
+                  TimeoutStopSec = lib.mkDefault "30";
+                  ExecStop =
+                    let
+                      vmConfig = lib.ghaf.vm.getConfig config.microvm.vms.${vmName};
+                      controlSocket =
+                        if vmConfig != null && (vmConfig.microvm.socket or null) != null then
+                          "${config.microvm.stateDir}/${vmName}/${vmConfig.microvm.socket}"
+                        else
+                          "";
+                      crosvm-stop = pkgs.writeShellScript "crosvm-stop" ''
+                        jobs=$(${getExe' pkgs.systemd "systemctl"} list-jobs 2>/dev/null || true)
+                        if ! echo "$jobs" | grep -qiE '(sleep|suspend|poweroff|reboot|halt)\.target.*start' \
+                          && ${getExe' pkgs.procps "pgrep"} -f 'bin/switch-to-configuration (switch|test)' >/dev/null 2>&1; then
+                          echo "switch-to-configuration activation in progress, SIGTERM '${vmName}'"
+                          kill -15 $MAINPID 2>/dev/null
+                        elif [ -n '${controlSocket}' ] && [ -S '${controlSocket}' ]; then
+                          echo "Crosvm powerbtn -> '${vmName}' (${controlSocket})"
+                          ${getExe pkgs.crosvm} powerbtn '${controlSocket}' \
+                            || echo "WARN: Crosvm powerbtn for '${vmName}' failed; relying on stop timeout" >&2
+                        else
+                          echo "WARN: no Crosvm control socket for '${vmName}'; SIGTERM fallback" >&2
+                          kill -15 $MAINPID 2>/dev/null
+                        fi
+
+                        echo "Waiting for Crosvm '${vmName}' with PID=$MAINPID to stop"
+                        while kill -0 $MAINPID 2>/dev/null; do
+                          sleep 1
+                        done
+                      '';
+                    in
+                    [
+                      ""
+                      "+${crosvm-stop}"
+                    ];
+                };
+              }
+            ) crosvmShutdownVms
           ))
           # Handle VMs with shutdownLast enabled
           (lib.listToAttrs (

@@ -37,6 +37,10 @@ let
           value = "1";
         }
         {
+          description = "Laptop lid switch";
+          name = "^Lid Switch$";
+        }
+        {
           description = "ThinkPad Extra Buttons";
           pathTag = "platform-thinkpad_acpi";
         }

@@ -32,6 +32,7 @@
 #
 {
   lib,
+  pkgs,
   ...
 }:
 let
@@ -204,7 +205,10 @@ in
     };
   };
 
-  # Keep QEMU as the system-wide default while migrating AdminVM to crosvm on
-  # every target. Targets and downstream configurations can still override it.
-  config.ghaf.virtualization.vmConfig.sysvms.adminvm.vmm = lib.mkDefault "crosvm";
+  config.ghaf.virtualization.vmConfig.sysvms = {
+    adminvm.vmm = lib.mkDefault "crosvm";
+    netvm.vmm = lib.mkIf pkgs.stdenv.hostPlatform.isx86_64 (lib.mkDefault "crosvm");
+    audiovm.vmm = lib.mkIf pkgs.stdenv.hostPlatform.isx86_64 (lib.mkDefault "crosvm");
+    guivm.vmm = lib.mkIf pkgs.stdenv.hostPlatform.isx86_64 (lib.mkDefault "crosvm");
+  };
 }

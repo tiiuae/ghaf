@@ -248,17 +248,17 @@
     "ghaf-crosvm": {
       "flake": false,
       "locked": {
-        "lastModified": 1786216717,
-        "narHash": "sha256-qCd3xhSBQ1FWjMFwGc8psD8rb51lVOzMZZEtIblyWKE=",
-        "ref": "feat/swtpm-backend",
-        "rev": "365d7e6ef9b19571ee40aef62013e9e2f58a1050",
-        "revCount": 11711,
+        "lastModified": 1786315114,
+        "narHash": "sha256-AENi4IrGdkTKLQdvUQ/SGN6H4SSixRlJgXISmu6nPEY=",
+        "ref": "feat/crosvm-system-vm-passthrough",
+        "rev": "d0d5a4ef4dc9529f64e14c6f4027ae735cce7a13",
+        "revCount": 11727,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
       },
       "original": {
-        "ref": "feat/swtpm-backend",
+        "ref": "feat/crosvm-system-vm-passthrough",
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
@@ -783,16 +783,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1786185853,
-        "narHash": "sha256-B+9Mt2aEYJowZ/A+BTPdrQ4+cmkmMPx0srXA9Yl96GM=",
+        "lastModified": 1786287713,
+        "narHash": "sha256-MT7RV15BDgX+CwmtMPHN8Wsa6IdlmpanncrkM4i9DQs=",
         "owner": "vadika",
         "repo": "vhotplug",
-        "rev": "0f42be5226984203ba8bd5f4d2bc6cce9e4b8333",
+        "rev": "03232b2c422bf617ce28f9fa392fe367204af337",
         "type": "github"
       },
       "original": {
         "owner": "vadika",
-        "ref": "fix/crosvm-usb-vhotplug",
+        "ref": "feat/crosvm-pci-hotplug",
         "repo": "vhotplug",
         "type": "github"
       }

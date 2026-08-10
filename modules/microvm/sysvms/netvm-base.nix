@@ -16,6 +16,7 @@
 #   base.extendModules { modules = [ ... ]; }
 #
 {
+  config,
   lib,
   pkgs,
   inputs,
@@ -30,6 +31,7 @@ let
   wifiEnabled = lib.ghaf.features.isEnabledFor globalConfig "wifi" vmName;
   timezoneEnabled = lib.ghaf.features.isEnabledFor globalConfig "timezone" vmName;
   netVmAddress = hostConfig.networking.thisVm.ipv4 or "192.168.100.1";
+  isQemu = config.microvm.hypervisor == "qemu";
 in
 {
   _file = ./netvm-base.nix;
@@ -239,6 +241,7 @@ in
     optimize.enable = false;
     vcpu = lib.mkDefault 2;
     mem = lib.mkDefault 1024;
+    vsock.cid = hostConfig.networking.thisVm.cid or 3;
     shares = [
       {
         tag = "ghaf-common";
@@ -268,7 +271,7 @@ in
       !(globalConfig.storage.storeOnDisk.enable or false)
     ) "/nix/.rw-store";
 
-    qemu = {
+    qemu = lib.mkIf isQemu {
       machine =
         {
           # Use the same machine type as the host
