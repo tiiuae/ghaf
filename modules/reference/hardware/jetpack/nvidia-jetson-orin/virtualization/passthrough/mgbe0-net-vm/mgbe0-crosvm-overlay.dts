@@ -1,0 +1,51 @@
+// SPDX-FileCopyrightText: 2026 TII (SSRC) and the Ghaf contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/dts-v1/;
+/plugin/;
+
+/ {
+    fragment@0 {
+        target-path = "/";
+
+        __overlay__ {
+            mgbe0: ethernet {
+                compatible = "nvidia,tegra234-mgbe";
+                reg-names = "hypervisor", "mac", "xpcs", "macsec-base";
+                interrupt-names = "common", "vm0", "vm1", "vm2", "vm3", "vm4",
+                                  "macsec-ns-irq", "macsec-s-irq";
+                clocks = <&bpmp 357>, <&bpmp 361>, <&bpmp 369>, <&bpmp 373>,
+                         <&bpmp 374>, <&bpmp 375>, <&bpmp 376>, <&bpmp 377>,
+                         <&bpmp 379>, <&bpmp 380>, <&bpmp 381>, <&bpmp 378>,
+                         <&bpmp 248>;
+                clock-names = "rx-input-m", "rx-pcs-m", "rx-pcs-input", "rx-pcs",
+                              "tx", "tx-pcs", "mac-divider", "mac", "eee-pcs",
+                              "mgbe", "ptp-ref", "mgbe_macsec", "rx-input";
+                resets = <&bpmp 46>, <&bpmp 45>, <&bpmp 47>;
+                reset-names = "mac", "pcs", "macsec_ns_rst";
+                power-domains = <&bpmp 18>;
+                phy-mode = "10gbase-r";
+                nvidia,phy-iface-mode = <0>;
+                nvidia,mac-addr-idx = <0>;
+                nvidia,dma-chans = <0 1 2 3 4 5 6 7 8 9>;
+                nvidia,num-dma-chans = <10>;
+                nvidia,mtl-queues = <0 1 2 3 4 5 6 7 8 9>;
+                nvidia,num-mtl-queues = <10>;
+                nvidia,tc-mapping = <0 1 2 3 4 5 6 7 0 1>;
+                nvidia,rxq_enable_ctrl = <2 2 2 2 2 2 2 2 2 2>;
+                nvidia,dcs-enable = <1>;
+                nvidia,pause_frames = <1>;
+                nvidia,instance_id = <0>;
+                dma-coherent;
+
+                snps,axi-config = <&mgbe0_axi_setup>;
+
+                mgbe0_axi_setup: stmmac-axi-config {
+                    snps,blen = <256 128 64 32 16 8 4>;
+                    snps,rd_osr_lmt = <63>;
+                    snps,wr_osr_lmt = <63>;
+                };
+            };
+        };
+    };
+};
