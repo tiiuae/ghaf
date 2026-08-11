@@ -122,17 +122,26 @@ in
         };
         eventProxy = {
           enable = true;
-          events = lib.optionals (builtins.elem guivmName config.ghaf.common.vms) [
-            {
-              transport = {
-                name = guivmName;
-                addr = hosts.${guivmName}.ipv4;
-                port = "9012";
-                protocol = "tcp";
-              };
-              producer = false;
-            }
-          ];
+          events =
+            lib.optionals
+              (
+                (builtins.elem guivmName config.ghaf.common.vms)
+                && (builtins.elem audiovmName config.ghaf.common.vms)
+              )
+              [
+                {
+                  transport = {
+                    name = guivmName;
+                    addr = hosts.${guivmName}.ipv4;
+                    port = "9012";
+                    protocol = "tcp";
+                  };
+                  consumer = {
+                    enable = true;
+                    permittedSource = audiovmName;
+                  };
+                }
+              ];
         };
         policy = mkIf policycfg.enable {
           enable = true;
