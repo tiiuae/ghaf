@@ -31,6 +31,7 @@ in
               {
                 bus = "pci";
                 path = "0001:01:00.0";
+                crosvm.guestAddress = "00:1f.0";
               }
               {
                 bus = "pci";
@@ -42,6 +43,7 @@ in
               {
                 bus = "pci";
                 path = "0001:01:00.0";
+                crosvm.guestAddress = "00:1f.0";
               }
             ];
         # Network Manager is defined for netvm of Orin Devices
