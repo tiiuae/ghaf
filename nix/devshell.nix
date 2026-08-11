@@ -96,6 +96,12 @@
               command = "update-docs-deps";
               category = "builder";
             }
+            {
+              help = "Enroll a FIDO2/YubiKey SSH key for release SSH (prints the pubkey to paste)";
+              name = "ghaf-yubikey-ssh";
+              package = self'.legacyPackages.ghaf-yubikey-ssh;
+              category = "keys";
+            }
           ];
         };
 
