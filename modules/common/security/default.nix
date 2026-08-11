@@ -9,6 +9,7 @@
     ./disk-encryption.nix
     ./fail2ban.nix
     ./pwquality.nix
+    ./ssh
     ./ssh-tarpit
     ./fleet
     ./spire

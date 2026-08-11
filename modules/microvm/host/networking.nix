@@ -157,7 +157,9 @@ in
       };
 
       ghaf.firewall = {
-        allowedTCPPorts = optionals config.ghaf.development.ssh.daemon.enable [ 22 ];
+        allowedTCPPorts = optionals (
+          config.ghaf.security.ssh.debug.enable || config.ghaf.security.ssh.release.enable
+        ) [ 22 ];
         allowedUDPPorts = optionals (!hasNetvm) [ 67 ];
       };
 

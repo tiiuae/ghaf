@@ -35,10 +35,10 @@ in
         nix-setup.enable = true;
         # Enable some basic monitoring and debug tools
         debug.tools.enable = true;
-        # Let us in.
-        ssh.daemon.enable = true;
       };
 
+      # Let us in (unprotected debug SSH: password + dev keys).
+      security.ssh.debug.enable = true;
     };
   };
 }

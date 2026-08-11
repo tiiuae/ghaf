@@ -33,11 +33,16 @@ rec {
   # Type definition for global config options
   # This is used in the ghaf.global-config option definition
   globalConfigType = types.submodule {
+    imports = [
+      (lib.mkRenamedOptionModule
+        [ "development" "ssh" "daemon" "enable" ]
+        [ "security" "ssh" "debug" "enable" ]
+      )
+    ];
     options = {
       debug.enable = mkEnableOption "debug mode globally (host and all VMs)";
 
       development = {
-        ssh.daemon.enable = mkEnableOption "SSH daemon globally";
         debug.tools.enable = mkEnableOption "debug tools globally";
         nix-setup.enable = mkEnableOption "Nix development setup globally";
       };
@@ -75,6 +80,32 @@ rec {
       };
 
       security.audit.enable = mkEnableOption "security auditing globally";
+
+      security.ssh.debug.enable = mkEnableOption "unprotected debug SSH globally (host and all VMs)";
+
+      security.ssh.release = {
+        enable = mkEnableOption "hardened release SSH globally (host and all VMs)";
+        authorizedKeys = mkOption {
+          type = types.listOf types.str;
+          default = [ ];
+          description = "Static authorized keys for release SSH (hardware-backed recommended).";
+        };
+        trustedUserCAKeys = mkOption {
+          type = types.listOf types.str;
+          default = [ ];
+          description = "SSH user-CA public keys for release SSH certificate auth.";
+        };
+        allowedPrincipals = mkOption {
+          type = types.listOf types.str;
+          default = [ ];
+          description = "Accepted certificate principals (empty = module default: the admin user).";
+        };
+        authorizedKeysOptions = mkOption {
+          type = types.str;
+          default = "restrict,pty,port-forwarding,verify-required";
+          description = "authorized_keys options prefix for static release keys (port-forwarding is required for the net-vm ProxyJump).";
+        };
+      };
 
       givc = {
         enable = mkEnableOption "GIVC (Ghaf Inter-VM Communication) globally";
@@ -372,7 +403,6 @@ rec {
       debug.enable = true;
 
       development = {
-        ssh.daemon.enable = true;
         debug.tools.enable = true;
         nix-setup.enable = true;
       };
@@ -386,6 +416,7 @@ rec {
       };
 
       security.audit.enable = false;
+      security.ssh.debug.enable = true;
 
       givc = {
         enable = true;
@@ -478,7 +509,6 @@ rec {
       debug.enable = false;
 
       development = {
-        ssh.daemon.enable = false;
         debug.tools.enable = false;
         nix-setup.enable = false;
       };
@@ -488,6 +518,9 @@ rec {
         server.endpoint = defaultLoggingEndpoint;
       };
       security.audit.enable = true;
+      security.ssh.debug.enable = false;
+      # Release SSH ships OFF by default; a downstream/operator enables it and supplies keys.
+      security.ssh.release.enable = false;
 
       givc = {
         enable = true;
@@ -579,7 +612,6 @@ rec {
       debug.enable = false;
 
       development = {
-        ssh.daemon.enable = false;
         debug.tools.enable = false;
         nix-setup.enable = false;
       };
