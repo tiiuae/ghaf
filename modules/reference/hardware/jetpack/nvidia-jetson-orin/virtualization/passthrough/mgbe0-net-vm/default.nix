@@ -22,6 +22,115 @@ let
   cfg = config.ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm;
   virt = config.ghaf.hardware.nvidia.virtualization;
   support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
+  configuredNetVmVmm = config.ghaf.virtualization.vmConfig.sysvms.netvm.vmm or null;
+  netVmVmm =
+    if configuredNetVmVmm == null then
+      config.ghaf.virtualization.vmConfig.defaultSysVmVmm
+    else
+      configuredNetVmVmm;
+  isCrosvm = netVmVmm == "crosvm";
+
+  mgbe0Overlay =
+    pkgs.buildPackages.runCommand "mgbe0-crosvm-overlay.dtbo"
+      {
+        nativeBuildInputs = [ pkgs.buildPackages.dtc ];
+      }
+      ''
+        host_dtb=${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}
+        host_node=/bus@0/ethernet@6800000
+
+        check_bpmp_ids() {
+          property="$1"
+          expected="$2"
+          values="$(fdtget -t i "$host_dtb" "$host_node" "$property")"
+          set -- $values
+          if [ "$#" -eq 0 ] || [ $(( $# % 2 )) -ne 0 ]; then
+            echo "malformed $property in pinned AGX device tree" >&2
+            exit 1
+          fi
+          ids=""
+          while [ "$#" -gt 0 ]; do
+            shift
+            ids="''${ids:+$ids }$1"
+            shift
+          done
+          if [ "$ids" != "$expected" ]; then
+            echo "$property BPMP IDs drifted: expected '$expected', got '$ids'" >&2
+            exit 1
+          fi
+        }
+
+        test "$(fdtget -t s "$host_dtb" "$host_node" compatible)" = "nvidia,tegra234-mgbe"
+        test "$(fdtget -t s "$host_dtb" "$host_node" phy-mode)" = "10gbase-r"
+        check_bpmp_ids clocks "357 361 369 373 374 375 376 377 379 380 381 378 248"
+        check_bpmp_ids resets "46 45 47"
+        check_bpmp_ids power-domains "18"
+
+        dtc -@ -I dts -O dtb -o "$out" ${./mgbe0-crosvm-overlay.dts}
+      '';
+
+  prepareMgbe0Overlay = pkgs.writeShellApplication {
+    name = "prepare-mgbe0-crosvm-overlay";
+    runtimeInputs = with pkgs; [
+      coreutils
+      dtc
+      findutils
+      gnugrep
+    ];
+    text = ''
+      set -euo pipefail
+
+      live_root=/sys/firmware/devicetree/base
+      live_fdt=/sys/firmware/fdt
+      output=/run/mgbe0-net-vm.dtbo
+      mapfile -d "" nodes < <(find "$live_root" -type d -name 'ethernet@6800000' -print0)
+      if [ "''${#nodes[@]}" -ne 1 ]; then
+        echo "expected one live ethernet@6800000 node, found ''${#nodes[@]}" >&2
+        exit 1
+      fi
+      node="''${nodes[0]}"
+      node_path="/''${node#"$live_root"/}"
+      if ! tr '\0' '\n' < "$node/compatible" | grep -Fxq 'nvidia,tegra234-mgbe'; then
+        echo "live $node_path is not compatible with nvidia,tegra234-mgbe" >&2
+        exit 1
+      fi
+
+      check_bpmp_ids() {
+        local property="$1" expected="$2" values ids=""
+        values="$(fdtget -t i "$live_fdt" "$node_path" "$property")"
+        read -r -a cells <<< "$values"
+        if [ "''${#cells[@]}" -eq 0 ] || [ $(( ''${#cells[@]} % 2 )) -ne 0 ]; then
+          echo "malformed live $property on $node_path" >&2
+          exit 1
+        fi
+        for ((index = 1; index < ''${#cells[@]}; index += 2)); do
+          ids="''${ids:+$ids }''${cells[index]}"
+        done
+        if [ "$ids" != "$expected" ]; then
+          echo "live $property BPMP IDs drifted: expected '$expected', got '$ids'" >&2
+          exit 1
+        fi
+      }
+
+      check_bpmp_ids clocks "357 361 369 373 374 375 376 377 379 380 381 378 248"
+      check_bpmp_ids resets "46 45 47"
+      check_bpmp_ids power-domains "18"
+
+      install -m 0644 ${mgbe0Overlay} "$output"
+      if [ -e "$node/mac-address" ]; then
+        if [ "$(stat -c %s "$node/mac-address")" -ne 6 ]; then
+          echo "live mac-address on $node_path is not six bytes" >&2
+          exit 1
+        fi
+        read -r -a mac_bytes <<< "$(od -An -v -t x1 "$node/mac-address")"
+        if [ "''${#mac_bytes[@]}" -ne 6 ]; then
+          echo "could not decode live mac-address on $node_path" >&2
+          exit 1
+        fi
+        fdtput -t bx "$output" /fragment@0/__overlay__/ethernet mac-address "''${mac_bytes[@]}"
+      fi
+    '';
+  };
 in
 {
   _file = ./default.nix;
@@ -92,8 +201,8 @@ in
     };
 
     services.udev.extraRules = ''
-      # QEMU opens /dev/bpmp-host in instance_init, and microvm.nix runs it as
-      # user microvm, group kvm. The char device is otherwise 0600 root:root.
+      # The VMM opens /dev/bpmp-host as user microvm, group kvm. The character
+      # device is otherwise 0600 root:root.
       KERNEL=="bpmp-host", GROUP="kvm", MODE="0660"
 
       # vfio group nodes for the passed-through platform device.
@@ -122,7 +231,19 @@ in
         ExecStart = "${pkgs.bash}/bin/bash -c \"echo 6800000.ethernet > /sys/bus/platform/drivers/vfio-platform/bind\"";
       };
     };
-    systemd.services."microvm@net-vm".after = [ "bindMgbe0.service" ];
+    systemd.services."microvm@net-vm" = {
+      requires = lib.optionals isCrosvm [ "prepareMgbe0CrosvmOverlay.service" ];
+      after = [ "bindMgbe0.service" ] ++ lib.optionals isCrosvm [ "prepareMgbe0CrosvmOverlay.service" ];
+    };
+
+    systemd.services.prepareMgbe0CrosvmOverlay = lib.mkIf isCrosvm {
+      description = "Prepare the live MGBE0 device-tree overlay for Crosvm";
+      before = [ "microvm@net-vm.service" ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = lib.getExe prepareMgbe0Overlay;
+      };
+    };
 
     ghaf.hardware.definition.netvm.extraModules = [
       (
@@ -196,19 +317,34 @@ in
           ];
 
           # Only this VM gets the QEMU that has the BPMP bridge and, crucially,
-          # still has -device vfio-platform (removed upstream in 10.2). That QEMU
-          # also carries the FDT binding that emits MGBE0's guest node.
-          ghaf.virtualization.qemu.package = lib.mkForce pkgs.ghaf-qemu-bpmp;
-
-          # Hand MGBE0 to the guest. QEMU emits the ethernet DT node itself (from
-          # the nvidia,tegra234-mgbe binding in sysbus-fdt.c); there is no -dtb.
-          microvm.qemu.extraArgs = [
+          # still has -device vfio-platform (removed upstream in 10.2). It also
+          # emits MGBE0's guest DT node.
+          ghaf.virtualization.qemu.package = lib.mkIf (config.microvm.hypervisor == "qemu") (
+            lib.mkForce pkgs.ghaf-qemu-bpmp
+          );
+          microvm.qemu.extraArgs = lib.mkIf (config.microvm.hypervisor == "qemu") [
             "-device"
-            # startup-rearm recovers MGBE0's level IRQ if it asserts during the
-            # ~17s bring-up gap before the guest stmmac driver claims the SPI.
-            # Default-off in QEMU; enabled here only, bounded to 30s (see
-            # ghaf-qemu-bpmp patch 0006).
+            # Keep the proven, bounded QEMU workaround. Crosvm does not get
+            # startup rearm without trace evidence of the same IRQ wedge.
             "vfio-platform,host=6800000.ethernet,startup-rearm=on"
+          ];
+
+          microvm.devices = lib.mkIf (config.microvm.hypervisor == "crosvm") [
+            {
+              bus = "platform";
+              path = "6800000.ethernet";
+              crosvm = {
+                dtSymbol = "mgbe0";
+                iommu = "off";
+              };
+            }
+          ];
+          microvm.crosvm.deviceTreeOverlays = lib.mkIf (config.microvm.hypervisor == "crosvm") [
+            "/run/mgbe0-net-vm.dtbo"
+          ];
+          microvm.crosvm.extraArgs = lib.mkIf (config.microvm.hypervisor == "crosvm") [
+            "--nvidia-bpmp-host"
+            "/dev/bpmp-host"
           ];
         }
       )
