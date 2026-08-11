@@ -91,24 +91,34 @@ com.system76.CosmicPanel-bottom-panel:
         "Panel",
     ]
 
+# Each panel entry must carry the full set of keys COSMIC 1.5 expects.
+# cosmic-panel loads them in one go; if any key is missing it takes the error
+# path, and the first panel instance of the session then renders only its right
+# wing -- no app-library button, no clock, no dock. It repairs itself by writing
+# a complete config into the user's home, so the fault is invisible on every
+# login after the first, and shows up only on a freshly installed device.
+#
+# autohide is one of those keys. From epoch 1.5 it is an enum
+# (Never | OnOverlap | Always) and the timings live in autohide_behavior. The
+# pre-1.5 `Some((wait_time: ...))` shape still deserialises through a
+# compatibility shim, but it maps to OnOverlap and sets NEEDS_MIGRATION.
 com.system76.CosmicPanel.Dock:
   anchor: Bottom
   anchor_gap: true
-  # unhide_delay is mandatory from COSMIC epoch 1.5 on. Up to 1.2 it carried a
-  # #[serde(default)] of 200 and could be omitted; 1.5 split AutoHide into an
-  # enum plus a separate AutoHideBehavior struct and dropped the default
-  autohide: |
-    Some((
+  autohide: OnOverlap
+  autohide_behavior: |
+    (
         wait_time: 1000,
         transition_time: 200,
         handle_size: 4,
         unhide_delay: 200,
-    ))
+    )
   autohover_delay_ms: Some(500)
   background: ThemeDefault
   border_radius: 8
   exclusive_zone: false
   expand_to_edges: false
+  keep_style_on_maximize: false
   keyboard_interactivity: OnDemand
   layer: Overlay
   margin: 4
@@ -116,6 +126,7 @@ com.system76.CosmicPanel.Dock:
   opacity: 0.75
   output: All
   padding: 0
+  padding_overlap: 0.5
   plugins_center: |
     Some([
         "com.system76.CosmicAppList",
@@ -134,12 +145,20 @@ com.system76.CosmicPanel.Dock:
 com.system76.CosmicPanel.Panel:
   anchor: Top
   anchor_gap: false
-  autohide: None
+  autohide: Never
+  autohide_behavior: |
+    (
+        wait_time: 1000,
+        transition_time: 200,
+        handle_size: 4,
+        unhide_delay: 200,
+    )
   autohover_delay_ms: Some(500)
   background: ThemeDefault
   border_radius: 0
   exclusive_zone: true
   expand_to_edges: true
+  keep_style_on_maximize: false
   keyboard_interactivity: OnDemand
   layer: Top
   margin: 0
@@ -147,6 +166,7 @@ com.system76.CosmicPanel.Panel:
   opacity: 0.5
   output: All
   padding: 0
+  padding_overlap: 0.5
   plugins_center: |
     Some([
         "com.system76.CosmicAppletTime",
@@ -166,17 +186,27 @@ com.system76.CosmicPanel.Panel:
         "com.system76.CosmicAppletPower",
     ]))
   size: XS
+  size_center: None
+  size_wings: None
   spacing: 2
 
 com.system76.CosmicPanel.Panel-bottom-panel:
   anchor: Bottom
   anchor_gap: false
-  autohide: None
+  autohide: Never
+  autohide_behavior: |
+    (
+        wait_time: 1000,
+        transition_time: 200,
+        handle_size: 4,
+        unhide_delay: 200,
+    )
   autohover_delay_ms: Some(500)
   background: ThemeDefault
   border_radius: 0
   exclusive_zone: false
   expand_to_edges: true
+  keep_style_on_maximize: false
   keyboard_interactivity: OnDemand
   layer: Top
   margin: 0
@@ -184,6 +214,7 @@ com.system76.CosmicPanel.Panel-bottom-panel:
   opacity: 0.75
   output: All
   padding: 0
+  padding_overlap: 0.5
   plugins_center: Some([])
   plugins_wings: |
     Some(([
@@ -206,6 +237,8 @@ com.system76.CosmicPanel.Panel-bottom-panel:
         "com.system76.CosmicAppletPower",
     ]))
   size: M
+  size_center: None
+  size_wings: None
   spacing: 2
 
 com.system76.CosmicSettings.Shortcuts:
