@@ -3,7 +3,12 @@
 #
 # Reference hardware modules
 #
-{ pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 {
   _file = ./orin-agx.nix;
 
@@ -64,31 +69,43 @@
           };
 
         }
-        # Hardware info guest support
-        {
+        # Hardware info guest support. Crosvm has no fw_cfg, so share the same
+        # generated JSON read-only through virtiofs instead.
+        ({ config, ... }: {
           imports = [ ../../../../common/services/hwinfo ];
-          ghaf.services.hwinfo-guest.enable = true;
-        }
-        # Ensure hardware info is generated before net-vm starts
-        {
-          systemd.services."microvm@net-vm" = {
-            wants = [ "ghaf-hwinfo-generate.service" ];
-            after = [ "ghaf-hwinfo-generate.service" ];
+          ghaf.services.hwinfo-guest = {
+            enable = true;
+            filePath = lib.mkIf (config.microvm.hypervisor == "crosvm") "/run/ghaf-hwinfo/hwinfo.json";
           };
-        }
+          microvm.shares = lib.optionals (config.microvm.hypervisor == "crosvm") [
+            {
+              tag = "ghaf-hwinfo";
+              source = "/var/lib/ghaf-hwinfo";
+              mountPoint = "/run/ghaf-hwinfo";
+              proto = "virtiofs";
+              readOnly = true;
+            }
+          ];
+        })
         # QEMU arguments to pass hardware info via fw_cfg
-        {
-          microvm.qemu.extraArgs = [
+        ({ config, ... }: {
+          microvm.qemu.extraArgs = lib.mkIf (config.microvm.hypervisor == "qemu") [
             "-fw_cfg"
             "name=opt/com.ghaf.hwinfo,file=/var/lib/ghaf-hwinfo/hwinfo.json"
           ];
-        }
+        })
       ];
     };
   };
 
   # To enable or disable wireless
   networking.wireless.enable = true;
+
+  # Both fw_cfg and the Crosvm virtiofs share consume this host-generated file.
+  systemd.services."microvm@net-vm" = {
+    wants = [ "ghaf-hwinfo-generate.service" ];
+    after = [ "ghaf-hwinfo-generate.service" ];
+  };
 
   hardware = {
     # Device Tree

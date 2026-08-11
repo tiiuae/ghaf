@@ -18,11 +18,19 @@ in
 
   options.ghaf.services.hwinfo-guest = {
     enable = lib.mkEnableOption "hardware information reading tools for guest VMs";
+    filePath = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = ''
+        Optional hardware information JSON file. The reader checks this file
+        before falling back to QEMU fw_cfg.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
     # Ensure necessary kernel modules are loaded
-    boot.kernelModules = [ "qemu_fw_cfg" ];
+    boot.kernelModules = lib.optionals (cfg.filePath == null) [ "qemu_fw_cfg" ];
 
     environment.systemPackages = [
       # Hardware info reader using fw_cfg
@@ -36,6 +44,13 @@ in
         ];
         text = ''
           set -euo pipefail
+
+          HWINFO_FILE=${lib.escapeShellArg (if cfg.filePath == null then "" else cfg.filePath)}
+          if [ -n "$HWINFO_FILE" ] && [ -f "$HWINFO_FILE" ]; then
+            echo "Hardware Information:"
+            jq . < "$HWINFO_FILE" || cat "$HWINFO_FILE"
+            exit 0
+          fi
 
           # Check possible fw_cfg paths
           FW_CFG_PATHS=(
