@@ -88,7 +88,7 @@ in
                 port = "9012";
                 protocol = "tcp";
               };
-              producer = true;
+              producer.enable = true;
               device = "mouse";
             }
           ];
