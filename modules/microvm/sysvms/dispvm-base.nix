@@ -44,7 +44,6 @@ in
     profiles.debug.enable = lib.mkDefault (globalConfig.debug.enable or false);
 
     development = {
-      ssh.daemon.enable = lib.mkDefault (globalConfig.development.ssh.daemon.enable or false);
       debug.tools.enable = lib.mkDefault (globalConfig.development.debug.tools.enable or false);
       nix-setup.enable = lib.mkDefault (globalConfig.development.nix-setup.enable or false);
     };
@@ -118,7 +117,23 @@ in
     };
 
     security = {
-      fail2ban.enable = globalConfig.development.ssh.daemon.enable or false;
+      fail2ban.enable = globalConfig.security.ssh.debug.enable or false;
+
+      # Debug SSH (unprotected)
+      ssh.debug.enable = lib.mkDefault (globalConfig.security.ssh.debug.enable or false);
+
+      # Release SSH
+      ssh.release = {
+        enable = lib.mkDefault (globalConfig.security.ssh.release.enable or false);
+        inherit (globalConfig.security.ssh.release)
+          authorizedKeys
+          trustedUserCAKeys
+          authorizedKeysOptions
+          ;
+        allowedPrincipals = lib.mkIf (
+          (globalConfig.security.ssh.release.allowedPrincipals or [ ]) != [ ]
+        ) globalConfig.security.ssh.release.allowedPrincipals;
+      };
       audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
 
       spire.agents.downstream = {

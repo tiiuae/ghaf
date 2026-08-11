@@ -10,7 +10,7 @@
 # Usage:
 #   # Set options on host (these propagate via lib.ghaf.mkGlobalConfig)
 #   ghaf.profiles.debug.enable = true;
-#   ghaf.development.ssh.daemon.enable = true;
+#   ghaf.security.ssh.debug.enable = true;
 #
 #   # VMs receive globalConfig via specialArgs, created by profiles
 #   # See: modules/profiles/laptop-x86.nix, lib/global-config.nix

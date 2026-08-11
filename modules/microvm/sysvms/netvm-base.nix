@@ -47,9 +47,6 @@ in
     profiles.debug.enable = lib.mkDefault (globalConfig.debug.enable or false);
 
     development = {
-      # NOTE: SSH port also becomes accessible on the network interface
-      #       that has been passed through to NetVM
-      ssh.daemon.enable = lib.mkDefault (globalConfig.development.ssh.daemon.enable or false);
       debug.tools.enable = lib.mkDefault (globalConfig.development.debug.tools.enable or false);
       debug.tools.net.enable = lib.mkDefault (globalConfig.development.debug.tools.enable or false);
       nix-setup.enable = lib.mkDefault (globalConfig.development.nix-setup.enable or false);
@@ -170,10 +167,31 @@ in
     };
 
     security = {
-      fail2ban.enable = globalConfig.development.ssh.daemon.enable or false;
+      # fail2ban runs on net-vm only — the sole external choke point. Internal VMs see only
+      # the trusted post-auth jump, so running it there would catch nothing and could ban
+      # the jump origin.
+      fail2ban.enable =
+        (globalConfig.security.ssh.debug.enable or false)
+        || (globalConfig.security.ssh.release.enable or false);
+
+      # Debug SSH (unprotected)
+      ssh.debug.enable = lib.mkDefault (globalConfig.security.ssh.debug.enable or false);
+
+      # Release SSH
+      ssh.release = {
+        enable = lib.mkDefault (globalConfig.security.ssh.release.enable or false);
+        inherit (globalConfig.security.ssh.release)
+          authorizedKeys
+          trustedUserCAKeys
+          authorizedKeysOptions
+          ;
+        allowedPrincipals = lib.mkIf (
+          (globalConfig.security.ssh.release.allowedPrincipals or [ ]) != [ ]
+        ) globalConfig.security.ssh.release.allowedPrincipals;
+      };
 
       ssh-tarpit = {
-        enable = globalConfig.development.ssh.daemon.enable or false;
+        enable = globalConfig.security.ssh.debug.enable or false;
         listenAddress = netVmAddress;
       };
 
@@ -192,6 +210,12 @@ in
     # Note: reference.services is NOT set here - it should come via extraModules
     # from hardware.definition.netvm.extraModules if needed
   };
+
+  # net-vm is the sole external entry and acts as a pure ProxyJump host; the jump's
+  # direct-tcpip channel to each VM's :22 needs TCP forwarding here (net-vm only).
+  services.openssh.settings.AllowTcpForwarding = lib.mkIf (globalConfig.security.ssh.release.enable
+    or false
+  ) (lib.mkForce "yes");
 
   time.timeZone = lib.mkIf (!timezoneEnabled) (lib.mkDefault globalConfig.platform.timeZone);
 

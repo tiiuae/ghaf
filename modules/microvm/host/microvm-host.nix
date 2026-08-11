@@ -172,6 +172,16 @@ in
             inherit (config.ghaf.logging) enable;
           };
         };
+        # Release SSH - the host is not a VM eval, so it reads its own global-config.
+        security.ssh.release =
+          let
+            gc = config.ghaf.global-config.security.ssh.release;
+          in
+          {
+            enable = lib.mkDefault (gc.enable or false);
+            inherit (gc) authorizedKeys trustedUserCAKeys authorizedKeysOptions;
+            allowedPrincipals = lib.mkIf ((gc.allowedPrincipals or [ ]) != [ ]) gc.allowedPrincipals;
+          };
         common = {
           extraNetworking.hosts.ghaf-host = cfg.extraNetworking;
           policies = lib.mkIf config.ghaf.givc.policyClient.enable {

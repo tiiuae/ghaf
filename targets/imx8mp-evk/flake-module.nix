@@ -54,8 +54,8 @@ let
               };
               development = {
                 debug.tools.enable = variant == "debug";
-                ssh.daemon.enable = true;
               };
+              security.ssh.debug.enable = true;
               reference.personalize.keys.enable = variant == "debug";
             };
 
