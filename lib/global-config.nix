@@ -864,7 +864,12 @@ rec {
           guivm = "gui-vm";
           netvm = "net-vm";
         };
-        usesPciVhotplug = selectedVmm == "crosvm" && builtins.hasAttr vmName vhotplugVmNames;
+        # Crosvm implements PCI hotplug only on x86_64. AArch64 system VMs must
+        # retain their statically declared PCI devices.
+        usesPciVhotplug =
+          selectedVmm == "crosvm"
+          && config.nixpkgs.hostPlatform.isx86_64
+          && builtins.hasAttr vmName vhotplugVmNames;
         pciBusPrefix = config.ghaf.hardware.passthrough.pciPorts.pcieBusPrefix;
 
         # VM settings module (applies the VMM and vmConfig.mem/vcpu)
