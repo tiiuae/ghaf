@@ -53,7 +53,11 @@ in
     enable = mkEnableOption "gRPC inter-vm communication (GIVC)";
     debug = mkEnableOption "GIVC debug mode";
     accessControl = {
-      enable = mkEnableOption "access control for GIVC";
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = config.ghaf.givc.enableTls;
+        description = "Whether to enable access control for GIVC. Defaults to true if enableTls is true.";
+      };
       adminRules = mkOption {
         description = ''
           Defines access control policies for the GIVC Admin server.
