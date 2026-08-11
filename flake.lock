@@ -248,17 +248,17 @@
     "ghaf-crosvm": {
       "flake": false,
       "locked": {
-        "lastModified": 1786315114,
-        "narHash": "sha256-AENi4IrGdkTKLQdvUQ/SGN6H4SSixRlJgXISmu6nPEY=",
-        "ref": "feat/crosvm-system-vm-passthrough",
-        "rev": "d0d5a4ef4dc9529f64e14c6f4027ae735cce7a13",
-        "revCount": 11727,
+        "lastModified": 1786491386,
+        "narHash": "sha256-b64wHqlFwa+xtwWrKYqqt1NyX6BXZm+9TqCEBTB3oys=",
+        "ref": "feat/nvidia-dce-host-layout",
+        "rev": "8db791618da9274acdc7aa529d7351bdeb754669",
+        "revCount": 11714,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
       },
       "original": {
-        "ref": "feat/crosvm-system-vm-passthrough",
+        "ref": "feat/nvidia-dce-host-layout",
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
@@ -455,15 +455,16 @@
         "spectrum": "spectrum"
       },
       "locked": {
-        "lastModified": 1785843289,
-        "narHash": "sha256-H/0YgQ+3BtNbdeSVuqjU7ElneBzPPuIKcuWOi0ZUktQ=",
-        "owner": "microvm-nix",
+        "lastModified": 1786483601,
+        "narHash": "sha256-yNFxIVr6C/l4ZMmhpNPGX3417FrBXakqbfIVm/H7QiA=",
+        "owner": "vadika",
         "repo": "microvm.nix",
-        "rev": "e615e23267bf10d483fb44f759d4e61c354cc0f4",
+        "rev": "a1b650861978bfcc46b5355022be45a38ff396bc",
         "type": "github"
       },
       "original": {
-        "owner": "microvm-nix",
+        "owner": "vadika",
+        "ref": "feat/crosvm-platform-devices",
         "repo": "microvm.nix",
         "type": "github"
       }

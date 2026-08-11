@@ -3,7 +3,37 @@
 // Guest memory layout: passthrough RAM regions, reserved-memory
 // carveouts, and the tegra-carveouts consumer node.
 
+#ifdef GHAF_CROSVM_OVERLAY
 / {
+	fragment@10 {
+		target-path = "/";
+		__overlay__ {
+#else
+/ {
+#endif
+
+#ifdef GHAF_CROSVM_OVERLAY
+	// Crosvm maps these VFIO memory backers before guest execution. They are
+	// resource anchors, not System RAM; the reserved-memory consumers below
+	// describe the portions used by NVIDIA drivers.
+	vm_hs_p: vfio-memory@60000000 {
+		compatible = "ghaf,vfio-resource-anchor";
+		reg = <0x00 0x60000000 0x00 0x04000000>;
+		status = "disabled";
+	};
+
+	vm_cma_p: vfio-memory@80000000 {
+		compatible = "ghaf,vfio-resource-anchor";
+		reg = <0x00 0x80000000 0x00 0x30000000>;
+		status = "disabled";
+	};
+
+	scanout_p: vfio-memory@b0000000 {
+		compatible = "ghaf,vfio-resource-anchor";
+		reg = <0x00 0xb0000000 0x00 0x08000000>;
+		status = "disabled";
+	};
+#else
 	// QEMU adds the main memory here (6GB), but we have to define the
 	// passthrough memory regions.
 	memory@80000000 {
@@ -18,6 +48,7 @@
 #endif
 		device_type = "memory";
 	};
+#endif
 
 	reserved-memory {
 		#address-cells = <2>;
@@ -116,4 +147,8 @@
 		memory-region = <&generic_reserved &vpr &fsi_reserved &vidmem_reserved>;
 		status = "okay";
 	};
+#ifdef GHAF_CROSVM_OVERLAY
+		};
+	};
+#endif
 };

@@ -96,8 +96,8 @@
     # Crosvm with Ghaf's swtpm backend. This is a non-flake source input
     # because nixpkgs supplies the package expression and Rust dependencies.
     ghaf-crosvm = {
-      # TODO: switch back to main after ghaf-crosvm#2 merges.
-      url = "git+https://github.com/tiiuae/ghaf-crosvm?ref=feat/crosvm-system-vm-passthrough&submodules=1";
+      # TODO: switch back to main after ghaf-crosvm#5 merges.
+      url = "git+https://github.com/tiiuae/ghaf-crosvm?ref=feat/nvidia-dce-host-layout&submodules=1";
       flake = false;
     };
 
@@ -153,7 +153,8 @@
 
     # For building and managing VMs
     microvm = {
-      url = "github:microvm-nix/microvm.nix";
+      # TODO: switch back after the typed Crosvm platform-layout interface merges.
+      url = "github:vadika/microvm.nix/feat/crosvm-platform-devices";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

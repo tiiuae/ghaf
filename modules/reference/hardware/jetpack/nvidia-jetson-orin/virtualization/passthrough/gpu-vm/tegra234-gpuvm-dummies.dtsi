@@ -2,8 +2,15 @@
 // SPDX-FileCopyrightText: Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
 // Required NVIDIA nodes kept disabled/dummy for driver probe paths.
 
+#ifdef GHAF_CROSVM_OVERLAY
+/ {
+	fragment@40 {
+		target-path = "/";
+		__overlay__ {
+#else
 / {
 	platform-bus@70000000 {
+#endif
 		// We need to keep fuse here disable without passing
 		// through in order the display works
 		fuse@3810000 {
@@ -13,5 +20,10 @@
 			clock-names = "fuse";
 			status = "disabled";
 		};
+#ifdef GHAF_CROSVM_OVERLAY
+		};
 	};
+#else
+	};
+#endif
 };
