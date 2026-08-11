@@ -1,0 +1,242 @@
+---
+title: "SSH Access"
+---
+
+{/*
+SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+*/}
+
+# SSH Access
+
+Ghaf treats SSH as a security posture, not a development convenience, so it lives under
+`ghaf.security.ssh` with two mutually-exclusive modes:
+
+| Mode | Option | Image | Auth |
+| --- | --- | --- | --- |
+| Debug | `ghaf.security.ssh.debug` | debug | password + shared development keys, root allowed |
+| Release | `ghaf.security.ssh.release` | release | certificate/key-only, no password, no root |
+
+A device answers SSH on **every machine** (net-vm, ghaf-host, and every VM), but only net-vm
+listens on the physical network. All other machines are reached by jumping through net-vm. No
+Ghaf machine ever runs an SSH *client* to another, so a compromised VM cannot SSH-pivot to a
+peer. An assertion forbids enabling both modes at once.
+
+## Debug SSH
+
+The unprotected posture used on **debug** images for developer convenience: a plain sshd with
+**password authentication** and the shared development authorized-key list
+(`ghaf.reference.personalize.keys`), with root reachable by key (`prohibit-password`).
+
+```nix
+ghaf.security.ssh.debug.enable = true;   # normally set by the debug profile
+```
+
+The former name `ghaf.development.ssh.daemon.enable` still works as a deprecated alias.
+
+:::caution
+Debug SSH is **not for production**: it accepts passwords, ships shared keys, and allows root.
+Release images use `ghaf.security.ssh.release` instead; the two cannot be enabled together.
+:::
+
+The rest of this page covers **release SSH**.
+
+## Release SSH
+
+Release SSH answers on every machine with a hardened, certificate/key-only sshd. It targets the
+**CIS Linux Benchmark SSH Server Configuration (Level 2)** and maps to NIST SP 800-53/800-171
+**AC-17** (remote access), **IA-2 / IA-5(2)** (PKI / hardware-token auth), and
+**AU-2/AU-3/AU-12** (audit). How each is addressed:
+
+| Control | How release SSH addresses it |
+| --- | --- |
+| CIS SSH Server Configuration (L2) | Hardened `services.openssh.settings` on every machine: no root, password, or keyboard-interactive auth; `MaxAuthTries 3`, `LoginGraceTime 30`, `ClientAlive*`, forwarding off (net-vm excepted), `AllowUsers ghaf`; modern crypto inherited from nixpkgs (not hand-rolled). Continuously checked by an `ssh-audit` policy gate. |
+| AC-17 (remote access) | One external entry (net-vm), reached only via ProxyJump; no Ghaf machine runs an SSH client to another; a separate sshd per machine; brute-force banning at the edge (`fail2ban` on net-vm). |
+| IA-2 / IA-5(2) (identification & PKI auth) | Certificate auth via a user CA (`TrustedUserCAKeys`) and/or hardware-token keys (FIDO2/YubiKey, `verify-required`); no passwords; login as `ghaf` only; fails closed at build time if no key or CA is configured. |
+| AU-2 / AU-3 / AU-12 (audit) | `LogLevel VERBOSE` records the key/cert fingerprint of every login, forwarded to central logging (journald → Alloy → Loki on admin-vm) with Forward-Secure Sealing for tamper evidence. |
+
+### What "hardened" means
+
+Enforced on every machine:
+
+- **No passwords** (`PasswordAuthentication no`, `KbdInteractiveAuthentication no`).
+- **No root login** (`PermitRootLogin no`); you log in as the **`ghaf`** user only
+  (`AllowUsers ghaf`).
+- **Public-key/certificate auth only** (`AuthenticationMethods publickey`). Cert-only is
+  structural: no `authorized_keys` for password-style keys unless you configure one, and a
+  certificate must carry an accepted principal.
+- **Modern crypto with post-quantum-hybrid key exchange**, inherited from nixpkgs (not
+  hand-rolled): the KEX offers the PQ-hybrid `mlkem768x25519` / `sntrup761x25519` (where the
+  post-quantum resistance lives) alongside classical `curve25519`, with ChaCha20-Poly1305 /
+  AES-GCM ciphers.
+- **Hardening**: forwarding off by default (net-vm excepted, see below), `MaxAuthTries 3`,
+  `LoginGraceTime 30`, `MaxSessions 4`, `Compression no`, and `LogLevel VERBOSE` (per-login
+  key/cert fingerprints forwarded to central logging).
+- **Brute-force protection at the edge**: `fail2ban` runs on **net-vm only**, the sole
+  internet-facing sshd. Internal VMs do not run it (under key-only auth a lateral brute-force
+  cannot succeed, and a ban there would risk the jump).
+
+Mapped against the individual CIS SSH Server Configuration controls:
+
+| CIS control | CIS expectation | Release setting |
+| --- | --- | --- |
+| `PermitRootLogin` | no | `no` |
+| Password / empty-password auth | no | `PasswordAuthentication no` |
+| Keyboard-interactive auth | no | `KbdInteractiveAuthentication no` |
+| `MaxAuthTries` | ≤ 4 | `3` |
+| `LoginGraceTime` | ≤ 60 | `30` |
+| `ClientAliveInterval` / `ClientAliveCountMax` | ≤ 900 / ≤ 3 | `300` / `2` |
+| `MaxSessions` | ≤ 10 | `4` |
+| X11 / agent / TCP forwarding | disabled | all off (net-vm `AllowTcpForwarding yes` for the jump) |
+| `LogLevel` | INFO or VERBOSE | `VERBOSE` |
+| `HostbasedAuthentication` / `IgnoreRhosts` | no / yes | nixpkgs defaults |
+| Access restricted to specific users | yes | `AllowUsers ghaf` |
+| Approved Ciphers / MACs / KexAlgorithms | approved set | nixpkgs `enableRecommendedAlgorithms` (PQ-hybrid KEX) |
+
+### Authentication backends
+
+Two backends, unioned by sshd. Configure either or both:
+
+| Backend | Option | Use |
+| --- | --- | --- |
+| Static authorized keys | `authorizedKeys` | Hardware tokens (YubiKey / FIDO2). Never expire → break-glass. |
+| SSH user CA | `trustedUserCAKeys` | Short-lived certificates signed by your CA. Scales to many operators. |
+
+The recommended posture is a **CA for routine access plus at least one hardware key as
+never-expiring break-glass**. A device with neither configured while release SSH is enabled
+**fails the build** (fail-closed): you cannot ship a device reachable by no one.
+
+:::caution
+If you configure a CA but no static key, the build succeeds with a warning: a lost or expired
+certificate with the CA unreachable leaves no way in. Keep at least one hardware break-glass
+key.
+:::
+
+### Enroll a YubiKey
+
+From the Ghaf devShell:
+
+```sh
+nix develop --command ghaf-yubikey-ssh
+```
+
+This enrolls an `ed25519-sk -O resident -O verify-required` key (touch **and** PIN required per
+login; the private key never leaves the token) and prints the `sk-ssh-ed25519@openssh.com …`
+public key to paste into your configuration. Older tokens without `ed25519-sk` support can use
+`ghaf-yubikey-ssh --ecdsa`.
+
+:::note
+`verify-required` needs a FIDO2 PIN set on the token. If you have never set one:
+`ykman fido access change-pin`. Without it the server rejects the key.
+:::
+
+### Configure a release target
+
+Supply the material through `globalConfig` on your release target; it propagates to the host
+and every VM:
+
+```nix
+ghaf.global-config.security.ssh.release = {
+  enable = true;
+  authorizedKeys = [
+    "sk-ssh-ed25519@openssh.com AAAA… operator-yubikey-1"
+    "sk-ssh-ed25519@openssh.com AAAA… operator-yubikey-2"   # enroll ≥2 per operator
+  ];
+  # Optionally also trust an org CA for short-lived certs:
+  # trustedUserCAKeys = [ "ssh-ed25519 AAAA… org-ssh-ca" ];
+};
+```
+
+Options (`ghaf.security.ssh.release.*`, mirrored under `ghaf.global-config.security.ssh.release`):
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `enable` | `false` | Turn release SSH on. Off ⇒ no release sshd anywhere. |
+| `authorizedKeys` | `[]` | Static public keys (hardware-backed recommended). |
+| `trustedUserCAKeys` | `[]` | User-CA public keys for certificate auth. |
+| `allowedPrincipals` | `[ "ghaf" ]` | Certificate principals accepted for login. |
+| `authorizedKeysOptions` | `restrict,pty,port-forwarding,verify-required` | `authorized_keys` option prefix for static keys. |
+
+:::caution
+`authorizedKeysOptions` keeps `port-forwarding` deliberately: `restrict` alone forbids the
+`direct-tcpip` channel that ProxyJump needs, so a `restrict`-only key **cannot be used through
+the net-vm jump**. A non-hardware vaulted recovery key (not `sk-`) must drop `verify-required`:
+`restrict,pty,port-forwarding`.
+:::
+
+Sign a short-lived certificate for the CA backend:
+
+```sh
+ssh-keygen -s ca_key -I operator-id -n ghaf -V +8h operator_key.pub
+```
+
+### Connect
+
+net-vm is the reachable address; everything else is one hop in via ProxyJump:
+
+```sh
+# a VM
+ssh -i ~/.ssh/ghaf_yubikey_ed25519_sk -J ghaf@<device-ip> ghaf@gui-vm
+
+# the hypervisor host
+ssh -i ~/.ssh/ghaf_yubikey_ed25519_sk -J ghaf@<device-ip> ghaf@ghaf-host
+
+# net-vm itself
+ssh -i ~/.ssh/ghaf_yubikey_ed25519_sk ghaf@<device-ip>
+```
+
+Touch the token (and enter its PIN) when it blinks, once per hop, so a jump to a VM prompts
+twice. A convenient `~/.ssh/config`:
+
+```text
+Host ghaf-dev
+    HostName <device-ip>
+    User ghaf
+    IdentityFile ~/.ssh/ghaf_yubikey_ed25519_sk
+    IdentitiesOnly yes
+
+Host gui-vm ghaf-host admin-vm audio-vm
+    User ghaf
+    IdentityFile ~/.ssh/ghaf_yubikey_ed25519_sk
+    IdentitiesOnly yes
+    ProxyJump ghaf-dev
+```
+
+Then `ssh gui-vm`, `ssh ghaf-host`, etc. `IdentitiesOnly yes` stops SSH from offering other
+keys first (which would waste touch prompts and count against `MaxAuthTries`).
+
+To reuse the same token on a fresh client, re-import the resident credential instead of copying
+files: `cd ~/.ssh && ssh-keygen -K`.
+
+### Port forwarding on net-vm
+
+net-vm permits TCP forwarding (`AllowTcpForwarding yes`, required for the jump) and it is
+left **unrestricted** (no `PermitOpen`). This is deliberate: net-vm is an adminable machine
+where operators get a shell, and on a shell-bearing host `PermitOpen` provides no real
+containment (a shell user can forward anyway). Leaving it open also keeps net-vm useful for
+admin debugging (tunnelling an internal service to your workstation). Restricting forwarding
+would only matter if net-vm were made a pure, non-adminable gateway.
+
+### Recovery
+
+:::danger
+If **net-vm** fails to come up, no SSH (cert or key) reaches any machine, because net-vm owns
+the only physical NIC and is the sole jump host. The only recovery option is the serial console
+on ghaf-host.
+:::
+
+The auth layer's own guarantee is only that it never *itself* causes lockout: it fails closed
+at build time if no key is configured, and a non-expiring hardware key survives CA outages.
+
+### Troubleshooting
+
+- **`Permission denied (publickey)`**: your public key is not in `authorizedKeys` (rebuild and
+  reflash after editing it), or you are logging in as the wrong user (it must be `ghaf`; root is
+  refused).
+- **Key rejected, or the PIN prompt loops**: the YubiKey has no FIDO2 PIN, which the default
+  `verify-required` requires. Set it with `ykman fido access change-pin` (the
+  `PC/SC not available` warning is harmless, FIDO2 uses a different transport).
+- **`administratively prohibited: open failed` through the jump**: only if `authorizedKeysOptions`
+  was customized to drop `port-forwarding` (the default keeps it), or the image predates that
+  default. The deployed key line is world-readable (no `sudo`):
+  `ssh ghaf@<device-ip> cat /etc/ssh/authorized_keys.d/ghaf`; it should include `port-forwarding`.

@@ -60,10 +60,10 @@ Set options directly without using a profile:
   ghaf.global-config = {
     debug.enable = true;
     development = {
-      ssh.daemon.enable = true;
       debug.tools.enable = true;
       nix-setup.enable = false;  # Don't enable nix development setup
     };
+    security.ssh.debug.enable = true;
     logging.enable = true;
     storage.encryption.enable = true;
   };
@@ -82,7 +82,6 @@ Set options directly without using a profile:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `development.ssh.daemon.enable` | bool | false | Enable SSH daemon on all VMs |
 | `development.debug.tools.enable` | bool | false | Install debug tools |
 | `development.nix-setup.enable` | bool | false | Enable Nix development setup |
 
@@ -99,6 +98,17 @@ Set options directly without using a profile:
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `security.audit.enable` | bool | false | Enable security auditing |
+| `security.ssh.debug.enable` | bool | false | Enable unprotected debug SSH on all machines (password + dev keys; debug images) |
+| `security.ssh.release.enable` | bool | false | Enable hardened, certificate/key-only release SSH on all machines |
+| `security.ssh.release.authorizedKeys` | list of str | `[]` | Static authorized public keys (hardware-backed / YubiKey recommended) |
+| `security.ssh.release.trustedUserCAKeys` | list of str | `[]` | SSH user-CA public keys for certificate auth |
+| `security.ssh.release.allowedPrincipals` | list of str | `[]` | Certificate principals accepted for login (empty ⇒ module default: the admin user) |
+| `security.ssh.release.authorizedKeysOptions` | str | `restrict,pty,port-forwarding,verify-required` | `authorized_keys` option prefix for static keys (`port-forwarding` is required for the net-vm ProxyJump) |
+
+`security.ssh.debug` and `security.ssh.release` are mutually exclusive — an assertion forbids
+enabling both. Release SSH ships **off**; a downstream enables it and supplies the key material.
+See the [SSH Access](/ghaf/dev/ref/ssh/) reference for the full mechanism, hardening rationale,
+YubiKey enrolment, and the connect/recovery workflow.
 
 ### GIVC Settings
 
@@ -145,7 +155,7 @@ These are automatically populated from host configuration:
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │ ghaf.global-config (evaluated)                            │   │
 │  │  - debug.enable = true                                    │   │
-│  │  - development.ssh.daemon.enable = true                   │   │
+│  │  - security.ssh.debug.enable = true                       │   │
 │  │  - ...                                                    │   │
 │  └──────────────────────────────────────────────────────────┘   │
 └────────────────────────────┬────────────────────────────────────┘
@@ -158,8 +168,8 @@ These are automatically populated from host configuration:
 │  {                                                               │
 │    # Access inherited settings                                   │
 │    ghaf.profiles.debug.enable = globalConfig.debug.enable;      │
-│    ghaf.development.ssh.daemon.enable =                         │
-│      globalConfig.development.ssh.daemon.enable;                 │
+│    ghaf.security.ssh.debug.enable =                             │
+│      globalConfig.security.ssh.debug.enable;                     │
 │  }                                                               │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -185,8 +195,8 @@ in
     # Apply global settings to VM
     ghaf.profiles.debug.enable = lib.mkDefault debugEnabled;
 
-    ghaf.development.ssh.daemon.enable =
-      lib.mkDefault globalConfig.development.ssh.daemon.enable;
+    ghaf.security.ssh.debug.enable =
+      lib.mkDefault globalConfig.security.ssh.debug.enable;
   };
 }
 ```
@@ -214,7 +224,7 @@ Consider using `ghaf.global-config` with profiles:
 # Before (still works)
 {
   ghaf.profiles.debug.enable = true;
-  ghaf.development.ssh.daemon.enable = true;
+  ghaf.security.ssh.debug.enable = true;
   # ... repeated in each VM
 }
 
@@ -255,10 +265,10 @@ Migrate from `configHost` pattern to `globalConfig`:
 {
   debug.enable = true;
   development = {
-    ssh.daemon.enable = true;
     debug.tools.enable = true;
     nix-setup.enable = true;
   };
+  security.ssh.debug.enable = true;
   logging.enable = true;
   security.audit.enable = false;
   givc = {
@@ -282,10 +292,10 @@ Migrate from `configHost` pattern to `globalConfig`:
 {
   debug.enable = false;
   development = {
-    ssh.daemon.enable = false;
     debug.tools.enable = false;
     nix-setup.enable = false;
   };
+  security.ssh.debug.enable = false;
   logging.enable = false;
   security.audit.enable = true;
   givc = {
@@ -309,10 +319,10 @@ Migrate from `configHost` pattern to `globalConfig`:
 {
   debug.enable = false;
   development = {
-    ssh.daemon.enable = false;
     debug.tools.enable = false;
     nix-setup.enable = false;
   };
+  security.ssh.debug.enable = false;
   logging.enable = false;
   security.audit.enable = false;
   givc = {

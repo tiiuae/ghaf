@@ -23,7 +23,7 @@ Where PoLP is enforced in code and configuration
 
 - Privileged features are opt‑in via profiles
   - Debug/administrative access is gated by explicit profiles rather than being available by default:
-    - modules/microvm/sysvms/netvm.nix derives several toggles from ghaf.profiles.debug.enable (for example ghaf.systemd.withDebug, development.ssh.daemon, development.debug.tools). In production profiles, these remain disabled, preventing unnecessary privileges and open endpoints.
+    - modules/microvm/sysvms/netvm.nix derives several toggles from ghaf.profiles.debug.enable (for example ghaf.systemd.withDebug, security.ssh.debug, development.debug.tools). In production profiles, these remain disabled, preventing unnecessary privileges and open endpoints.
 
 - Kernel and host hardening to remove ambient privilege
   - The kernel‑hardening profile (modules/common/profiles/kernel-hardening.nix) enables exploit mitigations and tightens interfaces for both host and guests. Feature toggles (for example usb.enable, virtualization.enable, networking.enable, inputdevices.enable, hypervisor.enable, graphics.enable) are driven declaratively, so only the capabilities needed by a role are switched on, minimizing ambient privileges that could be abused.

@@ -38,10 +38,10 @@ lib.ghaf.profiles.debug = {
   debug.enable = true;
 
   development = {
-    ssh.daemon.enable = true;
     debug.tools.enable = true;
     nix-setup.enable = true;
   };
+  security.ssh.debug.enable = true;
 
   logging = {
     enable = true;
@@ -101,10 +101,10 @@ lib.ghaf.profiles.release = {
   debug.enable = false;
 
   development = {
-    ssh.daemon.enable = false;
     debug.tools.enable = false;
     nix-setup.enable = false;
   };
+  security.ssh.debug.enable = false;
 
   logging.enable = false;
 
@@ -160,10 +160,10 @@ lib.ghaf.profiles.minimal = {
   debug.enable = false;
 
   development = {
-    ssh.daemon.enable = false;
     debug.tools.enable = false;
     nix-setup.enable = false;
   };
+  security.ssh.debug.enable = false;
 
   logging.enable = false;
 
@@ -215,7 +215,7 @@ ghaf.global-config = lib.ghaf.profiles.minimal;
 | Setting | debug | release | minimal |
 |---------|-------|---------|---------|
 | `debug.enable` | true | false | false |
-| `development.ssh.daemon.enable` | true | false | false |
+| `security.ssh.debug.enable` | true | false | false |
 | `development.debug.tools.enable` | true | false | false |
 | `development.nix-setup.enable` | true | false | false |
 | `logging.enable` | true | false | false |
@@ -256,7 +256,7 @@ mkGlobalConfig profileName overrides
 ghaf.global-config = lib.ghaf.mkGlobalConfig "debug" {
   # Override specific settings
   givc.debug = false;
-  development.ssh.daemon.enable = false;
+  security.ssh.debug.enable = false;
 
   # Add custom settings
   features.fprint.targetVms = [ "admin-vm" ];
@@ -355,9 +355,21 @@ For reference, here's the full schema of values in globalConfig:
   # Debug settings
   debug.enable = bool;         # Default: false
 
+  # SSH — security posture on every machine. debug and release are mutually exclusive.
+  # See the SSH Access reference (/ghaf/dev/ref/ssh) for the full mechanism and hardening.
+  security.ssh = {
+    debug.enable = bool;               # Default: false  (unprotected: password + dev keys)
+    release = {                        # hardened, certificate/key-only sshd
+      enable = bool;                   # Default: false
+      authorizedKeys = [ str ];        # Default: []      (hardware-backed / YubiKey recommended)
+      trustedUserCAKeys = [ str ];     # Default: []      (SSH user-CA public keys)
+      allowedPrincipals = [ str ];     # Default: []      (empty => module default: admin user)
+      authorizedKeysOptions = str;     # Default: "restrict,pty,port-forwarding,verify-required"
+    };
+  };
+
   # Development tools
   development = {
-    ssh.daemon.enable = bool;  # Default: false
     debug.tools.enable = bool; # Default: false
     nix-setup.enable = bool;   # Default: false
   };

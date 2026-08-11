@@ -80,10 +80,10 @@ Unlike regular module arguments, specialArgs:
 | Category | Examples | Why Global? |
 |----------|----------|-------------|
 | Debug settings | `debug.enable` | Same debug state everywhere |
-| Development | `ssh.daemon.enable`, `debug.tools.enable` | Consistent dev experience |
+| Development | `debug.tools.enable`, `nix-setup.enable` | Consistent dev experience |
 | Logging | `logging.enable`, `logging.listener` | Centralized log collection |
 | GIVC | `givc.enable`, `givc.debug` | Inter-VM communication config |
-| Security | `security.audit.enable` | Consistent security posture |
+| Security | `security.audit.enable`, `security.ssh.debug`, `security.ssh.release` | Consistent security posture |
 | Features | `features.fprint`, `features.wifi` | Hardware feature assignments |
 
 ### Accessing globalConfig
@@ -104,10 +104,8 @@ In VM modules, `globalConfig` is available as a function parameter:
     # Access global settings
     ghaf.profiles.debug.enable = globalConfig.debug.enable;
 
-    ghaf.development = {
-      ssh.daemon.enable = globalConfig.development.ssh.daemon.enable;
-      debug.tools.enable = globalConfig.development.debug.tools.enable;
-    };
+    ghaf.security.ssh.debug.enable = globalConfig.security.ssh.debug.enable;
+    ghaf.development.debug.tools.enable = globalConfig.development.debug.tools.enable;
 
     logging = {
       inherit (globalConfig.logging) enable listener;
@@ -146,7 +144,7 @@ At the host level, set `ghaf.global-config`:
 {
   ghaf.global-config = {
     debug.enable = true;
-    development.ssh.daemon.enable = true;
+    security.ssh.debug.enable = true;
     logging.enable = true;
     givc.enable = true;
     features = {
@@ -166,10 +164,10 @@ globalConfig = {
 
   # Development settings
   development = {
-    ssh.daemon.enable = false;
     debug.tools.enable = false;
     nix-setup.enable = false;
   };
+  security.ssh.debug.enable = false;
 
   # Logging
   logging = {
@@ -442,8 +440,8 @@ specialArgs = lib.ghaf.vm.mkSpecialArgs {
   networking.hostName = configHost.ghaf.networking.vms.gui-vm.name;
 
   # Repeated everywhere
-  ghaf.development.ssh.daemon.enable =
-    configHost.ghaf.development.ssh.daemon.enable;
+  ghaf.security.ssh.debug.enable =
+    configHost.ghaf.security.ssh.debug.enable;
 }
 ```
 
@@ -466,8 +464,8 @@ Problems:
   networking.hostName = hostConfig.vmName;
 
   # Same pattern everywhere
-  ghaf.development.ssh.daemon.enable =
-    globalConfig.development.ssh.daemon.enable;
+  ghaf.security.ssh.debug.enable =
+    globalConfig.security.ssh.debug.enable;
 }
 ```
 
