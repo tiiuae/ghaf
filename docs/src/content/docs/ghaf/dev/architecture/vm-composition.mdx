@@ -166,7 +166,7 @@ Base modules define the core VM configuration. They use `globalConfig` and `host
   # Use globalConfig for settings that should match host
   ghaf = {
     profiles.debug.enable = globalConfig.debug.enable;
-    development.ssh.daemon.enable = globalConfig.development.ssh.daemon.enable;
+    security.ssh.debug.enable = globalConfig.security.ssh.debug.enable;
     logging = {
       inherit (globalConfig.logging) enable listener;
       journalClient.enable = globalConfig.logging.enable;

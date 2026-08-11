@@ -172,7 +172,7 @@ in
   # Global settings from host
   ghaf = {
     profiles.debug.enable = globalConfig.debug.enable;
-    development.ssh.daemon.enable = globalConfig.development.ssh.daemon.enable;
+    security.ssh.debug.enable = globalConfig.security.ssh.debug.enable;
     logging = {
       inherit (globalConfig.logging) enable listener;
       journalClient.enable = globalConfig.logging.enable;

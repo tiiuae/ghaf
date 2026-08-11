@@ -47,10 +47,8 @@ Create `modules/microvm/sysvms/myvm-base.nix`:
   # Inherit global settings
   ghaf = {
     profiles.debug.enable = globalConfig.debug.enable;
-    development = {
-      debug.tools.enable = globalConfig.development.debug.tools.enable;
-      ssh.daemon.enable = globalConfig.development.ssh.daemon.enable;
-    };
+    development.debug.tools.enable = globalConfig.development.debug.tools.enable;
+    security.ssh.debug.enable = globalConfig.security.ssh.debug.enable;
     givc = {
       enable = globalConfig.givc.enable;
       inherit (globalConfig.givc) debug;

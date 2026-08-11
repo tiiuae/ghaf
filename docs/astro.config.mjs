@@ -111,6 +111,7 @@ export default defineConfig({
                         "ghaf/dev/ref/kill_switch",
                         "ghaf/dev/ref/wireguard-gui",
                         "ghaf/dev/ref/yubikey",
+                        "ghaf/dev/ref/ssh",
                         "ghaf/dev/ref/ghaf-vms",
                       ],
                     },
