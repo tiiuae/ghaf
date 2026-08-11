@@ -3,9 +3,42 @@
 // Guest memory layout: passthrough RAM regions, reserved-memory
 // carveouts, and the tegra-carveouts consumer node.
 
+#ifdef GHAF_CROSVM_OVERLAY
 / {
-	// QEMU adds the main memory here (6GB), but we have to define the
-	// passthrough memory regions.
+	fragment@10 {
+		target-path = "/";
+		__overlay__ {
+#else
+/ {
+#endif
+
+#ifdef GHAF_CROSVM_OVERLAY
+	// Crosvm maps these VFIO memory backers before guest execution. Keep
+	// disabled resource anchors for Crosvm's DT symbol patching; the vm_cma
+	// aperture is also described as System RAM below so Linux can initialize
+	// its reusable CMA subregion.
+	vm_hs_p: vfio-memory@60000000 {
+		compatible = "ghaf,vfio-resource-anchor";
+		reg = <0x00 0x60000000 0x00 0x04000000>;
+		status = "disabled";
+	};
+
+	vm_cma_p: vfio-memory@80000000 {
+		compatible = "ghaf,vfio-resource-anchor";
+		reg = <0x00 0x80000000 0x00 0x30000000>;
+		status = "disabled";
+	};
+
+	scanout_p: vfio-memory@b0000000 {
+		compatible = "ghaf,vfio-resource-anchor";
+		reg = <0x00 0xb0000000 0x00 0x08000000>;
+		status = "disabled";
+	};
+#endif
+
+	// The vm_cma VFIO aperture is guest System RAM on both VMMs. Crosvm's main
+	// RAM starts above 128GB, so omitting this node leaves linux,cma outside
+	// every memory bank and crashes while CMA initializes its page blocks.
 	memory@80000000 {
 #ifdef EXP_SHRINK_BANK1
 		// Concurrent GPU VM (compute-with-host1x): bank1 ends at 0xb0000000, so
@@ -116,4 +149,8 @@
 		memory-region = <&generic_reserved &vpr &fsi_reserved &vidmem_reserved>;
 		status = "okay";
 	};
+#ifdef GHAF_CROSVM_OVERLAY
+		};
+	};
+#endif
 };

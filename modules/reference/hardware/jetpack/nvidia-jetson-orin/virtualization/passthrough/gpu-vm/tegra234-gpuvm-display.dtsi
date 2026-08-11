@@ -5,8 +5,32 @@
 // board-selected generated/<board>-dcb.dtsi (payload/default.nix
 // boards.<key>.dcbDtsi) and hash-verified at build.
 
+#ifdef GHAF_CROSVM_OVERLAY
+/ {
+	fragment@30 {
+		target-path = "/";
+		__overlay__ {
+			disp_caps_pt: vfio-resource@66230000 {
+				compatible = "ghaf,vfio-resource-anchor";
+				reg = <0x00 0x66230000 0x00 0x00010000>;
+				status = "disabled";
+			};
+
+			disp_chan_pt: vfio-resource@66270000 {
+				compatible = "ghaf,vfio-resource-anchor";
+				reg = <0x00 0x66270000 0x00 0x00010000>;
+				status = "disabled";
+			};
+
+			disp_cursor_pt: vfio-resource@662c8000 {
+				compatible = "ghaf,vfio-resource-anchor";
+				reg = <0x00 0x662c8000 0x00 0x00008000>;
+				status = "disabled";
+			};
+#else
 / {
 	platform-bus@70000000 {
+#endif
 /* Display/nvdisplay (including the DCB payload
  * #included below) is dropped in both compute VMs. */
 #ifndef EXP_DROP_DISPLAY
@@ -15,10 +39,20 @@
 			power-domains = <&bpmp TEGRA234_POWER_DOMAIN_DISP>;
 			nvidia,num-dpaux-instance = <1>;
 			reg-names = "nvdisplay", "dpaux0", "hdacodec", "mipical";
+#ifdef GHAF_CROSVM_OVERLAY
+			// Crosvm has no translating QEMU platform bus. Keep the proven
+			// guest-visible addresses; the three backed keyholes are patched
+			// independently through the disabled resource anchors above.
+			reg = <0x0 0x66200000 0x0 0xEFFFF    /* nvdisplay */
+				0x0 0x660E0000 0x0 0xFFFF     /* dpaux0 */
+				0x0 0x66001000 0x0 0x1000     /* hdacodec */
+				0x0 0x660F0000 0x0 0x10000>;  /* mipical */
+#else
 			reg = <0x0 0x13800000 0x0 0xEFFFF    /* nvdisplay */
 				0x0 0x155C0000 0x0 0xFFFF     /* dpaux0 */
 				0x0 0x0242c000 0x0 0x1000     /* hdacodec */
 				0x0 0x03990000 0x0 0x10000>;  /* mipical */
+#endif
 			interrupt-names = "nvdisplay", "dpaux0", "hdacodec";
 			interrupts = <0 128 4
 				0 129 4
@@ -188,5 +222,10 @@
 			};
 		};
 #endif
+#ifdef GHAF_CROSVM_OVERLAY
+		};
 	};
+#else
+	};
+#endif
 };
