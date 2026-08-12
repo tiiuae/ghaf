@@ -49,16 +49,19 @@ let
         lib.optional cap.host1x {
           dev = "60000000.vm_hs_p";
           base = "0x60000000";
+          symbol = "vm_hs_p";
         }
         ++ [
           {
             dev = "80000000.vm_cma_p";
             base = "0x80000000";
+            symbol = "vm_cma_p";
           }
         ]
         ++ lib.optional (!computeWithHost1x) {
           dev = "b0000000.scanout_p";
           base = "0xb0000000";
+          symbol = "scanout_p";
         };
 
       engines =
@@ -70,19 +73,30 @@ let
           "15540000.nvjpg"
         ];
 
+      engineSymbols = {
+        "17000000.gpu" = "ga10b";
+        "13e00000.host1x_pt" = "host1x";
+        "15340000.vic" = "vic";
+        "15480000.nvdec" = "nvdec";
+        "15540000.nvjpg" = "nvjpg";
+      };
+
       # Expose only capability, channel, and cursor keyholes.
       dispCaps = lib.optionals cap.display [
         {
           dev = "13830000.disp_caps_pt";
           base = "0x66230000";
+          symbol = "disp_caps_pt";
         }
         {
           dev = "13870000.disp_chan_pt";
           base = "0x66270000";
+          symbol = "disp_chan_pt";
         }
         {
           dev = "138c8000.disp_cursor_pt";
           base = "0x662c8000";
+          symbol = "disp_cursor_pt";
         }
       ];
 
@@ -97,6 +111,35 @@ let
           "-device"
           "vfio-platform,host=${d}"
         ]) engines);
+
+      crosvmDevices =
+        (map (r: {
+          bus = "platform";
+          path = r.dev;
+          crosvm = {
+            dtSymbol = r.symbol;
+            iommu = "off";
+            mmioBase = lib.fromHexString r.base;
+            mapEarly = true;
+          };
+        }) reservedMem)
+        ++ (map (r: {
+          bus = "platform";
+          path = r.dev;
+          crosvm = {
+            dtSymbol = r.symbol;
+            iommu = "off";
+            mmioBase = lib.fromHexString r.base;
+          };
+        }) dispCaps)
+        ++ (map (d: {
+          bus = "platform";
+          path = d;
+          crosvm = {
+            dtSymbol = engineSymbols.${d};
+            iommu = "off";
+          };
+        }) engines);
 
       guestKernelModules =
         lib.optionals cap.host1x [
@@ -118,6 +161,7 @@ let
         expDtDefines
         hostDevices
         vfioArgs
+        crosvmDevices
         guestKernelModules
         ;
       needsDceBridge = cap.display;

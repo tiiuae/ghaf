@@ -45,6 +45,7 @@
           logging-recovery = pkgs.callPackage ./logging { };
           logging-logseald = pkgs.callPackage ./logseald { inherit self; };
           access-control-tests = pkgs.callPackage ./access-control { inherit self; };
+          crosvm-platform = pkgs.callPackage ./crosvm-platform.nix { inherit self; };
         };
     };
 }

@@ -6,15 +6,24 @@
 # Note: Modules receive `inputs` via specialArgs from mkLaptopConfiguration.
 # This eliminates the need for the `{ inputs }:` wrapper anti-pattern.
 { inputs, ... }:
+let
+  microvmGuestModule = {
+    imports = [
+      inputs.microvm.nixosModules.microvm
+      ./common/microvm-nix-crosvm-store-disk-overlay.nix
+      ./common/crosvm-platform.nix
+    ];
+    _module.args.microvmFlake = inputs.microvm;
+  };
+in
 {
   _file = ./flake-module.nix;
 
   flake.nixosModules = {
-    # Overlay temporary upstream fixes without pinning Ghaf to a fork.
-    microvm-nix.imports = [
-      inputs.microvm.nixosModules.microvm
-      ./common/microvm-nix-crosvm-store-disk-overlay.nix
-    ];
+    # Preserve the existing name while exposing a target-neutral guest module
+    # for AArch64 Crosvm platform-device configurations.
+    microvm-nix = microvmGuestModule;
+    microvm-guest = microvmGuestModule;
 
     microvm.imports = [
       ./host/microvm-host.nix
