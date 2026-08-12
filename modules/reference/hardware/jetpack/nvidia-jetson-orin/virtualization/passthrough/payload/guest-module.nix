@@ -5,6 +5,7 @@
   lib,
   cap,
   dtb,
+  crosvmOverlay ? null,
   dtbName ? "tegra234-gpuvm.dtb",
   vfioArgs,
   sourcesPatch,
@@ -16,6 +17,20 @@ in
 { config, pkgs, ... }:
 let
   support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
+  isCrosvm = config.microvm.hypervisor == "crosvm";
+  expectedCrosvmDevicePaths = [
+    "60000000.vm_hs_p"
+    "80000000.vm_cma_p"
+    "b0000000.scanout_p"
+    "13830000.disp_caps_pt"
+    "13870000.disp_chan_pt"
+    "138c8000.disp_cursor_pt"
+    "17000000.gpu"
+    "13e00000.host1x_pt"
+    "15340000.vic"
+    "15480000.nvdec"
+    "15540000.nvjpg"
+  ];
   # L4T EGL rejects modifier-backed GBM surfaces.
   gbm-nomod-shim = pkgs.runCommandCC "gbm-nomod-shim" { } ''
     mkdir -p $out/lib
@@ -168,6 +183,16 @@ in
         && (lib.elem "pd_ignore_unused" config.boot.kernelParams);
       message = "gpu-vm guest must boot with both clk_ignore_unused and pd_ignore_unused, or it can power off clocks/domains the host still uses.";
     }
+  ]
+  ++ lib.optionals isCrosvm [
+    {
+      assertion = crosvmOverlay != null;
+      message = "Orin Crosvm GPU/display passthrough requires its device-tree overlay.";
+    }
+    {
+      assertion = map (device: device.path) payload.crosvmDevices == expectedCrosvmDevicePaths;
+      message = "Orin Crosvm GUI device order drifted from the QEMU-compatible allocation layout.";
+    }
   ];
 
   # NVIDIA OOT modules do not autoload from the guest DT.
@@ -208,11 +233,36 @@ in
     }
   ];
 
-  ghaf.virtualization.qemu.package = lib.mkForce pkgs.ghaf-qemu-bpmp-gpu;
+  ghaf.virtualization.qemu.package = lib.mkIf (!isCrosvm) (lib.mkForce pkgs.ghaf-qemu-bpmp-gpu);
 
-  microvm.qemu.extraArgs = [
-    "-dtb"
-    "${dtb}/${dtbName}"
-  ]
-  ++ vfioArgs;
+  microvm = lib.mkMerge [
+    {
+      qemu.extraArgs = lib.mkIf (!isCrosvm) (
+        [
+          "-dtb"
+          "${dtb}/${dtbName}"
+        ]
+        ++ vfioArgs
+      );
+    }
+    (lib.mkIf isCrosvm {
+      crosvm = {
+        memoryBase = lib.fromHexString "0x2000000000";
+        platformMmio = {
+          base = lib.fromHexString "0x60000000";
+          size = lib.fromHexString "0x1fa0000000";
+        };
+        deviceTreeOverlays = [
+          "${crosvmOverlay}/tegra234-guivm-crosvm-overlay.dtbo"
+        ];
+        extraArgs = [
+          "--nvidia-bpmp-host"
+          "/dev/bpmp-host"
+          "--nvidia-dce-host"
+          "/dev/dce-host"
+        ];
+      };
+      devices = payload.crosvmDevices;
+    })
+  ];
 }
