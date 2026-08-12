@@ -5,10 +5,19 @@
 #
 # Note: Modules receive `inputs` via specialArgs from mkLaptopConfiguration.
 # This eliminates the need for the `{ inputs }:` wrapper anti-pattern.
-_: {
+{ inputs, ... }:
+{
   _file = ./flake-module.nix;
 
   flake.nixosModules = {
+    microvm-guest = {
+      imports = [
+        inputs.microvm.nixosModules.microvm
+        ./common/crosvm-platform.nix
+      ];
+      _module.args.microvmFlake = inputs.microvm;
+    };
+
     microvm.imports = [
       ./host/microvm-host.nix
       ./sysvms/netvm.nix

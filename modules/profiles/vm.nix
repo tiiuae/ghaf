@@ -64,7 +64,7 @@ in
       # Export Net VM base
       netvmBase = lib.nixosSystem {
         modules = [
-          inputs.microvm.nixosModules.microvm
+          inputs.self.nixosModules.microvm-guest
           inputs.self.nixosModules.netvm-base
           {
             nixpkgs = {
@@ -88,7 +88,7 @@ in
       # Export Audio VM base
       audiovmBase = lib.nixosSystem {
         modules = [
-          inputs.microvm.nixosModules.microvm
+          inputs.self.nixosModules.microvm-guest
           inputs.self.nixosModules.audiovm-base
           inputs.self.nixosModules.audiovm-features
           {
@@ -113,7 +113,7 @@ in
       # Export Admin VM base
       adminvmBase = lib.nixosSystem {
         modules = [
-          inputs.microvm.nixosModules.microvm
+          inputs.self.nixosModules.microvm-guest
           inputs.self.nixosModules.adminvm-base
           inputs.self.nixosModules.adminvm-features
           {
@@ -144,7 +144,7 @@ in
         in
         lib.nixosSystem {
           modules = [
-            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.microvm-guest
             inputs.self.nixosModules.appvm-base
             {
               nixpkgs = {

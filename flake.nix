@@ -153,8 +153,7 @@
 
     # For building and managing VMs
     microvm = {
-      # TODO: switch back after the typed Crosvm platform-layout interface merges.
-      url = "github:vadika/microvm.nix/feat/crosvm-platform-devices";
+      url = "github:microvm-nix/microvm.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

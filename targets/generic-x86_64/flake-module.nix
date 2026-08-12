@@ -70,7 +70,7 @@ let
               # Create inline netvmBase (following laptop-x86 pattern)
               netvmBase = lib.nixosSystem {
                 modules = [
-                  inputs.microvm.nixosModules.microvm
+                  inputs.self.nixosModules.microvm-guest
                   inputs.self.nixosModules.netvm-base
                   # Import nixpkgs config for overlays
                   {

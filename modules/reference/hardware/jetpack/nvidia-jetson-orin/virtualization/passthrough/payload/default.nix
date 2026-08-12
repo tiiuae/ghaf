@@ -49,21 +49,18 @@ let
         lib.optional cap.host1x {
           dev = "60000000.vm_hs_p";
           base = "0x60000000";
-          gpa = 1610612736;
           symbol = "vm_hs_p";
         }
         ++ [
           {
             dev = "80000000.vm_cma_p";
             base = "0x80000000";
-            gpa = 2147483648;
             symbol = "vm_cma_p";
           }
         ]
         ++ lib.optional (!computeWithHost1x) {
           dev = "b0000000.scanout_p";
           base = "0xb0000000";
-          gpa = 2952790016;
           symbol = "scanout_p";
         };
 
@@ -97,19 +94,16 @@ let
         {
           dev = "13830000.disp_caps_pt";
           base = "0x66230000";
-          gpa = 1713569792;
           symbol = "disp_caps_pt";
         }
         {
           dev = "13870000.disp_chan_pt";
           base = "0x66270000";
-          gpa = 1713831936;
           symbol = "disp_chan_pt";
         }
         {
           dev = "138c8000.disp_cursor_pt";
           base = "0x662c8000";
-          gpa = 1714192384;
           symbol = "disp_cursor_pt";
         }
       ];
@@ -133,7 +127,7 @@ let
           crosvm = {
             dtSymbol = r.symbol;
             iommu = "off";
-            mmioBase = r.gpa;
+            mmioBase = lib.fromHexString r.base;
             mapEarly = true;
           };
         }) reservedMem)
@@ -143,7 +137,7 @@ let
           crosvm = {
             dtSymbol = r.symbol;
             iommu = "off";
-            mmioBase = r.gpa;
+            mmioBase = lib.fromHexString r.base;
           };
         }) dispCaps)
         ++ (map (d: {

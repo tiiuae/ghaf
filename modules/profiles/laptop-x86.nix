@@ -81,7 +81,7 @@ in
         # Export GUI VM base for profiles to extend
         guivmBase = lib.nixosSystem {
           modules = [
-            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.microvm-guest
             inputs.self.nixosModules.guivm-base
             inputs.self.nixosModules.guivm-features
             # Import nixpkgs config module to get overlays
@@ -107,7 +107,7 @@ in
         # Export Admin VM base for profiles to extend
         adminvmBase = lib.nixosSystem {
           modules = [
-            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.microvm-guest
             inputs.self.nixosModules.adminvm-base
             inputs.self.nixosModules.adminvm-features
             # Import nixpkgs config module to get overlays
@@ -132,7 +132,7 @@ in
         # Export IDS VM base for profiles to extend
         idsvmBase = lib.nixosSystem {
           modules = [
-            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.microvm-guest
             inputs.self.nixosModules.idsvm-base
             # Import nixpkgs config module to get overlays
             {
@@ -156,7 +156,7 @@ in
         # Export Audio VM base for profiles to extend
         audiovmBase = lib.nixosSystem {
           modules = [
-            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.microvm-guest
             inputs.self.nixosModules.audiovm-base
             inputs.self.nixosModules.audiovm-features
             # Import nixpkgs config module to get overlays
@@ -182,7 +182,7 @@ in
         # Export Net VM base for profiles to extend
         netvmBase = lib.nixosSystem {
           modules = [
-            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.microvm-guest
             inputs.self.nixosModules.netvm-base
             inputs.self.nixosModules.netvm-features
             # Import nixpkgs config module to get overlays
@@ -219,7 +219,7 @@ in
           in
           lib.nixosSystem {
             modules = [
-              inputs.microvm.nixosModules.microvm
+              inputs.self.nixosModules.microvm-guest
               inputs.self.nixosModules.appvm-base
               # Import nixpkgs config module to get overlays
               {

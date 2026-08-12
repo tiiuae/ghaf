@@ -245,10 +245,10 @@ in
     }
     (lib.mkIf isCrosvm {
       crosvm = {
-        memoryBase = 137438953472;
+        memoryBase = lib.fromHexString "0x2000000000";
         platformMmio = {
-          base = 1610612736;
-          size = 135828340736;
+          base = lib.fromHexString "0x60000000";
+          size = lib.fromHexString "0x1fa0000000";
         };
         deviceTreeOverlays = [
           "${crosvmOverlay}/tegra234-guivm-crosvm-overlay.dtbo"
