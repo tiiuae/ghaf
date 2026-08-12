@@ -858,7 +858,10 @@ rec {
         hwModules = hwDef.extraModules or [ ];
         vmConfigModules = vmCfg.extraModules or [ ];
         selectedVmm =
-          if (vmCfg.vmm or null) != null then vmCfg.vmm else config.ghaf.virtualization.vmConfig.defaultVmm;
+          if (vmCfg.vmm or null) != null then
+            vmCfg.vmm
+          else
+            config.ghaf.virtualization.vmConfig.defaultSysVmVmm;
 
         # VM settings module (applies the VMM and vmConfig.mem/vcpu)
         #
@@ -878,7 +881,9 @@ rec {
             # multiprocess minijail needs CAP_SYS_ADMIN to create PID and mount
             # namespaces, so retain the unprivileged service boundary and use
             # single-process mode until a capability-scoped sandbox is wired.
-            crosvm.extraArgs = lib.mkDefault [ "--disable-sandbox" ];
+            # This required runner argument must compose with device-specific
+            # crosvm arguments supplied by other modules.
+            crosvm.extraArgs = lib.mkBefore [ "--disable-sandbox" ];
           };
         };
       in

@@ -30,6 +30,7 @@
 #   4. virtualization.vmConfig.sysvms.guivm.extraModules <- profile/downstream (highest priority)
 #
 {
+  config,
   lib,
   ...
 }:
@@ -53,7 +54,10 @@ let
         default = null;
         description = ''
           VMM used for this system VM.
-          If null, uses ghaf.virtualization.vmConfig.defaultVmm.
+          If null, uses ghaf.virtualization.vmConfig.defaultSysVmVmm.
+
+          This setting takes effect when the VM's evaluated configuration
+          includes lib.ghaf.vm.applyVmConfig.
         '';
         example = "crosvm";
       };
@@ -136,13 +140,20 @@ in
   _file = ./vm-config.nix;
 
   options.ghaf.virtualization.vmConfig = {
-    defaultVmm = mkOption {
+    defaultSysVmVmm = mkOption {
       type = types.enum [
         "qemu"
         "crosvm"
       ];
       default = "qemu";
-      description = "Default VMM for system VMs without a per-VM override.";
+      description = ''
+        Default VMM for system VMs without a per-VM override.
+
+        This setting takes effect when the VM's evaluated configuration
+        includes lib.ghaf.vm.applyVmConfig. Cloud Hypervisor is intentionally
+        not selectable because AdminVM does not switch root to stage 2 with it.
+      '';
+      example = "qemu";
     };
 
     sysvms = mkOption {
@@ -151,6 +162,9 @@ in
       description = ''
         Per-system-VM configuration. Keys should match system VM names
         (e.g., guivm, netvm, audiovm, adminvm, idsvm).
+
+        These settings take effect when the corresponding VM's evaluated
+        configuration includes lib.ghaf.vm.applyVmConfig.
       '';
       example = literalExpression ''
         {
@@ -176,7 +190,10 @@ in
     };
   };
 
-  # Keep QEMU as the system-wide default while migrating AdminVM to crosvm on
-  # every target. Targets and downstream configurations can still override it.
-  config.ghaf.virtualization.vmConfig.sysvms.adminvm.vmm = lib.mkDefault "crosvm";
+  # Keep QEMU as the system-wide default while migrating AdminVM to crosvm.
+  # Encrypted AdminVMs still need QEMU's TPM path until crosvm TPM support is
+  # wired. Targets and downstream configurations can override this selection.
+  config.ghaf.virtualization.vmConfig.sysvms.adminvm.vmm = lib.mkDefault (
+    if config.ghaf.global-config.storage.encryption.enable then "qemu" else "crosvm"
+  );
 }

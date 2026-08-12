@@ -122,7 +122,7 @@ its namespace setup requires `CAP_SYS_ADMIN`.
 
 ```nix
 vmConfig = {
-  defaultVmm = "qemu";
+  defaultSysVmVmm = "qemu";
 
   # System VMs, keyed by the unhyphenated name (guivm, netvm, audiovm,
   # adminvm, idsvm)

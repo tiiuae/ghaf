@@ -15,12 +15,14 @@ Nevertheless, it may happen that some hypervisor options are not supported by mi
 QEMU and crosvm are VMMs (virtual machine monitors) running on top of KVM, not
 hypervisors themselves. Ghaf selects the system VM VMM through
 `ghaf.virtualization.vmConfig`. QEMU is the default for system VMs, while
-AdminVM uses crosvm on every target. Each system VM can override the default
+AdminVM uses crosvm when storage encryption is disabled. Encrypted AdminVMs
+remain on QEMU because the crosvm runner does not yet provide the TPM path used
+to seal their storage keys. Each system VM can override the default
 independently:
 
 ```nix
 vmConfig = {
-  defaultVmm = "qemu";
+  defaultSysVmVmm = "qemu";
   sysvms = {
     adminvm.vmm = "qemu"; # Optional AdminVM fallback
     netvm.vmm = "crosvm";
@@ -29,10 +31,13 @@ vmConfig = {
 ```
 
 System VM keys use unhyphenated names such as `adminvm`, `netvm`, and `guivm`.
-Profiles apply the selection when they extend each VM's evaluated configuration.
-This supports a mixed fleet during migration instead of requiring every VM on a
-target to use the same VMM. Note that microvm.nix names its own selector
-`microvm.hypervisor`; Ghaf maps `vmm` onto it.
+The selection takes effect only when the VM's evaluated configuration includes
+`lib.ghaf.vm.applyVmConfig`. Profiles and targets that construct an
+`evaluatedConfig` directly must include this helper; otherwise the default and
+per-VM settings are ignored. This supports a mixed fleet during migration
+instead of requiring every VM on a target to use the same VMM. Note that
+microvm.nix names its own selector `microvm.hypervisor`; Ghaf maps `vmm` onto
+it.
 
 AdminVM declares its vsock CID through the VMM-independent
 `microvm.vsock.cid` option. Both the QEMU fallback and the crosvm default
