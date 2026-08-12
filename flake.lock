@@ -248,11 +248,11 @@
     "ghaf-crosvm": {
       "flake": false,
       "locked": {
-        "lastModified": 1786491386,
-        "narHash": "sha256-b64wHqlFwa+xtwWrKYqqt1NyX6BXZm+9TqCEBTB3oys=",
+        "lastModified": 1786547785,
+        "narHash": "sha256-Ypy5LpYpzKBi+w0D33Xd/hf6Wt1p3LkbT5HuJGhc4JA=",
         "ref": "feat/nvidia-dce-host-layout",
-        "rev": "8db791618da9274acdc7aa529d7351bdeb754669",
-        "revCount": 11714,
+        "rev": "ad7bb107567223649f9cd495f6c110ba972ac876",
+        "revCount": 11715,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
