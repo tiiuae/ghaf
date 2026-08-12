@@ -17,10 +17,12 @@ hypervisors themselves. Ghaf selects the system VM VMM through
 `ghaf.virtualization.vmConfig`. QEMU is the system-wide default. The x86 laptop
 profile keeps that default, but every generic `intel-laptop` target selects
 crosvm for all system VMs. This includes debug, release, low-memory, and
-store-disk variants. Machine-specific x86, aarch64, and generic VM targets keep
-their existing selections. Generic Intel laptop targets also select crosvm for
-encrypted AdminVM variants and use crosvm's TPM passthrough path. Each system
-VM can override the target default independently:
+store-disk variants. The accelerated AGX GUI-VM target and its generated
+variants also select crosvm for all system VMs. Other machine-specific x86,
+aarch64, and generic VM targets keep their existing selections. Generic Intel
+laptop targets also select crosvm for encrypted AdminVM variants and use
+crosvm's TPM passthrough path. Each system VM can override the target default
+independently:
 
 ```nix
 vmConfig = {
@@ -47,10 +49,11 @@ therefore use the VM's configured network CID without raw QEMU arguments.
 
 ### Selecting an App VM VMM
 
-App VMs use QEMU by default. Generic `intel-laptop` targets select crosvm for
-their App VMs; machine-specific x86, aarch64, and generic VM targets retain
-QEMU. The target default and individual App VMs can be overridden through the
-same `ghaf.virtualization.vmConfig` interface:
+App VMs use QEMU by default. Generic `intel-laptop` targets and the accelerated
+AGX GUI-VM target select crosvm for their App VMs; other machine-specific x86,
+aarch64, and generic VM targets retain QEMU. Generated accelerated AGX variants
+inherit this selection. The target default and individual App VMs can be
+overridden through the same `ghaf.virtualization.vmConfig` interface:
 
 ```nix
 vmConfig = {
