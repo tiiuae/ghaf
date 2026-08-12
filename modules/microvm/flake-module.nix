@@ -6,13 +6,23 @@
 # Note: Modules receive `inputs` via specialArgs from mkLaptopConfiguration.
 # This eliminates the need for the `{ inputs }:` wrapper anti-pattern.
 { inputs, ... }:
+let
+  microvmGuestModule = {
+    imports = [
+      inputs.microvm.nixosModules.microvm
+      ./common/crosvm-platform.nix
+    ];
+    _module.args.microvmFlake = inputs.microvm;
+  };
+in
 {
   _file = ./flake-module.nix;
 
   flake.nixosModules = {
-    microvm-nix.imports = [
-      inputs.microvm.nixosModules.microvm
-    ];
+    # Preserve the existing name while exposing a target-neutral guest module
+    # for AArch64 Crosvm platform-device configurations.
+    microvm-nix = microvmGuestModule;
+    microvm-guest = microvmGuestModule;
 
     microvm.imports = [
       ./host/microvm-host.nix
