@@ -205,6 +205,19 @@ let
                 config.ghaf.virtualization.vmConfig.defaultSysVmVmm;
           in
           {
+            # Crosvm is supported by every VM in this target. Keep these as
+            # defaults so a deployment can still override either default or
+            # select QEMU for an individual VM as a rollback.
+            ghaf.virtualization.vmConfig = {
+              defaultSysVmVmm = lib.mkDefault "crosvm";
+              defaultAppVmVmm = lib.mkDefault "crosvm";
+            };
+
+            # The default overlay intentionally leaves aarch64 Crosvm
+            # untouched. Select the Ghaf Crosvm build only for this target;
+            # Orin guests inherit the host overlay list.
+            nixpkgs.overlays = [ self.overlays.crosvm-ghaf ];
+
             # QEMU keeps the proven evdev route. Crosvm uses vhotplug's USB
             # attach/detach path, including for the Unifying receiver.
             ghaf.hardware.passthrough.usb.guivmRules = lib.mkForce (acceleratedGuivmUsbRules {
@@ -220,8 +233,6 @@ let
         hardware.nvidia.passthroughs.gpu_vm.enable = lib.mkForce false;
         hardware.nvidia.passthroughs.disp_vm.enable = lib.mkForce false;
       };
-      # Keep the exported target on QEMU until both normal and LUKS hardware
-      # acceptance pass. Test Crosvm with an explicit guivm.vmm override.
     })
 
     (ghaf-configuration {
