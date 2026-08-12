@@ -1,0 +1,249 @@
+# SPDX-FileCopyrightText: 2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+{
+  pkgs,
+  microvmConfig,
+  macvtapFds,
+  linuxTarget,
+  ...
+}:
+let
+  inherit (pkgs) lib;
+  inherit (pkgs.stdenv.hostPlatform) system;
+  inherit (microvmConfig)
+    vcpu
+    mem
+    balloon
+    initialBalloonMem
+    hotplugMem
+    hotpluggedMem
+    user
+    volumes
+    shares
+    socket
+    devices
+    vsock
+    graphics
+    credentialFiles
+    kernel
+    initrdPath
+    storeDisk
+    storeOnDisk
+    ;
+  inherit (microvmConfig.crosvm)
+    pivotRoot
+    extraArgs
+    deviceTreeOverlays
+    memoryBase
+    platformMmio
+    ;
+  crosvmPkg = microvmConfig.crosvm.package;
+  formatAddress = value: "0x${lib.toLower (lib.toHexString value)}";
+  kernelPath =
+    {
+      x86_64-linux = "${kernel.dev}/vmlinux";
+      aarch64-linux = "${kernel.out}/${linuxTarget}";
+    }
+    .${system};
+  gpuParams = {
+    context-types = "virgl:virgl2:cross-domain";
+    egl = true;
+    vulkan = true;
+  };
+in
+{
+  preStart = ''
+    rm -f ${socket}
+    ${microvmConfig.preStart}
+    ${lib.optionalString (pivotRoot != null) ''
+      mkdir -p ${pivotRoot}
+    ''}
+  ''
+  + lib.optionalString graphics.enable ''
+    rm -f ${graphics.socket}
+    ${crosvmPkg}/bin/crosvm device gpu \
+      --socket ${graphics.socket} \
+      --wayland-sock $XDG_RUNTIME_DIR/$WAYLAND_DISPLAY\
+      --params '${builtins.toJSON gpuParams}' \
+      &
+    while ! [ -S ${graphics.socket} ]; do
+      sleep .1
+    done
+  '';
+
+  command =
+    if user != null then
+      throw "crosvm will not change user"
+    else if initialBalloonMem != 0 then
+      throw "crosvm does not support initialBalloonMem"
+    else if hotplugMem != 0 then
+      throw "crosvm does not support hotplugMem"
+    else if hotpluggedMem != 0 then
+      throw "crosvm does not support hotpluggedMem"
+    else if credentialFiles != { } then
+      throw "crosvm does not support credentialFiles"
+    else
+      lib.escapeShellArgs (
+        [
+          "${crosvmPkg}/bin/crosvm"
+          "run"
+          "--mem"
+          (
+            if memoryBase == null then toString mem else "size=${toString mem},base=${formatAddress memoryBase}"
+          )
+          "-c"
+          (toString vcpu)
+          "--serial"
+          "type=stdout,console=true,stdin=true"
+          "-p"
+          "console=ttyS0 reboot=k panic=1 ${toString microvmConfig.kernelParams}"
+        ]
+        ++ (if balloon then [ "--balloon-page-reporting" ] else [ "--no-balloon" ])
+        ++ lib.optionals storeOnDisk [
+          "-r"
+          storeDisk
+        ]
+        ++ lib.optionals graphics.enable [
+          "--vhost-user"
+          "gpu,socket=${graphics.socket}"
+        ]
+        ++ lib.optionals (pivotRoot != null) [
+          "--pivot-root"
+          pivotRoot
+        ]
+        ++ lib.optionals (socket != null) [
+          "-s"
+          socket
+        ]
+        ++ builtins.concatMap (
+          {
+            image,
+            direct,
+            serial,
+            readOnly,
+            ...
+          }:
+          [
+            "--block"
+            "${image},o_direct=${lib.boolToString direct},ro=${lib.boolToString readOnly}${
+              lib.optionalString (serial != null) ",id=${serial}"
+            }"
+          ]
+        ) volumes
+        ++ builtins.concatMap (
+          {
+            proto,
+            tag,
+            source,
+            socket,
+            readOnly,
+            ...
+          }:
+          {
+            virtiofs = [
+              "--vhost-user"
+              "type=fs,socket=${socket}"
+            ];
+            "9p" =
+              if readOnly then
+                throw "Readonly 9p share is not supported"
+              else
+                [
+                  "--shared-dir"
+                  "${source}:${tag}:type=p9"
+                ];
+          }
+          .${proto}
+        ) shares
+        ++ builtins.concatMap (
+          {
+            id,
+            type,
+            mac,
+            ...
+          }:
+          [
+            "--net"
+            (lib.concatStringsSep "," [
+              (
+                if type == "tap" then
+                  "tap-name=${id}"
+                else if type == "macvtap" then
+                  "tap-fd=${toString macvtapFds.${id}}"
+                else
+                  throw "Unsupported interface type ${type} for crosvm"
+              )
+              "mac=${mac}"
+            ])
+          ]
+        ) microvmConfig.interfaces
+        ++ lib.optionals (vsock.cid != null) [
+          "--vsock"
+          (toString vsock.cid)
+        ]
+        ++ lib.optionals (platformMmio != null) [
+          "--platform-mmio"
+          "base=${formatAddress platformMmio.base},size=${formatAddress platformMmio.size}"
+        ]
+        ++ builtins.concatMap (overlay: [
+          "--device-tree-overlay"
+          overlay
+        ]) deviceTreeOverlays
+        ++ [
+          "--initrd"
+          initrdPath
+          kernelPath
+        ]
+      )
+      + " "
+      + lib.escapeShellArgs (
+        lib.concatMap (
+          {
+            bus,
+            path,
+            crosvm,
+            ...
+          }:
+          {
+            pci = [
+              "--vfio"
+              "/sys/bus/pci/devices/${path},iommu=${crosvm.iommu}${
+                lib.optionalString (crosvm.guestAddress != null) ",guest-address=${crosvm.guestAddress}"
+              }${lib.optionalString (crosvm.dtSymbol != null) ",dt-symbol=${crosvm.dtSymbol}"}"
+            ];
+            platform = [
+              "--vfio"
+              "/sys/bus/platform/devices/${path},iommu=${crosvm.iommu},dt-symbol=${crosvm.dtSymbol}${
+                lib.optionalString (crosvm.mmioBase != null) ",mmio-base=${formatAddress crosvm.mmioBase}"
+              }${lib.optionalString crosvm.mapEarly ",map-early=true"}"
+            ];
+            usb = throw "USB passthrough is not supported on crosvm";
+          }
+          .${bus}
+        ) devices
+      )
+      + " "
+      + lib.escapeShellArgs extraArgs;
+
+  canShutdown = socket != null;
+  shutdownCommand =
+    if socket != null then
+      ''
+        ${crosvmPkg}/bin/crosvm powerbtn ${socket}
+      ''
+    else
+      throw "Cannot shutdown without socket";
+  setBalloonScript =
+    if socket != null then
+      ''
+        VALUE=$(( $SIZE * 1024 * 1024 ))
+        ${crosvmPkg}/bin/crosvm balloon $VALUE ${socket}
+        SIZE=$( ${crosvmPkg}/bin/crosvm balloon_stats ${socket} | \
+          ${pkgs.jq}/bin/jq -r .BalloonStats.balloon_actual \
+        )
+        echo $(( $SIZE / 1024 / 1024 ))
+      ''
+    else
+      null;
+  requiresMacvtapAsFds = true;
+}
