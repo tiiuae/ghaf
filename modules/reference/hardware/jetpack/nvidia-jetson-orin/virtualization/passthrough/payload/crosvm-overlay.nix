@@ -58,6 +58,20 @@ pkgs.stdenv.mkDerivation {
         disp_caps_pt disp_chan_pt disp_cursor_pt; do
         fdtget tegra234-guivm-crosvm-overlay.dtbo /__symbols__ "$symbol" >/dev/null
       done
+
+      # vm_cma_p backs both NVIDIA carveouts and the guest's reusable CMA
+      # pool. It must remain visible as System RAM in addition to the disabled
+      # VFIO resource anchor that Crosvm patches above.
+      test "$(fdtget -t s tegra234-guivm-crosvm-overlay.dtbo \
+        /fragment@10/__overlay__/memory@80000000 device_type)" = memory
+      set -- $(fdtget -t x tegra234-guivm-crosvm-overlay.dtbo \
+        /fragment@10/__overlay__/memory@80000000 reg)
+      test "$1 $2 $3 $4" = "0 80000000 0 30000000"
+
+      # Child VFIO regs are patched to Crosvm's allocated GPAs, so host1x
+      # must retain an identity ranges property when the overlay is applied.
+      fdtget tegra234-guivm-crosvm-overlay.dtbo \
+        /fragment@20/__overlay__/host1x@13e00000 ranges >/dev/null
     '';
   installPhase = ''
     mkdir -p $out

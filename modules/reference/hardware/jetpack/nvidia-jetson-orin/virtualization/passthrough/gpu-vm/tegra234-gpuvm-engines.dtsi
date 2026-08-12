@@ -99,8 +99,15 @@
 
 			//interrupt-parent = <&gic>;
 
+#ifdef GHAF_CROSVM_OVERLAY
+			// Crosvm patches each VFIO child reg to its allocated guest address.
+			// Use an identity child-bus translation so those patched VIC,
+			// NVDEC, and NVJPG resources remain valid beneath host1x.
+			ranges;
+#else
 			ranges = <0x0 0x14800000 0x0 0x14800000 0x0 0x02000000>,
 				 <0x0 0x24700000 0x0 0x24700000 0x0 0x00080000>;
+#endif
 
 			status = "okay";
 
