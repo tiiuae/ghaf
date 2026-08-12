@@ -103,8 +103,7 @@
 
     # Ghaf Inter VM communication and control library
     givc = {
-      # Pinned to tiiuae/ghaf-givc#470 until it merges; revert to the branch after
-      url = "github:tiiuae/ghaf-givc/5f391c7b719fe7a67301e70bef22691f215ef904";
+      url = "github:tiiuae/ghaf-givc";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
