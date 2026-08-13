@@ -16,19 +16,29 @@
   ...
 }:
 let
-  # Wait for UID>=1000 session to become active with valid seat
+  # Wait for a real non-root user session, not the display-manager greeter.
   wait-for-session = pkgs.writeShellApplication {
     name = "wait-for-session";
     runtimeInputs = [
+      pkgs.coreutils
       pkgs.systemd
-      pkgs.jq
     ];
     text = ''
+      set -euo pipefail
+
       echo "Waiting for user to login..."
-      USER_ID=1
-      while [ "$USER_ID" -lt 1000 ]; do
-        tmp_id=$(loginctl list-sessions --json=short | jq -e '.[] | select(.seat != null) | .uid') || true
-        [[ "$tmp_id" =~ ^[0-9]+$ ]] && USER_ID="$tmp_id" || USER_ID=1
+      USER_ID=0
+      while [ "$USER_ID" -eq 0 ]; do
+        active_session="$(loginctl show-seat seat0 -p ActiveSession --value 2>/dev/null || true)"
+        tmp_id="$(loginctl show-session "$active_session" -p User --value 2>/dev/null || true)"
+        seat="$(loginctl show-session "$active_session" -p Seat --value 2>/dev/null || true)"
+        session_class="$(loginctl show-session "$active_session" -p Class --value 2>/dev/null || true)"
+
+        if [[ "$tmp_id" =~ ^[0-9]+$ ]] && [ "$tmp_id" -gt 0 ] && [ -n "$seat" ] && [ "$session_class" = "user" ]; then
+          USER_ID="$tmp_id"
+        else
+          USER_ID=0
+        fi
         sleep 1
       done
       echo "User with ID=$USER_ID is now active"
@@ -61,8 +71,7 @@ in
       after = [ "greetd.service" ];
       serviceConfig = {
         Type = "oneshot";
-        ExecStartPre = "${lib.getExe wait-for-session}";
-        ExecStart = "/bin/sh -c exit"; # no-op
+        ExecStart = "${lib.getExe wait-for-session}";
         RemainAfterExit = true;
       };
     };
