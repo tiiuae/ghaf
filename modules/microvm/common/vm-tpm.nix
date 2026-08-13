@@ -8,6 +8,7 @@
 }:
 let
   cfg = config.ghaf.virtualization.microvm.tpm;
+  vmm = config.microvm.hypervisor;
   emulatedSocket =
     if cfg.emulated.runInVM then "vtpm.sock" else "/var/lib/swtpm/${cfg.emulated.name}/sock";
   inherit (lib)
@@ -60,6 +61,14 @@ in
         config.ghaf.security.tpm2.pkcs11
         pkgs.tpm2-openssl
       ];
+
+      boot.kernelPatches = lib.optionals (vmm == "crosvm") [
+        {
+          name = "chromiumos-virtio-tpm";
+          patch = ../sysvms/patches/chromiumos-virtio-tpm.patch;
+          structuredExtraConfig.TCG_VIRTIO_VTPM = lib.kernel.module;
+        }
+      ];
     })
     (mkIf cfg.passthrough.enable {
       assertions = [
@@ -69,7 +78,7 @@ in
         }
       ];
 
-      microvm.qemu = {
+      microvm.qemu = mkIf (vmm == "qemu") {
         extraArgs = [
           "-tpmdev"
           "passthrough,id=tpmrm0,path=/dev/tpmrm0,cancel-path=/tmp/cancel"
@@ -81,6 +90,12 @@ in
         #   tpm_tis MSFT0101:00: [Firmware Bug]: failed to get TPM2 ACPI table
         machine = "q35";
       };
+      microvm.crosvm.extraArgs = lib.mkIf (vmm == "crosvm") (
+        lib.mkAfter [
+          "--tpm-device"
+          "/dev/tpmrm0"
+        ]
+      );
     })
     (mkIf (cfg.emulated.enable && config.microvm.hypervisor == "qemu") {
       microvm.qemu.extraArgs = [

@@ -106,6 +106,7 @@ let
               ghaf.virtualization.microvm.netvm.evaluatedConfig = netvmBase.extendModules {
                 modules = lib.ghaf.vm.applyVmConfig {
                   inherit config;
+                  hostPkgs = pkgs;
                   vmName = "netvm";
                 };
               };

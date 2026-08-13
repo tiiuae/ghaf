@@ -29,6 +29,12 @@ let
       }";
     }
   ) config.microvm.vms;
+  crosvmPciVms = lib.filter (
+    vm: vm.type == "crosvm" && lib.any (rule: (rule.targetVm or null) == vm.name) cfg.pciRules
+  ) cfg.vms;
+  disableRunnerGlobbing = pkgs.writeText "disable-crosvm-runner-globbing" ''
+    set -f
+  '';
 in
 {
   _file = ./vhotplug.nix;
@@ -155,7 +161,7 @@ in
     services.udev.extraRules = ''
       SUBSYSTEM=="usb", GROUP="kvm"
       KERNEL=="event*", GROUP="kvm"
-      SUBSYSTEM=="vfio",GROUP="kvm"
+      SUBSYSTEM=="vfio", GROUP="kvm", MODE="0660"
     '';
 
     environment.etc."vhotplug.conf".text = builtins.toJSON {
@@ -182,20 +188,39 @@ in
       };
     };
 
-    systemd.services.vhotplug = {
-      enable = true;
-      description = "vhotplug";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "local-fs.target" ];
-      before = [ "microvm@.service" ];
-      serviceConfig = {
-        Type = "simple";
-        Restart = "always";
-        RestartSec = "1";
-        ExecStart = "${getExe pkgs.vhotplug} -a -c /etc/vhotplug.conf";
+    systemd.services = {
+      vhotplug = {
+        enable = true;
+        description = "vhotplug";
+        wantedBy = [ "multi-user.target" ];
+        after = [ "local-fs.target" ];
+        serviceConfig = {
+          Type = "simple";
+          Restart = "always";
+          RestartSec = "1";
+          ExecStart = "${getExe pkgs.vhotplug} -a -c /etc/vhotplug.conf";
+        };
+        startLimitIntervalSec = 0;
       };
-      startLimitIntervalSec = 0;
-    };
+    }
+    // builtins.listToAttrs (
+      map (vm: {
+        name = "microvm@${vm.name}";
+        value = {
+          requires = [ "vhotplug.service" ];
+          after = [ "vhotplug.service" ];
+          serviceConfig = {
+            Type = lib.mkForce "notify";
+            NotifyAccess = "all";
+            TimeoutStartSec = "45";
+            # microvm.nix expands extraArgsScript output as shell words. The
+            # vhotplug CLI rejects whitespace inside arguments; disabling glob
+            # expansion completes the safe one-word-per-argument contract.
+            Environment = "BASH_ENV=${disableRunnerGlobbing}";
+          };
+        };
+      }) crosvmPciVms
+    );
 
     environment.systemPackages = [ pkgs.vhotplug ];
   };

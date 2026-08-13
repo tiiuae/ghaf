@@ -4,6 +4,7 @@
   config,
   lib,
   inputs,
+  pkgs,
   ...
 }:
 let
@@ -293,6 +294,7 @@ in
               cfg.netvmBase.extendModules {
                 modules = lib.ghaf.vm.applyVmConfig {
                   inherit config;
+                  hostPkgs = pkgs;
                   vmName = "netvm";
                 };
               }
@@ -305,6 +307,7 @@ in
               cfg.adminvmBase.extendModules {
                 modules = lib.ghaf.vm.applyVmConfig {
                   inherit config;
+                  hostPkgs = pkgs;
                   vmName = "adminvm";
                 };
               }
@@ -328,6 +331,7 @@ in
                 ]
                 ++ lib.ghaf.vm.applyVmConfig {
                   inherit config;
+                  hostPkgs = pkgs;
                   vmName = "guivm";
                 };
               }
@@ -341,6 +345,7 @@ in
               cfg.audiovmBase.extendModules {
                 modules = lib.ghaf.vm.applyVmConfig {
                   inherit config;
+                  hostPkgs = pkgs;
                   vmName = "audiovm";
                 };
               }

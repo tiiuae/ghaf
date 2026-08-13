@@ -114,10 +114,12 @@ does not. So `inputs.ghaf.inputs` is missing exactly the key every ghaf module r
 
 ### Using vmConfig for VMM and Resource Configuration
 
-The `vmConfig` parameter selects a default system-VM VMM and supports
-per-VM VMM and resource overrides. The default VMM is QEMU, while
-AdminVM defaults to crosvm when storage encryption is disabled. Encrypted
-AdminVMs remain on QEMU until crosvm supports both TPM backends they require.
+The `vmConfig` parameter selects separate defaults for system VMs and App VMs,
+and supports per-VM VMM and resource overrides. The system-wide default is
+QEMU, while the x86 laptop profile selects crosvm for NetVM, AudioVM, and
+GUIVM. Generic VM and aarch64 targets retain QEMU. AdminVM defaults to crosvm
+when storage encryption is disabled; encrypted AdminVMs remain on QEMU until
+crosvm supports both TPM backends they require. App VMs default to crosvm.
 crosvm VMs run as Ghaf's
 unprivileged `microvm` user with crosvm's internal minijail disabled, because
 its namespace setup requires `CAP_SYS_ADMIN`.
@@ -125,6 +127,7 @@ its namespace setup requires `CAP_SYS_ADMIN`.
 ```nix
 vmConfig = {
   defaultSysVmVmm = "qemu";
+  defaultAppVmVmm = "crosvm";
 
   # System VMs, keyed by the unhyphenated name (guivm, netvm, audiovm,
   # adminvm, idsvm)
@@ -136,6 +139,7 @@ vmConfig = {
     };
     netvm = {
       mem = 1024;
+      vmm = "qemu";       # Optional x86 laptop rollback
     };
     audiovm = {
       mem = 512;

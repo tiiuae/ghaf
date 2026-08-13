@@ -31,6 +31,7 @@ let
   powerManagerEnabled = lib.ghaf.features.isEnabledFor globalConfig "power-manager" vmName;
   performanceEnabled = lib.ghaf.features.isEnabledFor globalConfig "performance" vmName;
   timezoneEnabled = lib.ghaf.features.isEnabledFor globalConfig "timezone" vmName;
+  isCrosvm = config.microvm.hypervisor == "crosvm";
 in
 {
   _file = ./audiovm-base.nix;
@@ -195,6 +196,17 @@ in
     ++ lib.optional (config.ghaf.development.debug.tools.enable or false) pkgs.alsa-utils;
   };
 
+  boot.kernelPatches = lib.optionals (isCrosvm && pkgs.stdenv.hostPlatform.isx86_64) [
+    {
+      name = "goldfish-battery";
+      patch = null;
+      structuredExtraConfig = {
+        GOLDFISH = lib.kernel.yes;
+        BATTERY_GOLDFISH = lib.kernel.module;
+      };
+    }
+  ];
+
   system.stateVersion = lib.trivial.release;
 
   nixpkgs = {
@@ -207,7 +219,7 @@ in
     optimize.enable = false;
     # Sensible defaults - can be overridden via vmConfig
     vcpu = lib.mkDefault 2;
-    mem = lib.mkDefault 512;
+    mem = lib.mkDefault (if isCrosvm then 1024 else 512);
     shares = [
       {
         tag = "ghaf-common";
@@ -231,7 +243,7 @@ in
       !(globalConfig.storage.storeOnDisk.enable or false)
     ) "/nix/.rw-store";
 
-    qemu = {
+    qemu = lib.mkIf (!isCrosvm) {
       machine =
         {
           # Use the same machine type as the host
@@ -244,6 +256,10 @@ in
         "qemu-xhci"
       ];
     };
+    crosvm.extraArgs = lib.optionals isCrosvm [
+      "--battery"
+      "type=goldfish"
+    ];
   }
   // lib.optionalAttrs (globalConfig.storage.storeOnDisk.enable or false) (
     let

@@ -8,8 +8,8 @@
 #
 # This is separate from hardware.definition which handles physical
 # hardware properties. vmConfig handles:
-# - VMM selection - QEMU by default for system VMs, crosvm for AdminVM and
-#   AppVMs, and per-VM overrides
+# - VMM selection - QEMU by default for system VMs, profile-specific system VM
+#   overrides, crosvm for AppVMs, and per-VM overrides
 # - Resource allocation (mem, vcpu) - varies by profile
 # - Profile-specific modules (apps, services)
 # - Downstream customizations

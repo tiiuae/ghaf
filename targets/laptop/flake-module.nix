@@ -141,6 +141,11 @@ let
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
       };
+      vmConfig.sysvms = {
+        netvm.vmm = "crosvm";
+        audiovm.vmm = "crosvm";
+        guivm.vmm = "crosvm";
+      };
     })
 
     (ghaf-configuration {

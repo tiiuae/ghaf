@@ -404,17 +404,6 @@ in
         ./idsvm/mitmproxy/mitmproxy-ca/mitmproxy-ca-cert.pem
       ];
 
-      # Crosvm's TPM frontend uses ChromiumOS virtio device ID 62. The
-      # transport driver is not in mainline Linux, so add the current
-      # ChromiumOS driver to Crosvm App VM guest kernels.
-      boot.kernelPatches = lib.optionals (effectiveVtpm && vmm == "crosvm") [
-        {
-          name = "chromiumos-virtio-tpm";
-          patch = ./patches/chromiumos-virtio-tpm.patch;
-          structuredExtraConfig.TCG_VIRTIO_VTPM = lib.kernel.module;
-        }
-      ];
-
       microvm = {
         optimize.enable = false;
         # Sensible defaults based on vm definition - can be further overridden via vmConfig

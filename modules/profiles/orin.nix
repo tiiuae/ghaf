@@ -366,6 +366,7 @@ in
             evaluatedConfig = config.ghaf.profiles.orin.netvmBase.extendModules {
               modules = lib.ghaf.vm.applyVmConfig {
                 inherit config;
+                hostPkgs = pkgs;
                 vmName = "netvm";
               };
             };
@@ -376,6 +377,7 @@ in
             evaluatedConfig = cfg.adminvmBase.extendModules {
               modules = lib.ghaf.vm.applyVmConfig {
                 inherit config;
+                hostPkgs = pkgs;
                 vmName = "adminvm";
               };
             };
@@ -391,6 +393,7 @@ in
             evaluatedConfig = config.ghaf.profiles.orin.gpuvmBase.extendModules {
               modules = lib.ghaf.vm.applyVmConfig {
                 inherit config;
+                hostPkgs = pkgs;
                 vmName = "gpuvm";
               };
             };
@@ -404,6 +407,7 @@ in
             evaluatedConfig = config.ghaf.profiles.orin.dispvmBase.extendModules {
               modules = lib.ghaf.vm.applyVmConfig {
                 inherit config;
+                hostPkgs = pkgs;
                 vmName = "dispvm";
               };
             };
@@ -421,6 +425,7 @@ in
               config.ghaf.profiles.orin.guivmBase.extendModules {
                 modules = lib.ghaf.vm.applyVmConfig {
                   inherit config;
+                  hostPkgs = pkgs;
                   vmName = "guivm";
                 };
               }

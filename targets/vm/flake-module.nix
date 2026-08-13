@@ -127,6 +127,7 @@ let
                         ]
                         ++ lib.ghaf.vm.applyVmConfig {
                           inherit config;
+                          hostPkgs = pkgs;
                           vmName = "netvm";
                         };
                       };
@@ -140,6 +141,7 @@ let
                         ]
                         ++ lib.ghaf.vm.applyVmConfig {
                           inherit config;
+                          hostPkgs = pkgs;
                           vmName = "audiovm";
                         };
                       };
@@ -150,6 +152,7 @@ let
                       evaluatedConfig = vmProfile.adminvmBase.extendModules {
                         modules = lib.ghaf.vm.applyVmConfig {
                           inherit config;
+                          hostPkgs = pkgs;
                           vmName = "adminvm";
                         };
                       };

@@ -205,8 +205,8 @@
 
     # Hot-plugging USB devices into virtual machines
     vhotplug = {
-      # TODO: switch back to tiiuae/vhotplug after vhotplug#21 merges.
-      url = "github:vadika/vhotplug/fix/crosvm-usb-vhotplug";
+      # TODO: switch back to tiiuae/vhotplug after vhotplug#22 merges.
+      url = "github:vadika/vhotplug/feat/crosvm-pci-hotplug";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";

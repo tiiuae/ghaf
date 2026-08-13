@@ -14,18 +14,19 @@ Nevertheless, it may happen that some hypervisor options are not supported by mi
 
 QEMU and crosvm are VMMs (virtual machine monitors) running on top of KVM, not
 hypervisors themselves. Ghaf selects the system VM VMM through
-`ghaf.virtualization.vmConfig`. QEMU is the default for system VMs, while
-AdminVM uses crosvm when storage encryption is disabled. Encrypted AdminVMs
-remain on QEMU because the crosvm runner does not yet provide the TPM path used
-to seal their storage keys. Each system VM can override the default
-independently:
+`ghaf.virtualization.vmConfig`. QEMU is the system-wide default. The x86 laptop
+profile overrides NetVM, AudioVM, and GUIVM to crosvm; aarch64 and generic VM
+targets retain QEMU. AdminVM uses crosvm when storage encryption is disabled.
+Encrypted AdminVMs remain on QEMU because the crosvm runner does not yet
+provide the TPM path used to seal their storage keys. Each system VM can
+override the profile default independently:
 
 ```nix
 vmConfig = {
   defaultSysVmVmm = "qemu";
   sysvms = {
     adminvm.vmm = "qemu"; # Optional AdminVM fallback
-    netvm.vmm = "crosvm";
+    netvm.vmm = "qemu"; # Optional x86 laptop rollback
   };
 };
 ```
@@ -76,7 +77,9 @@ App VMs declare their vsock CID through `microvm.vsock.cid`, so QEMU and crosvm
 use the same configured CID. Runtime USB attachment through vhotplug is
 supported by crosvm. vhotplug records the crosvm guest port for each host USB
 device so identical devices can be detached independently and restored safely
-after daemon restarts. Runtime PCI attachment remains QEMU-only.
+after daemon restarts. x86 laptop system VMs also resolve their configured PCI
+devices through vhotplug at startup and support runtime PCI attachment with
+crosvm's removable VFIO slots.
 
 ### crosvm Sandbox Boundary
 

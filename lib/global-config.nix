@@ -839,6 +839,7 @@ rec {
     #
     # Arguments:
     #   config - Host configuration (with ghaf.hardware.definition and ghaf.virtualization.vmConfig)
+    #   hostPkgs - Host package set used by generated host-side runner commands
     #   vmName - VM name without -vm suffix (e.g., "guivm", "netvm")
     #
     # Returns: List of modules to add via extendModules
@@ -850,6 +851,7 @@ rec {
     applyVmConfig =
       {
         config,
+        hostPkgs ? null,
         vmName,
       }:
       let
@@ -863,6 +865,33 @@ rec {
             vmCfg.vmm
           else
             config.ghaf.virtualization.vmConfig.defaultSysVmVmm;
+        # System VM registry keys consistently drop the hyphen from the unit
+        # name (for example, `audiovm` -> `audio-vm`). Derive the unit name from
+        # that convention instead of maintaining another per-VM lookup table.
+        vhotplugVmName = "${lib.removeSuffix "vm" vmName}-vm";
+        pciRules = config.ghaf.hardware.passthrough.vhotplug.pciRules or [ ];
+        usesPciVhotplug =
+          selectedVmm == "crosvm" && lib.any (rule: (rule.targetVm or null) == vhotplugVmName) pciRules;
+        vhotplugEnabled = config.ghaf.hardware.passthrough.vhotplug.enable or false;
+        pciBusPrefix = config.ghaf.hardware.passthrough.pciPorts.pcieBusPrefix;
+        vhotplugArgs = lib.escapeShellArgs (
+          [
+            (lib.getExe' hostPkgs.vhotplug "vhotplugcli")
+            "vmm"
+            "args"
+            "--vm"
+            vhotplugVmName
+            "--qemu-bus-start-index"
+            "1"
+            "--timeout"
+            "30"
+            "--require-pci"
+          ]
+          ++ lib.optionals (pciBusPrefix != null) [
+            "--qemu-bus-prefix"
+            pciBusPrefix
+          ]
+        );
 
         # VM settings module (applies the VMM and vmConfig.mem/vcpu)
         #
@@ -870,23 +899,60 @@ rec {
         # update, so combining { microvm.mem = ...; } with
         # { microvm.vcpu = ...; } would replace the whole microvm attrset and
         # silently drop mem whenever both are set.
-        vmSettingsModule = {
-          microvm = {
-            # microvm.nix calls its VMM selector `hypervisor`.
-            hypervisor = if (vmCfg.vmm or null) != null then selectedVmm else lib.mkDefault selectedVmm;
-          }
-          // lib.optionalAttrs (vmCfg.mem or null != null) { inherit (vmCfg) mem; }
-          // lib.optionalAttrs (vmCfg.vcpu or null != null) { inherit (vmCfg) vcpu; }
-          // lib.optionalAttrs (selectedVmm == "crosvm") {
-            # The host runs VMMs as the unprivileged `microvm` user. crosvm's
-            # multiprocess minijail needs CAP_SYS_ADMIN to create PID and mount
-            # namespaces, so retain the unprivileged service boundary and use
-            # single-process mode until a capability-scoped sandbox is wired.
-            # This required runner argument must compose with device-specific
-            # crosvm arguments supplied by other modules.
-            crosvm.extraArgs = lib.mkBefore [ "--disable-sandbox" ];
+        vmSettingsModule =
+          { config, ... }:
+          {
+            microvm = {
+              # microvm.nix calls its VMM selector `hypervisor`.
+              hypervisor = if (vmCfg.vmm or null) != null then selectedVmm else lib.mkDefault selectedVmm;
+            }
+            // lib.optionalAttrs (vmCfg.mem or null != null) { inherit (vmCfg) mem; }
+            // lib.optionalAttrs (vmCfg.vcpu or null != null) { inherit (vmCfg) vcpu; }
+            // lib.optionalAttrs (selectedVmm == "crosvm") {
+              # The host runs VMMs as the unprivileged `microvm` user. crosvm's
+              # multiprocess minijail needs CAP_SYS_ADMIN to create PID and mount
+              # namespaces, so retain the unprivileged service boundary and use
+              # single-process mode until a capability-scoped sandbox is wired.
+              crosvm.extraArgs = lib.mkBefore [ "--disable-sandbox" ];
+            }
+            // lib.optionalAttrs usesPciVhotplug {
+              devices = lib.mkForce [ ];
+              extraArgsScript = lib.mkForce vhotplugArgs;
+              # microvm.nix currently marks Crosvm runners Type=simple. The
+              # host overrides PCI-backed system VMs to Type=notify, so signal
+              # readiness only after Crosvm has created its control socket.
+              preStart = lib.mkAfter ''
+                (
+                  attempt=0
+                  while [ "$attempt" -lt 300 ]; do
+                    if [ -S ${lib.escapeShellArg config.microvm.socket} ]; then
+                      ${config.microvm.vmHostPackages.systemd}/bin/systemd-notify \
+                        --ready --status='Crosvm control socket is ready'
+                      exit 0
+                    fi
+                    attempt=$((attempt + 1))
+                    ${config.microvm.vmHostPackages.coreutils}/bin/sleep 0.1
+                  done
+                  ${config.microvm.vmHostPackages.systemd}/bin/systemd-notify \
+                    --status='Crosvm control socket did not become ready'
+                ) &
+              '';
+            };
+
+            assertions =
+              lib.optionals usesPciVhotplug [
+                {
+                  assertion = vhotplugEnabled && hostPkgs != null && config.microvm.socket != null;
+                  message = "Crosvm PCI passthrough for ${vhotplugVmName} requires vhotplug, a host package set, and a control socket";
+                }
+              ]
+              ++ lib.optionals (selectedVmm == "crosvm") [
+                {
+                  assertion = (config.microvm.qemu.extraArgs or [ ]) == [ ];
+                  message = "Crosvm system VMs cannot contain QEMU-only extra arguments";
+                }
+              ];
           };
-        };
       in
       [ vmSettingsModule ] ++ hwModules ++ vmConfigModules;
 

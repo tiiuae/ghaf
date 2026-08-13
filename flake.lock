@@ -781,16 +781,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1786185853,
-        "narHash": "sha256-B+9Mt2aEYJowZ/A+BTPdrQ4+cmkmMPx0srXA9Yl96GM=",
+        "lastModified": 1786564420,
+        "narHash": "sha256-f9j+gadZqEoy/gPkRD1erY0Abur1OTplRlDlV6zRPOQ=",
         "owner": "vadika",
         "repo": "vhotplug",
-        "rev": "0f42be5226984203ba8bd5f4d2bc6cce9e4b8333",
+        "rev": "be231fde59bd766428e2cbfe4ffb62fbf7c59458",
         "type": "github"
       },
       "original": {
         "owner": "vadika",
-        "ref": "fix/crosvm-usb-vhotplug",
+        "ref": "feat/crosvm-pci-hotplug",
         "repo": "vhotplug",
         "type": "github"
       }
