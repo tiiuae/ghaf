@@ -781,11 +781,6 @@ rec {
           enableTls = config.ghaf.givc.enableTls or false;
         };
 
-        # Security settings (SSH keys, etc.)
-        security = {
-          sshKeys = config.ghaf.security.sshKeys or { };
-        };
-
         # AppVM configurations (needed by guivm for launcher generation)
         # Use enabledVms which has derived values including applications from vmDef
         appvms = config.ghaf.virtualization.microvm.appvm.enabledVms or { };
