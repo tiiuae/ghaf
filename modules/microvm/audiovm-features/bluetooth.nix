@@ -22,6 +22,17 @@ in
   _file = ./bluetooth.nix;
 
   config = lib.mkIf bluetoothEnabled {
-    ghaf.services.bluetooth.enable = true;
+    ghaf.services.bluetooth = {
+      enable = true;
+      # The adapter is intentionally removed by the hardware kill switch and
+      # during host suspend. Restore it to a usable state when it reappears.
+      powerOnBoot = true;
+    };
+
+    # USB passthrough controls whether AudioVM owns the adapter. Persisting
+    # rfkill state inside the guest races adapter hotplug and can leave
+    # systemd-rfkill waiting indefinitely on /dev/rfkill.
+    systemd.services.systemd-rfkill.enable = false;
+    systemd.sockets.systemd-rfkill.enable = false;
   };
 }
