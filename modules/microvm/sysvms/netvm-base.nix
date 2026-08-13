@@ -239,8 +239,6 @@ in
     optimize.enable = false;
     vcpu = lib.mkDefault 2;
     mem = lib.mkDefault 1024;
-    hypervisor = "qemu";
-
     shares = [
       {
         tag = "ghaf-common";

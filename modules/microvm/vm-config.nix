@@ -3,11 +3,12 @@
 #
 # VM Configuration Module
 #
-# Provides ghaf.virtualization.vmConfig for resource allocation and
-# profile/downstream customization.
+# Provides ghaf.virtualization.vmConfig for VMM selection, resource
+# allocation, and profile/downstream customization.
 #
 # This is separate from hardware.definition which handles physical
 # hardware properties. vmConfig handles:
+# - VMM selection - QEMU by default, crosvm for AdminVM, and per-VM overrides
 # - Resource allocation (mem, vcpu) - varies by profile
 # - Profile-specific modules (apps, services)
 # - Downstream customizations
@@ -18,6 +19,7 @@
 #   └── extraModules: Hardware quirks ONLY (GPU passthrough, OVMF)
 #
 #   virtualization.vmConfig (VARIES by profile)
+#   ├── VMM selection: default plus per-system-VM overrides
 #   ├── Resource allocation: mem, vcpu
 #   └── extraModules: Profile apps, services, downstream config
 #
@@ -28,6 +30,7 @@
 #   4. virtualization.vmConfig.sysvms.guivm.extraModules <- profile/downstream (highest priority)
 #
 {
+  config,
   lib,
   ...
 }:
@@ -41,6 +44,24 @@ let
   # System VM configuration submodule (guivm, netvm, audiovm, adminvm, idsvm)
   systemVmConfigType = types.submodule {
     options = {
+      vmm = mkOption {
+        type = types.nullOr (
+          types.enum [
+            "qemu"
+            "crosvm"
+          ]
+        );
+        default = null;
+        description = ''
+          VMM used for this system VM.
+          If null, uses ghaf.virtualization.vmConfig.defaultSysVmVmm.
+
+          This setting takes effect when the VM's evaluated configuration
+          includes lib.ghaf.vm.applyVmConfig.
+        '';
+        example = "crosvm";
+      };
+
       mem = mkOption {
         type = types.nullOr types.int;
         default = null;
@@ -119,16 +140,36 @@ in
   _file = ./vm-config.nix;
 
   options.ghaf.virtualization.vmConfig = {
+    defaultSysVmVmm = mkOption {
+      type = types.enum [
+        "qemu"
+        "crosvm"
+      ];
+      default = "qemu";
+      description = ''
+        Default VMM for system VMs without a per-VM override.
+
+        This setting takes effect when the VM's evaluated configuration
+        includes lib.ghaf.vm.applyVmConfig. Cloud Hypervisor is intentionally
+        not selectable because AdminVM does not switch root to stage 2 with it.
+      '';
+      example = "qemu";
+    };
+
     sysvms = mkOption {
       type = types.attrsOf systemVmConfigType;
       default = { };
       description = ''
         Per-system-VM configuration. Keys should match system VM names
         (e.g., guivm, netvm, audiovm, adminvm, idsvm).
+
+        These settings take effect when the corresponding VM's evaluated
+        configuration includes lib.ghaf.vm.applyVmConfig.
       '';
       example = literalExpression ''
         {
           guivm = { mem = 16384; vcpu = 8; };
+          adminvm.vmm = "qemu"; # Optional AdminVM fallback
           netvm = { extraModules = [ ./my-net-config.nix ]; };
         }
       '';
@@ -149,6 +190,10 @@ in
     };
   };
 
-  # No config block - this is a pure options module
-  # Consumption happens in profiles via lib.ghaf.vm.applyVmConfig
+  # Keep QEMU as the system-wide default while migrating AdminVM to crosvm.
+  # Encrypted AdminVMs still need QEMU's TPM path until crosvm TPM support is
+  # wired. Targets and downstream configurations can override this selection.
+  config.ghaf.virtualization.vmConfig.sysvms.adminvm.vmm = lib.mkDefault (
+    if config.ghaf.global-config.storage.encryption.enable then "qemu" else "crosvm"
+  );
 }

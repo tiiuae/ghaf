@@ -10,6 +10,60 @@ Update this section after the pull request https://github.com/tiiuae/ghaf/pull/9
 
 Nevertheless, it may happen that some hypervisor options are not supported by microvm. For example, adding specific devices. This document considers such cases.
 
+### Selecting a System VM VMM
+
+QEMU and crosvm are VMMs (virtual machine monitors) running on top of KVM, not
+hypervisors themselves. Ghaf selects the system VM VMM through
+`ghaf.virtualization.vmConfig`. QEMU is the default for system VMs, while
+AdminVM uses crosvm when storage encryption is disabled. Encrypted AdminVMs
+remain on QEMU because the crosvm runner does not yet provide the TPM path used
+to seal their storage keys. Each system VM can override the default
+independently:
+
+```nix
+vmConfig = {
+  defaultSysVmVmm = "qemu";
+  sysvms = {
+    adminvm.vmm = "qemu"; # Optional AdminVM fallback
+    netvm.vmm = "crosvm";
+  };
+};
+```
+
+System VM keys use unhyphenated names such as `adminvm`, `netvm`, and `guivm`.
+The selection takes effect only when the VM's evaluated configuration includes
+`lib.ghaf.vm.applyVmConfig`. Profiles and targets that construct an
+`evaluatedConfig` directly must include this helper; otherwise the default and
+per-VM settings are ignored. This supports a mixed fleet during migration
+instead of requiring every VM on a target to use the same VMM. Note that
+microvm.nix names its own selector `microvm.hypervisor`; Ghaf maps `vmm` onto
+it.
+
+AdminVM declares its vsock CID through the VMM-independent
+`microvm.vsock.cid` option. Both the QEMU fallback and the crosvm default
+therefore use the VM's configured network CID without raw QEMU arguments.
+
+#### crosvm Sandbox Boundary
+
+Ghaf runs VMM services as the unprivileged `microvm` user. crosvm's internal
+multiprocess minijail requires `CAP_SYS_ADMIN` to create PID and mount
+namespaces, which the service intentionally does not have. Ghaf consequently
+adds `--disable-sandbox` to crosvm VM runners by default.
+
+This keeps the VMM process behind the unprivileged systemd service boundary,
+but it disables crosvm's additional per-device-process isolation. Treat this as
+an explicit migration tradeoff until Ghaf provides capability-scoped namespace
+setup without granting the VMM broad host privileges.
+
+To inspect a deployed VM's selected VMM and generated command line, run
+(the file name comes from microvm.nix):
+
+```sh
+cat /var/lib/microvms/admin-vm/current/share/microvm/hypervisor
+admin_pid="$(systemctl show --property MainPID --value microvm@admin-vm)"
+tr '\0' ' ' <"/proc/${admin_pid}/cmdline"
+```
+
 ### Options Definitions
 
 A VM is defined under Ghaf’s subdirectory `microvmConfigurations/VM_NAME/default.nix`, for example:

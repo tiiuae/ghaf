@@ -375,8 +375,6 @@ in
     # Sensible defaults - can be overridden via vmConfig
     vcpu = lib.mkDefault 6;
     mem = lib.mkDefault 6144;
-    hypervisor = "qemu";
-
     shares = [
       {
         tag = "ghaf-common";

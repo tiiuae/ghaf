@@ -208,8 +208,6 @@ in
     # Sensible defaults - can be overridden via vmConfig
     vcpu = lib.mkDefault 2;
     mem = lib.mkDefault 512;
-    hypervisor = "qemu";
-
     shares = [
       {
         tag = "ghaf-common";

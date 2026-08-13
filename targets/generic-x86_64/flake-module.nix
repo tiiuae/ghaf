@@ -104,7 +104,10 @@ let
 
               # Wire up netvm using inline netvmBase
               ghaf.virtualization.microvm.netvm.evaluatedConfig = netvmBase.extendModules {
-                modules = config.ghaf.hardware.definition.netvm.extraModules or [ ];
+                modules = lib.ghaf.vm.applyVmConfig {
+                  inherit config;
+                  vmName = "netvm";
+                };
               };
             }
           )
