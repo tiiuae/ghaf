@@ -79,12 +79,16 @@ in
     ];
 
     # Uinput kernel module
-    boot.kernelModules = [ "uinput" ];
+    boot.kernelModules = [
+      "uinput"
+      "uhid"
+    ];
 
     # Rfkill udev rule
     services.udev.extraRules = ''
       KERNEL=="rfkill", SUBSYSTEM=="misc", GROUP="${bluetoothUser}"
       KERNEL=="uinput", SUBSYSTEM=="misc", GROUP="${bluetoothUser}"
+      KERNEL=="uhid", GROUP="${bluetoothUser}" MODE="0660"
     '';
 
     # Dbus policy updates
