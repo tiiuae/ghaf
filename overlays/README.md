@@ -35,32 +35,24 @@ from staging and main into a tiiuae maintained version of nixpkgs
 
 The status of the integration in nixpkgs can be tracked using the [Pull Request Tracker](https://nixpk.gs/pr-tracker.html)
 
-## From Overlays
+## Carried patches in ghaf packages
 
-[qemu: Battery, lid, power](https://github.com/blochl/qemu/pull/3)
+- [qemu: Battery, AC adapter, lid](https://github.com/blochl/qemu/pull/3)
 
+  Four ACPI patches, applied on x86_64 only, in
+  `packages/pkgs-by-name/ghaf-qemu/patches/0001..0004`. They used to be a global qemu
+  overlay; they now live in the standalone `ghaf-qemu` package. Drop them when the series
+  is merged upstream and reaches the qemu in our nixpkgs.
 
 ## carried in tiiuae/nixpkgs/...
 
-The following are in staging at the moment, so carry for some time until they reach unstable.
+None at the moment. Anything landed here is in nixpkgs staging, so carry it for some time
+until it reaches unstable.
 
 ## Carried workarounds in ghaf modules
 
 Not every carried change is an overlay. These live in ghaf's own modules and CI, and
 only exist until an upstream fix lands, so they should be reverted rather than maintained.
-
-- `fix(ci): pin nix-eval-jobs to 2.34.3 for the eval workflow`
-
-  Pins the `nix-eval-jobs` used by `.github/eval.py` to a nixpkgs rev carrying 2.34.3,
-  instead of taking it from the flake's own nixpkgs input. 2.35.0 fails a shard with
-  `BUG: while sending exit, worker pipe got closed ...` after every attribute has
-  evaluated successfully, whenever the worker crosses `--max-memory-size` on the last
-  attribute.
-
-  Drop the pin when
-  [nix-eval-jobs#433](https://github.com/NixOS/nix-eval-jobs/issues/433) is fixed and a
-  release carrying the fix reaches our nixpkgs — find it with
-  `git log --grep 'pin nix-eval-jobs'`.
 
 - `fix(microvm): wait for a stopping guest instead of killing it immediately`
 
