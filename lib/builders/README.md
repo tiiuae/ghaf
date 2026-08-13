@@ -116,7 +116,9 @@ does not. So `inputs.ghaf.inputs` is missing exactly the key every ghaf module r
 
 The `vmConfig` parameter selects a default system-VM VMM and supports
 per-VM VMM and resource overrides. The default VMM is QEMU, while
-AdminVM defaults to crosvm on every target. crosvm VMs run as Ghaf's
+AdminVM defaults to crosvm when storage encryption is disabled. Encrypted
+AdminVMs remain on QEMU until crosvm supports both TPM backends they require.
+crosvm VMs run as Ghaf's
 unprivileged `microvm` user with crosvm's internal minijail disabled, because
 its namespace setup requires `CAP_SYS_ADMIN`.
 
@@ -152,6 +154,21 @@ vmConfig = {
   };
 };
 ```
+
+### Resolving App VM Configuration
+
+Profiles that instantiate App VMs use
+`lib.ghaf.vm.resolveAppVmConfig { inherit config vmDef; }` before constructing
+the guest. The helper returns the effective VM definition after memory, vCPU,
+and balloon overrides, the selected VMM, and the App VM's additional modules:
+
+```nix
+resolved = lib.ghaf.vm.resolveAppVmConfig { inherit config vmDef; };
+```
+
+Use `resolved.effectiveDef`, `resolved.selectedVmm`, and
+`resolved.extraModules` together so VMM and resource policy cannot drift
+between profiles.
 
 ### Extending Configurations
 

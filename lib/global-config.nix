@@ -672,6 +672,7 @@ rec {
   #   lib.ghaf.vm.mkHostConfig  - Extract host config for VM specialArgs
   #   lib.ghaf.vm.getConfig     - Get inner NixOS config from microvm.vms entry
   #   lib.ghaf.vm.applyVmConfig - Build modules list with vmConfig applied
+  #   lib.ghaf.vm.resolveAppVmConfig - Resolve an App VM definition and policy
   #
   # Usage Example:
   #   guivmBase = lib.nixosSystem {
@@ -888,5 +889,48 @@ rec {
         };
       in
       [ vmSettingsModule ] ++ hwModules ++ vmConfigModules;
+
+    # Resolve an App VM definition against the host's vmConfig policy.
+    #
+    # Unlike singleton system VMs, App VMs are created by mkAppVm functions in
+    # multiple profiles. Keeping the resolution here prevents the laptop, Orin,
+    # and generic VM profiles from drifting apart.
+    #
+    # Arguments:
+    #   config - Host configuration containing virtualization.vmConfig
+    #   vmDef  - App VM definition with at least a name attribute
+    #
+    # Returns an attribute set containing:
+    #   effectiveDef - vmDef with mem, vcpu, and balloonRatio overrides applied
+    #   selectedVmm  - Per-VM override or defaultAppVmVmm
+    #   extraModules - Additional modules configured for this App VM
+    #
+    # Usage in profiles:
+    #   resolved = lib.ghaf.vm.resolveAppVmConfig { inherit config vmDef; };
+    #   mkAppVm resolved.effectiveDef resolved.selectedVmm resolved.extraModules;
+    resolveAppVmConfig =
+      {
+        config,
+        vmDef,
+      }:
+      let
+        vmCfg = config.ghaf.virtualization.vmConfig.appvms.${vmDef.name} or { };
+        requestedVmm = vmCfg.vmm or null;
+        selectedVmm =
+          if requestedVmm != null then requestedVmm else config.ghaf.virtualization.vmConfig.defaultAppVmVmm;
+        configuredBalloonRatio =
+          if (vmCfg.balloonRatio or null) != null then vmCfg.balloonRatio else vmDef.balloonRatio or 2;
+        effectiveDef =
+          vmDef
+          // lib.optionalAttrs ((vmCfg.mem or null) != null) { inherit (vmCfg) mem; }
+          // lib.optionalAttrs ((vmCfg.vcpu or null) != null) { inherit (vmCfg) vcpu; }
+          // {
+            balloonRatio = configuredBalloonRatio;
+          };
+      in
+      {
+        inherit effectiveDef selectedVmm;
+        extraModules = vmCfg.extraModules or [ ];
+      };
   };
 }
