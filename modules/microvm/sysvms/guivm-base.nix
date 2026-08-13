@@ -346,7 +346,7 @@ in
       pkgs.libva-utils
       pkgs.glib
     ]
-    ++ [ pkgs.vhotplug ];
+    ++ [ (if isCrosvm then pkgs.ghaf-device-manager else pkgs.vhotplug) ];
     sessionVariables = lib.optionalAttrs (globalConfig.debug.enable or false) (
       {
         GIVC_NAME = "admin-vm";

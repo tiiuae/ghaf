@@ -9,6 +9,19 @@
   ...
 }:
 let
+  deviceManagerPackage =
+    lib.attrByPath
+      [
+        "ghaf"
+        "hardware"
+        "passthrough"
+        "deviceManager"
+        "package"
+      ]
+      (
+        if (config.microvm.hypervisor or null) == "crosvm" then pkgs.ghaf-device-manager else pkgs.vhotplug
+      )
+      config;
   cfg = config.ghaf.services.power-manager;
   inherit (lib)
     concatMapStringsSep
@@ -159,7 +172,7 @@ let
       pkgs.grpcurl
       pkgs.jq
       pkgs.socat
-      pkgs.vhotplug
+      deviceManagerPackage
       pkgs.wait-for-unit
     ];
     text = ''
@@ -1057,7 +1070,7 @@ in
                 before = [ "sleep.target" ];
                 serviceConfig = {
                   Type = "oneshot";
-                  ExecStart = "${getExe' pkgs.vhotplug "vhotplugcli"} usb suspend";
+                  ExecStart = "${getExe' deviceManagerPackage "vhotplugcli"} usb suspend";
                 };
               };
 
@@ -1068,7 +1081,7 @@ in
                 after = [ "suspend.target" ];
                 serviceConfig = {
                   Type = "oneshot";
-                  ExecStart = "${getExe' pkgs.vhotplug "vhotplugcli"} usb resume";
+                  ExecStart = "${getExe' deviceManagerPackage "vhotplugcli"} usb resume";
                 };
               };
             }
@@ -1235,6 +1248,7 @@ in
                           "${config.microvm.stateDir}/${vmName}/${vmConfig.microvm.socket}"
                         else
                           "";
+                      crosvmPackage = vmConfig.microvm.crosvm.package;
                       crosvmAcpiGraceSec = 15;
                       crosvmStopDeadlineSec = 25;
                       crosvm-stop = pkgs.writeShellScript "crosvm-stop" ''
@@ -1245,12 +1259,11 @@ in
                           exit 0
                         fi
 
-                        shutdown_script='${config.microvm.stateDir}/${vmName}/booted/bin/microvm-shutdown'
-                        if [ -n '${controlSocket}' ] && [ -S '${controlSocket}' ] && [ -x "$shutdown_script" ]; then
+                        if [ -n '${controlSocket}' ] && [ -S '${controlSocket}' ]; then
                           echo "Crosvm powerbtn -> '${vmName}' (${controlSocket})"
-                          # Use the runner from the booted generation so its control
-                          # protocol always matches the running Crosvm process.
-                          if ! "$shutdown_script"; then
+                          # Use the package from this VM's evaluated configuration
+                          # so the control protocol matches the running process.
+                          if ! ${crosvmPackage}/bin/crosvm --no-syslog powerbtn '${controlSocket}'; then
                             echo "WARN: Crosvm powerbtn for '${vmName}' failed; sending SIGTERM" >&2
                             kill -15 "$pid" 2>/dev/null || true
                           fi

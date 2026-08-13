@@ -80,7 +80,8 @@
 
     # A set of useful nix packages and utilities for ghaf
     ghafpkgs = {
-      url = "github:tiiuae/ghafpkgs";
+      # TODO: switch back to tiiuae/ghafpkgs after ghafpkgs#362 merges.
+      url = "github:vadika/ghafpkgs/fix/crosvm-cli-log-spam";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
@@ -204,7 +205,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Hot-plugging USB devices into virtual machines
+    # Hot-plugging USB and PCI devices into Crosvm virtual machines
+    ghaf-device-manager = {
+      url = "github:tiiuae/ghaf-device-manager/fix/crosvm-runtime-reliability";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # Hot-plugging devices into QEMU virtual machines
     vhotplug = {
       # TODO: switch back to tiiuae/vhotplug after vhotplug#22 merges.
       url = "github:vadika/vhotplug/feat/crosvm-pci-hotplug";

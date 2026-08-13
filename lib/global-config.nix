@@ -874,9 +874,10 @@ rec {
           selectedVmm == "crosvm" && lib.any (rule: (rule.targetVm or null) == vhotplugVmName) pciRules;
         vhotplugEnabled = config.ghaf.hardware.passthrough.vhotplug.enable or false;
         pciBusPrefix = config.ghaf.hardware.passthrough.pciPorts.pcieBusPrefix;
+        deviceManagerPackage = config.ghaf.hardware.passthrough.deviceManager.package;
         vhotplugArgs = lib.escapeShellArgs (
           [
-            (lib.getExe' hostPkgs.vhotplug "vhotplugcli")
+            (lib.getExe' deviceManagerPackage "vhotplugcli")
             "vmm"
             "args"
             "--vm"
@@ -943,7 +944,7 @@ rec {
               lib.optionals usesPciVhotplug [
                 {
                   assertion = vhotplugEnabled && hostPkgs != null && config.microvm.socket != null;
-                  message = "Crosvm PCI passthrough for ${vhotplugVmName} requires vhotplug, a host package set, and a control socket";
+                  message = "Crosvm PCI passthrough for ${vhotplugVmName} requires a device manager, a host package set, and a control socket";
                 }
               ]
               ++ lib.optionals (selectedVmm == "crosvm") [
