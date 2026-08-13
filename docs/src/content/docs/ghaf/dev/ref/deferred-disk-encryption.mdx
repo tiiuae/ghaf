@@ -84,8 +84,8 @@ The encryption service runs in the **initial RAM disk (initrd)** before the root
 /dev/sda2  - ESP (500M) - EFI System Partition
 /dev/sda3  - lvm (rest) - Plain LVM Physical Volume
   └─ VG "pool"
-     ├─ LV swap (12G) - Swap space
-     ├─ LV root (50G) - Root filesystem (ext4)
+     ├─ LV swap (12G default) - Swap space
+     ├─ LV root (50G default) - Root filesystem (ext4)
      └─ LV persist (rest) - Persistent data (btrfs)
 ```
 
@@ -96,8 +96,8 @@ The encryption service runs in the **initial RAM disk (initrd)** before the root
 /dev/sda3  - LUKS container "crypted"
   └─ /dev/mapper/crypted - LVM Physical Volume
      └─ VG "pool"
-        ├─ LV swap (12G) - Swap space
-        ├─ LV root (50G) - Root filesystem (ext4)
+        ├─ LV swap (12G default) - Swap space
+        ├─ LV root (50G default) - Root filesystem (ext4)
         └─ LV persist (rest) - Persistent data (btrfs)
 ```
 

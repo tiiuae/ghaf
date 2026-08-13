@@ -27,6 +27,9 @@ let
     text = "";
   };
   diskName = "disk1";
+  espSizeMiB = 500;
+  headroomMiB = 4 * 1024; # GPT + LVM metadata
+  volumesMiB = espSizeMiB + cfg.swapSize + cfg.persistSize + 2 * (cfg.rootSize + cfg.veritySize);
 in
 {
   _file = ./disko-debug-partition.nix;
@@ -42,9 +45,65 @@ in
       description = "Compression algorithm used for the install image";
       default = "zstd";
     };
+
+    rootSize = lib.mkOption {
+      type = lib.types.int;
+      default = 50 * 1024;
+      example = 200 * 1024;
+      description = ''
+        Size of each root logical volume in MiB, applied to both A/B slots.
+        An update written to the B slot has to fit where the A slot fits, so
+        the two are not configurable independently. Defaults to 50 GiB.
+      '';
+    };
+
+    veritySize = lib.mkOption {
+      type = lib.types.int;
+      default = 1 * 1024;
+      description = ''
+        Size of each verity logical volume in MiB, applied to both A/B slots.
+        Defaults to 1 GiB.
+      '';
+    };
+
+    swapSize = lib.mkOption {
+      type = lib.types.int;
+      default = 12 * 1024;
+      description = ''
+        Size of the swap logical volume in MiB. Hibernation resumes from this
+        device, so it should be at least as large as RAM. Defaults to 12 GiB.
+      '';
+    };
+
+    persistSize = lib.mkOption {
+      type = lib.types.int;
+      default = 2 * 1024;
+      description = ''
+        Initial size of the persist logical volume in MiB. A floor, not an
+        allocation: btrfs-postboot extends it to fill the disk on first boot.
+        Defaults to 2 GiB.
+      '';
+    };
+
+    imageSize = lib.mkOption {
+      type = lib.types.int;
+      default = volumesMiB + headroomMiB;
+      description = ''
+        Size of the disk image in MiB. Defaults to what the volumes above
+        require plus 4 GiB for GPT and LVM metadata. The image file is sparse,
+        so it occupies only the space its contents actually use.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = cfg.imageSize >= volumesMiB;
+        message = "ghaf.partitioning.disko.imageSize is ${toString cfg.imageSize} MiB but the volumes need ${toString volumesMiB} MiB; both A/B slots must fit.";
+      }
+    ];
+
     ghaf.partitioning.btrfs-postboot.enable = true;
 
     ghaf.storage.encryption.partitionDevice =
@@ -66,15 +125,13 @@ in
       devices = {
         disk."${diskName}" = {
           type = "disk";
-          # NOTE: Disk image size should be enough big to fit both slots
-          #       Actual file created as sparsed, and use only as much space as root content need.
-          imageSize = "128G";
+          imageSize = "${toString cfg.imageSize}M";
           content = {
             type = "gpt";
             partitions = {
               esp = {
                 name = "ESP";
-                size = "500M";
+                size = "${toString espSizeMiB}M";
                 type = "EF00";
                 content = {
                   type = "filesystem";
@@ -125,7 +182,7 @@ in
             type = "lvm_vg";
             lvs = {
               swap = {
-                size = "12G";
+                size = "${toString cfg.swapSize}M";
                 content = {
                   type = "swap";
                   resumeDevice = true; # resume from hibernation from this device
@@ -135,7 +192,7 @@ in
 
               # `_0` denote version of installed system. In terms of A/B update -- debug version always `0`
               root_0 = {
-                size = "50G";
+                size = "${toString cfg.rootSize}M";
                 content = {
                   type = "filesystem";
                   format = "ext4";
@@ -149,21 +206,20 @@ in
 
               # NOTE: placeholder for A-slot verity
               verity_0 = {
-                size = "1G";
+                size = "${toString cfg.veritySize}M";
               };
 
               # NOTE: placeholders for B-slot root and verity
               root_empty = {
-                size = "50G";
+                size = "${toString cfg.rootSize}M";
               };
               verity_empty = {
-                size = "1G";
+                size = "${toString cfg.veritySize}M";
               };
 
               persist = {
-                # For deferred encryption, start with full size (will be extended after encryption)
-                # For immediate encryption, start with 2G (will be extended by btrfs-postboot)
-                size = "2G";
+                # Extended to fill the disk by btrfs-postboot
+                size = "${toString cfg.persistSize}M";
                 content = {
                   type = "filesystem";
                   format = "btrfs";
