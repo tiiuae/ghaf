@@ -23,18 +23,21 @@ let
   hasHardwareDefinition = options ? ghaf.hardware.definition;
 
   defaultGuivmPciRules =
-    optionals hasHardwareDefinition [
-      {
-        description = "Static PCI Devices for GUIVM";
+    optionals hasHardwareDefinition (
+      map (d: {
+        description = "Static PCI Device ${d.path} for GUIVM";
         targetVm = "gui-vm";
         skipOnSuspend = true;
-        allow = map (d: {
-          address = d.path;
-          deviceId = d.productId;
-          inherit (d) vendorId;
-        }) config.ghaf.hardware.definition.gpu.pciDevices;
-      }
-    ]
+        crosvmUseRootBus = d.crosvm.useRootBus;
+        allow = [
+          {
+            address = d.path;
+            deviceId = d.productId;
+            inherit (d) vendorId;
+          }
+        ];
+      }) config.ghaf.hardware.definition.gpu.pciDevices
+    )
     ++ optionals cfg.autoDetectGpu [
       {
         description = "Auto-detected PCI Devices for GUIVM";

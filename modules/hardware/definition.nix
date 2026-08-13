@@ -50,6 +50,13 @@ in
               Device additional arguments (optional)
             '';
           };
+          crosvm.useRootBus = mkOption {
+            type = types.bool;
+            default = false;
+            description = ''
+              Attach the device directly to the Crosvm PCI root bus
+            '';
+          };
         };
       };
 
