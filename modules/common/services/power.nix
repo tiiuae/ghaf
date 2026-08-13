@@ -699,7 +699,7 @@ in
               systemctl start ${service}
             '') cfg.vm.pciSuspendServices
           )
-          + optionalString (cfg.suspend.extraResumeCommands != "") ''
+          + optionalString (cfg.suspend.extraResumeCommands != "" && !cfg.gui.enable) ''
             # config.ghaf.services.power-manager.suspend.extraResumeCommands
             ${cfg.suspend.extraResumeCommands}
           '';
