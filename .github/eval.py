@@ -10,13 +10,6 @@ import sys
 import time
 from typing import Any
 
-# nix-eval-jobs is pinned rather than taken from the flake's own nixpkgs.
-# Tracked upstream as https://github.com/NixOS/nix-eval-jobs/issues/433 - drop
-# the pin once a release carrying the fix lands in our nixpkgs.
-NIX_EVAL_JOBS = (
-    "github:NixOS/nixpkgs/624af665418d3c65d544145b4d34ad696439570e#nix-eval-jobs"
-)
-
 SELECT_EXPR = """
 flake: let
   lib = flake.inputs.nixpkgs.lib;
@@ -58,7 +51,9 @@ def run_eval(
     cmd = [
         "nix",
         "run",
-        NIX_EVAL_JOBS,
+        "--inputs-from",
+        ".#",
+        "nixpkgs#nix-eval-jobs",
         "--",
         "--flake",
         ".#",
