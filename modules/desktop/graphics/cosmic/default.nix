@@ -439,7 +439,25 @@ in
       # Workaround for https://github.com/pop-os/cosmic-applets/issues/1390
       # TODO: Remove when upstream issue is fixed
       ''
-        ${lib.getExe' pkgs.busybox "killall"} -q cosmic-panel || true
+        pid=$(${lib.getExe' pkgs.busybox "pgrep"} -f "cosmic-panel" | ${lib.getExe' pkgs.busybox "head"} -n1)
+        if [ -n "$pid" ]; then
+          ${lib.getExe' pkgs.busybox "kill"} "$pid" || true
+        else
+          echo "No COSMIC panel PID found"
+        fi
+        #
+        # Workaround for volume slider not working and volume panels not showing after resume
+        # zlink 0.7.0 fixes the COSMIC settings daemon resume issue.
+        # TODO: Remove when zlink ≥ 0.7.0 is used by COSMIC (currently it's 0.5.0)
+        # COSMIC Cargo.lock reference:
+        # https://github.com/pop-os/cosmic-settings/blob/master/Cargo.lock#L9383
+        # Restart COSMIC settings daemon after suspend, as it may not resume properly on some systems
+        pid=$(${lib.getExe' pkgs.busybox "pgrep"} -f "cosmic-settings-daemon" | ${lib.getExe' pkgs.busybox "head"} -n1)
+        if [ -n "$pid" ]; then
+          ${lib.getExe' pkgs.busybox "kill"} -9 "$pid" || true
+        else
+          echo "No COSMIC settings daemon PID found"
+        fi
       '';
 
     systemd.user.services = {
