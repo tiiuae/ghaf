@@ -203,7 +203,12 @@
                   grep -q "darter-pro" <<< "''$device" && threads=16
                 fi
 
-                cd ${inputs.ci-test-automation.outPath}/Robot-Framework/test-suites
+                # Run from a writable *copy* of the suite tree.
+                suitetree="$(mktemp -d)"
+                trap 'rm -rf "$suitetree"' EXIT
+                cp -r ${inputs.ci-test-automation.outPath}/Robot-Framework/. "$suitetree/"
+                chmod -R u+w "$suitetree"
+                cd "$suitetree/test-suites"
                 ${
                   inputs.ci-test-automation.packages.${system}.ghaf-robot
                 }/bin/ghaf-robot -v CONFIG_PATH:''${configpath} -v DEVICE_IP_ADDRESS:''${ip} -v THREADS_NUMBER:''${threads} -v COMMIT_HASH:''${commit} -v DEVICE:''${device} -v DEVICE_TYPE:''${device} -v PASSWORD:''${pw} -v USER_LOGIN:''${username} -v USER_PASSWORD:''${userpasswd} -i ''${device,,}AND''${tag} --outputdir ''${outputdir} .
