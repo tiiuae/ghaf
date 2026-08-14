@@ -243,6 +243,20 @@ let
     })
 
     (ghaf-configuration {
+      name = "nvidia-jetson-orin-agx64-jetpack7";
+      inherit system;
+      profile = "orin";
+      hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx64;
+      variant = "debug";
+      extraModules = commonModules ++ [
+        { hardware.nvidia-jetpack.majorVersion = lib.mkForce "7"; }
+      ];
+      extraConfig = {
+        reference.profiles.mvp-orinuser-trial.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
       name = "nvidia-jetson-orin-agx-industrial";
       inherit system;
       profile = "orin";
