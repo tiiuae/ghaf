@@ -44,6 +44,19 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
   overlay; they now live in the standalone `ghaf-qemu` package. Drop them when the series
   is merged upstream and reaches the qemu in our nixpkgs.
 
+## Backports carried in overlays
+
+- [waypipe: pin to ffmpeg_8](https://github.com/NixOS/nixpkgs/pull/552268)
+
+  `overlays/custom-packages/waypipe/` overrides `ffmpeg` with `ffmpeg_8`. ffmpeg 9.0
+  dropped the `AVVulkanDeviceContext` fixed-queue fields that waypipe 0.11.0 still writes,
+  so waypipe fails to compile and takes every image target with it. Upstream merged the
+  same one-line pin to nixpkgs master on 2026-08-13, hours after the rev `nixos-unstable`
+  was sitting on when we bumped.
+
+  Drop the override once `nixos-unstable` carries `fc4f26c2` — check with
+  `git -C <nixpkgs> merge-base --is-ancestor fc4f26c2 <our-pin>`.
+
 ## carried in tiiuae/nixpkgs/...
 
 None at the moment. Anything landed here is in nixpkgs staging, so carry it for some time

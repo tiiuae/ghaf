@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # waypipe does not cross-compile out of the box (aarch64-from-x86_64). Three
-# independent gaps, all in how its meson wrapper drives cargo. Every fix below
-# is cross-only, so a native build's derivation is byte-identical to nixpkgs'.
+# independent gaps, all in how its meson wrapper drives cargo. Those fixes are
+# cross-only, so apart from the ffmpeg pin a native build's derivation is
+# nixpkgs'.
 #
 #   1. meson.build does `find_program('objcopy', native: true)`, but the
 #      derivation ships no plain `objcopy`; native builds find it via the
@@ -17,13 +18,13 @@
 #      target/<triple>/<profile>/, but compile_wrapper.sh copies from
 #      target/<profile>/. Insert the triple subdir when cross.
 #
-# Native builds are left entirely alone.
+# Apart from the ffmpeg pin, native builds are left entirely alone.
 { prev }:
 let
   inherit (prev) stdenv lib;
   cross = stdenv.hostPlatform != stdenv.buildPlatform;
 in
-prev.waypipe.overrideAttrs (
+(prev.waypipe.override { ffmpeg = prev.ffmpeg_8; }).overrideAttrs (
   old:
   lib.optionalAttrs cross {
     # Native builds already find objcopy through the stdenv cc-wrapper, so this
