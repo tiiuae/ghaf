@@ -10,7 +10,7 @@
   ...
 }:
 let
-  inherit (inputs) jetpack-nixos nixpkgs;
+  inherit (inputs) jetpack-nixos jetpack-nixos-r39 nixpkgs;
   system = "aarch64-linux";
   pkgsX86 = nixpkgs.legacyPackages.x86_64-linux;
   lazyPackage =
@@ -122,6 +122,14 @@ let
         }
       ];
     }
+  ];
+
+  orinModulesR39 = [
+    ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/format-module.nix
+    jetpack-nixos-r39.nixosModules.default
+    self.nixosModules.reference-host-demo-apps
+    self.nixosModules.reference-profiles-orin
+    self.nixosModules.profiles
   ];
 
   # Shared by the AGX and NX accelerated-guivm variants.
@@ -248,9 +256,7 @@ let
       profile = "orin";
       hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx64;
       variant = "debug";
-      extraModules = commonModules ++ [
-        { hardware.nvidia-jetpack.majorVersion = lib.mkForce "7"; }
-      ];
+      extraModules = orinModulesR39;
       extraConfig = {
         reference.profiles.mvp-orinuser-trial.enable = true;
       };

@@ -151,6 +151,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    jetpack-nixos-r39 = {
+      url = "github:anduril/jetpack-nixos";
+      # url = "github:tiiuae/jetpack-nixos/hotfix-ghaf-bump";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # For building and managing VMs
     microvm = {
       url = "github:microvm-nix/microvm.nix";
