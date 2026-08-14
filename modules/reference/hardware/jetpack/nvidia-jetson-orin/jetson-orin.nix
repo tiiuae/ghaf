@@ -843,8 +843,13 @@ in
       cfg.flashScriptOverrides.signedArtifactsPath != null
     );
     hardware.nvidia-jetpack.firmware.eksFile = "${firmwareEkbImage}/eks_t234.img";
-    # option is not present on upstream jetpack-nixos
-    # hardware.nvidia-jetpack.kernel.version = "${cfg.kernelVersion}";
+    # TEMP: check for presence of kernel.version attribute since it is only defined
+    # in TII fork.
+    hardware.nvidia-jetpack.kernel =
+      lib.optionalAttrs (options ? hardware.nvidia-jetpack.kernel.version)
+        {
+          version = cfg.kernelVersion;
+        };
 
     # jetpack-nixos hardcodes the trailing rootfs device as mmcblk0p1; replay
     # the same default here but route it through cfg.flashScriptOverrides.deviceDiskRootfsPartition
