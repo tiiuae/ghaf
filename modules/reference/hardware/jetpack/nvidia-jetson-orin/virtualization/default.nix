@@ -10,6 +10,7 @@
     ./passthrough/gpu-vm
     ./passthrough/disp-vm
     ./passthrough/gui-vm
+    ./pkvm/pkvm-host.nix
     ./ownership-assertions.nix
   ];
 }

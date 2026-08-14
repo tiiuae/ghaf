@@ -31,8 +31,7 @@ buildLinux (
 
     features = { };
 
-    # Do not propagate kernelPatches from callPackage because nixpkgs prefills it with unnecessary entries
-    kernelPatches = [ ];
+    kernelPatches = args.kernelPatches or [ ];
 
     structuredExtraConfig =
       with lib.kernel;
