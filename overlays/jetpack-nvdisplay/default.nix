@@ -19,13 +19,17 @@
 # jetpack kernel itself still has the three-argument form, so the host build is
 # unaffected -- the conftest simply doesn't match there.
 #
+# L4T < 38 only. From r38 onwards nvdisplay already handles the four argument signature,
+# and the patch fails to apply.
+#
 # Scoped to the Jetson targets (applied by modules/reference/hardware/jetpack/
 # default.nix) rather than living in overlays.default, the same way
 # overlays.jetpack-python is. Drop this once tiiuae/jetpack-nixos carries the
 # patch in pkgs/kernels/r36/patches/nvdisplay/.
 (_final: prev: {
   nvidia-jetpack = prev.nvidia-jetpack.overrideScope (
-    _jfinal: jprev: {
+    _jfinal: jprev:
+    prev.lib.optionalAttrs (prev.lib.versionOlder jprev.l4tMajorMinorPatchVersion "38") {
       kernelPackagesOverlay =
         kfinal: kprev:
         let
