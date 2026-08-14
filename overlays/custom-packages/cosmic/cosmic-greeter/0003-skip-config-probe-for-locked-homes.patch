@@ -1,0 +1,71 @@
+From: Ghaf contributors <ghaf@tii.ae>
+Subject: [PATCH] daemon: skip config load for users whose home is not their own
+
+cosmic-greeter-daemon assumes each user's identity (run_as_user) before reading
+their COSMIC config, so it never reads user files as root. systemd-homed reports
+an *inactive* user's home directory as "/" -- the fallback -- because the real
+home is an encrypted image that stays unmounted until the user authenticates:
+
+  $ homectl inspect testuser
+        State: inactive
+    Directory: / (fallback)
+
+So run_as_user() sets HOME=/ and every helper in load_config_as_user() tries to
+create /.config as that user. Root owns /, so each one fails with EACCES and the
+daemon logs, per such user, on every boot:
+
+  failed to create cosmic-theme mode helper: Io(PermissionDenied)
+  failed to create cosmic-theme config helper: Io(PermissionDenied)
+  failed to create cosmic-theme builder config helper: Io(PermissionDenied)
+  failed to create cosmic-bg state helper: Io(PermissionDenied)
+  failed to create cosmic-comp config handler: Permission denied (os error 13)
+  failed to create CosmicAppletTime config handler: Io(PermissionDenied)
+
+Nothing is wrong: the config is encrypted and the greeter is not entitled to it
+before authentication. An active home is owned by the user, the fallback is not,
+so check that before loading. The user still appears on the greeter with the
+default theme and wallpaper -- exactly what the failed reads left behind.
+
+Note the check has to be ownership, not readability: "/" is world-readable, so a
+readability probe passes and the writes still fail.
+---
+diff --git a/daemon/src/main.rs b/daemon/src/main.rs
+--- a/daemon/src/main.rs
++++ b/daemon/src/main.rs
+@@ -3,6 +3,7 @@
+ use std::error::Error;
+ use std::ffi::CString;
+ use std::future::pending;
++use std::os::unix::fs::MetadataExt;
+ use std::{env, io};
+ use tracing::metadata::LevelFilter;
+ use tracing::warn;
+@@ -85,6 +86,28 @@
+         for user in users {
+             let mut user_data = UserData::from(user.clone());
+ 
++            // systemd-homed reports an INACTIVE user's home as "/" (the
++            // fallback directory), so run_as_user() below would set HOME=/ and
++            // every cosmic_config helper in load_config_as_user() would try to
++            // create /.config as that user. Root owns /, so each one fails with
++            // EACCES and the daemon logs six errors per such user on every boot
++            // -- for config that is still encrypted and unreadable anyway.
++            //
++            // An active home is owned by the user; the fallback is not. Only load
++            // config when we would be reading the user's own directory.
++            let home_is_users = std::fs::metadata(&user.dir)
++                .map(|meta| meta.uid() == user.uid)
++                .unwrap_or(false);
++            if !home_is_users {
++                tracing::debug!(
++                    "skipping config for {}: {:?} is not their home (locked?)",
++                    user.name,
++                    user.dir
++                );
++                user_datas.push(user_data);
++                continue;
++            }
++
+             //IMPORTANT: Assume the identity of the user to ensure we don't read user file data as root
+             run_as_user(&user, || user_data.load_config_as_user())
+                 .map_err(|err| GreeterError::RunAsUser(err.to_string()))?;
