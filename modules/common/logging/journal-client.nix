@@ -3,6 +3,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 let
@@ -18,6 +19,34 @@ let
   givcEnabled = config.ghaf.givc.enable;
   givcHostEnabled = config.ghaf.givc.host.enable;
   needsGivcMount = givcEnabled && !givcHostEnabled;
+
+  # The uploader starts before the receiver on admin-vm is listening, fails with
+  # "Failed to connect to <addr>:<port> after 0 ms: Could not connect to server",
+  # and is only rescued by its restart.
+  endpointHostPort = builtins.match "https?://([^/:]+):([0-9]+).*" cfg.endpoint;
+  waitForListener = pkgs.writeShellApplication {
+    name = "wait-for-journal-listener";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.openssl
+    ];
+    text = ''
+      host=${lib.escapeShellArg (builtins.elemAt endpointHostPort 0)}
+      port=${lib.escapeShellArg (builtins.elemAt endpointHostPort 1)}
+      for _ in $(seq 1 60); do
+        if openssl s_client -connect "$host:$port" \
+             -cert ${lib.escapeShellArg cfg.tls.certFile} \
+             -key ${lib.escapeShellArg cfg.tls.keyFile} \
+             ${optionalString (cfg.tls.caFile != null) "-CAfile ${lib.escapeShellArg cfg.tls.caFile}"} \
+             </dev/null >/dev/null 2>&1; then
+          exit 0
+        fi
+        sleep 1
+      done
+      echo "journal-upload: $host:$port did not complete a TLS handshake in 60s;" \
+           "starting anyway" >&2
+    '';
+  };
 in
 {
   _file = ./journal-client.nix;
@@ -108,6 +137,9 @@ in
       serviceConfig = {
         User = lib.mkForce "root";
         Group = lib.mkForce "root";
+      }
+      // lib.optionalAttrs (endpointHostPort != null) {
+        ExecStartPre = lib.getExe waitForListener;
       };
     };
   };

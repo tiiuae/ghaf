@@ -128,6 +128,18 @@ in
             Restart = "always";
             RestartSec = "30s";
             User = appUserUid;
+            # dbus.socket is the *system* bus; this proxy needs the app user's
+            # session bus, which does not exist until their user manager starts.
+            ExecStartPre = pkgs.writeShellScript "wait-for-session-bus" ''
+              for _ in $(seq 1 60); do
+                if [ -S /run/user/${appUserUid}/bus ]; then
+                  exit 0
+                fi
+                sleep 1
+              done
+              echo "sni-renamer: /run/user/${appUserUid}/bus did not appear in 60s;" \
+                   "starting anyway" >&2
+            '';
             Environment = [
               "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/${appUserUid}/bus"
               "XDG_DATA_DIRS=/run/current-system/sw/share"

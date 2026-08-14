@@ -18,6 +18,37 @@ let
     ;
   tarpitListenPort = 2222;
   sshPort = lib.head config.services.openssh.ports;
+
+  waitForListenAddress = pkgs.writeShellApplication {
+    name = "wait-for-ssh-tarpit-address";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.gawk
+    ];
+    text = ''
+      addr=${lib.escapeShellArg cfg.listenAddress}
+      case "$addr" in
+        # Wildcard binds do not need a configured address.
+        0.0.0.0 | "[::]" | ::) exit 0 ;;
+      esac
+      # Read /proc, not `ip`: iproute2 needs AF_NETLINK, and this check has to
+      # keep working even if the unit running it is hardened. fib_trie lists
+      # every locally configured address as a line ending in the address,
+      # followed by "/32 host LOCAL".
+      for _ in $(seq 1 60); do
+        if awk -v a="$addr" '
+             $NF == a { f = 1; next }
+             f && /host LOCAL/ { ok = 1; exit }
+             { f = 0 }
+             END { exit(ok ? 0 : 1) }
+           ' /proc/net/fib_trie; then
+          exit 0
+        fi
+        sleep 1
+      done
+      echo "ssh-tarpit: $addr is not configured after 60s; starting anyway" >&2
+    '';
+  };
 in
 {
   _file = ./default.nix;
@@ -50,9 +81,23 @@ in
         message = "Fail2ban must be enabled to activate ssh-tarpit module";
       }
     ];
+    # The wait lives in its own unit rather than in ssh-tarpit's ExecStartPre,
+    # because ssh-tarpit is hardened to the point of being blind to the network:
+    systemd.services.ssh-tarpit-wait-address = {
+      description = "Wait for the ssh-tarpit listen address to be configured";
+      before = [ "ssh-tarpit.service" ];
+      requiredBy = [ "ssh-tarpit.service" ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = getExe waitForListenAddress;
+      };
+    };
+
     systemd.services.ssh-tarpit = {
       description = "SSH tarpit";
       requires = [ "network.target" ];
+      after = [ "ssh-tarpit-wait-address.service" ];
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         ExecStart = mkForce "${getExe pkgs.tarssh} --listen ${cfg.listenAddress}:${toString tarpitListenPort} --delay 3 --max-clients 64";
