@@ -125,8 +125,19 @@ in
             ];
             linkConfig.Unmanaged = "yes";
           };
-          # Disable addititional, non-defined external interfaces
-          "99-disable-external" = optionalAttrs (!cfg.enableExternalNetworking) {
+          # The Driver= match above reads udev's ID_NET_DRIVER, which is not set
+          # while the device is still enumerating.
+          "12-usb-ethernet-unmanaged-byname" = {
+            matchConfig.Name = "en*u*";
+            linkConfig.Unmanaged = "yes";
+          };
+        }
+        # Not `"99-disable-external" = optionalAttrs cond { ... }`: that keeps the
+        # attribute with an empty value, and NixOS renders it as a .network file
+        # with no [Match] at all.
+        // optionalAttrs (!cfg.enableExternalNetworking) {
+          # Disable additional, non-defined external interfaces
+          "99-disable-external" = {
             matchConfig.Name = [
               "en*"
               "eth*"

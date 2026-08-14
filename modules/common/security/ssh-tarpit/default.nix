@@ -58,6 +58,11 @@ in
         ExecStart = mkForce "${getExe pkgs.tarssh} --listen ${cfg.listenAddress}:${toString tarpitListenPort} --delay 3 --max-clients 64";
         Restart = mkForce "always";
         RestartSec = mkForce "10s";
+      };
+      # These two belong to [Unit], not [Service]. In serviceConfig systemd drops
+      # them -- "Unknown key 'StartLimitIntervalSec' in section [Service],
+      # ignoring" on every boot.
+      unitConfig = {
         StartLimitBurst = mkForce 10;
         StartLimitIntervalSec = mkForce 60;
       };

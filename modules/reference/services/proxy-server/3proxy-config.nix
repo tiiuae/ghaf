@@ -165,7 +165,6 @@ in
         description = "Run msFetchUrl periodically";
         wantedBy = [ "timers.target" ];
         timerConfig = {
-          User = "${proxyUserName}";
           Persistent = true; # Ensures the timer runs after a system reboot
           OnCalendar = "hourly"; # Set to your desired schedule
           OnBootSec = "60s";
@@ -200,9 +199,7 @@ in
       description = "Run ghafFetchUrl periodically";
       wantedBy = [ "timers.target" ];
       timerConfig = {
-        User = "${proxyUserName}";
-        Group = "${proxyGroupName}";
-
+        # See msFetchUrl above: [Timer] accepts no User=/Group=.
         Persistent = true; # Ensures the timer runs after a system reboot
         OnCalendar = "hourly"; # Set to your desired schedule
         OnBootSec = "90s";

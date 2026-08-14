@@ -38,14 +38,19 @@ writeShellApplication {
     # Function to fetch and process URLs from a JSON file
     fetch_and_process_url() {
         local file_url="$1"
+        local json_content
 
-        # Fetch and parse the JSON
-        if json_content=$(curl -s --retry 5 --retry-delay 10 --retry-connrefused "$file_url"); then
-            echo "$json_content" | jq -r '.[]? | select(.category == "Optimize" or .category == "Allow" or .category == "Default") | .urls[]?' | sort | uniq
-        else
-            logger -t ${logTag} "Failed to fetch or parse JSON from $file_url"
+        if ! json_content=$(curl -s --retry 5 --retry-delay 10 --retry-connrefused "$file_url"); then
+            logger -t ${logTag} "Failed to fetch $file_url"
             return 1
         fi
+
+        if ! jq -e . >/dev/null 2>&1 <<<"$json_content"; then
+            logger -t ${logTag} "Skipping $file_url: response is not JSON"
+            return 1
+        fi
+
+        jq -r '.[]? | select(.category == "Optimize" or .category == "Allow" or .category == "Default") | .urls[]?' <<<"$json_content" | sort | uniq
     }
 
     # Parse command line arguments
@@ -104,6 +109,13 @@ writeShellApplication {
         # Fetch the folder contents from the API
         folder_response=$(curl -s -H "Accept: application/vnd.github.v3+json" "$folder_api_url")
 
+        # Same reasoning as fetch_and_process_url: check it is JSON before jq
+        # parses it, so a rate-limited or error response is reported as such.
+        if ! jq -e . >/dev/null 2>&1 <<<"$folder_response"; then
+            logger -t ${logTag} "Folder listing from $folder_api_url is not JSON"
+            exit 4
+        fi
+
         # Extract JSON file URLs
         file_urls=$(echo "$folder_response" | jq -r '.[] | select(.name | endswith(".json")) | .download_url')
 
@@ -112,10 +124,11 @@ writeShellApplication {
             exit 4
         fi
 
-        # Process each JSON file URL
+        # Process each JSON file URL. One unusable file is skipped, not fatal.
         for file_url in $file_urls; do
-            fetched_urls=$(fetch_and_process_url "$file_url")
-            all_urls+="$fetched_urls"$'\n'
+            if fetched_urls=$(fetch_and_process_url "$file_url"); then
+                all_urls+="$fetched_urls"$'\n'
+            fi
         done
     fi
 
@@ -123,6 +136,13 @@ writeShellApplication {
     all_urls=$(echo "$all_urls" | sort | uniq | tr '\n' ',')  # Sort, deduplicate, join with commas
     all_urls=$(echo "$all_urls" | awk '{sub(/^,/, ""); print}')
     all_urls=$(echo "$all_urls" | awk '{gsub(/^,|,$/, ""); print}')
+
+    # Never write an empty list. write_to_allow_list would emit a bare
+    # "allow * * ", and 3proxy reads an omitted target list as "any"
+    if [[ -z "$all_urls" ]]; then
+        logger -t ${logTag} "No URLs collected; leaving $allowListPath unchanged"
+        exit 4
+    fi
 
     # Write to the allow list
     if write_to_allow_list "$all_urls" "$allowListPath"; then
