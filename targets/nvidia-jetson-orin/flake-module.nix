@@ -259,6 +259,13 @@ let
       extraModules = orinModulesR39;
       extraConfig = {
         reference.profiles.mvp-orinuser-trial.enable = true;
+
+        hardware.nvidia.orin.kernelVersion = lib.mkForce "stable-6-18-pkvm";
+      };
+      vmConfig = {
+        sysvms.netvm.vmm = "crosvm";
+        sysvms.netvm.mem = 4096;
+        sysvms.adminvm.mem = 4096;
       };
     })
 
