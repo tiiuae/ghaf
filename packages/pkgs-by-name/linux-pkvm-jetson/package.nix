@@ -21,6 +21,7 @@ buildLinux (
       owner = "tiiuae";
       repo = "linux-pkvm-jetson";
       rev = "37b706a21b55b3183faef75eb594dd249913826a"; # pkvm-v6.18-dev (29-06-2026)
+      hash = "sha256-BWfA7B9piYX6Gq+92f1PPqPjc9onS5DI+3qDVqfHDWs=";
     };
     autoModules = false;
     ignoreConfigErrors = true;
@@ -39,6 +40,8 @@ buildLinux (
         # Override the default CMA_SIZE_MBYTES=32M setting in common-config.nix with the default from tegra_defconfig
         # Otherwise, nvidia's driver craps out
         CMA_SIZE_MBYTES = lib.mkForce (freeform "64");
+
+        VIRTIO_FS = module;
 
         ### So nat.service and firewall work ###
         NF_TABLES = module; # This one should probably be in common-config.nix
