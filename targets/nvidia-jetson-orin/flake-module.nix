@@ -250,24 +250,30 @@ let
       };
     })
 
-    (ghaf-configuration {
-      name = "nvidia-jetson-orin-agx64-jetpack7";
-      inherit system;
-      profile = "orin";
-      hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx64;
-      variant = "debug";
-      extraModules = orinModulesR39;
-      extraConfig = {
-        reference.profiles.mvp-orinuser-trial.enable = true;
+    (
+      (ghaf-configuration {
+        name = "nvidia-jetson-orin-agx64-jetpack7";
+        inherit system;
+        profile = "orin";
+        hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx64;
+        variant = "debug";
+        extraModules = orinModulesR39;
+        extraConfig = {
+          reference.profiles.mvp-orinuser-trial.enable = true;
 
-        hardware.nvidia.orin.kernelVersion = lib.mkForce "stable-6-18-pkvm";
-      };
-      vmConfig = {
-        sysvms.netvm.vmm = "crosvm";
-        sysvms.netvm.mem = 4096;
-        sysvms.adminvm.mem = 4096;
-      };
-    })
+          hardware.nvidia.orin.kernelVersion = lib.mkForce "stable-6-18-pkvm";
+        };
+        vmConfig = {
+          sysvms.netvm.vmm = "crosvm";
+          sysvms.netvm.mem = 4096;
+          sysvms.adminvm.mem = 4096;
+        };
+      })
+      // {
+        # Track the r39 BSP to use `legacyFlashScript` (see flashTarget)
+        isR39 = true;
+      }
+    )
 
     (ghaf-configuration {
       name = "nvidia-jetson-orin-agx-industrial";
@@ -507,6 +513,11 @@ let
   flashTarget =
     t: qspiOnly:
     let
+      # TEMP: Used by jetpack7 target, remove condition when jetpack-nixos is bumped to latest.
+      # Either switch to legacyFlashScript to keep the old flash behavior, or use flashScript
+      # for initrd-based flashing.
+      flashScriptAttr = if t.isR39 or false then "legacyFlashScript" else "flashScript";
+
       noSB =
         (t.hostConfiguration.extendModules {
           modules = [
@@ -522,7 +533,7 @@ let
               }
             )
           ];
-        }).pkgs.nvidia-jetpack.flashScript;
+        }).pkgs.nvidia-jetpack.${flashScriptAttr};
       withSB =
         (t.hostConfiguration.extendModules {
           modules = [
@@ -539,7 +550,7 @@ let
               }
             )
           ];
-        }).pkgs.nvidia-jetpack.flashScript;
+        }).pkgs.nvidia-jetpack.${flashScriptAttr};
     in
     # Single `*-flash-script` entrypoint that picks between two
     # pre-built QSPI firmware variants at flash time.
