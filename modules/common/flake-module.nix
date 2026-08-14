@@ -12,6 +12,7 @@
       ./common.nix
       ./firewall
       ./global-config.nix
+      ./stylix.nix
       ./security
       ./storage-persistence.nix
       ./users
