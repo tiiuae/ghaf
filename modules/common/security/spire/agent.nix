@@ -261,6 +261,29 @@ let
       '';
     };
 
+  # systemd marks a Type=simple unit active as soon as the process forks, which
+  # for spire-agent is *before* node attestation. The re-attest restart then
+  # cancels an agent mid-attestation and it exits 1 ("Agent crashed: context
+  # canceled"), so a deliberate restart is recorded as a failed unit on every
+  # appvm. SPIRE only starts the Workload API once it has an SVID
+  waitForAgentReady =
+    name: agent:
+    pkgs.writeShellApplication {
+      name = "wait-ready-${serviceName name}";
+      runtimeInputs = [ pkgs.coreutils ];
+      text = ''
+        socket=${escapeShellArg agent.socketPath}
+        for _ in $(seq 1 90); do
+          if [ -S "$socket" ]; then
+            exit 0
+          fi
+          sleep 1
+        done
+        echo "${serviceName name}: workload API socket $socket did not appear in 90s;" \
+             "continuing without the readiness gate." >&2
+      '';
+    };
+
   agentServices = mapAttrs' (
     name: agent:
     let
@@ -312,6 +335,9 @@ let
           '')
         ];
         ExecStart = "${getExe' spire-package "spire-agent"} run -expandEnv -config ${configFiles.${name}}";
+        # Hold the unit in "activating" until the agent is actually attested and
+        # serving; see waitForAgentReady above.
+        ExecStartPost = getExe (waitForAgentReady name agent);
         LoadCredential = credentials agent;
         User = unitName;
         Group = unitName;
@@ -382,7 +408,7 @@ in
         spire-reattest-agents-after-time-sync = {
           description = "Re-attest SPIRE agents after time synchronisation";
           wantedBy = [ "ghaf-clock-synced.target" ];
-          after = [ "ghaf-wait-time-sync.service" ];
+          after = [ "ghaf-wait-time-sync.service" ] ++ agentServiceUnits;
           serviceConfig = {
             Type = "oneshot";
             ExecStart = getExe reattestAgentsApp;
