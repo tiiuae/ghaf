@@ -1,6 +1,11 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   cfg = config.ghaf.reference.profiles.mvp-user-trial-extras;
 in
@@ -42,7 +47,13 @@ in
           enable = lib.mkForce true;
           mitmproxy.enable = lib.mkForce true;
           # Use the new evaluatedConfig pattern from laptop-x86 profile
-          evaluatedConfig = config.ghaf.profiles.laptop-x86.idsvmBase;
+          evaluatedConfig = config.ghaf.profiles.laptop-x86.idsvmBase.extendModules {
+            modules = lib.ghaf.vm.applyVmConfig {
+              inherit config;
+              hostPkgs = pkgs;
+              vmName = "idsvm";
+            };
+          };
         };
       };
 

@@ -145,6 +145,39 @@ let
           "$out"
       '';
 
+  # Parses Ghaf-specific flags out of the flash script's positional parameters
+  # and exports them for preFlashScript.
+  #
+  # This is spliced inline into jetpack-nixos' flash script rather than living
+  # inside preFlashScript, because it must run in that script's own shell: only
+  # there can `set --` rewrite the argument list that is later forwarded to
+  # NVIDIA's flash.sh. flash.sh has no lowercase -s in its optstring, so an
+  # unconsumed -s would abort the flash with an illegal-option error.
+  parseGhafFlashArgs = ''
+    ghaf_flash_args=()
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        -s | --signed-sd-image)
+          if [ "$#" -lt 2 ]; then
+            echo "ERROR: $1 requires a directory argument" >&2
+            exit 1
+          fi
+          export SIGNED_SD_IMAGE_DIR="$2"
+          shift 2
+          ;;
+        -s=* | --signed-sd-image=*)
+          export SIGNED_SD_IMAGE_DIR="''${1#*=}"
+          shift
+          ;;
+        *)
+          ghaf_flash_args+=("$1")
+          shift
+          ;;
+      esac
+    done
+    set -- ''${ghaf_flash_args+"''${ghaf_flash_args[@]}"}
+  '';
+
   # preFlashCommands: Extract images from sdImage and patch flash.xml
   preFlashScript = pkgs.pkgsBuildBuild.writeShellApplication {
     name = "pre-flash-commands";
@@ -344,6 +377,9 @@ in
       )
       {
         hardware.nvidia-jetpack.flashScriptOverrides.partitionTemplate = partitionTemplate;
-        hardware.nvidia-jetpack.flashScriptOverrides.preFlashCommands = "${preFlashScript}/bin/pre-flash-commands";
+        hardware.nvidia-jetpack.flashScriptOverrides.preFlashCommands = ''
+          ${parseGhafFlashArgs}
+          ${preFlashScript}/bin/pre-flash-commands
+        '';
       };
 }

@@ -32,6 +32,7 @@ _: {
       ./common/microvm-store-mode.nix
       ./common/shared-directory.nix
       ./common/storagevm.nix
+      ./common/vm-crosvm.nix
       ./common/vm-networking.nix
       ./common/vm-qemu.nix
       ./common/vm-swap.nix

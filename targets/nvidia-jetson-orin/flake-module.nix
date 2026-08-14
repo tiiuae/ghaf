@@ -10,7 +10,7 @@
   ...
 }:
 let
-  inherit (inputs) jetpack-nixos nixpkgs;
+  inherit (inputs) jetpack-nixos jetpack-nixos-r39 nixpkgs;
   system = "aarch64-linux";
   pkgsX86 = nixpkgs.legacyPackages.x86_64-linux;
   lazyPackage =
@@ -124,6 +124,14 @@ let
     }
   ];
 
+  orinModulesR39 = [
+    ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/format-module.nix
+    jetpack-nixos-r39.nixosModules.default
+    self.nixosModules.reference-host-demo-apps
+    self.nixosModules.reference-profiles-orin
+    self.nixosModules.profiles
+  ];
+
   # Shared by the AGX and NX accelerated-guivm variants.
   acceleratedGuivmUsbRules = [
 
@@ -212,6 +220,28 @@ let
       extraConfig = {
         reference.profiles.mvp-orinuser-trial.enable = true;
       };
+    })
+
+    ((ghaf-configuration {
+      name = "nvidia-jetson-orin-agx64-jetpack7";
+      inherit system;
+      profile = "orin";
+      hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx64;
+      variant = "debug";
+      extraModules = orinModulesR39;
+      extraConfig = {
+        reference.profiles.mvp-orinuser-trial.enable = true;
+
+        hardware.nvidia.orin.kernelVersion = lib.mkForce "stable-6-18-pkvm";
+      };
+      vmConfig = {
+        sysvms.netvm.vmm = "crosvm";
+        sysvms.netvm.mem = 4096;
+        sysvms.adminvm.mem = 4096;
+      };
+    }) // {
+      # Track the r39 BSP to use `legacyFlashScript` (see flashTarget)
+      isR39 = true;
     })
 
     (ghaf-configuration {
@@ -452,7 +482,11 @@ let
   flashTarget =
     t: qspiOnly:
     let
-      innerName = t.hostConfiguration.config.hardware.nvidia-jetpack.name;
+      # TEMP: Used by jetpack7 target, remove condition when jetpack-nixos is bumped to latest.
+      # Either switch to legacyFlashScript to keep the old flash behavior, or use flashScript
+      # for initrd-based flashing.
+      flashScriptAttr = if t.isR39 or false then "legacyFlashScript" else "flashScript";
+
       noSB =
         (t.hostConfiguration.extendModules {
           modules = [
@@ -468,7 +502,7 @@ let
               }
             )
           ];
-        }).pkgs.nvidia-jetpack.flashScript;
+        }).pkgs.nvidia-jetpack.${flashScriptAttr};
       withSB =
         (t.hostConfiguration.extendModules {
           modules = [
@@ -485,7 +519,7 @@ let
               }
             )
           ];
-        }).pkgs.nvidia-jetpack.flashScript;
+        }).pkgs.nvidia-jetpack.${flashScriptAttr};
     in
     # Single `*-flash-script` entrypoint that picks between two
     # pre-built QSPI firmware variants at flash time.
@@ -534,9 +568,9 @@ let
           esac
         done
         if [ "$sb" = 1 ]; then
-          exec ${withSB}/bin/flash-${innerName} "''${args[@]}"
+          exec ${lib.getExe withSB} "''${args[@]}"
         else
-          exec ${noSB}/bin/flash-${innerName} "''${args[@]}"
+          exec ${lib.getExe noSB} "''${args[@]}"
         fi
       '';
     };

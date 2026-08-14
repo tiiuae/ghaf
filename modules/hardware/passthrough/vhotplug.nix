@@ -8,6 +8,7 @@
 }:
 let
   cfg = config.ghaf.hardware.passthrough.vhotplug;
+  managerCfg = config.ghaf.hardware.passthrough.deviceManager;
   inherit (lib)
     mkEnableOption
     mkOption
@@ -29,9 +30,39 @@ let
       }";
     }
   ) config.microvm.vms;
+  crosvmPciVms = lib.filter (
+    vm: vm.type == "crosvm" && lib.any (rule: (rule.targetVm or null) == vm.name) cfg.pciRules
+  ) cfg.vms;
+  disableRunnerGlobbing = pkgs.writeText "disable-crosvm-runner-globbing" ''
+    set -f
+  '';
+  managerService =
+    if managerCfg.backend == "ghaf-device-manager" then "ghaf-device-manager" else "vhotplug";
 in
 {
   _file = ./vhotplug.nix;
+
+  options.ghaf.hardware.passthrough.deviceManager = {
+    backend = mkOption {
+      type = types.enum [
+        "vhotplug"
+        "ghaf-device-manager"
+      ];
+      default = "vhotplug";
+      description = ''
+        Device manager used by this image. Select ghaf-device-manager only
+        when every dynamically managed VM uses Crosvm.
+      '';
+    };
+
+    package = mkOption {
+      type = types.package;
+      readOnly = true;
+      default =
+        if managerCfg.backend == "ghaf-device-manager" then pkgs.ghaf-device-manager else pkgs.vhotplug;
+      description = "Package providing the selected daemon and the vhotplugcli compatibility command.";
+    };
+  };
 
   options.ghaf.hardware.passthrough.vhotplug = {
     enable = mkEnableOption "the hot plugging of USB devices";
@@ -152,10 +183,18 @@ in
   };
 
   config = mkIf cfg.enable {
+    assertions = [
+      {
+        assertion =
+          managerCfg.backend != "ghaf-device-manager" || lib.all (vm: vm.type == "crosvm") cfg.vms;
+        message = "ghaf-device-manager requires every dynamically managed VM to use Crosvm";
+      }
+    ];
+
     services.udev.extraRules = ''
       SUBSYSTEM=="usb", GROUP="kvm"
       KERNEL=="event*", GROUP="kvm"
-      SUBSYSTEM=="vfio",GROUP="kvm"
+      SUBSYSTEM=="vfio", GROUP="kvm", MODE="0660"
     '';
 
     environment.etc."vhotplug.conf".text = builtins.toJSON {
@@ -176,26 +215,61 @@ in
         };
         modprobe = lib.getExe' pkgs.kmod "modprobe";
         modinfo = lib.getExe' pkgs.kmod "modinfo";
+        crosvm = lib.getExe pkgs.crosvm;
         ovmfCode = "${pkgs.OVMF.fd}/FV/OVMF_CODE.fd";
         ovmfVars = "${pkgs.OVMF.fd}/FV/OVMF_VARS.fd";
       };
     };
 
-    systemd.services.vhotplug = {
-      enable = true;
-      description = "vhotplug";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "local-fs.target" ];
-      before = [ "microvm@.service" ];
-      serviceConfig = {
-        Type = "simple";
-        Restart = "always";
-        RestartSec = "1";
-        ExecStart = "${getExe pkgs.vhotplug} -a -c /etc/vhotplug.conf";
+    systemd.services = {
+      vhotplug = mkIf (managerCfg.backend == "vhotplug") {
+        enable = true;
+        description = "vhotplug";
+        wantedBy = [ "multi-user.target" ];
+        after = [ "local-fs.target" ];
+        serviceConfig = {
+          Type = "simple";
+          Restart = "always";
+          RestartSec = "1";
+          ExecStart = "${getExe pkgs.vhotplug} -a -c /etc/vhotplug.conf";
+        };
+        startLimitIntervalSec = 0;
       };
-      startLimitIntervalSec = 0;
-    };
 
-    environment.systemPackages = [ pkgs.vhotplug ];
+      ghaf-device-manager = mkIf (managerCfg.backend == "ghaf-device-manager") {
+        enable = true;
+        description = "Ghaf Crosvm device manager";
+        wantedBy = [ "multi-user.target" ];
+        after = [ "local-fs.target" ];
+        conflicts = [ "vhotplug.service" ];
+        serviceConfig = {
+          Type = "simple";
+          Restart = "always";
+          RestartSec = "1";
+          ExecStart = "${getExe managerCfg.package} -a -c /etc/vhotplug.conf";
+        };
+        startLimitIntervalSec = 0;
+      };
+    }
+    // builtins.listToAttrs (
+      map (vm: {
+        name = "microvm@${vm.name}";
+        value = {
+          requires = [ "${managerService}.service" ];
+          after = [ "${managerService}.service" ];
+          serviceConfig = {
+            Type = lib.mkForce "notify";
+            NotifyAccess = "all";
+            TimeoutStartSec = "45";
+            # microvm.nix expands extraArgsScript output as shell words. The
+            # vhotplug CLI rejects whitespace inside arguments; disabling glob
+            # expansion completes the safe one-word-per-argument contract.
+            Environment = "BASH_ENV=${disableRunnerGlobbing}";
+          };
+        };
+      }) crosvmPciVms
+    );
+
+    environment.systemPackages = [ managerCfg.package ];
   };
 }

@@ -80,7 +80,8 @@
 
     # A set of useful nix packages and utilities for ghaf
     ghafpkgs = {
-      url = "github:tiiuae/ghafpkgs";
+      # TODO: switch back to tiiuae/ghafpkgs after ghafpkgs#362 merges.
+      url = "github:vadika/ghafpkgs/fix/crosvm-cli-log-spam";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
@@ -90,6 +91,14 @@
         crane.follows = "givc/crane";
         devshell.follows = "devshell";
       };
+    };
+
+    # Crosvm with Ghaf's swtpm backend. This is a non-flake source input
+    # because nixpkgs supplies the package expression and Rust dependencies.
+    ghaf-crosvm = {
+      # TODO: switch back to main after ghaf-crosvm#6 and #7 merge.
+      url = "git+https://github.com/tiiuae/ghaf-crosvm?ref=fix/viommu-shared-domain-detach&submodules=1";
+      flake = false;
     };
 
     # To ensure that checks are run locally to enforce cleanliness
@@ -138,6 +147,12 @@
     jetpack-nixos = {
       #url = "github:anduril/jetpack-nixos";
       url = "github:tiiuae/jetpack-nixos/uki-sec-boot";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    jetpack-nixos-r39 = {
+      url = "github:anduril/jetpack-nixos";
+      # url = "github:tiiuae/jetpack-nixos/hotfix-ghaf-bump";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -195,9 +210,16 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Hot-plugging USB devices into virtual machines
+    # Hot-plugging USB and PCI devices into Crosvm virtual machines
+    ghaf-device-manager = {
+      url = "github:tiiuae/ghaf-device-manager/fix/crosvm-runtime-reliability";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # Hot-plugging devices into QEMU virtual machines
     vhotplug = {
-      url = "github:tiiuae/vhotplug";
+      # TODO: switch back to tiiuae/vhotplug after vhotplug#22 merges.
+      url = "github:vadika/vhotplug/feat/crosvm-pci-hotplug";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";

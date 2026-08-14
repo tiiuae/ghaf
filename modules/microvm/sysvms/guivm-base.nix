@@ -30,6 +30,7 @@
 #   base.extendModules { modules = [ ../services ]; }
 #
 {
+  config,
   lib,
   pkgs,
   inputs,
@@ -46,6 +47,7 @@ let
   performanceEnabled = lib.ghaf.features.isEnabledFor globalConfig "performance" vmName;
   localeEnabled = lib.ghaf.features.isEnabledFor globalConfig "locale" vmName;
   timezoneEnabled = lib.ghaf.features.isEnabledFor globalConfig "timezone" vmName;
+  isCrosvm = config.microvm.hypervisor == "crosvm";
 
   # A list of applications from all AppVMs (accessed via hostConfig)
   enabledVms = lib.filterAttrs (_: vm: vm.enable) (hostConfig.appvms or { });
@@ -328,7 +330,7 @@ in
       pkgs.libva-utils
       pkgs.glib
     ]
-    ++ [ pkgs.vhotplug ];
+    ++ [ (if isCrosvm then pkgs.ghaf-device-manager else pkgs.vhotplug) ];
     sessionVariables = lib.optionalAttrs (globalConfig.debug.enable or false) (
       {
         GIVC_NAME = "admin-vm";
@@ -347,6 +349,17 @@ in
     ];
   };
 
+  boot.kernelPatches = lib.optionals (isCrosvm && pkgs.stdenv.hostPlatform.isx86_64) [
+    {
+      name = "goldfish-battery";
+      patch = null;
+      structuredExtraConfig = {
+        GOLDFISH = lib.kernel.yes;
+        BATTERY_GOLDFISH = lib.kernel.module;
+      };
+    }
+  ];
+
   system.stateVersion = lib.trivial.release;
 
   nixpkgs = {
@@ -359,8 +372,7 @@ in
     # Sensible defaults - can be overridden via vmConfig
     vcpu = lib.mkDefault 6;
     mem = lib.mkDefault 6144;
-    hypervisor = "qemu";
-
+    vsock.cid = hostConfig.networking.thisVm.cid or 5;
     shares = [
       {
         tag = "ghaf-common";
@@ -384,12 +396,10 @@ in
       !(globalConfig.storage.storeOnDisk.enable or false)
     ) "/nix/.rw-store";
 
-    qemu = {
+    qemu = lib.mkIf (!isCrosvm) {
       extraArgs = [
         "-device"
         "qemu-xhci"
-        "-device"
-        "vhost-vsock-pci,guest-cid=${toString (hostConfig.networking.thisVm.cid or 5)}"
       ];
 
       machine =
@@ -400,6 +410,10 @@ in
         }
         .${globalConfig.platform.hostSystem or "x86_64-linux"};
     };
+    crosvm.extraArgs = lib.optionals isCrosvm [
+      "--battery"
+      "type=goldfish"
+    ];
   }
   // lib.optionalAttrs (globalConfig.storage.storeOnDisk.enable or false) (
     let

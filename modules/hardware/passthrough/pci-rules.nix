@@ -4,7 +4,6 @@
 {
   config,
   lib,
-  pkgs,
   options,
   ...
 }:
@@ -23,18 +22,21 @@ let
   hasHardwareDefinition = options ? ghaf.hardware.definition;
 
   defaultGuivmPciRules =
-    optionals hasHardwareDefinition [
-      {
-        description = "Static PCI Devices for GUIVM";
+    optionals hasHardwareDefinition (
+      map (d: {
+        description = "Static PCI Device ${d.path} for GUIVM";
         targetVm = "gui-vm";
         skipOnSuspend = true;
-        allow = map (d: {
-          address = d.path;
-          deviceId = d.productId;
-          inherit (d) vendorId;
-        }) config.ghaf.hardware.definition.gpu.pciDevices;
-      }
-    ]
+        crosvmUseRootBus = d.crosvm.useRootBus;
+        allow = [
+          {
+            address = d.path;
+            deviceId = d.productId;
+            inherit (d) vendorId;
+          }
+        ];
+      }) config.ghaf.hardware.definition.gpu.pciDevices
+    )
     ++ optionals cfg.autoDetectGpu [
       {
         description = "Auto-detected PCI Devices for GUIVM";
@@ -125,9 +127,10 @@ let
   ];
 
   busPrefix = config.ghaf.hardware.passthrough.pciPorts.pcieBusPrefix;
+  deviceManagerPackage = config.ghaf.hardware.passthrough.deviceManager.package;
   hwDetectModule = vm: [
     {
-      microvm.extraArgsScript = "${lib.getExe' pkgs.vhotplug "vhotplugcli"} vmm args --vm ${vm} --qemu-bus-prefix ${busPrefix} --qemu-bus-start-index 1";
+      microvm.extraArgsScript = "${lib.getExe' deviceManagerPackage "vhotplugcli"} vmm args --vm ${vm} --qemu-bus-prefix ${busPrefix} --qemu-bus-start-index 1";
     }
   ];
 

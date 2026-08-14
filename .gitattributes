@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+
+# Kernel patches contain whitespace-sensitive context lines that should not be
+# diagnosed as whitespace introduced into this repository.
+modules/microvm/sysvms/patches/chromiumos-virtio-tpm.patch -whitespace

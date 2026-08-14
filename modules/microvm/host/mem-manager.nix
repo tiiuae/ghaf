@@ -33,6 +33,22 @@ in
             # Use enabledVms which has derived mem from evaluatedConfig
             vmBaseName = lib.removeSuffix "-vm" name;
             appvmConfig = config.ghaf.virtualization.microvm.appvm.enabledVms.${vmBaseName} or null;
+            crosvmArgs = lib.optionals (microvmConfig.hypervisor == "crosvm") [
+              "--hypervisor"
+              "crosvm"
+              "--crosvm-binary"
+              (lib.getExe microvmConfig.crosvm.package)
+            ];
+            managerArgs = [
+              (lib.getExe pkgs.ghaf-mem-manager)
+              "--socket"
+              "${name}.sock"
+              "--minimum"
+              (toString (appvmConfig.mem * 1024 * 1024))
+              "--maximum"
+              (toString (microvmConfig.mem * 1024 * 1024))
+            ]
+            ++ crosvmArgs;
           in
           lib.optionalAttrs (appvmConfig != null) {
             "ghaf-mem-manager-${name}" = {
@@ -42,9 +58,7 @@ in
               serviceConfig = {
                 Type = "simple";
                 WorkingDirectory = "${config.microvm.stateDir}/${name}";
-                ExecStart = "${pkgs.ghaf-mem-manager}/bin/ghaf-mem-manager -s ${name}.sock -m ${
-                  toString (appvmConfig.mem * 1024 * 1024)
-                } -M ${toString (microvmConfig.mem * 1024 * 1024)}";
+                ExecStart = lib.escapeShellArgs managerArgs;
               };
             };
           }

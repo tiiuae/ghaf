@@ -48,6 +48,15 @@
         path = "0000:00:02.0";
         vendorId = "8086";
         productId = "7d45";
+        crosvm.useRootBus = true;
+      }
+      {
+        # Communication controller [0780]: Intel Corporation Meteor Lake-P CSME HECI [8086:7e70]
+        # The i915 GSC proxy uses this MEI endpoint to communicate with CSME.
+        path = "0000:00:16.0";
+        vendorId = "8086";
+        productId = "7e70";
+        crosvm.useRootBus = true;
       }
     ];
     kernelConfig = {

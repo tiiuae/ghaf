@@ -12,6 +12,19 @@ let
     mkIf
     ;
   cfg = config.ghaf.services.kill-switch;
+  deviceManagerPackage =
+    lib.attrByPath
+      [
+        "ghaf"
+        "hardware"
+        "passthrough"
+        "deviceManager"
+        "package"
+      ]
+      (
+        if (config.microvm.hypervisor or null) == "crosvm" then pkgs.ghaf-device-manager else pkgs.vhotplug
+      )
+      config;
 
   supportedDevices = [
     "mic"
@@ -66,9 +79,9 @@ let
 
   ghaf-killswitch = pkgs.writeShellApplication {
     name = "ghaf-killswitch";
-    runtimeInputs = with pkgs; [
-      coreutils
-      vhotplug
+    runtimeInputs = [
+      pkgs.coreutils
+      deviceManagerPackage
     ];
 
     text = ''

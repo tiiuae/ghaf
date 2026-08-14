@@ -119,6 +119,31 @@
         "type": "github"
       }
     },
+    "cuda-legacy_2": {
+      "inputs": {
+        "flake-parts": [
+          "jetpack-nixos-r39",
+          "cuda-legacy"
+        ],
+        "nixpkgs": [
+          "jetpack-nixos-r39",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1779836515,
+        "narHash": "sha256-X/AwJZeTjxetRM7JG2BXeffKa1PIg/uo8AP5TX/+kb0=",
+        "owner": "nixos-cuda",
+        "repo": "cuda-legacy",
+        "rev": "baf22622e1114bb36412e5cebe2303f302edb882",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos-cuda",
+        "repo": "cuda-legacy",
+        "type": "github"
+      }
+    },
     "devshell": {
       "inputs": {
         "nixpkgs": [
@@ -245,6 +270,46 @@
         "type": "github"
       }
     },
+    "ghaf-crosvm": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1786645331,
+        "narHash": "sha256-kGXqz8FpJIzor6ftgSYaztjg9+Z+XRdZVibUwzahfc0=",
+        "ref": "fix/viommu-shared-domain-detach",
+        "rev": "cf59cbd301828399b74a2325948ccf14d7a6f77b",
+        "revCount": 11730,
+        "submodules": true,
+        "type": "git",
+        "url": "https://github.com/tiiuae/ghaf-crosvm"
+      },
+      "original": {
+        "ref": "fix/viommu-shared-domain-detach",
+        "submodules": true,
+        "type": "git",
+        "url": "https://github.com/tiiuae/ghaf-crosvm"
+      }
+    },
+    "ghaf-device-manager": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1786644911,
+        "narHash": "sha256-7l/aoKlOQUDJ0GkMlSn5vkOuDyingaHaKNEgMvDMedM=",
+        "owner": "tiiuae",
+        "repo": "ghaf-device-manager",
+        "rev": "09fa325f266667b9a0480e1d65d4569797815420",
+        "type": "github"
+      },
+      "original": {
+        "owner": "tiiuae",
+        "ref": "fix/crosvm-runtime-reliability",
+        "repo": "ghaf-device-manager",
+        "type": "github"
+      }
+    },
     "ghafpkgs": {
       "inputs": {
         "crane": [
@@ -272,15 +337,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1785510724,
-        "narHash": "sha256-DYSllw9ibXiB1EJ0rwxh79+y3NqSkpWcn289FFc/Z9U=",
-        "owner": "tiiuae",
+        "lastModified": 1786614244,
+        "narHash": "sha256-EJ/RmSLQtHHxvE2PwakawcmDaVB6ebDiY29AdUuT2q4=",
+        "owner": "vadika",
         "repo": "ghafpkgs",
-        "rev": "28877975035dce209ff46359e7fa5c4ddbefbc6d",
+        "rev": "a6e6c383c24f3a87fe77df10f1f33411c3c60fa8",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "vadika",
+        "ref": "fix/crosvm-cli-log-spam",
         "repo": "ghafpkgs",
         "type": "github"
       }
@@ -422,6 +488,27 @@
       "original": {
         "owner": "tiiuae",
         "ref": "uki-sec-boot",
+        "repo": "jetpack-nixos",
+        "type": "github"
+      }
+    },
+    "jetpack-nixos-r39": {
+      "inputs": {
+        "cuda-legacy": "cuda-legacy_2",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1786469366,
+        "narHash": "sha256-Yluvq6Fw7wocxrM2M8XM+x3OeBqy/FfMn+goNrtb+aY=",
+        "owner": "anduril",
+        "repo": "jetpack-nixos",
+        "rev": "cfce7e3fc84b7d13ef82b48f3fb821409d9416b2",
+        "type": "github"
+      },
+      "original": {
+        "owner": "anduril",
         "repo": "jetpack-nixos",
         "type": "github"
       }
@@ -593,12 +680,15 @@
         "flake-parts": "flake-parts",
         "flake-root": "flake-root",
         "flake-utils": "flake-utils",
+        "ghaf-crosvm": "ghaf-crosvm",
+        "ghaf-device-manager": "ghaf-device-manager",
         "ghafpkgs": "ghafpkgs",
         "git-hooks-nix": "git-hooks-nix",
         "givc": "givc",
         "gp-gui": "gp-gui",
         "gpu-partition-manager": "gpu-partition-manager",
         "jetpack-nixos": "jetpack-nixos",
+        "jetpack-nixos-r39": "jetpack-nixos-r39",
         "microvm": "microvm",
         "nix-store-veritysetup-generator": "nix-store-veritysetup-generator",
         "nixd": "nixd",
@@ -761,15 +851,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1786115850,
-        "narHash": "sha256-GneU2FQUJxKsw620iyGVX+ysyXZP49rvF8/BoMPuu0A=",
-        "owner": "tiiuae",
+        "lastModified": 1786614239,
+        "narHash": "sha256-jh4QOHemA1WMFLWS06uIHv56sjX0UwaD7NQP701HAOw=",
+        "owner": "vadika",
         "repo": "vhotplug",
-        "rev": "3778838223d1402f1f0ca9e273ec2a5f5bc520ad",
+        "rev": "123ea2d56380a1353d671fa1f88b241d08dcffe1",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "vadika",
+        "ref": "feat/crosvm-pci-hotplug",
         "repo": "vhotplug",
         "type": "github"
       }
