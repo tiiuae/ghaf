@@ -115,5 +115,15 @@ in
     # TEMP: ftpmSimTooling patch is missing from upstream jetpack-nixos
     # Disable until rebase
     ghaf.hardware.nvidia.orin.runtimeEkProvision.enable = false;
+
+    # Passthroughs aren't ported yet
+    ghaf.hardware.nvidia.virtualization.enable = lib.mkForce false;
+    ghaf.hardware.nvidia.virtualization.host.dce.enable = lib.mkForce false;
+
+    ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm.enable = lib.mkForce false;
+    ghaf.hardware.nvidia.passthroughs.gpu_vm.enable = lib.mkForce false;
+    ghaf.hardware.nvidia.passthroughs.disp_vm.enable = lib.mkForce false;
+
+    ghaf.hardware.nvidia.orin.agx.enableNetvmWlanPCIPassthrough = lib.mkForce false;
   };
 }
