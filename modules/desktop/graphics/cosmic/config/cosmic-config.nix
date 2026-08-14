@@ -26,6 +26,10 @@
     "Panel"
     "Dock"
   ],
+  isDark ? true,
+  iconTheme ? "Papirus",
+  sansSerifFont ? "Open Sans",
+  monospaceFont ? "Noto Sans Mono",
   ...
 }:
 
@@ -285,6 +289,18 @@ pkgs.stdenv.mkDerivation {
     substituteInPlace $out/share/cosmic/com.system76.CosmicSettings.Shortcuts/v1/system_actions \
     --replace-fail 'VolumeLower: ""' 'VolumeLower: "${lib.getExe ghaf-volume} down"' \
     --replace-fail 'VolumeRaise: ""' 'VolumeRaise: "${lib.getExe ghaf-volume} up"'
+
+    substituteInPlace $out/share/cosmic/com.system76.CosmicTheme.Mode/v1/is_dark \
+      --replace-fail 'IS_DARK' '${if isDark then "true" else "false"}'
+    substituteInPlace $out/share/cosmic/com.system76.CosmicTk/v1/icon_theme \
+      --replace-fail 'ICON_THEME' '${iconTheme}'
+
+    substituteInPlace \
+      $out/share/cosmic/com.system76.CosmicTerm/v1/font_name \
+      $out/share/cosmic/com.system76.CosmicTk/v1/monospace_font \
+      --replace-fail 'MONO_FONT' '${monospaceFont}'
+    substituteInPlace $out/share/cosmic/com.system76.CosmicTk/v1/interface_font \
+      --replace-fail 'INTERFACE_FONT' '${sansSerifFont}'
   ''
   # After the volume actions above, so that an explicit override wins.
   + lib.concatStrings (

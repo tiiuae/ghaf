@@ -43,6 +43,9 @@ in
       nix-setup.enable = lib.mkDefault (globalConfig.development.nix-setup.enable or false);
     };
 
+    # Shared theming (stylix) - from globalConfig
+    theming = lib.mkDefault (globalConfig.theming or { });
+
     # Networking hosts - from hostConfig
     # Required for vm-networking.nix to look up this VM's MAC/IP
     networking.hosts = hostConfig.networking.hosts or { };

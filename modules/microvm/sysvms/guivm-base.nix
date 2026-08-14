@@ -79,6 +79,9 @@ in
   # See: modules/reference/profiles/mvp-user-trial.nix
 
   ghaf = {
+    # Shared theming (stylix) - from globalConfig
+    theming = lib.mkDefault (globalConfig.theming or { });
+
     # Profiles - from globalConfig
     profiles = {
       debug.enable = lib.mkDefault (globalConfig.debug.enable or false);

@@ -52,6 +52,9 @@ in
       nix-setup.enable = lib.mkDefault (globalConfig.development.nix-setup.enable or false);
     };
 
+    # Shared theming (stylix) - from globalConfig
+    theming = lib.mkDefault (globalConfig.theming or { });
+
     users.proxyUser = {
       enable = true;
       extraGroups = [

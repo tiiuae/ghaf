@@ -131,6 +131,10 @@ in
           withHardenedConfigs = true;
         };
         givc.host.enable = true;
+
+        # Shared theming (stylix) - from global-config
+        theming = lib.mkDefault config.ghaf.global-config.theming;
+
         graphics.boot = {
           enable = true; # Enable graphical boot on host
           renderer = "simpledrm"; # Force simpledrm framebuffer for graphical boot on host

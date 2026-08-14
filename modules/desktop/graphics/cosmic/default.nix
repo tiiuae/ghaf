@@ -18,9 +18,28 @@ let
 
   cfg = config.ghaf.graphics.cosmic;
   graphicsProfileCfg = config.ghaf.profiles.graphics;
+  themingCfg = config.ghaf.theming;
+
+  # When shared theming is enabled, follow its polarity/icon theme/fonts
+  # instead of the ghaf defaults, so COSMIC matches the rest of the system.
+  isDark = if themingCfg.enable then themingCfg.polarity == "dark" else true;
+  iconTheme =
+    if themingCfg.enable then
+      (if isDark then themingCfg.iconTheme.dark else themingCfg.iconTheme.light)
+    else
+      "Papirus";
+  sansSerifFont = if themingCfg.enable then themingCfg.fonts.sansSerif.name else "Open Sans";
+  monospaceFont = if themingCfg.enable then themingCfg.fonts.monospace.name else "Noto Sans Mono";
 
   ghaf-cosmic-config = import ./config/cosmic-config.nix {
-    inherit lib pkgs;
+    inherit
+      lib
+      pkgs
+      isDark
+      iconTheme
+      sansSerifFont
+      monospaceFont
+      ;
     inherit (cfg)
       topPanelApplets
       bottomPanelApplets

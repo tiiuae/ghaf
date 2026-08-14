@@ -146,8 +146,8 @@ in
     boot = {
       plymouth = {
         enable = true;
-        inherit (cfg) theme;
-        logo = if cfg.logo.enable then cfg.logo.image else "/dev/null";
+        theme = mkDefault cfg.theme;
+        logo = mkIf (!config.ghaf.theming.enable) (if cfg.logo.enable then cfg.logo.image else "/dev/null");
 
         # This is a bit hacky, as we're overriding the default spinner theme
         # It would be better to create our own custom theme
