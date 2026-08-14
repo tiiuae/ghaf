@@ -46,7 +46,7 @@ let
       RTW89 = module;
       RTW89_8852CE = module;
     }
-    // import "${inputs.jetpack-nixos}/pkgs/kernels/common-arch.nix" { inherit lib; };
+    // import "${inputs.jetpack-nixos-r39}/pkgs/kernels/common-arch.nix" { inherit lib; };
 
   ootExtraMakeFlags = [
     "kernel_name=pkvm"

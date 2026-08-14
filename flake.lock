@@ -119,6 +119,31 @@
         "type": "github"
       }
     },
+    "cuda-legacy_2": {
+      "inputs": {
+        "flake-parts": [
+          "jetpack-nixos-r39",
+          "cuda-legacy"
+        ],
+        "nixpkgs": [
+          "jetpack-nixos-r39",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1779836515,
+        "narHash": "sha256-X/AwJZeTjxetRM7JG2BXeffKa1PIg/uo8AP5TX/+kb0=",
+        "owner": "nixos-cuda",
+        "repo": "cuda-legacy",
+        "rev": "baf22622e1114bb36412e5cebe2303f302edb882",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos-cuda",
+        "repo": "cuda-legacy",
+        "type": "github"
+      }
+    },
     "devshell": {
       "inputs": {
         "nixpkgs": [
@@ -468,6 +493,27 @@
         "type": "github"
       }
     },
+    "jetpack-nixos-r39": {
+      "inputs": {
+        "cuda-legacy": "cuda-legacy_2",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1786469366,
+        "narHash": "sha256-Yluvq6Fw7wocxrM2M8XM+x3OeBqy/FfMn+goNrtb+aY=",
+        "owner": "anduril",
+        "repo": "jetpack-nixos",
+        "rev": "cfce7e3fc84b7d13ef82b48f3fb821409d9416b2",
+        "type": "github"
+      },
+      "original": {
+        "owner": "anduril",
+        "repo": "jetpack-nixos",
+        "type": "github"
+      }
+    },
     "microvm": {
       "inputs": {
         "nixpkgs": [
@@ -643,6 +689,7 @@
         "gp-gui": "gp-gui",
         "gpu-partition-manager": "gpu-partition-manager",
         "jetpack-nixos": "jetpack-nixos",
+        "jetpack-nixos-r39": "jetpack-nixos-r39",
         "microvm": "microvm",
         "nix-store-veritysetup-generator": "nix-store-veritysetup-generator",
         "nixd": "nixd",
