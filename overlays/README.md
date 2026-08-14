@@ -77,3 +77,16 @@ only exist until an upstream fix lands, so they should be reverted rather than m
   [microvm.nix#578](https://github.com/microvm-nix/microvm.nix/pull/578) is merged and the
   `microvm` input is bumped past it — find it with
   `git log --grep 'wait for a stopping guest'`.
+
+- `0025-tegra-fbdev-use-core-allocated-fb-info.patch`
+
+  In `.../passthrough/gpu-vm/patches/`, applied to `nvidia-oot-modules` from
+  `.../passthrough/payload/guest-module.nix`. Kernel 6.12.103 backported
+  `63c971af4036` and deleted `drm_fb_helper_alloc_info()`, so nvidia-oot's conftest
+  ladder falls through to `drm_fb_helper_alloc_fbi()` — gone since v6.2 — and the tegra
+  fbdev no longer compiles. Only Ghaf sees this, because the passthrough guests build
+  the L4T out-of-tree modules against mainline `linuxPackages_6_12` rather than jetpack's
+  own 5.15 kernel.
+
+  Drop it when a `jetpack-nixos` bump brings an `nvidia-oot` that knows the new
+  fb-helper contract.
