@@ -124,10 +124,16 @@ if [ ${#REASONS[@]} -eq 0 ]; then
   cat <<EOF
 Verdict: REBUILD is enough.
 
-  ghaf-rebuild <netvm-ip> .#<target> switch
+  ghaf-rebuild <netvm-ip> .#<target> boot
+  ssh ghaf@<netvm-ip> -- ssh ghaf-host sudo systemd-run --no-block systemctl reboot
 
-Nothing here changes partitioning, boot, hardware or VM topology. Restart the affected
-microVM afterwards so it picks up the new configuration.
+Nothing here changes partitioning, boot, hardware or VM topology.
+
+Prefer 'boot' + reboot over 'switch': the reboot restarts every microVM, so a guest-side
+change cannot be left unapplied while the host looks updated -- the most common way to
+conclude a fix did not work when it was simply never loaded. It also gives a real boot,
+which is the only way to judge start-up ordering and timing. 'switch' remains right when
+you deliberately want no downtime, and then you must restart the affected microVMs by hand.
 EOF
   exit 0
 fi

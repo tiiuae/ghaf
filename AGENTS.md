@@ -63,7 +63,7 @@ in {
 | See what a build will cost | `nix build --dry-run .#<target>` | `ghaf-build` |
 | Build an image | `nix build .#intel-laptop-debug` | `ghaf-build` |
 | Build many targets | `nix-fast-build --flake '.#packages.x86_64-linux' --select …` | `ghaf-build` |
-| Deploy without reflashing | `nix develop --command ghaf-rebuild <netvm-ip> .#<target> switch` | `ghaf-deploy` |
+| Deploy without reflashing | `nix develop --command ghaf-rebuild <netvm-ip> .#<target> boot`, then reboot | `ghaf-deploy` |
 | Flash an image | `sudo nix develop --command ghaf-flash -d /dev/sdX -i result/ghaf-image.raw.zst` | `ghaf-deploy` |
 | Reach a device or VM | `ssh ghaf@<host_ip>`, then `ssh <vm>` from there | `ghaf-connect` |
 | Collect logs across VMs | `.claude/skills/ghaf-logs/scripts/collect-logs.sh --machine <name>` | `ghaf-logs` |
@@ -95,7 +95,9 @@ asking or guessing; if a field is null in both, ask once and offer to write it t
   cmdline.** Those need a reflash, and switching anyway leaves a device that disagrees with
   your source tree.
 - **A host switch does not restart the microVMs.** They keep their old configuration until
-  `systemctl restart microvm@<vm>.service`.
+  `systemctl restart microvm@<vm>.service`. This is why `boot` + reboot is the default
+  deploy path: the reboot restarts every VM, so a guest change cannot be left unapplied
+  while the host reports success.
 
 ## Where the depth is
 
