@@ -78,6 +78,24 @@ only exist until an upstream fix lands, so they should be reverted rather than m
   `microvm` input is bumped past it — find it with
   `git log --grep 'wait for a stopping guest'`.
 
+- `modules/common/systemd/tmpfiles-portables.nix`
+
+  NixOS's `nixos/modules/system/boot/systemd/tmpfiles.nix` links
+  `${systemd}/example/tmpfiles.d/portables.conf` unconditionally, but systemd installs that
+  file only when portabled is built. Every ghaf systemd comes from `systemdMinimal`
+  (`modules/common/systemd/base.nix`), which leaves portabled off, so
+  `/etc/tmpfiles.d/portables.conf` dangles and each `systemd-tmpfiles` run logs
+  `Failed to chase '/etc/tmpfiles.d/portables.conf'` — three times per boot, on the host and
+  on every VM.
+
+  Drop it when [NixOS#553061](https://github.com/NixOS/nixpkgs/pull/553061) reaches our pin.
+  The upstream fix omits the link entirely, which is tidier than shipping an empty conf; test
+  for it directly rather than by date:
+
+  ```bash
+  git -C <nixpkgs> grep -q withPortabled <our-pin> -- nixos/modules/system/boot/systemd/tmpfiles.nix
+  ```
+
 - `0025-tegra-fbdev-use-core-allocated-fb-info.patch`
 
   In `.../passthrough/gpu-vm/patches/`, applied to `nvidia-oot-modules` from
