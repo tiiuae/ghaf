@@ -105,7 +105,7 @@
     #
     # TEMPORARILY pinned to a commit rather than the branch head
     givc = {
-      url = "github:tiiuae/ghaf-givc/15e18ac0aa79df6676bcdf4ab652fb9ac92ad032";
+      url = "github:tiiuae/ghaf-givc";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
