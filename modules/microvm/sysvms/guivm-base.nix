@@ -328,7 +328,8 @@ in
       pkgs.libva-utils
       pkgs.glib
     ]
-    ++ [ pkgs.vhotplug ];
+    ++ [ pkgs.vhotplug ]
+    ++ [ pkgs.xrdb ];
     sessionVariables = lib.optionalAttrs (globalConfig.debug.enable or false) (
       {
         GIVC_NAME = "admin-vm";
@@ -341,10 +342,13 @@ in
         GIVC_HOST_KEY = "/run/givc/key.pem";
       }
     );
-    # Add flatpak desktop entries if flatpak vm is enabled
-    profiles = lib.optionals (hostConfig.appvms.flatpak.enable or false) [
-      "/Shares/Unsafe flatpak-vm share/.flatpak-share"
-    ];
+    # Add flatpak desktop entries if the flatpak VM is enabled AND its share is
+    # actually provisioned. Enabling the VM and granting it the share are two separate decisions.
+    profiles = lib.optionals (
+      (hostConfig.appvms.flatpak.enable or false)
+      && (hostConfig.sharedVmDirectory.enable or false)
+      && builtins.elem "flatpak-vm" (hostConfig.sharedVmDirectory.vms or [ ])
+    ) [ "/Shares/Unsafe flatpak-vm share/.flatpak-share" ];
   };
 
   system.stateVersion = lib.trivial.release;
