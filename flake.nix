@@ -175,7 +175,7 @@
     };
 
     # Packages managment similar to nixpkgs, applied to flake parts
-    pkgs-by-name-for-flake-parts.url = "github:drupol/pkgs-by-name-for-flake-parts/7013e769c509a97cfe53c5924b45b273021225c3";
+    pkgs-by-name-for-flake-parts.url = "github:drupol/pkgs-by-name-for-flake-parts";
 
     # For preserving data across NixOS rebuilds
     preservation = {
