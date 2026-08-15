@@ -36,6 +36,25 @@ positional form — the first argument is the **net-vm it proxy-jumps through**,
 targets `root@ghaf-host`:
 
 ```bash
+nix develop --command ghaf-rebuild ghaf-usb .#intel-laptop-debug boot
+ssh ghaf-usb -- ssh ghaf-host sudo systemd-run --no-block systemctl reboot
+```
+
+**Default to `boot` plus a reboot rather than `switch`.** The reboot restarts every microVM,
+so a guest-side change cannot sit unapplied while the host reports success — see the
+microVM note below, which is the single most common way to conclude a fix didn't work when
+it was never loaded. It also produces a real boot, and start-up ordering, readiness and
+timing can only be judged on one. The cost is a couple of minutes of downtime on a rig that
+is about to be rebooted by the next test anyway.
+
+Issue the reboot detached (`systemd-run --no-block`): on a laptop the device address belongs
+to net-vm, so the reboot kills the ssh connection carrying it, and a foreground `systemctl
+reboot` can be killed with the session before it completes.
+
+Use `switch` when you deliberately want no downtime, and then restart the affected microVMs
+yourself:
+
+```bash
 nix develop --command ghaf-rebuild ghaf-usb .#intel-laptop-debug switch
 nix develop --command ghaf-rebuild ghaf-usb .#intel-laptop-debug --force-local switch
 nix develop --command ghaf-rebuild <netvm-ip> .#intel-laptop-debug switch   # also works
