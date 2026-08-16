@@ -26,6 +26,11 @@
       });
     };
 
+    ghaf-device-manager = _final: prev: {
+      ghaf-device-manager =
+        inputs.ghaf-device-manager.packages.${prev.stdenv.hostPlatform.system}.default;
+    };
+
     # Jetson-only Python fixes for the EDK2/UEFI firmware build. Deliberately
     # excluded from `default`: it rewrites pythonPackagesExtensions globally.
     # Applied by modules/reference/hardware/jetpack/default.nix.
@@ -42,6 +47,7 @@
       inputs.self.overlays.own-pkgs-overlay
       inputs.self.overlays.custom-packages
       inputs.self.overlays.crosvm
+      inputs.self.overlays.ghaf-device-manager
       #external overlays that we use
       inputs.ghafpkgs.overlays.default
       inputs.ctrl-panel.overlays.default

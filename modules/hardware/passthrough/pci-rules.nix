@@ -4,7 +4,6 @@
 {
   config,
   lib,
-  pkgs,
   options,
   ...
 }:
@@ -174,9 +173,10 @@ let
   ];
 
   busPrefix = config.ghaf.hardware.passthrough.pciPorts.pcieBusPrefix;
+  deviceManagerPackage = config.ghaf.hardware.passthrough.deviceManager.package;
   hwDetectModule = vm: [
     {
-      microvm.extraArgsScript = "${lib.getExe' pkgs.vhotplug "vhotplugcli"} vmm args --vm ${vm} --qemu-bus-prefix ${busPrefix} --qemu-bus-start-index 1";
+      microvm.extraArgsScript = "${lib.getExe' deviceManagerPackage "vhotplugcli"} vmm args --vm ${vm} --qemu-bus-prefix ${busPrefix} --qemu-bus-start-index 1";
     }
   ];
 

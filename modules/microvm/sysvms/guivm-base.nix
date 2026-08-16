@@ -330,7 +330,7 @@ in
       pkgs.libva-utils
       pkgs.glib
     ]
-    ++ [ pkgs.vhotplug ]
+    ++ [ (if isCrosvm then pkgs.ghaf-device-manager else pkgs.vhotplug) ]
     ++ [ pkgs.xrdb ];
     sessionVariables = lib.optionalAttrs (globalConfig.debug.enable or false) (
       {

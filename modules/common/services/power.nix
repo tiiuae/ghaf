@@ -9,6 +9,19 @@
   ...
 }:
 let
+  deviceManagerPackage =
+    lib.attrByPath
+      [
+        "ghaf"
+        "hardware"
+        "passthrough"
+        "deviceManager"
+        "package"
+      ]
+      (
+        if (config.microvm.hypervisor or null) == "crosvm" then pkgs.ghaf-device-manager else pkgs.vhotplug
+      )
+      config;
   cfg = config.ghaf.services.power-manager;
   inherit (lib)
     concatMapStringsSep
@@ -148,6 +161,30 @@ let
     in
     vmConfig != null && vmConfig.microvm.hypervisor == "crosvm"
   ) gpuSuspendVms;
+  crosvmGpuResumeCases = concatMapStringsSep "\n" (
+    vmName:
+    let
+      vmConfig = lib.ghaf.vm.getConfig config.microvm.vms.${vmName};
+      controlSocket =
+        if vmConfig != null && (vmConfig.microvm.socket or null) != null then
+          "${config.microvm.stateDir}/${vmName}/${vmConfig.microvm.socket}"
+        else
+          "";
+      crosvmPackage = vmConfig.microvm.crosvm.package;
+    in
+    ''
+      ${lib.escapeShellArg vmName})
+        control_socket=${lib.escapeShellArg controlSocket}
+        if [ -z "$control_socket" ] || [ ! -S "$control_socket" ]; then
+          echo "Crosvm control socket $control_socket does not exist for $vm_name" >&2
+        elif ${crosvmPackage}/bin/crosvm --no-syslog resume "$control_socket"; then
+          resume_signal_sent=1
+        else
+          echo "Crosvm resume command failed for $vm_name" >&2
+        fi
+        ;;
+    ''
+  ) crosvmGpuSuspendVms;
 
   # Host suspend actions
   host-suspend-actions = pkgs.writeShellApplication {
@@ -159,7 +196,7 @@ let
       pkgs.grpcurl
       pkgs.jq
       pkgs.socat
-      pkgs.vhotplug
+      deviceManagerPackage
       pkgs.wait-for-unit
     ];
     text = ''
@@ -256,8 +293,15 @@ let
                   exit 1
                 fi
 
-                echo "Crosvm VM $vm_name will resume after its kernel fallback timeout (${toString cfg.gui.gpuSuspendDuration}s)"
-                sleep ${toString cfg.gui.gpuSuspendDuration}
+                resume_signal_sent=0
+                case "$vm_name" in
+                  ${crosvmGpuResumeCases}
+                esac
+
+                if [ "$resume_signal_sent" != 1 ]; then
+                  echo "Crosvm VM $vm_name will resume after its kernel fallback timeout (${toString cfg.gui.gpuSuspendDuration}s)"
+                  sleep ${toString cfg.gui.gpuSuspendDuration}
+                fi
 
                 deadline=$((SECONDS + 10))
                 resumed=0
@@ -948,6 +992,18 @@ in
           ];
     })
 
+    (optionalAttrs (options ? microvm && options.microvm ? crosvm) {
+      # Crosvm can inject the ACPI wake event directly over its control socket.
+      # Keep the guest kernel timer as a fallback if that command is unavailable.
+      microvm.crosvm.extraArgs = mkIf (
+        cfg.gui.enable
+        && cfg.vm.enable
+        && cfg.gui.gpuSuspend
+        && pkgs.stdenv.hostPlatform.isx86_64
+        && config.microvm.hypervisor == "crosvm"
+      ) [ "--s2idle" ];
+    })
+
     # Host power management
     (mkIf cfg.host.enable {
       # Host still handles power buttons in most situations
@@ -1057,7 +1113,7 @@ in
                 before = [ "sleep.target" ];
                 serviceConfig = {
                   Type = "oneshot";
-                  ExecStart = "${getExe' pkgs.vhotplug "vhotplugcli"} usb suspend";
+                  ExecStart = "${getExe' deviceManagerPackage "vhotplugcli"} usb suspend";
                 };
               };
 
@@ -1068,7 +1124,7 @@ in
                 after = [ "suspend.target" ];
                 serviceConfig = {
                   Type = "oneshot";
-                  ExecStart = "${getExe' pkgs.vhotplug "vhotplugcli"} usb resume";
+                  ExecStart = "${getExe' deviceManagerPackage "vhotplugcli"} usb resume";
                 };
               };
             }
@@ -1235,6 +1291,7 @@ in
                           "${config.microvm.stateDir}/${vmName}/${vmConfig.microvm.socket}"
                         else
                           "";
+                      crosvmPackage = vmConfig.microvm.crosvm.package;
                       crosvmAcpiGraceSec = 15;
                       crosvmStopDeadlineSec = 25;
                       crosvm-stop = pkgs.writeShellScript "crosvm-stop" ''
@@ -1245,12 +1302,11 @@ in
                           exit 0
                         fi
 
-                        shutdown_script='${config.microvm.stateDir}/${vmName}/booted/bin/microvm-shutdown'
-                        if [ -n '${controlSocket}' ] && [ -S '${controlSocket}' ] && [ -x "$shutdown_script" ]; then
+                        if [ -n '${controlSocket}' ] && [ -S '${controlSocket}' ]; then
                           echo "Crosvm powerbtn -> '${vmName}' (${controlSocket})"
-                          # Use the runner from the booted generation so its control
-                          # protocol always matches the running Crosvm process.
-                          if ! "$shutdown_script"; then
+                          # Use the package from this VM's evaluated configuration
+                          # so the control protocol matches the running process.
+                          if ! ${crosvmPackage}/bin/crosvm --no-syslog powerbtn '${controlSocket}'; then
                             echo "WARN: Crosvm powerbtn for '${vmName}' failed; sending SIGTERM" >&2
                             kill -15 "$pid" 2>/dev/null || true
                           fi
