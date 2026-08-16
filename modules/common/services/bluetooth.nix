@@ -39,14 +39,24 @@ in
       '';
     };
 
+    powerOnBoot = mkOption {
+      type = types.bool;
+      default = false;
+      description = ''
+        Automatically power on Bluetooth adapters when they appear.
+
+        This also applies when an adapter is reattached after suspend or a
+        hardware kill-switch cycle.
+      '';
+    };
+
   };
   config = mkIf cfg.enable {
 
     # Enable bluetooth
     hardware.bluetooth = {
       enable = true;
-      # Save battery by disabling bluetooth on boot
-      powerOnBoot = false;
+      inherit (cfg) powerOnBoot;
       # https://github.com/bluez/bluez/blob/master/src/main.conf full list of options
       settings = {
         General = {
@@ -122,6 +132,46 @@ in
     systemd.services.bluetooth.serviceConfig = {
       User = "${bluetoothUser}";
       Group = "${bluetoothUser}";
+    };
+
+    # BlueZ AutoEnable is not sufficient when a passthrough adapter is
+    # detached and reattached while bluetoothd is being restarted. Explicitly
+    # restore the powered state after both service restarts and adapter
+    # reappearance.
+    systemd.services.bluetooth-power-on = mkIf cfg.powerOnBoot {
+      description = "Power on Bluetooth adapters";
+      wantedBy = [
+        "bluetooth.service"
+        "bluetooth.target"
+      ];
+      after = [ "bluetooth.service" ];
+      requires = [ "bluetooth.service" ];
+      partOf = [
+        "bluetooth.service"
+        "bluetooth.target"
+      ];
+      path = [ pkgs.bluez ];
+      script = ''
+        powered=false
+        for _ in $(seq 1 30); do
+          if bluetoothctl show | grep -q "Powered: yes"; then
+            powered=true
+          else
+            powered=false
+            bluetoothctl power on || true
+          fi
+          sleep 1
+        done
+
+        if "$powered"; then
+          exit 0
+        fi
+        exit 1
+      '';
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+      };
     };
 
     # Add blueman-mechanism helper
