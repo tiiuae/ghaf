@@ -163,7 +163,9 @@ in
             };
             requires = [
               "${utils.escapeSystemdPath drivePath}.device"
+              "dev-tpmrm0.device"
             ];
+            after = [ "dev-tpmrm0.device" ];
             wantedBy = [ "multi-user.target" ];
           };
       }

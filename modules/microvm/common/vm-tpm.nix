@@ -69,6 +69,11 @@ in
           structuredExtraConfig.TCG_VIRTIO_VTPM = lib.kernel.module;
         }
       ];
+
+      # Encrypted VM storage is unlocked in initrd. Crosvm's TPM frontend uses
+      # the virtio transport, so loading this only in stage 2 makes first-boot
+      # enrollment succeed but leaves the next boot unable to unlock vmdata.
+      boot.initrd.kernelModules = lib.optionals (vmm == "crosvm") [ "tpm_virtio" ];
     })
     (mkIf cfg.passthrough.enable {
       assertions = [
