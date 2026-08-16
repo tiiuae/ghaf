@@ -57,6 +57,11 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
   Drop the override once `nixos-unstable` carries `fc4f26c2` — check with
   `git -C <nixpkgs> merge-base --is-ancestor fc4f26c2 <our-pin>`.
 
+## Inputs pinned to an unmerged PR
+
+A rev pin freezes *every* change in that input, not just the one being carried, so it must be
+repointed at the branch head as soon as the PR merges.
+
 ## carried in tiiuae/nixpkgs/...
 
 None at the moment. Anything landed here is in nixpkgs staging, so carry it for some time
