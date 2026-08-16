@@ -136,7 +136,7 @@ in
     # inside the running Ghaf host.
     boot.postBootCommands = "${postBootCmds}/bin/postBootScript";
 
-    systemd.services.extendbtrfs =
+    systemd.services =
       let
         extendbtrfs = pkgs.writeShellApplication {
           name = "extendbtrfs";
@@ -148,18 +148,35 @@ in
         };
       in
       {
-        enable = true;
-        description = "Extend the btrfs filesystem";
-        wantedBy = [ "multi-user.target" ];
-        after = [ "persist.mount" ];
-        requires = [ "persist.mount" ];
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          StandardOutput = "journal";
-          StandardError = "journal";
-          ExecStart = "${extendbtrfs}/bin/extendbtrfs";
+        extendbtrfs = {
+          enable = true;
+          description = "Extend the btrfs filesystem";
+          wantedBy = [ "multi-user.target" ];
+          after = [ "persist.mount" ];
+          requires = [ "persist.mount" ];
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            StandardOutput = "journal";
+            StandardError = "journal";
+            ExecStart = "${extendbtrfs}/bin/extendbtrfs";
+          };
         };
-      };
+      }
+      // lib.optionalAttrs config.ghaf.virtualization.microvm.storeOnDisk.enable (
+        lib.mapAttrs' (
+          vmName: _:
+          lib.nameValuePair "microvm@${vmName}" {
+            # Disk-backed VM runners create sparse images and filesystems below
+            # /persist before launching the VMM. On first boot /persist is still
+            # a 2 GiB Btrfs filesystem until extendbtrfs completes. Starting the
+            # runners concurrently can fill it, leaving touched but unformatted
+            # images which the runners then mistake for initialized volumes on
+            # later boots.
+            after = [ "extendbtrfs.service" ];
+            requires = [ "extendbtrfs.service" ];
+          }
+        ) config.microvm.vms
+      );
   };
 }
