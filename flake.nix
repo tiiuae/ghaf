@@ -95,7 +95,8 @@
     # Crosvm with Ghaf's swtpm backend. This is a non-flake source input
     # because nixpkgs supplies the package expression and Rust dependencies.
     ghaf-crosvm = {
-      url = "git+https://github.com/tiiuae/ghaf-crosvm?submodules=1";
+      # TODO: switch back to main after ghaf-crosvm#6 and #7 merge.
+      url = "git+https://github.com/tiiuae/ghaf-crosvm?ref=fix/usb-isochronous-out&submodules=1";
       flake = false;
     };
 

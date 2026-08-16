@@ -22,19 +22,49 @@ let
   # Check if hardware.definition option exists
   hasHardwareDefinition = options ? ghaf.hardware.definition;
 
+  isIntelIntegratedGpu =
+    device:
+    device.path == "0000:00:02.0" && device.vendorId != null && lib.toLower device.vendorId == "8086";
+
+  isIntelGscProxy =
+    device:
+    device.path == "0000:00:16.0" && device.vendorId != null && lib.toLower device.vendorId == "8086";
+
+  isIntelGuiRootBusDevice = device: isIntelIntegratedGpu device || isIntelGscProxy device;
+
+  hasIntelIntegratedGpu =
+    hasHardwareDefinition
+    && lib.any isIntelIntegratedGpu config.ghaf.hardware.definition.gpu.pciDevices;
+
+  hasIntelGscProxy =
+    hasHardwareDefinition && lib.any isIntelGscProxy config.ghaf.hardware.definition.gpu.pciDevices;
+
+  guiVmConfig = config.ghaf.virtualization.vmConfig.sysvms.guivm or { };
+  guiVmVmm =
+    if (guiVmConfig.vmm or null) != null then
+      guiVmConfig.vmm
+    else
+      config.ghaf.virtualization.vmConfig.defaultSysVmVmm;
+
   defaultGuivmPciRules =
-    optionals hasHardwareDefinition [
-      {
-        description = "Static PCI Devices for GUIVM";
+    optionals hasHardwareDefinition (
+      map (d: {
+        description = "Static PCI Device ${d.path} for GUIVM";
         targetVm = "gui-vm";
         skipOnSuspend = true;
-        allow = map (d: {
-          address = d.path;
-          deviceId = d.productId;
-          inherit (d) vendorId;
-        }) config.ghaf.hardware.definition.gpu.pciDevices;
-      }
-    ]
+        # Intel integrated graphics must remain on the guest PCI root bus for
+        # IGD OpRegion and GSC proxy discovery. Keep the per-device override
+        # for other hardware that has the same Crosvm requirement.
+        crosvmUseRootBus = d.crosvm.useRootBus || isIntelGuiRootBusDevice d;
+        allow = [
+          {
+            address = d.path;
+            deviceId = d.productId;
+            inherit (d) vendorId;
+          }
+        ];
+      }) config.ghaf.hardware.definition.gpu.pciDevices
+    )
     ++ optionals cfg.autoDetectGpu [
       {
         description = "Auto-detected PCI Devices for GUIVM";
@@ -43,6 +73,7 @@ let
         pciIommuAddAll = true;
         autoOvmf = true;
         qemuUseRootBus = true;
+        crosvmUseRootBus = true;
         allow = [
           {
             deviceClass = 3;
@@ -50,7 +81,25 @@ let
           }
         ];
       }
-    ];
+    ]
+    ++
+      optionals
+        (guiVmVmm == "crosvm" && !hasIntelGscProxy && (cfg.autoDetectGpu || hasIntelIntegratedGpu))
+        [
+          {
+            description = "Intel GSC proxy CSME HECI for GUIVM";
+            targetVm = "gui-vm";
+            skipOnSuspend = true;
+            crosvmUseRootBus = true;
+            allow = [
+              {
+                # Intel exposes the CSME HECI endpoint used by the graphics GSC
+                # proxy at this stable PCI function across supported laptops.
+                address = "0000:00:16.0";
+              }
+            ];
+          }
+        ];
 
   defaultNetvmPciRules =
     optionals hasHardwareDefinition [
