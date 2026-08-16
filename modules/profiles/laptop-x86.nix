@@ -259,6 +259,12 @@ in
         x86_64.common.enable = true;
         tpm2.enable = true;
         passthrough = {
+          deviceManager.backend = lib.mkDefault (
+            if lib.all (vm: vm.type == "crosvm") config.ghaf.hardware.passthrough.vhotplug.vms then
+              "ghaf-device-manager"
+            else
+              "vhotplug"
+          );
           vhotplug.enable = true;
           usbQuirks.enable = true;
 

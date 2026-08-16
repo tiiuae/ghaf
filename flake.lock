@@ -264,6 +264,27 @@
         "url": "https://github.com/tiiuae/ghaf-crosvm"
       }
     },
+    "ghaf-device-manager": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1786644911,
+        "narHash": "sha256-7l/aoKlOQUDJ0GkMlSn5vkOuDyingaHaKNEgMvDMedM=",
+        "owner": "tiiuae",
+        "repo": "ghaf-device-manager",
+        "rev": "09fa325f266667b9a0480e1d65d4569797815420",
+        "type": "github"
+      },
+      "original": {
+        "owner": "tiiuae",
+        "ref": "fix/crosvm-runtime-reliability",
+        "repo": "ghaf-device-manager",
+        "type": "github"
+      }
+    },
     "ghafpkgs": {
       "inputs": {
         "crane": [
@@ -291,15 +312,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1786479821,
-        "narHash": "sha256-IjlgULYzJHftvGTEap4vfpltBPN56f21aN0IpxeqpK8=",
-        "owner": "tiiuae",
+        "lastModified": 1786614244,
+        "narHash": "sha256-EJ/RmSLQtHHxvE2PwakawcmDaVB6ebDiY29AdUuT2q4=",
+        "owner": "vadika",
         "repo": "ghafpkgs",
-        "rev": "ad9b7f3269b945b40ecb30fa3461fd8b798bce1a",
+        "rev": "a6e6c383c24f3a87fe77df10f1f33411c3c60fa8",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "vadika",
+        "ref": "fix/crosvm-cli-log-spam",
         "repo": "ghafpkgs",
         "type": "github"
       }
@@ -613,6 +635,7 @@
         "flake-root": "flake-root",
         "flake-utils": "flake-utils",
         "ghaf-crosvm": "ghaf-crosvm",
+        "ghaf-device-manager": "ghaf-device-manager",
         "ghafpkgs": "ghafpkgs",
         "git-hooks-nix": "git-hooks-nix",
         "givc": "givc",
@@ -781,11 +804,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1786564420,
-        "narHash": "sha256-f9j+gadZqEoy/gPkRD1erY0Abur1OTplRlDlV6zRPOQ=",
+        "lastModified": 1786614239,
+        "narHash": "sha256-jh4QOHemA1WMFLWS06uIHv56sjX0UwaD7NQP701HAOw=",
         "owner": "vadika",
         "repo": "vhotplug",
-        "rev": "be231fde59bd766428e2cbfe4ffb62fbf7c59458",
+        "rev": "123ea2d56380a1353d671fa1f88b241d08dcffe1",
         "type": "github"
       },
       "original": {

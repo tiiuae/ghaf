@@ -8,6 +8,7 @@
 }:
 let
   cfg = config.ghaf.hardware.passthrough.vhotplug;
+  managerCfg = config.ghaf.hardware.passthrough.deviceManager;
   inherit (lib)
     mkEnableOption
     mkOption
@@ -35,9 +36,53 @@ let
   disableRunnerGlobbing = pkgs.writeText "disable-crosvm-runner-globbing" ''
     set -f
   '';
+  waitForCrosvmSocket = pkgs.writeShellApplication {
+    name = "wait-for-crosvm-socket";
+    runtimeInputs = [ pkgs.coreutils ];
+    text = ''
+      if [ "$#" -ne 2 ]; then
+        echo "Usage: wait-for-crosvm-socket SOCKET MAIN_PID" >&2
+        exit 2
+      fi
+
+      socket=$1
+      main_pid=$2
+      while [ ! -S "$socket" ]; do
+        if ! kill -0 "$main_pid" 2>/dev/null; then
+          echo "Crosvm process $main_pid exited before creating $socket" >&2
+          exit 1
+        fi
+        sleep 0.1
+      done
+    '';
+  };
+  managerService =
+    if managerCfg.backend == "ghaf-device-manager" then "ghaf-device-manager" else "vhotplug";
 in
 {
   _file = ./vhotplug.nix;
+
+  options.ghaf.hardware.passthrough.deviceManager = {
+    backend = mkOption {
+      type = types.enum [
+        "vhotplug"
+        "ghaf-device-manager"
+      ];
+      default = "vhotplug";
+      description = ''
+        Device manager used by this image. Select ghaf-device-manager only
+        when every dynamically managed VM uses Crosvm.
+      '';
+    };
+
+    package = mkOption {
+      type = types.package;
+      readOnly = true;
+      default =
+        if managerCfg.backend == "ghaf-device-manager" then pkgs.ghaf-device-manager else pkgs.vhotplug;
+      description = "Package providing the selected daemon and the vhotplugcli compatibility command.";
+    };
+  };
 
   options.ghaf.hardware.passthrough.vhotplug = {
     enable = mkEnableOption "the hot plugging of USB devices";
@@ -158,6 +203,14 @@ in
   };
 
   config = mkIf cfg.enable {
+    assertions = [
+      {
+        assertion =
+          managerCfg.backend != "ghaf-device-manager" || lib.all (vm: vm.type == "crosvm") cfg.vms;
+        message = "ghaf-device-manager requires every dynamically managed VM to use Crosvm";
+      }
+    ];
+
     services.udev.extraRules = ''
       SUBSYSTEM=="usb", GROUP="kvm"
       KERNEL=="event*", GROUP="kvm"
@@ -189,7 +242,7 @@ in
     };
 
     systemd.services = {
-      vhotplug = {
+      vhotplug = mkIf (managerCfg.backend == "vhotplug") {
         enable = true;
         description = "vhotplug";
         wantedBy = [ "multi-user.target" ];
@@ -202,17 +255,41 @@ in
         };
         startLimitIntervalSec = 0;
       };
+
+      ghaf-device-manager = mkIf (managerCfg.backend == "ghaf-device-manager") {
+        enable = true;
+        description = "Ghaf Crosvm device manager";
+        wantedBy = [ "multi-user.target" ];
+        after = [ "local-fs.target" ];
+        conflicts = [ "vhotplug.service" ];
+        serviceConfig = {
+          Type = "simple";
+          Restart = "always";
+          RestartSec = "1";
+          ExecStart = "${getExe managerCfg.package} -a -c /etc/vhotplug.conf";
+        };
+        startLimitIntervalSec = 0;
+      };
     }
     // builtins.listToAttrs (
       map (vm: {
         name = "microvm@${vm.name}";
         value = {
-          requires = [ "vhotplug.service" ];
-          after = [ "vhotplug.service" ];
+          requires = [ "${managerService}.service" ];
+          after = [ "${managerService}.service" ];
           serviceConfig = {
-            Type = lib.mkForce "notify";
-            NotifyAccess = "all";
-            TimeoutStartSec = "45";
+            # Keep the service activating until Crosvm has created its control
+            # socket. ExecStartPost runs alongside the runner's volume setup
+            # and bounded device discovery, unlike microvm.preStart which runs
+            # before both and can expire before Crosvm is launched.
+            Type = lib.mkForce "exec";
+            TimeoutStartSec = "10min";
+            ExecStartPre = lib.mkBefore [
+              "${pkgs.coreutils}/bin/rm -f ${lib.escapeShellArg vm.socket}"
+            ];
+            ExecStartPost = lib.mkBefore [
+              "${lib.getExe waitForCrosvmSocket} ${lib.escapeShellArg vm.socket} $MAINPID"
+            ];
             # microvm.nix expands extraArgsScript output as shell words. The
             # vhotplug CLI rejects whitespace inside arguments; disabling glob
             # expansion completes the safe one-word-per-argument contract.
@@ -222,6 +299,6 @@ in
       }) crosvmPciVms
     );
 
-    environment.systemPackages = [ pkgs.vhotplug ];
+    environment.systemPackages = [ managerCfg.package ];
   };
 }

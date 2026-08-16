@@ -917,9 +917,10 @@ rec {
           selectedVmm == "crosvm" && lib.any (rule: (rule.targetVm or null) == vhotplugVmName) pciRules;
         vhotplugEnabled = config.ghaf.hardware.passthrough.vhotplug.enable or false;
         pciBusPrefix = config.ghaf.hardware.passthrough.pciPorts.pcieBusPrefix;
+        deviceManagerPackage = config.ghaf.hardware.passthrough.deviceManager.package;
         vhotplugArgs = lib.escapeShellArgs (
           [
-            (lib.getExe' hostPkgs.vhotplug "vhotplugcli")
+            (lib.getExe' deviceManagerPackage "vhotplugcli")
             "vmm"
             "args"
             "--vm"
@@ -961,32 +962,13 @@ rec {
             // lib.optionalAttrs usesPciVhotplug {
               devices = lib.mkForce [ ];
               extraArgsScript = lib.mkForce vhotplugArgs;
-              # microvm.nix currently marks Crosvm runners Type=simple. The
-              # host overrides PCI-backed system VMs to Type=notify, so signal
-              # readiness only after Crosvm has created its control socket.
-              preStart = lib.mkAfter ''
-                (
-                  attempt=0
-                  while [ "$attempt" -lt 300 ]; do
-                    if [ -S ${lib.escapeShellArg config.microvm.socket} ]; then
-                      ${config.microvm.vmHostPackages.systemd}/bin/systemd-notify \
-                        --ready --status='Crosvm control socket is ready'
-                      exit 0
-                    fi
-                    attempt=$((attempt + 1))
-                    ${config.microvm.vmHostPackages.coreutils}/bin/sleep 0.1
-                  done
-                  ${config.microvm.vmHostPackages.systemd}/bin/systemd-notify \
-                    --status='Crosvm control socket did not become ready'
-                ) &
-              '';
             };
 
             assertions =
               lib.optionals usesPciVhotplug [
                 {
                   assertion = vhotplugEnabled && hostPkgs != null && config.microvm.socket != null;
-                  message = "Crosvm PCI passthrough for ${vhotplugVmName} requires vhotplug, a host package set, and a control socket";
+                  message = "Crosvm PCI passthrough for ${vhotplugVmName} requires a device manager, a host package set, and a control socket";
                 }
               ]
               ++ lib.optionals (selectedVmm == "crosvm") [
