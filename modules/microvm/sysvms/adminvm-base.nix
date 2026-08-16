@@ -135,7 +135,8 @@ in
       };
 
       server = {
-        inherit (globalConfig.logging) enable;
+        # logging can be enabled without forwarding to a server
+        enable = globalConfig.logging.enable && globalConfig.logging.server.enable;
         endpoint = globalConfig.logging.server.endpoint or "";
 
         tls = {

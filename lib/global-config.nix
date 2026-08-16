@@ -71,6 +71,22 @@ rec {
         };
 
         server = {
+          enable = mkOption {
+            type = types.bool;
+            default = true;
+            description = ''
+              Forward the aggregated logs from admin-vm to the remote Loki
+              endpoint.
+
+              Set false to keep logging entirely on-device: journal clients, the
+              admin-vm aggregator and FSS sealing all stay on, but nothing leaves
+              the machine. This is the switch for a product that wants local,
+              tamper-evident logs without shipping them anywhere.
+
+              Has no effect unless logging.enable is also true.
+            '';
+          };
+
           endpoint = mkOption {
             type = types.str;
             default = "";
