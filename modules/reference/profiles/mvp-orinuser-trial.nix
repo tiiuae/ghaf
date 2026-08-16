@@ -4,6 +4,7 @@
   config,
   lib,
   inputs,
+  pkgs,
   ...
 }:
 let
@@ -50,6 +51,7 @@ in
           ]
           ++ lib.ghaf.vm.applyVmConfig {
             inherit config;
+            hostPkgs = pkgs;
             vmName = "guivm";
           };
           specialArgs = lib.ghaf.vm.mkSpecialArgs {

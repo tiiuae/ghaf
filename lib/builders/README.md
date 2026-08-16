@@ -16,7 +16,7 @@ Creates a Ghaf configuration for any supported target type (laptop-x86, orin).
 - `variant`: String - Build variant, "debug" (default) or "release"
 - `extraModules`: List - Additional NixOS modules (default: [])
 - `extraConfig`: Attrs - Additional ghaf.* configuration (default: {})
-- `vmConfig`: Attrs - VM resource allocation and modules (default: {})
+- `vmConfig`: Attrs - VMM selection, VM resource allocation, and modules (default: {})
 
 **Returns:**
 - `name`: Full configuration name (e.g., "intel-laptop-debug")
@@ -112,12 +112,24 @@ does not. So `inputs.ghaf.inputs` is missing exactly the key every ghaf module r
 }
 ```
 
-### Using vmConfig for Resource Allocation
+### Using vmConfig for VMM and Resource Configuration
 
-The `vmConfig` parameter allows you to customize VM resource allocation per-target:
+The `vmConfig` parameter selects separate defaults for system VMs and App VMs,
+and supports per-VM VMM and resource overrides. The system-wide default is
+QEMU. Every generic `intel-laptop` target selects crosvm for all system VMs,
+including debug, release, low-memory, and store-disk variants. Machine-specific
+x86, generic VM, and aarch64 targets keep their existing selections. AdminVM
+normally defaults to crosvm only when storage encryption is disabled; generic
+Intel laptop targets also select crosvm for the encrypted AdminVM and use
+crosvm's TPM passthrough path. App VMs default to crosvm. crosvm VMs run as Ghaf's
+unprivileged `microvm` user with crosvm's internal minijail disabled, because
+its namespace setup requires `CAP_SYS_ADMIN`.
 
 ```nix
 vmConfig = {
+  defaultSysVmVmm = "qemu";
+  defaultAppVmVmm = "crosvm";
+
   # System VMs, keyed by the unhyphenated name (guivm, netvm, audiovm,
   # adminvm, idsvm)
   sysvms = {
@@ -128,10 +140,12 @@ vmConfig = {
     };
     netvm = {
       mem = 1024;
+      vmm = "qemu";       # Optional x86 laptop rollback
     };
     audiovm = {
       mem = 512;
     };
+    adminvm.vmm = "qemu"; # Optional AdminVM fallback
   };
 
   # App VMs
@@ -145,6 +159,21 @@ vmConfig = {
   };
 };
 ```
+
+### Resolving App VM Configuration
+
+Profiles that instantiate App VMs use
+`lib.ghaf.vm.resolveAppVmConfig { inherit config vmDef; }` before constructing
+the guest. The helper returns the effective VM definition after memory, vCPU,
+and balloon overrides, the selected VMM, and the App VM's additional modules:
+
+```nix
+resolved = lib.ghaf.vm.resolveAppVmConfig { inherit config vmDef; };
+```
+
+Use `resolved.effectiveDef`, `resolved.selectedVmm`, and
+`resolved.extraModules` together so VMM and resource policy cannot drift
+between profiles.
 
 ### Extending Configurations
 
@@ -263,4 +292,5 @@ Key differences:
 - Named parameters instead of positional
 - `hardwareModule` separated from `extraModules`
 - `extraConfig` sets `ghaf.*` attributes directly
-- `vmConfig` for resource allocation (replaces `hardware.definition.<vm>.mem/vcpu`)
+- `vmConfig` for VMM selection and resource allocation (replaces
+  `hardware.definition.<vm>.mem/vcpu`)
