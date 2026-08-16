@@ -377,7 +377,12 @@ in
           adminvm = {
             enable = true;
             # Use evaluatedConfig pattern - common is passed via hostConfig
-            evaluatedConfig = cfg.adminvmBase;
+            evaluatedConfig = cfg.adminvmBase.extendModules {
+              modules = lib.ghaf.vm.applyVmConfig {
+                inherit config;
+                vmName = "adminvm";
+              };
+            };
           };
 
           # GPU VM: enable comes from the gpu-vm passthrough module
