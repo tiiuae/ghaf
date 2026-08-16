@@ -10,7 +10,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 Ghaf VMs run with fixed memory allocations and, without swap, have no safety net for transient memory pressure. This is a problem during events like S3 (suspend-to-RAM) resume, where device drivers must reinitialize and temporarily allocate buffers, DMA regions, and firmware blobs. If the VM is already near its memory ceiling, these allocations can trigger OOM kills or kernel panics.
 
-Ghaf addresses this with a three-layer defense against OOM crashes: zram compressed swap inside every VM, virtio-balloon deflation for app VMs, and host-level disk swap that absorbs the resulting pressure.
+Ghaf addresses this with a layered defense against OOM crashes: zram compressed swap inside every VM, virtio-balloon deflation for App VMs, and host-level disk swap that absorbs the resulting pressure.
 
 ## Layer 1: zram Compressed Swap (All VMs)
 
@@ -26,24 +26,27 @@ With a typical 2.5x compression ratio, 25% of RAM as zram yields approximately 6
 
 ## Layer 2: Balloon deflateOnOOM (App VMs)
 
-App VMs use the [virtio-balloon](https://blog.pmhahn.de/virtio-balloon/) device for dynamic memory management. The host memory manager can inflate the balloon (reclaiming guest pages for the host) or the guest can deflate it (reclaiming pages back from the host).
+QEMU and crosvm App VMs use the [virtio-balloon](https://blog.pmhahn.de/virtio-balloon/) device for dynamic memory management. The host memory manager can inflate the balloon (reclaiming guest pages for the host) or the guest can deflate it (reclaiming pages back from the host).
 
 With `deflateOnOOM = true`, the guest kernel automatically deflates the balloon when an OOM condition is imminent. This reclaims pages that were previously loaned to the host, giving the guest more memory without any host intervention.
 
-For example, a 4 GB base app VM with `balloonRatio = 2` has a 12 GB QEMU allocation. If the balloon has inflated to 6 GB (guest sees approximately 6 GB), an OOM event causes the balloon to deflate, and the guest can reclaim up to the full 12 GB allocation.
+For example, a 4 GB base app VM with `balloonRatio = 2` has a 12 GB allocation. If the balloon has inflated to 6 GB (guest sees approximately 6 GB), an OOM event causes the balloon to deflate, and the guest can reclaim up to the full 12 GB allocation.
 
-System VMs (gui-vm, net-vm, audio-vm, admin-vm, ids-vm) do not use balloons, so this layer applies only to app VMs.
+System VMs (gui-vm, net-vm, audio-vm, admin-vm, ids-vm) do not use balloons.
+`ghaf-mem-manager` controls QEMU balloons through QMP and crosvm balloons
+through crosvm's control command. The crosvm backend converts Ghaf's desired
+guest-visible memory into the reclaimed byte count expected by crosvm.
 
 ## Layer 3: Host Disk Swap
 
-When app VM balloons deflate, the QEMU process on the host consumes more physical memory. The host has an 12 GB disk swap partition that absorbs this pressure. The host kernel can page out its own processes or inflate balloons on other idle VMs (via `ghaf-mem-manager`) to rebalance.
+When App VM balloons deflate, the VMM process on the host consumes more physical memory. The host has a 12 GB disk swap partition that absorbs this pressure. The host kernel can page out its own processes or inflate balloons on other idle App VMs (via `ghaf-mem-manager`) to rebalance.
 
 ## How the Layers Cascade During S3 Resume
 
-1. **Suspend**: The host enters S3 sleep. QEMU freezes VMs. RAM stays powered and contents are preserved.
-2. **Resume**: The host wakes. QEMU unfreezes VMs. Device drivers reinitialize, allocating temporary buffers.
+1. **Suspend**: The host enters S3 sleep. The VMM freezes VMs. RAM stays powered and contents are preserved.
+2. **Resume**: The host wakes. The VMM unfreezes VMs. Device drivers reinitialize, allocating temporary buffers.
 3. **zram absorbs the spike**: The kernel compresses idle pages into zram to make room for driver buffers (microsecond latency).
-4. **Balloon deflates if needed**: If more memory is required, the balloon shrinks and the guest reclaims pages from the host.
+4. **Balloon deflates if needed**: The balloon shrinks and the guest reclaims pages from the host.
 5. **Host swap absorbs the host-side impact**: The host uses its disk swap if balloon deflation increases host memory pressure.
 6. **Drivers initialize successfully**: Temporary buffers are freed and the system stabilizes.
 
@@ -61,7 +64,7 @@ All VM bases set this to `true`. To disable zram for a specific VM, override it 
 
 | Option | Description |
 |--------|-------------|
-| `balloonRatio` | Multiplier for QEMU memory allocation beyond base `mem`. A ratio of 2 means QEMU allocates `mem * (balloonRatio + 1)`. |
+| `balloonRatio` | Multiplier for VMM memory allocation beyond base `mem`. A ratio of 2 means the VMM allocates `mem * (balloonRatio + 1)`. |
 | `deflateOnOOM` | Set in `appvm-base.nix`. When `true`, the guest automatically reclaims ballooned pages on OOM. |
 
 ## Further Reading

@@ -720,6 +720,7 @@ rec {
   #   lib.ghaf.vm.mkHostConfig  - Extract host config for VM specialArgs
   #   lib.ghaf.vm.getConfig     - Get inner NixOS config from microvm.vms entry
   #   lib.ghaf.vm.applyVmConfig - Build modules list with vmConfig applied
+  #   lib.ghaf.vm.resolveAppVmConfig - Resolve an App VM definition and policy
   #
   # Usage Example:
   #   guivmBase = lib.nixosSystem {
@@ -871,16 +872,17 @@ rec {
     # Build modules list with vmConfig applied
     #
     # This function collects modules from hardware.definition and vmConfig
-    # and builds a resource allocation module from vmConfig.mem/vcpu.
+    # and builds a VM settings module from the VMM and resource options.
     #
     # Module merge order (highest priority last):
     #   1. Base module (guivm-base.nix) - sets mkDefault values
-    #   2. resourceModule - applies vmConfig.mem/vcpu
+    #   2. vmSettingsModule - applies the VMM and vmConfig.mem/vcpu
     #   3. hwModules - hardware.definition.<vm>.extraModules
     #   4. vmConfigModules - vmConfig.sysvms.<vm>.extraModules (highest priority)
     #
     # Arguments:
     #   config - Host configuration (with ghaf.hardware.definition and ghaf.virtualization.vmConfig)
+    #   hostPkgs - Host package set used by generated host-side runner commands
     #   vmName - VM name without -vm suffix (e.g., "guivm", "netvm")
     #
     # Returns: List of modules to add via extendModules
@@ -892,6 +894,7 @@ rec {
     applyVmConfig =
       {
         config,
+        hostPkgs ? null,
         vmName,
       }:
       let
@@ -900,19 +903,143 @@ rec {
 
         hwModules = hwDef.extraModules or [ ];
         vmConfigModules = vmCfg.extraModules or [ ];
+        selectedVmm =
+          if (vmCfg.vmm or null) != null then
+            vmCfg.vmm
+          else
+            config.ghaf.virtualization.vmConfig.defaultSysVmVmm;
+        # System VM registry keys consistently drop the hyphen from the unit
+        # name (for example, `audiovm` -> `audio-vm`). Derive the unit name from
+        # that convention instead of maintaining another per-VM lookup table.
+        vhotplugVmName = "${lib.removeSuffix "vm" vmName}-vm";
+        pciRules = config.ghaf.hardware.passthrough.vhotplug.pciRules or [ ];
+        usesPciVhotplug =
+          selectedVmm == "crosvm" && lib.any (rule: (rule.targetVm or null) == vhotplugVmName) pciRules;
+        vhotplugEnabled = config.ghaf.hardware.passthrough.vhotplug.enable or false;
+        pciBusPrefix = config.ghaf.hardware.passthrough.pciPorts.pcieBusPrefix;
+        vhotplugArgs = lib.escapeShellArgs (
+          [
+            (lib.getExe' hostPkgs.vhotplug "vhotplugcli")
+            "vmm"
+            "args"
+            "--vm"
+            vhotplugVmName
+            "--qemu-bus-start-index"
+            "1"
+            "--timeout"
+            "30"
+            "--require-pci"
+          ]
+          ++ lib.optionals (pciBusPrefix != null) [
+            "--qemu-bus-prefix"
+            pciBusPrefix
+          ]
+        );
 
-        # Resource allocation module (applies vmConfig.mem/vcpu)
+        # VM settings module (applies the VMM and vmConfig.mem/vcpu)
         #
         # Merge inside `microvm`, not at the top level: `//` is a shallow
         # update, so combining { microvm.mem = ...; } with
         # { microvm.vcpu = ...; } would replace the whole microvm attrset and
         # silently drop mem whenever both are set.
-        resourceModule = {
-          microvm =
-            lib.optionalAttrs (vmCfg.mem or null != null) { inherit (vmCfg) mem; }
-            // lib.optionalAttrs (vmCfg.vcpu or null != null) { inherit (vmCfg) vcpu; };
-        };
+        vmSettingsModule =
+          { config, ... }:
+          {
+            microvm = {
+              # microvm.nix calls its VMM selector `hypervisor`.
+              hypervisor = if (vmCfg.vmm or null) != null then selectedVmm else lib.mkDefault selectedVmm;
+            }
+            // lib.optionalAttrs (vmCfg.mem or null != null) { inherit (vmCfg) mem; }
+            // lib.optionalAttrs (vmCfg.vcpu or null != null) { inherit (vmCfg) vcpu; }
+            // lib.optionalAttrs (selectedVmm == "crosvm") {
+              # The host runs VMMs as the unprivileged `microvm` user. crosvm's
+              # multiprocess minijail needs CAP_SYS_ADMIN to create PID and mount
+              # namespaces, so retain the unprivileged service boundary and use
+              # single-process mode until a capability-scoped sandbox is wired.
+              crosvm.extraArgs = lib.mkBefore [ "--disable-sandbox" ];
+            }
+            // lib.optionalAttrs usesPciVhotplug {
+              devices = lib.mkForce [ ];
+              extraArgsScript = lib.mkForce vhotplugArgs;
+              # microvm.nix currently marks Crosvm runners Type=simple. The
+              # host overrides PCI-backed system VMs to Type=notify, so signal
+              # readiness only after Crosvm has created its control socket.
+              preStart = lib.mkAfter ''
+                (
+                  attempt=0
+                  while [ "$attempt" -lt 300 ]; do
+                    if [ -S ${lib.escapeShellArg config.microvm.socket} ]; then
+                      ${config.microvm.vmHostPackages.systemd}/bin/systemd-notify \
+                        --ready --status='Crosvm control socket is ready'
+                      exit 0
+                    fi
+                    attempt=$((attempt + 1))
+                    ${config.microvm.vmHostPackages.coreutils}/bin/sleep 0.1
+                  done
+                  ${config.microvm.vmHostPackages.systemd}/bin/systemd-notify \
+                    --status='Crosvm control socket did not become ready'
+                ) &
+              '';
+            };
+
+            assertions =
+              lib.optionals usesPciVhotplug [
+                {
+                  assertion = vhotplugEnabled && hostPkgs != null && config.microvm.socket != null;
+                  message = "Crosvm PCI passthrough for ${vhotplugVmName} requires vhotplug, a host package set, and a control socket";
+                }
+              ]
+              ++ lib.optionals (selectedVmm == "crosvm") [
+                {
+                  assertion = (config.microvm.qemu.extraArgs or [ ]) == [ ];
+                  message = "Crosvm system VMs cannot contain QEMU-only extra arguments";
+                }
+              ];
+          };
       in
-      [ resourceModule ] ++ hwModules ++ vmConfigModules;
+      [ vmSettingsModule ] ++ hwModules ++ vmConfigModules;
+
+    # Resolve an App VM definition against the host's vmConfig policy.
+    #
+    # Unlike singleton system VMs, App VMs are created by mkAppVm functions in
+    # multiple profiles. Keeping the resolution here prevents the laptop, Orin,
+    # and generic VM profiles from drifting apart.
+    #
+    # Arguments:
+    #   config - Host configuration containing virtualization.vmConfig
+    #   vmDef  - App VM definition with at least a name attribute
+    #
+    # Returns an attribute set containing:
+    #   effectiveDef - vmDef with mem, vcpu, and balloonRatio overrides applied
+    #   selectedVmm  - Per-VM override or defaultAppVmVmm
+    #   extraModules - Additional modules configured for this App VM
+    #
+    # Usage in profiles:
+    #   resolved = lib.ghaf.vm.resolveAppVmConfig { inherit config vmDef; };
+    #   mkAppVm resolved.effectiveDef resolved.selectedVmm resolved.extraModules;
+    resolveAppVmConfig =
+      {
+        config,
+        vmDef,
+      }:
+      let
+        vmCfg = config.ghaf.virtualization.vmConfig.appvms.${vmDef.name} or { };
+        requestedVmm = vmCfg.vmm or null;
+        selectedVmm =
+          if requestedVmm != null then requestedVmm else config.ghaf.virtualization.vmConfig.defaultAppVmVmm;
+        configuredBalloonRatio =
+          if (vmCfg.balloonRatio or null) != null then vmCfg.balloonRatio else vmDef.balloonRatio or 2;
+        effectiveDef =
+          vmDef
+          // lib.optionalAttrs ((vmCfg.mem or null) != null) { inherit (vmCfg) mem; }
+          // lib.optionalAttrs ((vmCfg.vcpu or null) != null) { inherit (vmCfg) vcpu; }
+          // {
+            balloonRatio = configuredBalloonRatio;
+          };
+      in
+      {
+        inherit effectiveDef selectedVmm;
+        extraModules = vmCfg.extraModules or [ ];
+      };
   };
 }

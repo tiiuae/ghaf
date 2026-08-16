@@ -163,8 +163,6 @@ in
     # display-only default, smaller than GPU VM's 6000.
     vcpu = 4;
     mem = lib.mkDefault 4000;
-    hypervisor = "qemu";
-
     shares = [
       {
         tag = "ghaf-common";

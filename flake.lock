@@ -245,6 +245,24 @@
         "type": "github"
       }
     },
+    "ghaf-crosvm": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1786390562,
+        "narHash": "sha256-AENi4IrGdkTKLQdvUQ/SGN6H4SSixRlJgXISmu6nPEY=",
+        "ref": "refs/heads/main",
+        "rev": "fd3c2acf097f29eee479c95632b77144f20c2311",
+        "revCount": 11713,
+        "submodules": true,
+        "type": "git",
+        "url": "https://github.com/tiiuae/ghaf-crosvm"
+      },
+      "original": {
+        "submodules": true,
+        "type": "git",
+        "url": "https://github.com/tiiuae/ghaf-crosvm"
+      }
+    },
     "ghafpkgs": {
       "inputs": {
         "crane": [
@@ -593,6 +611,7 @@
         "flake-parts": "flake-parts",
         "flake-root": "flake-root",
         "flake-utils": "flake-utils",
+        "ghaf-crosvm": "ghaf-crosvm",
         "ghafpkgs": "ghafpkgs",
         "git-hooks-nix": "git-hooks-nix",
         "givc": "givc",
@@ -761,15 +780,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1786994697,
-        "narHash": "sha256-3Xa86R12YJ1kP/Xx6Ol3yaZuacVv5H/4+CUvJB/zCfw=",
-        "owner": "tiiuae",
+        "lastModified": 1786564420,
+        "narHash": "sha256-f9j+gadZqEoy/gPkRD1erY0Abur1OTplRlDlV6zRPOQ=",
+        "owner": "vadika",
         "repo": "vhotplug",
-        "rev": "51286cf26629d17722fdbf371f54883a6f1f44a4",
+        "rev": "be231fde59bd766428e2cbfe4ffb62fbf7c59458",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "vadika",
+        "ref": "feat/crosvm-pci-hotplug",
         "repo": "vhotplug",
         "type": "github"
       }

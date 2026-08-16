@@ -138,6 +138,10 @@ in
       # Pure function - extensions are applied via extendModules in appvm.nix
       mkAppVm =
         vmDef:
+        let
+          resolved = lib.ghaf.vm.resolveAppVmConfig { inherit config vmDef; };
+          inherit (resolved) effectiveDef selectedVmm;
+        in
         lib.nixosSystem {
           modules = [
             inputs.microvm.nixosModules.microvm
@@ -149,18 +153,20 @@ in
                 inherit (config.nixpkgs) config;
               };
             }
-          ];
+          ]
+          ++ resolved.extraModules;
           specialArgs = lib.ghaf.vm.mkSpecialArgs {
             inherit lib inputs;
             globalConfig = hostGlobalConfig;
             hostConfig =
               lib.ghaf.vm.mkHostConfig {
                 inherit config;
-                vmName = "${vmDef.name}-vm";
+                vmName = "${effectiveDef.name}-vm";
               }
               // {
                 # App VM-specific hostConfig fields
-                appvm = vmDef;
+                appvm = effectiveDef;
+                appvmVmm = selectedVmm;
                 sharedVmDirectory =
                   config.ghaf.virtualization.microvm-host.sharedVmDirectory or {
                     enable = false;

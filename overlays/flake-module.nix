@@ -10,6 +10,21 @@
   flake.overlays = {
     cross-compilation = import ./cross-compilation;
     custom-packages = import ./custom-packages;
+    crosvm = _final: prev: {
+      crosvm = prev.crosvm.overrideAttrs (old: {
+        src = inputs.ghaf-crosvm;
+        cargoDeps = prev.rustPlatform.fetchCargoVendor {
+          src = inputs.ghaf-crosvm;
+          hash = "sha256-lU30pTzJ1hYyHcpFKemZou9d2ZqSlFu4JC+IUe2Gm5A=";
+        };
+        cargoBuildFeatures = (old.cargoBuildFeatures or (old.buildFeatures or [ ])) ++ [
+          "pci-hotplug"
+          "power-monitor-sysfs"
+          "vtpm"
+        ];
+        buildInputs = (old.buildInputs or [ ]) ++ [ prev.dbus ];
+      });
+    };
 
     # Jetson-only Python fixes for the EDK2/UEFI firmware build. Deliberately
     # excluded from `default`: it rewrites pythonPackagesExtensions globally.
@@ -26,6 +41,7 @@
       #internal overlays
       inputs.self.overlays.own-pkgs-overlay
       inputs.self.overlays.custom-packages
+      inputs.self.overlays.crosvm
       #external overlays that we use
       inputs.ghafpkgs.overlays.default
       inputs.ctrl-panel.overlays.default

@@ -12,6 +12,7 @@
 # Auto-enables when: hostConfig has network hardware devices
 #
 {
+  config,
   lib,
   hostConfig,
   ...
@@ -26,6 +27,7 @@ let
   # Get kernel/qemu configs (can be null)
   kernelConfig = hostConfig.kernel or null;
   qemuConfig = hostConfig.qemu or null;
+  isQemu = config.microvm.hypervisor == "qemu";
 in
 {
   _file = ./hardware-passthrough.nix;
@@ -36,6 +38,6 @@ in
     # Kernel configuration from host (if defined)
     ++ lib.optional (kernelConfig != null) kernelConfig
     # QEMU configuration from host (if defined)
-    ++ lib.optional (qemuConfig != null) qemuConfig
+    ++ lib.optional (qemuConfig != null) (lib.mkIf isQemu qemuConfig)
   );
 }
