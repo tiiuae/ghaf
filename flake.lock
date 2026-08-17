@@ -271,16 +271,15 @@
         ]
       },
       "locked": {
-        "lastModified": 1786986140,
+        "lastModified": 1786986574,
         "narHash": "sha256-gBgPng2X2Dj8af9v2e+oWXlUdjhiElwDRi1OR/8bpnQ=",
         "owner": "tiiuae",
         "repo": "ghaf-device-manager",
-        "rev": "72ce5394f773a23d82a7c12343bd6726fa9ee36a",
+        "rev": "02687265b0f15f4ae2d48103b81b5da428e4b7af",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "fix/crosvm-runtime-reliability",
         "repo": "ghaf-device-manager",
         "type": "github"
       }
