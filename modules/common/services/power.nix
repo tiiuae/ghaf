@@ -183,9 +183,7 @@ let
               ;;
             resume)
               echo "Signaling resume to $vm_name..."
-              # Stop unit command not yet implemented in GIVC admin service
-              grpcurl -cacert /etc/givc/ca-cert.pem -cert /etc/givc/cert.pem -key /etc/givc/key.pem \
-              -d '{"UnitName":"systemd-suspend.service"}' "$vm_name":9000 systemd.UnitControlService.StopUnit
+              ${givc-cli} stop service --vm "$vm_name" systemd-suspend.service
               ;;
             *)
               echo "Invalid action: $action"
