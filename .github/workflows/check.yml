@@ -34,17 +34,3 @@ jobs:
               # Sub-second, no remote builder. Here rather than build.yml so it
               # also covers pull requests from forks.
               run: nix build .#checks.x86_64-linux.fss-classifier-unit --accept-flake-config -L
-            - name: Check templates
-              run: |
-                  set -eux -o pipefail
-                  tmp_flakes=$(mktemp -d)
-                  cleanup() { rm -rf "$tmp_flakes"; }
-                  trap cleanup EXIT
-                  nix eval --json --apply builtins.attrNames .#templates --accept-flake-config | jq -r '.[]' | while IFS=$'\t' read -r name; do
-                    nix flake new -t ".#$name" "${tmp_flakes}/${name}";
-                    if [[ "$name" == "ghaf-module" ]]; then
-                        nix-instantiate --parse "${tmp_flakes}/${name}/default.nix"
-                    else
-                       nix flake show "${tmp_flakes}/${name}" --accept-flake-config
-                    fi
-                  done

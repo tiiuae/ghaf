@@ -203,24 +203,6 @@ in
       };
 
       input = {
-        keyboard = mkOption {
-          description = "Name of the keyboard device(s)";
-          type = inputDevSubmodule;
-          default = { };
-        };
-
-        mouse = mkOption {
-          description = "Name of the mouse device(s)";
-          type = inputDevSubmodule;
-          default = { };
-        };
-
-        touchpad = mkOption {
-          description = "Name of the touchpad device(s)";
-          type = inputDevSubmodule;
-          default = { };
-        };
-
         misc = mkOption {
           description = "Name of the misc device(s)";
           type = inputDevSubmodule;
