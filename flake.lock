@@ -248,17 +248,16 @@
     "ghaf-crosvm": {
       "flake": false,
       "locked": {
-        "lastModified": 1786723319,
-        "narHash": "sha256-xIQMyjH6P6vDEAwwnttnlK5sZSH0Qe8xu6e2c+/VO2o=",
-        "ref": "fix/usb-isochronous-out",
-        "rev": "8123d5ed83323603b81acfaf6762a75c438c28d9",
-        "revCount": 11731,
+        "lastModified": 1786989044,
+        "narHash": "sha256-t0LiFIh1wNKIozQpdOuFIfuorirb3yOWiT58VtOK8/A=",
+        "ref": "refs/heads/main",
+        "rev": "767f265b3edbb65ab0d69a79023ca0a57e66a256",
+        "revCount": 11722,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
       },
       "original": {
-        "ref": "fix/usb-isochronous-out",
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
