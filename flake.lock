@@ -271,11 +271,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1786644911,
-        "narHash": "sha256-7l/aoKlOQUDJ0GkMlSn5vkOuDyingaHaKNEgMvDMedM=",
+        "lastModified": 1786986140,
+        "narHash": "sha256-gBgPng2X2Dj8af9v2e+oWXlUdjhiElwDRi1OR/8bpnQ=",
         "owner": "tiiuae",
         "repo": "ghaf-device-manager",
-        "rev": "09fa325f266667b9a0480e1d65d4569797815420",
+        "rev": "72ce5394f773a23d82a7c12343bd6726fa9ee36a",
         "type": "github"
       },
       "original": {

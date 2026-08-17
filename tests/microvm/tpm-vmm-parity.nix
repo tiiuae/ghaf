@@ -41,6 +41,12 @@ let
     vm:
     lib.elem "dev-tpmrm0.device" vm.systemd.services.storagevm-enroll.requires
     && lib.elem "dev-tpmrm0.device" vm.systemd.services.storagevm-enroll.after;
+  formatsAfterPersistExpansion =
+    host: name:
+    let
+      service = host.systemd.services."format-microvm-storage-${name}";
+    in
+    lib.elem "extendbtrfs.service" service.after && lib.elem "extendbtrfs.service" service.requires;
 
   systemVmAssertions = lib.concatLists (
     lib.mapAttrsToList (
@@ -85,6 +91,10 @@ let
           ok = waitsForTpm qemu && waitsForTpm crosvm;
         }
         {
+          name = "${name}: encrypted release storage waits for persistent filesystem expansion";
+          ok = formatsAfterPersistExpansion qemuHost name && formatsAfterPersistExpansion crosvmHost name;
+        }
+        {
           name = "${name}: Crosvm guest includes the virtio TPM transport";
           ok = lib.elem "chromiumos-virtio-tpm" (patchNames crosvm);
         }
@@ -113,6 +123,10 @@ let
         {
           name = "${name}: Crosvm debug VM waits for the TPM before storage enrollment";
           ok = waitsForTpm crosvmDebug;
+        }
+        {
+          name = "${name}: Crosvm debug storage waits for persistent filesystem expansion";
+          ok = formatsAfterPersistExpansion crosvmDebugHost name;
         }
         {
           name = "${name}: Crosvm debug guest includes the virtio TPM transport";

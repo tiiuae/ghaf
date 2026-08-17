@@ -138,6 +138,16 @@ in
 
     systemd.services =
       let
+        vmsWithEncryptedStorage = lib.filterAttrs (
+          _name: vm:
+          let
+            vmConfig = lib.ghaf.vm.getConfig vm;
+          in
+          vmConfig != null
+          && lib.hasAttr "storagevm" vmConfig.ghaf
+          && vmConfig.ghaf.storagevm.encryption.enable
+        ) config.microvm.vms;
+
         extendbtrfs = pkgs.writeShellApplication {
           name = "extendbtrfs";
           runtimeInputs = [ pkgs.btrfs-progs ];
@@ -177,6 +187,17 @@ in
             requires = [ "extendbtrfs.service" ];
           }
         ) config.microvm.vms
-      );
+      )
+      // lib.mapAttrs' (
+        vmName: _:
+        lib.nameValuePair "format-microvm-storage-${vmName}" {
+          # Encrypted VM storage is prepared by a separate oneshot before the
+          # VMM starts. Order that writer directly, rather than only ordering
+          # microvm@, so it cannot fill the initial 2 GiB Btrfs filesystem
+          # while extendbtrfs is still growing /persist on first boot.
+          after = [ "extendbtrfs.service" ];
+          requires = [ "extendbtrfs.service" ];
+        }
+      ) vmsWithEncryptedStorage;
   };
 }
