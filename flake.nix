@@ -208,7 +208,7 @@
 
     # Hot-plugging USB and PCI devices into Crosvm virtual machines
     ghaf-device-manager = {
-      url = "github:tiiuae/ghaf-device-manager/fix/crosvm-runtime-reliability";
+      url = "github:tiiuae/ghaf-device-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
