@@ -153,8 +153,8 @@ See [Memory Wipe on Boot and Free](/ghaf/dev/ref/memory-wipe) for detailed docum
 - VM identity verification
 - Resource access control
 
-#### profiles-workstation
-**Location**: `modules/profiles/workstation.nix`
+#### profiles-laptop-x86
+**Location**: `modules/profiles/laptop-x86.nix` (was `profiles-workstation`, still available as an alias)
 **Purpose**: Secure workstation configuration profile
 **Security Features**:
 - Mandatory access controls
@@ -211,7 +211,7 @@ See [Memory Wipe on Boot and Free](/ghaf/dev/ref/memory-wipe) for detailed docum
 {
   imports = [
     inputs.ghaf.nixosModules.common
-    inputs.ghaf.nixosModules.profiles-workstation
+    inputs.ghaf.nixosModules.profiles-laptop-x86
   ];
 
   ghaf = {

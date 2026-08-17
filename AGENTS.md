@@ -40,6 +40,11 @@ Do not commit or push unless you were asked to.
 
 - `modules/` — NixOS modules: `common/`, `hardware/`, `desktop/`, `microvm/`, `givc/`,
   `development/`, `reference/`, `profiles/`, `partitioning/`
+- `targets/laptop/machines.nix` — the x86 machine table. **Data only**, enforced by
+  `checks.laptop-table-is-data`. A new laptop is one stanza here plus a module under
+  `modules/reference/hardware/`; everything a machine needs (ACS ids, suspend mode, VM memory)
+  goes in that module, never in the table. `targets/laptop/axes.nix` holds the feature axes
+  (`low-mem`, `storeDisk`), expanded as a power set — never write out the combinations.
 - `targets/` — target definitions (`laptop`, `vm`, `generic-x86_64`, `nvidia-jetson-orin`, …)
 - `packages/pkgs-by-name/<package-name>/package.nix` — flat, no first-letter sharding
 - `overlays/`, `lib/`, `nix/`, `tests/`, `docs/`
