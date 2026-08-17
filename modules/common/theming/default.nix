@@ -212,6 +212,17 @@ in
         type = lib.types.bool;
         default = true;
       };
+
+      bootLabel = lib.mkOption {
+        description = ''
+          Status text shown near the logo while booting. Empty shows nothing.
+
+          Useful to distinguish separate boot screens shown in sequence, e.g.
+          the host and gui-vm each showing their own Plymouth splash.
+        '';
+        type = lib.types.str;
+        default = "";
+      };
     };
   };
 
@@ -256,10 +267,12 @@ in
           targets.plymouth.enable = false;
         };
 
-        environment.systemPackages = lib.rmDesktopEntries [
-          pkgs.libsForQt5.qt5ct
-          pkgs.qt6Packages.qt6ct
-        ];
+        environment.systemPackages = lib.mkAfter (
+          lib.rmDesktopEntries [
+            pkgs.libsForQt5.qt5ct
+            pkgs.qt6Packages.qt6ct
+          ]
+        );
       }
 
       (lib.mkIf cfg.plymouth.enable {

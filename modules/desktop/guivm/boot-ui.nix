@@ -54,15 +54,22 @@ in
       "user-login.service"
     ];
 
-    # Wait until user logs in and ghaf-session is active
+    # Wait until user logs in and ghaf-session is active.
+    #
+    # Type=simple (rather than oneshot) so the unit is considered started as
+    # soon as wait-for-session is forked, not once it exits. That keeps this
+    # off the critical path for multi-user.target (and therefore
+    # systemd-analyze / Plymouth's boot-duration estimate), which would
+    # otherwise count actual human login time as part of "boot finished".
+    # RemainAfterExit still leaves the unit "active (exited)" once the wait
+    # completes, so givc's view of it is unchanged.
     systemd.services.user-login = {
       description = "Wait for ghaf-session to be active";
       wantedBy = [ "multi-user.target" ];
       after = [ "greetd.service" ];
       serviceConfig = {
-        Type = "oneshot";
-        ExecStartPre = "${lib.getExe wait-for-session}";
-        ExecStart = "/bin/sh -c exit"; # no-op
+        Type = "simple";
+        ExecStart = "${lib.getExe wait-for-session}";
         RemainAfterExit = true;
       };
     };

@@ -1,5 +1,7 @@
 # SPDX-FileCopyrightText: 2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+# Custom Ghaf theme for Plymouth
+# For more information on Plymouth script usage, see https://www.freedesktop.org/wiki/Software/Plymouth/Scripts/
 {
   lib,
   cfg,
@@ -170,6 +172,29 @@ builtins.toFile "ghaf-plymouth-theme" ''
   }
 
   Plymouth.SetMessageFunction(message_callback);
+
+  ### STATUS ###
+  # Show a mode-specific status message. Uses its own sprite rather than
+  # message_callback's, since normal_callback nulls out "message" (and with
+  # it, the last script reference to message.sprite) almost immediately
+  # after this runs, which would otherwise remove it before it's ever seen.
+
+  status_text = "";
+  boot_mode = Plymouth.GetMode();
+  ${lib.optionalString (cfg.bootLabel != "") ''
+    if (boot_mode == "boot")
+      status_text = "${cfg.bootLabel}";
+  ''}
+
+  if (status_text != "") {
+    status.image = Image.Text(status_text, ${foregroundColor});
+    status.sprite = Sprite(status.image);
+    status.sprite.SetPosition(
+      center_x - status.image.GetWidth() / 2,
+      message_y,
+      1
+    );
+  }
 
   ### NORMAL ###
 

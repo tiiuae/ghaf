@@ -80,7 +80,15 @@ in
 
   ghaf = {
     # Shared theming (stylix) - from globalConfig
-    theming = lib.mkDefault ((globalConfig.theming or { }) // { plymouth.enable = true; });
+    theming = lib.mkDefault (
+      (globalConfig.theming or { })
+      // {
+        plymouth = {
+          enable = true;
+          bootLabel = "Starting desktop...";
+        };
+      }
+    );
 
     # Profiles - from globalConfig
     profiles = {
