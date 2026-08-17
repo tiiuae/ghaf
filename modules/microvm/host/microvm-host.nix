@@ -133,12 +133,13 @@ in
         givc.host.enable = true;
 
         # Shared theming (stylix) - from global-config
-        theming = lib.mkDefault config.ghaf.global-config.theming;
+        theming = lib.mkDefault (config.ghaf.global-config.theming // { plymouth.enable = true; });
 
         graphics.boot = {
           enable = true; # Enable graphical boot on host
           renderer = "simpledrm"; # Force simpledrm framebuffer for graphical boot on host
         };
+
         services = {
           orbit = {
             inherit (config.ghaf.global-config.orbit) enable debug;

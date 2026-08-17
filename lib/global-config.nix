@@ -208,7 +208,7 @@ rec {
 
         base16Scheme = mkOption {
           type = types.path;
-          default = ../modules/desktop/graphics/cosmic/config/ghaf-themes/ghaf-dark-base16.yaml;
+          default = ../modules/common/theming/ghaf-dark-base16.yaml;
           description = "Path to the base16 scheme yaml used for shared theming";
         };
 

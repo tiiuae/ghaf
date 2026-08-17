@@ -9,21 +9,23 @@
 
   flake.nixosModules = {
     common.imports = [
+      # keep-sorted start
       ./common.nix
       ./firewall
       ./global-config.nix
-      ./stylix.nix
+      ./identity
+      ./logging
+      ./networking
       ./security
+      ./services
       ./storage-persistence.nix
+      ./systemd
+      ./theming
+      ./time
       ./users
       ./version
       ./virtualization
-      ./systemd
-      ./services
-      ./networking
-      ./logging
-      ./identity
-      ./time
+      # keep-sorted end
     ];
 
     # Ghaf-patched QEMU package definition (ivshmem, TPM, USB, ACPI patches).

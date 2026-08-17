@@ -40,7 +40,7 @@ path = [
   "overlays/custom-packages/systemd/0001-pam_systemd_home-Use-PAM_TEXT_INFO-for-token-prompts.patch",
   "packages/pkgs-by-name/fingwit/0001-check-all-pam-services-for-fprintd.patch",
   "overlays/custom-packages/spire4ghaf/0001-spire-with-basic-plugins.patch",
-  "modules/desktop/graphics/cosmic/config/ghaf-themes/*.yaml"
+  "modules/common/theming/*.yaml"
 ]
 
 [[annotations]]

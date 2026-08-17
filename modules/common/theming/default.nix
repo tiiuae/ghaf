@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-FileCopyrightText: 2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
 # Shared system theming (stylix) module
@@ -13,18 +13,14 @@
   ...
 }:
 let
-  inherit (lib) mkEnableOption mkOption types;
+  cfg = config.ghaf.theming;
 
   # Upstream stylix themes GTK and Qt only via Home Manager. We have no
   # per-user HM sessions, so we write the same config under /etc/xdg instead,
   # which both read as the system-wide equivalent of $XDG_CONFIG_HOME.
   # https://github.com/nix-community/stylix/issues/484
 
-  iconThemeName =
-    if config.ghaf.theming.polarity == "dark" then
-      config.ghaf.theming.iconTheme.dark
-    else
-      config.ghaf.theming.iconTheme.light;
+  iconThemeName = if cfg.polarity == "dark" then cfg.iconTheme.dark else cfg.iconTheme.light;
 
   fontSize = toString config.stylix.fonts.sizes.applications;
 
@@ -38,12 +34,10 @@ let
 
   gtkSettingsIni = pkgs.writeText "gtk-settings.ini" ''
     [Settings]
-    gtk-application-prefer-dark-theme=${
-      if config.ghaf.theming.polarity == "dark" then "true" else "false"
-    }
+    gtk-application-prefer-dark-theme=${if cfg.polarity == "dark" then "true" else "false"}
     gtk-theme-name=${gtkThemeName}
     gtk-icon-theme-name=${iconThemeName}
-    gtk-font-name=${config.ghaf.theming.fonts.sansSerif.name} ${fontSize}
+    gtk-font-name=${cfg.fonts.sansSerif.name} ${fontSize}
   '';
 
   kvantumThemePackage =
@@ -77,20 +71,59 @@ let
     style=kvantum
 
     [Fonts]
-    fixed="${config.ghaf.theming.fonts.monospace.name},${fontSize}"
-    general="${config.ghaf.theming.fonts.sansSerif.name},${fontSize}"
+    fixed="${cfg.fonts.monospace.name},${fontSize}"
+    general="${cfg.fonts.sansSerif.name},${fontSize}"
+  '';
+
+  plymouthSpinnerThemeDir = "${pkgs.plymouth}/share/plymouth/themes/spinner";
+
+  # Number of "throbber-NNNN.png" frames shipped by pkgs.plymouth's own
+  # "spinner" theme, reused under our logo. Kept as a plain constant instead
+  # of being discovered via readDir, since that would require building
+  # pkgs.plymouth during evaluation (IFD), which this flake disallows.
+  plymouthSpinnerFrameCount = 30;
+
+  plymouthThemeScript = import ./plymouth-theme-script.nix {
+    inherit lib;
+    cfg = cfg.plymouth;
+    colors = config.lib.stylix.colors;
+    spinnerFrameCount = plymouthSpinnerFrameCount;
+  };
+
+  plymouthTheme = pkgs.runCommand "ghaf-plymouth" { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
+    themeDir="$out/share/plymouth/themes/ghaf"
+    mkdir -p "$themeDir"
+
+    if [ -n "${cfg.plymouth.logo}" ]; then
+      # Resize the image to a height of 200px, keeping aspect ratio
+      magick convert "${cfg.plymouth.logo}" \
+        -background transparent -resize x200 \
+        $themeDir/logo.png
+    fi
+    cp ${plymouthSpinnerThemeDir}/throbber-*.png "$themeDir/"
+    cp ${plymouthThemeScript} "$themeDir/ghaf.script"
+
+    echo "
+    [Plymouth Theme]
+    Name=Ghaf
+    ModuleName=script
+
+    [script]
+    ImageDir=$themeDir
+    ScriptFile=$themeDir/ghaf.script
+    " > "$themeDir/ghaf.plymouth"
   '';
 in
 {
-  _file = ./stylix.nix;
+  _file = ./default.nix;
 
   imports = [ inputs.stylix.nixosModules.stylix ];
 
   options.ghaf.theming = {
-    enable = mkEnableOption "shared system theming (stylix)";
+    enable = lib.mkEnableOption "shared system theming (stylix)";
 
-    polarity = mkOption {
-      type = types.enum [
+    polarity = lib.mkOption {
+      type = lib.types.enum [
         "light"
         "dark"
       ];
@@ -98,25 +131,26 @@ in
       description = "Light or dark color scheme polarity for shared theming";
     };
 
-    base16Scheme = mkOption {
-      type = types.path;
-      default = ../desktop/graphics/cosmic/config/ghaf-themes/ghaf-dark-base16.yaml;
+    base16Scheme = lib.mkOption {
+      type = lib.types.path;
+      default = ./ghaf-dark-base16.yaml;
+      example = ./ghaf-light-base16.yaml;
       description = "Path to the base16 scheme yaml used for shared theming";
     };
 
     iconTheme = {
-      package = mkOption {
-        type = types.str;
+      package = lib.mkOption {
+        type = lib.types.str;
         default = "papirus-icon-theme";
         description = "Nixpkgs attribute name of the icon theme package";
       };
-      light = mkOption {
-        type = types.str;
+      light = lib.mkOption {
+        type = lib.types.str;
         default = "Papirus-Light";
         description = "Icon theme name used in light mode";
       };
-      dark = mkOption {
-        type = types.str;
+      dark = lib.mkOption {
+        type = lib.types.str;
         default = "Papirus-Dark";
         description = "Icon theme name used in dark mode";
       };
@@ -124,47 +158,64 @@ in
 
     fonts = {
       sansSerif = {
-        package = mkOption {
-          type = types.str;
+        package = lib.mkOption {
+          type = lib.types.str;
           default = "inter";
           description = "Nixpkgs attribute name of the sans-serif font package";
         };
-        name = mkOption {
-          type = types.str;
+        name = lib.mkOption {
+          type = lib.types.str;
           default = "Inter";
           description = "Sans-serif font family name";
         };
       };
 
       monospace = {
-        package = mkOption {
-          type = types.str;
+        package = lib.mkOption {
+          type = lib.types.str;
           default = "jetbrains-mono";
           description = "Nixpkgs attribute name of the monospace font package";
         };
-        name = mkOption {
-          type = types.str;
+        name = lib.mkOption {
+          type = lib.types.str;
           default = "JetBrains Mono";
           description = "Monospace font family name";
         };
       };
 
       emoji = {
-        package = mkOption {
-          type = types.str;
+        package = lib.mkOption {
+          type = lib.types.str;
           default = "noto-fonts-color-emoji";
           description = "Nixpkgs attribute name of the emoji font package";
         };
-        name = mkOption {
-          type = types.str;
+        name = lib.mkOption {
+          type = lib.types.str;
           default = "Noto Color Emoji";
           description = "Emoji font family name";
         };
       };
     };
+
+    plymouth = {
+      enable = lib.mkEnableOption "Plymouth (boot splash) global theming";
+
+      logo = lib.mkOption {
+        description = "Logo to be used on the boot screen.";
+        type = with lib.types; either path package;
+        defaultText = lib.literalMD "Ghaf logo";
+        default = "${pkgs.ghaf-artwork}/1600px-Ghaf_logo.png";
+      };
+
+      spinnerAnimated = lib.mkOption {
+        description = "Whether to animate Plymouth's spinner shown under the logo.";
+        type = lib.types.bool;
+        default = true;
+      };
+    };
   };
 
-  config = lib.mkIf config.ghaf.theming.enable (
+  config = lib.mkIf cfg.enable (
     lib.mkMerge [
       {
         stylix = {
@@ -173,39 +224,50 @@ in
           # Currently unused
           targets.nixos-icons.enable = lib.mkDefault false;
 
-          inherit (config.ghaf.theming) polarity base16Scheme;
+          inherit (cfg) polarity base16Scheme;
 
           fonts = {
             serif = config.stylix.fonts.sansSerif;
 
             sansSerif = {
-              package = pkgs.${config.ghaf.theming.fonts.sansSerif.package};
-              inherit (config.ghaf.theming.fonts.sansSerif) name;
+              package = pkgs.${cfg.fonts.sansSerif.package};
+              inherit (cfg.fonts.sansSerif) name;
             };
 
             monospace = {
-              package = pkgs.${config.ghaf.theming.fonts.monospace.package};
-              inherit (config.ghaf.theming.fonts.monospace) name;
+              package = pkgs.${cfg.fonts.monospace.package};
+              inherit (cfg.fonts.monospace) name;
             };
 
             emoji = {
-              package = pkgs.${config.ghaf.theming.fonts.emoji.package};
-              inherit (config.ghaf.theming.fonts.emoji) name;
+              package = pkgs.${cfg.fonts.emoji.package};
+              inherit (cfg.fonts.emoji) name;
             };
           };
 
           icons = {
             enable = true;
-            package = pkgs.${config.ghaf.theming.iconTheme.package};
-            inherit (config.ghaf.theming.iconTheme) light dark;
+            package = pkgs.${cfg.iconTheme.package};
+            inherit (cfg.iconTheme) light dark;
           };
 
-          targets.plymouth = {
-            logo = lib.mkIf config.ghaf.graphics.boot.logo.enable config.ghaf.graphics.boot.logo.image;
-            logoAnimated = false;
-          };
+          # We build our own Plymouth theme below instead, so that we can show
+          # Plymouth's own spinner under the logo rather than spinning the logo.
+          targets.plymouth.enable = false;
         };
+
+        environment.systemPackages = lib.rmDesktopEntries [
+          pkgs.libsForQt5.qt5ct
+          pkgs.qt6Packages.qt6ct
+        ];
       }
+
+      (lib.mkIf cfg.plymouth.enable {
+        boot.plymouth = {
+          theme = "ghaf";
+          themePackages = [ plymouthTheme ];
+        };
+      })
 
       (lib.mkIf config.stylix.targets.gtk.enable {
         environment.etc = {
