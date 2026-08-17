@@ -24,11 +24,14 @@
 
     # speciic profiles that are needed for certain classes of devices should be included below.
     # This can be on a category basis or integrated into an existing category if it has a common base
-    profiles-workstation.imports = [
+    profiles-laptop-x86.imports = [
       inputs.self.nixosModules.profiles
       inputs.self.nixosModules.microvm
       ./laptop-x86.nix
     ];
+
+    # Deprecated alias for profiles-laptop-x86. Remove after one release.
+    profiles-workstation.imports = [ inputs.self.nixosModules.profiles-laptop-x86 ];
 
     profiles-orin.imports = [
       inputs.self.nixosModules.profiles

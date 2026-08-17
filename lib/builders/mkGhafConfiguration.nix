@@ -90,7 +90,7 @@ let
       # Select the profile module based on target type
       profileModule =
         {
-          "laptop-x86" = self.nixosModules.profiles-workstation;
+          "laptop-x86" = self.nixosModules.profiles-laptop-x86;
           "orin" = self.nixosModules.profiles-orin;
         }
         .${profile}
@@ -195,6 +195,7 @@ let
             extraConfig
             vmConfig
             extraInputs
+            buildSysupdateImage
             ;
           extraModules = extraModules ++ modules;
         };
@@ -237,6 +238,7 @@ let
             extraModules
             extraConfig
             extraInputs
+            buildSysupdateImage
             ;
           vmConfig = updatedVmConfig;
         };

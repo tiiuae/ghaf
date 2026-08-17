@@ -50,6 +50,30 @@
         in
         lib.throwIf (problems != [ ]) (lib.concatStringsSep "\n" problems) pkgs.emptyFile;
 
+      # The machine table is a list of names, not a place to configure a machine.
+      # Anything more than the declared fields belongs in a hardware module or a
+      # reference profile.
+      checks.laptop-table-is-data =
+        let
+          banned = [
+            "ghaf."
+            "lib."
+            "import"
+            "mkIf"
+            "mkForce"
+            "mkDefault"
+          ];
+          # Comments legitimately mention the banned words.
+          code = map (l: lib.head (lib.splitString "#" l)) (
+            lib.splitString "\n" (builtins.readFile ../targets/laptop/machines.nix)
+          );
+          hits = lib.concatMap (l: map (b: "  ${b}  in:${l}") (lib.filter (b: lib.hasInfix b l) banned)) code;
+        in
+        lib.throwIf (hits != [ ]) ''
+          targets/laptop/machines.nix must be data only. Found:
+          ${lib.concatStringsSep "\n" hits}
+        '' pkgs.emptyFile;
+
       pre-commit = {
         settings = {
           hooks = {

@@ -27,6 +27,9 @@
         ghaf.hardware.definition.netvm.extraModules = [
           (import ./alienware/net-config.nix)
         ];
+
+        # Suspend does not resume on this board.
+        ghaf.services.power-manager.suspend.enable = false;
       }
     ];
 
@@ -39,6 +42,7 @@
         ghaf.hardware.definition.guivm.extraModules = [
           (import ./demo-tower/extra-config.nix)
         ];
+        ghaf.services.performance.host.thermalLimitMode = "enabled";
       }
     ];
 
@@ -77,6 +81,7 @@
         ghaf.hardware.definition.guivm.extraModules = [
           ./lenovo-t14-amd/gpu-config.nix
         ];
+        ghaf.services.performance.host.thermalLimitMode = "enabled";
       }
     ];
 
@@ -106,6 +111,12 @@
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./dell-latitude/definitions/dell-latitude-7330.nix;
+        # Split eth (8086:15fb) out of the audio IOMMU group.
+        ghaf.hardware.passthrough.pciAcsOverride = {
+          enable = true;
+          ids = [ "8086:15fb" ];
+        };
+        ghaf.virtualization.vmConfig = (import ./vm-budgets.nix).low;
       }
     ];
 
@@ -113,6 +124,7 @@
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-2-in-1-gen-9.nix;
+        ghaf.virtualization.vmConfig = (import ./vm-budgets.nix).minimal;
       }
     ];
 
@@ -148,6 +160,19 @@
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./system76/definitions/system76-darp11-b.nix;
+      }
+      {
+        # Split eth (8086:550a) out of the audio IOMMU group.
+        ghaf.hardware.passthrough.pciAcsOverride = {
+          enable = true;
+          ids = [ "8086:550a" ];
+        };
+        # deep suspend is broken on arrow-lake.
+        ghaf.services.power-manager.suspend.mode = "s2idle";
+        ghaf.hardware.definition.guivm.extraModules = [
+          (import ./system76/extra-config-guivm.nix)
+        ];
+        hardware.system76.kernel-modules.enable = true;
       }
     ];
 
