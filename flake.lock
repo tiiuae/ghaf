@@ -270,15 +270,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1786986574,
-        "narHash": "sha256-gBgPng2X2Dj8af9v2e+oWXlUdjhiElwDRi1OR/8bpnQ=",
+        "lastModified": 1787052754,
+        "narHash": "sha256-oKYwwMY63lbrgWy45flMfSxBGtLYdO7GJ+Cspo36h1M=",
         "owner": "tiiuae",
         "repo": "ghaf-device-manager",
-        "rev": "02687265b0f15f4ae2d48103b81b5da428e4b7af",
+        "rev": "b93dbc5c32689da179822231089593613c534133",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
+        "ref": "fix/suppress-noop-notifications",
         "repo": "ghaf-device-manager",
         "type": "github"
       }
@@ -310,11 +311,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1786614244,
-        "narHash": "sha256-EJ/RmSLQtHHxvE2PwakawcmDaVB6ebDiY29AdUuT2q4=",
+        "lastModified": 1787052754,
+        "narHash": "sha256-qcUNHT7UjOHu1qGdcDgRvoLQzcbDWfB+W+vi1I8OvFk=",
         "owner": "vadika",
         "repo": "ghafpkgs",
-        "rev": "a6e6c383c24f3a87fe77df10f1f33411c3c60fa8",
+        "rev": "4f181fe02222f9f7ef74ebb230f23f67b028714a",
         "type": "github"
       },
       "original": {
