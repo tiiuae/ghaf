@@ -13,10 +13,10 @@
 #       inherit self inputs;
 #     };
 #   in ghafConfig {
-#     name = "lenovo-x1-carbon-gen11";
+#     name = "intel-laptop";
 #     system = "x86_64-linux";
 #     profile = "laptop-x86";
-#     hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen11;
+#     hardwareModule = self.nixosModules.hardware-intel-laptop;
 #     variant = "debug";
 #     extraModules = [ ... ];
 #     extraConfig = { ... };
@@ -39,7 +39,7 @@
 #   }
 #
 # Parameters:
-#   name           - Target machine name (e.g., "lenovo-x1-carbon-gen11")
+#   name           - Target machine name (e.g., "intel-laptop")
 #   system         - Target system architecture ("x86_64-linux" or "aarch64-linux")
 #   profile        - Target profile: "laptop-x86" or "orin"
 #   hardwareModule - NixOS module for hardware-specific configuration
@@ -57,7 +57,7 @@
 #
 # Output:
 #   {
-#     name              - Full configuration name (e.g., "lenovo-x1-carbon-gen11-debug")
+#     name              - Full configuration name (e.g., "intel-laptop-debug")
 #     variant           - The variant type
 #     hostConfiguration - The NixOS system configuration
 #     package           - The build output (ghafImage)

@@ -131,7 +131,7 @@ in
       profile = "laptop-x86";
 
       # Use Ghaf's hardware definition or your own
-      hardwareModule = inputs.ghaf.nixosModules.hardware-lenovo-x1-carbon-gen11;
+      hardwareModule = inputs.ghaf.nixosModules.hardware-intel-laptop;
 
       # Debug variant auto-applies lib.ghaf.profiles.debug via mkDefault
       variant = "debug";
@@ -156,7 +156,7 @@ in
       name = "my-product";
       inherit system;
       profile = "laptop-x86";
-      hardwareModule = inputs.ghaf.nixosModules.hardware-lenovo-x1-carbon-gen11;
+      hardwareModule = inputs.ghaf.nixosModules.hardware-intel-laptop;
       variant = "release";
     };
   in {

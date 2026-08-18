@@ -21,7 +21,7 @@
 # artefact does not prove the target booted.
 { pkgs, self }:
 let
-  testConfig = "lenovo-x1-carbon-gen11-debug";
+  testConfig = "intel-laptop-debug";
   expectedHostname = "ghaf-host";
 
   cfg = self.nixosConfigurations.${testConfig};

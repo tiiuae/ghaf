@@ -15,8 +15,8 @@
 #       extraModules = [ ... ];
 #     };
 #   in ghafInstaller {
-#     name = "lenovo-x1-carbon-gen11-debug";
-#     imagePath = self.packages.x86_64-linux.lenovo-x1-carbon-gen11-debug;
+#     name = "intel-laptop-debug";
+#     imagePath = self.packages.x86_64-linux.intel-laptop-debug;
 #   }
 #
 # First-level parameters (evaluated once, shared across all installers):
@@ -26,12 +26,12 @@
 #   extraModules - Additional NixOS modules for the installer system
 #
 # Second-level parameters (per target, no NixOS evaluation):
-#   name         - Base name for the installer (e.g., "lenovo-x1-carbon-gen11-debug")
+#   name         - Base name for the installer (e.g., "intel-laptop-debug")
 #   imagePath    - Path to the built Ghaf image package
 #
 # Output:
 #   {
-#     name    - Full installer name (e.g., "lenovo-x1-carbon-gen11-debug-installer")
+#     name    - Full installer name (e.g., "intel-laptop-debug-installer")
 #     package - The ISO image derivation
 #   }
 #

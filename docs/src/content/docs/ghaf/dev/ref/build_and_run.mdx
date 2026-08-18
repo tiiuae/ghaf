@@ -63,23 +63,23 @@ import { Aside } from "@astrojs/starlight/components";
 
 ## Quick Start: Primary Build Targets
 
-### Lenovo X1 Carbon Gen 11 (Recommended for x86_64)
+### Intel laptops (Recommended for x86_64)
 
-This is the primary reference device for Ghaf on x86_64 architecture.
+One generic image covers every Intel laptop in the fleet — X1 Carbon, Dell Latitude Rugged, System76 Darter Pro and others. See [Hardware Configuration](/ghaf/dev/ref/hw-config/) for the feature axes and for the boards that still need their own target.
 
 1. **Build the image** (5-15 minutes with binary cache, 60-120 minutes from source):
    ```sh
-   nix build .#lenovo-x1-carbon-gen11-debug
+   nix build .#intel-laptop-debug
    ```
 
 2. **Prepare USB boot media**:
    ```sh
-   ./packages/pkgs-by-name/flash-script/flash.sh -d /dev/<YOUR_USB_DRIVE> -i result/ghaf-lenovo-x1-carbon-gen11-debug.img
+   sudo nix develop --command ghaf-flash -d /dev/<YOUR_USB_DRIVE> -i result/ghaf-image.raw.zst
    ```
 
    ⚠️ **Warning**: Replace `<YOUR_USB_DRIVE>` with your actual USB device (e.g., `/dev/sdb`). This will erase all data on the USB drive.
 
-3. **Boot from USB**: Insert the USB drive and boot your Lenovo X1 Carbon Gen 11 from the USB device.
+3. **Boot from USB**: Insert the USB drive and boot the laptop from the USB device.
 
 ### NVIDIA Jetson AGX Orin (Primary AArch64 target)
 
@@ -145,10 +145,10 @@ Ghaf provides pre-built binaries through a binary cache, dramatically reducing b
 
 ```sh
 # Build with binary cache (default configuration)
-nix build .#lenovo-x1-carbon-gen11-debug
+nix build .#intel-laptop-debug
 
 # Explicitly specify binary cache
-nix build .#lenovo-x1-carbon-gen11-debug \
+nix build .#intel-laptop-debug \
   --option substituters "https://ghaf-dev.cachix.org https://cache.nixos.org"
 ```
 
@@ -170,7 +170,7 @@ nix build .#lenovo-x1-carbon-gen11-debug \
 
 ## Running Ghaf Image for Generic x86 Computer
 
-For general x86_64 hardware (not Lenovo-specific):
+For general x86_64 hardware, without the laptop passthrough stack:
 
 1. **Build the image**:
    ```sh
@@ -186,25 +186,25 @@ For general x86_64 hardware (not Lenovo-specific):
 
 ---
    ```sh
-   ./packages/flash/flash.sh -d /dev/<YOUR_USB_DRIVE> -i result/<IMAGE_NAME>
+   sudo nix develop --command ghaf-flash -d /dev/<YOUR_USB_DRIVE> -i result/ghaf-image.raw.zst
    ```
 3. Boot the computer from the USB media.
 
 ---
 
-## Running Ghaf Image for Lenovo X1
+## Running a Ghaf Image on an Intel Laptop
 
-Lenovo X1 is the reference x86_64 device for the Ghaf project.
+`intel-laptop-debug` is the reference x86_64 image for the Ghaf project.
 
 Do the following:
 
 1. To build the target image, run the command:
    ```sh
-   nix build github:tiiuae/ghaf#lenovo-x1-carbon-gen11-debug
+   nix build github:tiiuae/ghaf#intel-laptop-debug
    ```
-2. After the build is completed, prepare a USB boot media with the target image you built using the `flash.sh` script:
+2. After the build is completed, prepare a USB boot media with the target image you built using `ghaf-flash`:
    ```sh
-   ./packages/flash/flash.sh -d /dev/<YOUR_USB_DRIVE> -i result/<IMAGE_NAME>
+   sudo nix develop --command ghaf-flash -d /dev/<YOUR_USB_DRIVE> -i result/ghaf-image.raw.zst
    ```
 3. Boot the computer from the USB media.
 

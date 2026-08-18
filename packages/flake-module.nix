@@ -28,7 +28,7 @@
       packages.doc =
         let
           cfg = lib.nixosSystem {
-            # Enhanced from lenovo-x1-carbon-gen11-debug with broader module coverage
+            # Enhanced from intel-laptop-debug with broader module coverage
             specialArgs = {
               inherit inputs;
             };
@@ -36,7 +36,7 @@
               # Original proven working base
               self.nixosModules.reference-profiles
               self.nixosModules.disko-debug-partition
-              self.nixosModules.hardware-lenovo-x1-carbon-gen11
+              self.nixosModules.hardware-intel-laptop
               self.nixosModules.profiles-workstation
 
               # Additional modules for comprehensive options coverage

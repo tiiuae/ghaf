@@ -182,10 +182,10 @@ let
   # Then use the builder functions with machine-specific parameters
   target-configs = [
     (ghaf-configuration {
-      name = "lenovo-x1-carbon-gen11";
+      name = "intel-laptop";
       inherit system;
       profile = "laptop-x86";
-      hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen11;
+      hardwareModule = self.nixosModules.hardware-intel-laptop;
       variant = "debug";
       extraModules = commonModules;
       extraConfig = {

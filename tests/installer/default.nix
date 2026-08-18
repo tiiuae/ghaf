@@ -11,7 +11,7 @@
 # This will allow you to interact with installed ghaf.
 { pkgs, self }:
 let
-  testConfig = "lenovo-x1-carbon-gen11-debug";
+  testConfig = "intel-laptop-debug";
   expectedHostname = "ghaf-host";
 
   cfg = self.nixosConfigurations.${testConfig};

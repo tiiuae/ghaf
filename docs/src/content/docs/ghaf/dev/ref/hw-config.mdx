@@ -2,92 +2,70 @@
 title: Hardware Configuration
 ---
 
-All configuration files for reference target devices are in [modules/hardware](https://github.com/tiiuae/ghaf/tree/main/modules/hardware).
-
-The ghaf-25.10.x releases support the following target hardware configurations:
+All configuration files for reference target devices are in [modules/reference/hardware](https://github.com/tiiuae/ghaf/tree/main/modules/reference/hardware), and the machine table that turns them into build targets is [targets/laptop/machines.nix](https://github.com/tiiuae/ghaf/blob/main/targets/laptop/machines.nix).
 
 ## x86_64 Platforms
 
-### Generic x86_64
-- **Target**: `generic-x86_64-debug` / `generic-x86_64-release`
-- **Description**: Generic x86_64 systems with standard PC hardware
-- **Use Case**: Desktop PCs, workstations, generic laptops
+### Intel laptops — the generic image
+
+Intel laptops share one image. It passes display, network and audio through by PCI
+class rather than per-device ID, matches input devices by udev property, and carries
+per-board quirks (IOMMU ACS ids, suspend mode, webcam and fingerprint VID:PIDs) in
+union lists that one image applies to the whole fleet. There is no per-model target,
+and a new Intel laptop does not need one.
+
+- **Targets**: `intel-laptop-debug` / `intel-laptop-release`
+- **Installers**: `intel-laptop-debug-installer` / `intel-laptop-debug-netboot-installer`
+- **A/B update image**: `intel-laptop-debug-sysupdate` / `intel-laptop-release-sysupdate`
+- **Verified on**: Lenovo ThinkPad X1 Carbon, Dell Latitude 7330 Rugged, System76 Darter Pro
 - **Architecture**: x86_64
 
-### Lenovo ThinkPad X1 Series
+Two feature axes vary the image; a target name gains one suffix per selected axis.
+The memory axes are mutually exclusive.
 
-#### Lenovo ThinkPad X1 Carbon Gen 10
-- **Targets**: `lenovo-x1-carbon-gen10-debug` / `lenovo-x1-carbon-gen10-release`
-- **Installers**: `lenovo-x1-carbon-gen10-debug-installer` / `lenovo-x1-carbon-gen10-release-installer`
+| Axis | Suffix | Effect |
+|---|---|---|
+| `low-mem` | `-low-mem` | For machines with 16 GB or less: shrinks the flatpak app VM |
+| `minimal-mem` | `-minimal-mem` | Tablet-class units: shrinks the GUI VM to just under 2 GB |
+| `storeDisk` | `-storeDisk` | Puts the VM Nix store on disk instead of in memory |
+
+So `intel-laptop-low-mem-debug` is the Dell Latitude 7330 build, and
+`intel-laptop-low-mem-storeDisk-release` combines both.
+
+#### Intel laptop, extended application set
+- **Targets**: `intel-laptop-extras-debug` / `intel-laptop-extras-release`
+- **Description**: The same image with the `mvp-user-trial-extras` product profile
 - **Architecture**: x86_64
 
-#### Lenovo ThinkPad X1 Carbon Gen 11
-- **Targets**: `lenovo-x1-carbon-gen11-debug` / `lenovo-x1-carbon-gen11-release`
-- **Installers**: `lenovo-x1-carbon-gen11-debug-installer` / `lenovo-x1-carbon-gen11-release-installer`
-- **Architecture**: x86_64
-- **Status**: Primary x86_64 reference platform
+### Boards the generic image cannot describe
 
-#### Lenovo ThinkPad X1 Carbon Gen 12
-- **Targets**: `lenovo-x1-carbon-gen12-debug` / `lenovo-x1-carbon-gen12-release`
-- **Installers**: `lenovo-x1-carbon-gen12-debug-installer` / `lenovo-x1-carbon-gen12-release-installer`
-- **Architecture**: x86_64
-
-#### Lenovo ThinkPad X1 Carbon Gen 13
-- **Targets**: `lenovo-x1-carbon-gen13-debug` / `lenovo-x1-carbon-gen13-release`
-- **Installers**: `lenovo-x1-carbon-gen13-debug-installer` / `lenovo-x1-carbon-gen13-release-installer`
-- **Architecture**: x86_64
-
-#### Lenovo ThinkPad X1 2-in-1 Gen 9
-- **Target**: `lenovo-x1-2-in-1-gen9-debug`
-- **Installer**: `lenovo-x1-2-in-1-gen9-debug-installer`
-- **Architecture**: x86_64
-
-#### Lenovo X1 Extras Configuration
-- **Targets**: `lenovo-x1-extras-debug` / `lenovo-x1-extras-release`
-- **Installers**: `lenovo-x1-extras-debug-installer` / `lenovo-x1-extras-release-installer`
-- **Description**: Extended configuration with additional features
-- **Architecture**: x86_64
-
-#### Lenovo X1 Hardening Configuration
-- **Targets**: `lenovo-x1-gen11-hardening-debug` / `lenovo-x1-gen11-hardening-release`
-- **Installers**: `lenovo-x1-gen11-hardening-debug-installer` / `lenovo-x1-gen11-hardening-release-installer`
-- **Description**: Security-hardened configuration for Gen 11
-- **Architecture**: x86_64
-
-### Dell Platforms
-
-#### Dell Latitude 7230
-- **Targets**: `dell-latitude-7230-debug` / `dell-latitude-7230-release`
-- **Installers**: `dell-latitude-7230-debug-installer` / `dell-latitude-7230-release-installer`
-- **Architecture**: x86_64
-
-#### Dell Latitude 7330
-- **Targets**: `dell-latitude-7330-debug` / `dell-latitude-7330-release`
-- **Installers**: `dell-latitude-7330-debug-installer` / `dell-latitude-7330-release-installer`
-- **Architecture**: x86_64
+These keep their own target because they are not Intel laptops: AMD IOMMU, desktop
+chassis, or a discrete GPU whose audio function must be paired with the display device
+by hand rather than swept up by PCI class matching.
 
 #### Alienware m18 R2
 - **Targets**: `alienware-m18-R2-debug` / `alienware-m18-R2-release`
-- **Installers**: `alienware-m18-R2-debug-installer` / `alienware-m18-R2-release-installer`
+- **Why separate**: NVIDIA dGPU passed as a static multi-function pair, out-of-tree NIC driver in net-vm, host-owned panel backlight, and suspend disabled because the board does not resume
 - **Architecture**: x86_64
 
-### System76 Platforms
-
-#### System76 Darter Pro 11B
-- **Targets**: `system76-darp11-b-debug` / `system76-darp11-b-release`
-- **Installers**: `system76-darp11-b-debug-installer` / `system76-darp11-b-release-installer`
+#### Lenovo ThinkPad T14 AMD Gen 5
+- **Targets**: `lenovo-t14-amd-gen5-debug` / `lenovo-t14-amd-gen5-release`
+- **Why separate**: `amd_iommu`, `amdgpu`, AMD ACP audio, and a `simpledrm` renderer because iGPU passthrough does not work on this board
 - **Architecture**: x86_64
-
-### Desktop/Workstation Platforms
 
 #### Demo Tower MK1
-- **Target**: `demo-tower-mk1-debug`
-- **Installer**: `demo-tower-mk1-debug-installer`
+- **Targets**: `demo-tower-mk1-debug` / `demo-tower-mk1-release`
+- **Why separate**: AMD desktop; discrete Quadro passed through as a four-function group that includes its own xHCI controller
 - **Architecture**: x86_64
 
 #### Tower 5080
-- **Target**: `tower-5080-debug`
-- **Installer**: `tower-5080-debug-installer`
+- **Targets**: `tower-5080-debug` / `tower-5080-release`
+- **Why separate**: Intel desktop; discrete RTX 5080 needing the open NVIDIA drivers and NVIDIA modules in the guest initrd
+- **Architecture**: x86_64
+
+### Generic x86_64
+- **Targets**: `generic-x86_64-debug` / `generic-x86_64-release`
+- **Description**: Generic x86_64 systems with standard PC hardware, without the laptop passthrough stack
 - **Architecture**: x86_64
 
 ### Virtualization Platforms
@@ -146,20 +124,46 @@ The ghaf-25.10.x releases support the following target hardware configurations:
 ## Build Recommendations
 
 ### Primary Targets for Development
-- **x86_64**: `lenovo-x1-carbon-gen11-debug` (most tested x86_64 platform)
+- **x86_64**: `intel-laptop-debug` (the generic laptop image, and the one the hardware rigs run)
 - **AArch64**: `nvidia-jetson-orin-agx-debug-from-x86_64` (primary ARM64 platform)
 
 ### Cross-Compilation
 All AArch64 targets have corresponding `-from-x86_64` variants for cross-compilation from x86_64 development machines.
 
 ### Installer Images
-Most x86_64 targets include installer variants (`-installer` suffix) for easy deployment to physical hardware.
+Every laptop target has an `-installer` variant (a bootable ISO carrying the image) and a `-netboot-installer` variant (PXE, fetching the image at install time).
 
-## Adding New Hardware Configuration
+## Adding New Hardware
 
-To add a new hardware configuration file:
+### An Intel laptop
 
-1. Create a separate folder for the device in [modules/hardware](https://github.com/tiiuae/ghaf/tree/main/modules/hardware).
-2. Create the new configuration file with hardware-dependent parameters like host information, input and output device parameters, and others.
+Usually nothing to add — build `intel-laptop-debug` and flash it. If something on the
+board does not come up, add the one quirk it needs to the list that already covers it,
+rather than creating a target:
 
-   > You can use an already existing file as a reference, for example [modules/hardware/lenovo-x1/definitions/x1-gen11.nix](https://github.com/tiiuae/ghaf/blob/main/modules/hardware/lenovo-x1/definitions/x1-gen11.nix).
+| Symptom | Where the quirk goes |
+|---|---|
+| A device shares an IOMMU group with another and cannot be split | `ghaf.hardware.passthrough.pciAcsOverride.ids` in `modules/reference/hardware/flake-module.nix` |
+| Suspend does not resume, but `s2idle` works | `ghaf.services.power-manager.suspend.s2idleModels` in `modules/reference/hardware/intel-laptop/extra-config-host.nix` — a DMI `"<board_vendor> <board_name>"` string |
+| The internal webcam or fingerprint reader is not passed through | `modules/reference/passthrough/known-devices.nix` — a VID:PID entry |
+| A vendor hotkey block does not reach the GUI VM | `modules/hardware/passthrough/evdev-rules.nix` — a platform `pathTag` |
+| A host driver claims a device before vfio-pci | the host `module_blacklist` in `modules/reference/hardware/intel-laptop/intel-laptop.nix` |
+
+The unit needs less memory than the fleet default? Use an existing axis
+(`low-mem`, `minimal-mem`) rather than a new target.
+
+### A board the generic image cannot describe
+
+AMD hosts, desktops, and discrete GPUs still need their own module — the generic image
+is Intel-only, and PCI class matching cannot pair a dGPU with its audio function.
+
+1. Run `laptop-hw-scan` on the machine to dump its PCI, USB and DMI data.
+2. Add a module directory under
+   [modules/reference/hardware](https://github.com/tiiuae/ghaf/tree/main/modules/reference/hardware)
+   and register it as `hardware-<name>` in that directory's `flake-module.nix`.
+   Use [tower-5080](https://github.com/tiiuae/ghaf/tree/main/modules/reference/hardware/tower-5080)
+   as the reference for a discrete-GPU board.
+3. Add one stanza to
+   [targets/laptop/machines.nix](https://github.com/tiiuae/ghaf/blob/main/targets/laptop/machines.nix).
+   That file is data only — no `ghaf.*`, no `lib` calls, no conditionals; everything else
+   belongs in the module. This is enforced by `checks.laptop-table-is-data`.

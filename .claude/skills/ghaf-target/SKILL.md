@@ -154,8 +154,8 @@ Keep these apart; conflating them produces failures that look like something els
 
 - **What you build and flash** is now generic. x86 laptops share `intel-laptop-debug`;
   `modules/reference/hardware/intel-laptop/` passes display, network and audio through by
-  PCI *class wildcard* rather than per-device IDs, so one image serves the fleet.
-  Per-machine targets still exist but are no longer the default path.
+  PCI *class wildcard* rather than per-device IDs, so one image serves the fleet. There are
+  no per-machine Intel laptop targets; only AMD boards and desktops keep their own.
 - **What the test suite is told** is machine-specific. `robot-test -d` accepts only
   `darter-pro`, `lenovo-x1`, `dell-7330`, `x1-sec-boot`, `orin-agx`, `orin-agx-64`,
   `orin-nx`. `Robot-Framework/config/variables.robot` compares `DEVICE_TYPE` against those
