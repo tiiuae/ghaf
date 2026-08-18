@@ -124,11 +124,14 @@ in
             ExecStart = lib.getExe (
               pkgs.writeShellApplication {
                 name = "ghaf-wait-time-sync";
-                runtimeInputs = with pkgs; [
-                  coreutils
-                  gawk
-                  systemd
-                ];
+                runtimeInputs =
+                  with pkgs;
+                  [
+                    coreutils
+                    gawk
+                    systemd
+                  ]
+                  ++ lib.optional cfg.server.enable config.services.chrony.package;
                 # The bounded-wait branch is emitted only when requireSync is
                 # false. Declaring its state unconditionally would leave unused
                 # variables in the requireSync case, and writeShellApplication
@@ -146,8 +149,12 @@ in
                   ''}
 
                   while true; do
-                    value="$(timedatectl show -p NTPSynchronized --value 2>/dev/null || true)"
-                    if [ "$value" = "yes" ]; then
+                    if ${
+                      if cfg.server.enable then
+                        "chronyc waitsync 1 0 0 0.1 >/dev/null 2>&1"
+                      else
+                        ''[ "$(timedatectl show -p NTPSynchronized --value 2>/dev/null || true)" = "yes" ]''
+                    }; then
                       echo "Clock synchronised; realtime is $(date -u -Is)"
                       printf 'synchronised\n' > "$synced_file"
                       break
