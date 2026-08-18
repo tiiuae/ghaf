@@ -106,11 +106,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1768505959,
-        "narHash": "sha256-oFCx/ApQ+S1/apUKWsvT9vq+Eo1m2vINWEDkW7/nckA=",
+        "lastModified": 1779836515,
+        "narHash": "sha256-X/AwJZeTjxetRM7JG2BXeffKa1PIg/uo8AP5TX/+kb0=",
         "owner": "nixos-cuda",
         "repo": "cuda-legacy",
-        "rev": "86ad7e2c2e314f0234539cbbc66b5cd7746bcd32",
+        "rev": "baf22622e1114bb36412e5cebe2303f302edb882",
         "type": "github"
       },
       "original": {
@@ -413,16 +413,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1786040753,
-        "narHash": "sha256-yazxijtId1x+roCrSJ3Smcn3iPTN4lZj2cIjA2aBPU0=",
+        "lastModified": 1787088172,
+        "narHash": "sha256-P17S0tFbt1BBuCGQFQBaQuUwni+bo9J0a0tEmpcVfXc=",
         "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "06305c64c3a152c5a55f7d1fa98f6485c6f934c9",
+        "rev": "beecf2d7122359b17aa551d9f0aee3b73bdb891c",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "uki-sec-boot",
+        "ref": "august-rebase",
         "repo": "jetpack-nixos",
         "type": "github"
       }
