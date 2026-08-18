@@ -3,7 +3,9 @@
 #
 # Named VM memory budgets, in MB. Data only.
 {
-  # Machines with 16 GB or less.
+  # Machines with 16 GB or less. The guivm figure matches the current default and
+  # is a pin, not a reduction; only the flatpak appvm actually shrinks (its mem is
+  # multiplied by balloonRatio, so 5120 lands at 15360 against a default 18432).
   low = {
     sysvms.guivm.mem = 6144;
     appvms.flatpak.mem = 5120;

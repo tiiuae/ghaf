@@ -198,7 +198,7 @@ The encryption service runs in the **initial RAM disk (initrd)** before the root
 
 ```bash
 # Build the image - deferred encryption is default in mvp-user-trial targets
-nix build .#lenovo-x1-carbon-gen11-debug
+nix build .#intel-laptop-debug
 
 # The resulting image will be plain LVM (unencrypted)
 # File: result/nixos.raw.zst (compressed)

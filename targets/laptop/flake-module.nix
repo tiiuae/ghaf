@@ -62,8 +62,21 @@ let
   machines = import ./machines.nix;
   axes = import ./axes.nix;
 
-  # Power set, each subset keeping declaration order.
-  subsets = lib.foldl' (acc: x: acc ++ map (s: s ++ [ x ]) acc) [ [ ] ];
+  # Power set, each subset keeping declaration order. Axes sharing a `group` are
+  # mutually exclusive, so subsets naming two of them are dropped.
+  subsets =
+    names:
+    let
+      powerSet = lib.foldl' (acc: x: acc ++ map (s: s ++ [ x ]) acc) [ [ ] ] names;
+      groupsOf = s: lib.filter (g: g != null) (map (a: axes.${a}.group or null) s);
+    in
+    lib.filter (
+      s:
+      let
+        g = groupsOf s;
+      in
+      g == lib.unique g
+    ) powerSet;
 
   mkTarget =
     name: machine: variant: axisNames:
@@ -77,7 +90,9 @@ let
       profile = "laptop-x86";
       hardwareModule = self.nixosModules."hardware-${machine.hardware}";
       extraModules = commonModules;
-      buildSysupdateImage = machine.sysupdate or false;
+      # A/B update images cover the axis-free target only, so adding an axis to a
+      # machine does not multiply the verity image count.
+      buildSysupdateImage = (machine.sysupdate or false) && picked == [ ];
       extraConfig = lib.recursiveUpdate {
         reference.profiles.${machine.product or "mvp-user-trial"}.enable = true;
         partitioning.disko.enable = true;

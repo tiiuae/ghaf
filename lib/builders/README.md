@@ -9,7 +9,7 @@ This directory contains reusable builder functions that can be used by both Ghaf
 Creates a Ghaf configuration for any supported target type (laptop-x86, orin).
 
 **Parameters (named):**
-- `name`: String - Name of the machine (e.g., "lenovo-x1-carbon-gen11")
+- `name`: String - Name of the machine (e.g., "intel-laptop")
 - `system`: String - Target architecture ("x86_64-linux" or "aarch64-linux")
 - `profile`: String - Target profile ("laptop-x86" or "orin")
 - `hardwareModule`: Module - NixOS module for hardware-specific configuration
@@ -19,7 +19,7 @@ Creates a Ghaf configuration for any supported target type (laptop-x86, orin).
 - `vmConfig`: Attrs - VM resource allocation and modules (default: {})
 
 **Returns:**
-- `name`: Full configuration name (e.g., "lenovo-x1-carbon-gen11-debug")
+- `name`: Full configuration name (e.g., "intel-laptop-debug")
 - `variant`: The build variant
 - `hostConfiguration`: The NixOS configuration
 - `package`: The built system image
@@ -39,11 +39,11 @@ Creates a bootable ISO installer for any Ghaf configuration.
 - `extraModules`: List - Additional NixOS modules for the shared installer system (default: `[]`)
 
 **Second-level parameters (named):**
-- `name`: String - Base name for the installer (e.g., `"lenovo-x1-carbon-gen11-debug"`)
+- `name`: String - Base name for the installer (e.g., `"intel-laptop-debug"`)
 - `imagePath`: Path - Path to the built Ghaf image package
 
 **Returns:**
-- `name`: Full installer name (e.g., "lenovo-x1-carbon-gen11-debug-installer")
+- `name`: Full installer name (e.g., "intel-laptop-debug-installer")
 - `package`: The built ISO image
 
 ## Usage in Downstream Projects
@@ -198,10 +198,10 @@ let
 
   target-configs = [
     (ghaf-configuration {
-      name = "lenovo-x1-carbon-gen11";
+      name = "intel-laptop";
       inherit system;
       profile = "laptop-x86";
-      hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen11;
+      hardwareModule = self.nixosModules.hardware-intel-laptop;
       variant = "debug";
       extraModules = commonModules;
       extraConfig = {
@@ -232,8 +232,8 @@ If migrating from `mkLaptopConfiguration` or `mkOrinConfiguration`:
 
 ### Old Pattern
 ```nix
-(laptop-configuration "lenovo-x1-carbon-gen11" "debug" (withCommonModules [
-  self.nixosModules.hardware-lenovo-x1-carbon-gen11
+(laptop-configuration "intel-laptop" "debug" (withCommonModules [
+  self.nixosModules.hardware-intel-laptop
   {
     ghaf = {
       reference.profiles.mvp-user-trial.enable = true;
@@ -246,10 +246,10 @@ If migrating from `mkLaptopConfiguration` or `mkOrinConfiguration`:
 ### New Pattern
 ```nix
 (ghaf-configuration {
-  name = "lenovo-x1-carbon-gen11";
+  name = "intel-laptop";
   inherit system;
   profile = "laptop-x86";
-  hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen11;
+  hardwareModule = self.nixosModules.hardware-intel-laptop;
   variant = "debug";
   extraModules = commonModules;
   extraConfig = {

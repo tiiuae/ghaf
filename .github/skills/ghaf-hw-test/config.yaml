@@ -8,10 +8,10 @@
 # `ghaf_target`      what you BUILD and FLASH. x86 laptops now share the generic
 #                    `intel-laptop-*` image: modules/reference/hardware/intel-laptop/
 #                    passes display, network and audio through by PCI *class wildcard*
-#                    rather than per-device IDs, so one image covers the fleet.
-#                    Per-machine targets (lenovo-x1-carbon-gen11-debug,
-#                    system76-darp11-b-debug, dell-latitude-7330-debug, ...) still
-#                    exist for special cases, but are no longer the default path.
+#                    rather than per-device IDs, so one image covers the fleet. There are no
+#                    per-machine Intel laptop targets any more; only AMD boards and desktops
+#                    (lenovo-t14-amd-gen5, alienware-m18-R2, demo-tower-mk1, tower-5080)
+#                    keep their own.
 #
 # `test_device_name` what you pass to `robot-test -d`. The Robot suite still selects
 #                    behaviour per physical machine and accepts only the fixed set
@@ -39,7 +39,7 @@
 devices:
   darter-pro:
     architecture: x86_64
-    # Generic laptop image (was: system76-darp11-b-debug)
+    # Generic laptop image
     ghaf_target: intel-laptop-debug
     test_device_name: darter-pro
     default_threads: 16
@@ -57,7 +57,7 @@ devices:
 
   Lenovo-X1:
     architecture: x86_64
-    # Generic laptop image (was: lenovo-x1-carbon-gen11-debug)
+    # Generic laptop image
     ghaf_target: intel-laptop-debug
     test_device_name: lenovo-x1
     default_threads: 20
@@ -93,12 +93,10 @@ devices:
 
   dell-7330:
     architecture: x86_64
-    # Generic laptop image, low-mem variant (was: dell-latitude-7330-debug).
-    # This is a 16 GiB machine (15.7 GiB usable), and the per-machine
-    # dell-latitude-7330 target inlines exactly these low-mem vmConfig numbers,
-    # so the fleet-wide intel-laptop-debug would over-allocate here: flatpak-vm
-    # 18432 MB against 15360 MB, on a host that already sits near zero
-    # available. Verified on hardware 2026-08-02.
+    # Generic laptop image, low-mem variant. This is a 16 GiB machine
+    # (15.7 GiB usable), so the plain intel-laptop-debug over-allocates here:
+    # flatpak-vm 18432 MB against the 15360 MB the low-mem axis sets, on a host
+    # that already sits near zero available. Verified on hardware 2026-08-02.
     ghaf_target: intel-laptop-low-mem-debug
     test_device_name: dell-7330
     default_threads: 12

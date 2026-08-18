@@ -45,13 +45,13 @@ Ghaf provides 46 specialized NixOS modules that implement the secure edge comput
 - Power management optimization
 - Standard peripheral support
 
-#### hardware-lenovo-x1-carbon-gen11
-**Location**: `modules/hardware/lenovo-x1-carbon-gen11.nix`
-**Purpose**: Specific support for Lenovo X1 Carbon Gen 11 laptops
+#### hardware-intel-laptop
+**Location**: `modules/reference/hardware/intel-laptop/`
+**Purpose**: The generic image for every Intel laptop in the fleet
 **Features**:
-- Fingerprint reader support
-- Thermal management
-- Display and docking station optimization
+- PCI passthrough resolved at runtime by device class, not per-board ID
+- Fingerprint reader, webcam and hotkey passthrough matched from union quirk lists
+- Suspend mode selected at boot from a DMI model list
 
 #### hardware-nvidia-jetson-orin-agx
 **Location**: `modules/hardware/nvidia-jetson-orin-agx.nix`

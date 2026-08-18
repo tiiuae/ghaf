@@ -17,7 +17,7 @@
         "acpi_osi=linux"
         # `xe,` had lost its comma and read `xesnd_hda_intel`, which is not a
         # module -- so the i915 rival driver was never blacklisted on the host
-        "module_blacklist=iwlwifi,snd_hda_intel,snd_sof_pci_intel_tgl,bluetooth,btusb,snd_pcm,mei_me,xe,snd_sof_pci_intel_lnl,spi_intel_pci,i801_smbus,nouveau,nvidia,nvidiafb,i2c_nvidia_gpu"
+        "module_blacklist=iwlwifi,snd_hda_intel,snd_sof_pci_intel_tgl,snd_sof_pci_intel_mtl,bluetooth,btusb,snd_pcm,mei_me,xe,snd_sof_pci_intel_lnl,spi_intel_pci,i801_smbus,nouveau,nvidia,nvidiafb,i2c_nvidia_gpu"
       ];
       stage1.kernelModules = [
         # Load i915 in the host initrd as a hardware workaround: some laptop models
@@ -70,7 +70,9 @@
   gpu = {
     kernelConfig = {
       stage1.kernelModules = [
+        # i915 drives Gen12-Xe; xe drives Lunar Lake onwards. Neither binds without its device.
         "i915"
+        "xe"
       ];
       kernelParams = [
         "earlykms"
@@ -91,6 +93,8 @@
         "i2c_i801"
         "snd_hda_intel"
         "snd_sof_pci_intel_tgl"
+        "snd_sof_pci_intel_mtl"
+        "snd_sof_pci_intel_lnl"
         "spi_intel_pci"
         "snd_soc_avs"
       ];

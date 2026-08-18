@@ -41,10 +41,13 @@ Do not commit or push unless you were asked to.
 - `modules/` — NixOS modules: `common/`, `hardware/`, `desktop/`, `microvm/`, `givc/`,
   `development/`, `reference/`, `profiles/`, `partitioning/`
 - `targets/laptop/machines.nix` — the x86 machine table. **Data only**, enforced by
-  `checks.laptop-table-is-data`. A new laptop is one stanza here plus a module under
-  `modules/reference/hardware/`; everything a machine needs (ACS ids, suspend mode, VM memory)
-  goes in that module, never in the table. `targets/laptop/axes.nix` holds the feature axes
-  (`low-mem`, `storeDisk`), expanded as a power set — never write out the combinations.
+  `checks.laptop-table-is-data`. An Intel laptop needs no stanza at all -- it boots the generic
+  `intel-laptop` image. Only a board that image cannot describe (AMD, desktop, discrete GPU)
+  gets one stanza here plus a module under `modules/reference/hardware/`; everything a machine
+  needs (ACS ids, suspend mode, VM memory) goes in that module, never in the table.
+  `targets/laptop/axes.nix` holds the feature axes
+  (`low-mem`, `minimal-mem`, `storeDisk`), expanded as a power set — never write out the
+  combinations. Axes sharing a `group` (the two memory ones) are mutually exclusive.
 - `targets/` — target definitions (`laptop`, `vm`, `generic-x86_64`, `nvidia-jetson-orin`, …)
 - `packages/pkgs-by-name/<package-name>/package.nix` — flat, no first-letter sharding
 - `overlays/`, `lib/`, `nix/`, `tests/`, `docs/`
@@ -81,8 +84,10 @@ asking or guessing; if a field is null in both, ask once and offer to write it t
 
 ## Things that bite
 
-- **x86 laptops share one generic image**: `intel-laptop-debug`. Per-machine targets still
-  exist but are no longer the default path.
+- **x86 laptops share one generic image**: `intel-laptop-debug`. There are no per-machine
+  laptop targets any more. Only non-Intel boards keep their own: `lenovo-t14-amd-gen5`,
+  `alienware-m18-R2`, `demo-tower-mk1`, `tower-5080`. A new Intel laptop needs no target --
+  at most a quirk added to an existing union list (ACS ids, `s2idleModels`, `known-devices.nix`).
 - **Jetson targets must be named `-from-x86_64` on an x86 build host.** The native aarch64
   attributes are not in `packages.x86_64-linux`, so the plain name resolves to nothing.
 - **JetPack-only packages cannot use `packages/pkgs-by-name/`.** That directory and

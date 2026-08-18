@@ -12,11 +12,12 @@ an hour, and a target that isn't cached is a very different proposition from one
 
 x86 laptops share the generic image. `intel-laptop-debug` is the default path —
 `modules/reference/hardware/intel-laptop/` passes display, network and audio through by PCI
-class wildcard rather than per-device IDs, so it covers the fleet. Per-machine targets
-(`lenovo-x1-carbon-gen11-debug`, `system76-darp11-b-debug`, …) still exist for special
-cases but are no longer where you start.
+class wildcard rather than per-device IDs, so it covers the fleet. There are no per-machine
+Intel laptop targets. Only boards the generic image cannot describe keep their own:
+`lenovo-t14-amd-gen5` (AMD), `alienware-m18-R2`, `demo-tower-mk1` and `tower-5080` (desktops
+and discrete GPUs).
 
-Naming follows `<name>-{debug,release}[-installer]`, with variants like `-low-mem`,
+Naming follows `<name>-{debug,release}[-installer]`, with axis suffixes `-low-mem`, `-minimal-mem`,
 `-storeDisk`, `-sysupdate`. `debug` is what you want for development: it enables the ssh
 daemon and default accounts that every other skill here depends on.
 
