@@ -138,7 +138,6 @@ in
           // {
             plymouth = {
               enable = true;
-              bootLabel = "Starting Ghaf...";
             };
           }
         );

@@ -28,7 +28,9 @@ let
   gtkThemeName = "adw-gtk3";
 
   gtkCss = config.lib.stylix.colors {
-    template = "${inputs.stylix}/modules/gtk/gtk.css.mustache";
+    # Must be the mustache source text, not a path string - base16.nix's
+    # mkTheme treats any string as literal template content.
+    template = builtins.readFile "${inputs.stylix}/modules/gtk/gtk.css.mustache";
     extension = ".css";
   };
 
@@ -43,11 +45,11 @@ let
   kvantumThemePackage =
     let
       kvconfig = config.lib.stylix.colors {
-        template = "${inputs.stylix}/modules/qt/kvconfig.mustache";
+        template = builtins.readFile "${inputs.stylix}/modules/qt/kvconfig.mustache";
         extension = ".kvconfig";
       };
       svg = config.lib.stylix.colors {
-        template = "${inputs.stylix}/modules/qt/kvantum.svg.mustache";
+        template = builtins.readFile "${inputs.stylix}/modules/qt/kvantum.svg.mustache";
         extension = ".svg";
       };
     in
@@ -78,9 +80,7 @@ let
   plymouthSpinnerThemeDir = "${pkgs.plymouth}/share/plymouth/themes/spinner";
 
   # Number of "throbber-NNNN.png" frames shipped by pkgs.plymouth's own
-  # "spinner" theme, reused under our logo. Kept as a plain constant instead
-  # of being discovered via readDir, since that would require building
-  # pkgs.plymouth during evaluation (IFD), which this flake disallows.
+  # "spinner" theme, reused under our logo.
   plymouthSpinnerFrameCount = 30;
 
   plymouthThemeScript = import ./plymouth-theme-script.nix {
@@ -215,13 +215,14 @@ in
 
       bootLabel = lib.mkOption {
         description = ''
-          Status text shown near the logo while booting. Empty shows nothing.
+          Status text shown under the logo while booting. Empty shows nothing.
 
           Useful to distinguish separate boot screens shown in sequence, e.g.
           the host and gui-vm each showing their own Plymouth splash.
         '';
         type = lib.types.str;
         default = "";
+        example = "Starting desktop...";
       };
     };
   };
@@ -275,6 +276,44 @@ in
         );
       }
 
+      # Flatpak apps run sandboxed and don't see our system-wide GTK/Qt
+      # config, so this rebuilds it as a self-contained store path shared
+      # in via a Flatpak filesystem + XDG_DATA_DIRS/XDG_CONFIG_DIRS override.
+      (lib.mkIf config.services.flatpak.enable (
+        let
+          flattenedGtkTheme = pkgs.stdenvNoCC.mkDerivation {
+            name = "flattenedGtkTheme";
+            src = "${gtkThemePackage}/share/themes/${gtkThemeName}";
+
+            installPhase = ''
+              themeDir="$out/share/themes/${gtkThemeName}"
+              mkdir -p "$themeDir"
+              cp --recursive . "$themeDir"
+              cat ${gtkCss} | tee --append "$themeDir"/gtk-{3,4}.0/gtk.css
+
+              mkdir -p "$out"/config/gtk-{3,4}.0
+              cat ${gtkSettingsIni} | tee "$out"/config/gtk-{3,4}.0/settings.ini > /dev/null
+            '';
+          };
+
+          flatpakGlobalOverride = pkgs.writeText "flatpak-global-override" ''
+            [Context]
+            filesystems=${flattenedGtkTheme}:ro
+
+            # Flatpak always overrides XDG_DATA_DIRS/XDG_CONFIG_DIRS, so
+            # these restate Flatpak's own defaults plus our theme dir.
+            [Environment]
+            XDG_DATA_DIRS=${flattenedGtkTheme}/share:/app/share:/usr/share:/usr/share/runtime/share:/run/host/user-share:/run/host/share
+            XDG_CONFIG_DIRS=${flattenedGtkTheme}/config:/app/etc/xdg:/etc/xdg
+          '';
+        in
+        {
+          systemd.tmpfiles.rules = [
+            "L+ /var/lib/flatpak/overrides/global - - - - ${flatpakGlobalOverride}"
+          ];
+        }
+      ))
+
       (lib.mkIf cfg.plymouth.enable {
         boot.plymouth = {
           theme = "ghaf";
@@ -290,10 +329,49 @@ in
           "xdg/gtk-4.0/gtk.css".source = gtkCss;
         };
 
-        environment.systemPackages = [ gtkThemePackage ];
+        environment.systemPackages = [
+          gtkThemePackage
+          pkgs.gsettings-desktop-schemas
+        ];
 
-        # Some GTK apps read theme settings via gsettings/dconf instead of settings.ini.
-        programs.dconf.enable = lib.mkForce true;
+        # gsettings needs its schemas compiled onto XDG_DATA_DIRS (unlike
+        # `dconf read`, which ignores schemas). These packages install to
+        # share/gsettings-schemas/<name>, not share/glib-2.0, so
+        # pathsToLink can't reach them - same fix as wireguard-gui.nix.
+        environment.sessionVariables.XDG_DATA_DIRS = [
+          "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}"
+          "${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}"
+          "${pkgs.gtk4}/share/gsettings-schemas/${pkgs.gtk4.name}"
+        ];
+
+        # Belt-and-suspenders: points GLib straight at a pre-compiled
+        # schema cache, bypassing XDG_DATA_DIRS-based schema lookup.
+        environment.sessionVariables.GSETTINGS_SCHEMA_DIR =
+          pkgs.runCommand "ghaf-gsettings-schemas" { nativeBuildInputs = [ pkgs.glib ]; }
+            ''
+              mkdir -p $out
+              cp ${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}/glib-2.0/schemas/*.xml $out/
+              cp ${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}/glib-2.0/schemas/*.xml $out/
+              cp ${pkgs.gtk4}/share/gsettings-schemas/${pkgs.gtk4.name}/glib-2.0/schemas/*.xml $out/
+              glib-compile-schemas $out
+            '';
+
+        # GNOME/GTK3-4/libadwaita apps (and COSMIC) read theme settings via
+        # gsettings/dconf, not settings.ini - mirrors stylix's home-manager
+        # gtk module, as a system-wide dconf default instead of per-user.
+        programs.dconf = {
+          enable = lib.mkForce true;
+          profiles.user.databases = [
+            {
+              settings."org/gnome/desktop/interface" = {
+                gtk-theme = gtkThemeName;
+                icon-theme = iconThemeName;
+                color-scheme = if cfg.polarity == "dark" then "prefer-dark" else "prefer-light";
+                font-name = "${cfg.fonts.sansSerif.name} ${fontSize}";
+              };
+            }
+          ];
+        };
       })
 
       (lib.mkIf config.stylix.targets.qt.enable {

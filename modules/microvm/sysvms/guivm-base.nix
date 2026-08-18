@@ -85,7 +85,6 @@ in
       // {
         plymouth = {
           enable = true;
-          bootLabel = "Starting desktop...";
         };
       }
     );
