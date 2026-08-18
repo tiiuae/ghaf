@@ -3,7 +3,7 @@
 # Reduce closure size by disabling tesseract mupdf feature
 # Saves approx 900 MB
 { prev }:
-prev.cosmic-reader.overrideAttrs (oldAttrs: {
+prev.cosmic-player.overrideAttrs (oldAttrs: {
   postFixup = (oldAttrs.postFixup or "") + ''
     wrapProgram $out/bin/cosmic-player \
       --set RUST_LOG "cosmic_player=trace" \
