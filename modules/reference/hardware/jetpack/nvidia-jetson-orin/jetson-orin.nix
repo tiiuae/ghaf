@@ -113,7 +113,7 @@ let
     name = "ghaf-provision-ek-certs";
     runtimeInputs = [
       pkgs.coreutils
-      pkgs.nvidia-jetpack.ftpmHelper
+      pkgs.nvidia-jetpack.ftpmHelperTa
       pkgs.nvidia-jetpack.ftpmSimTooling
       pkgs.openssl
       config.ghaf.security.tpm2.tools
@@ -132,7 +132,7 @@ let
         exit 0
       fi
 
-      export PATH="${pkgs.nvidia-jetpack.ftpmHelper}/bin:$PATH"
+      export PATH="${pkgs.nvidia-jetpack.ftpmHelperTa}/bin:$PATH"
 
       # NVIDIA SIM tool expects to run from its own tree where ./conf exists.
       # This is for unfused development/testing flow, not production provisioning.

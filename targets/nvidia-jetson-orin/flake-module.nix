@@ -468,7 +468,7 @@ let
               }
             )
           ];
-        }).pkgs.nvidia-jetpack.flashScript;
+        }).pkgs.nvidia-jetpack.signedFlashScript;
       withSB =
         (t.hostConfiguration.extendModules {
           modules = [
@@ -485,7 +485,7 @@ let
               }
             )
           ];
-        }).pkgs.nvidia-jetpack.flashScript;
+        }).pkgs.nvidia-jetpack.signedFlashScript;
     in
     # Single `*-flash-script` entrypoint that picks between two
     # pre-built QSPI firmware variants at flash time.
@@ -534,9 +534,9 @@ let
           esac
         done
         if [ "$sb" = 1 ]; then
-          exec ${withSB}/bin/flash-${innerName} "''${args[@]}"
+          exec ${withSB}/bin/flash-signed-${innerName} "''${args[@]}"
         else
-          exec ${noSB}/bin/flash-${innerName} "''${args[@]}"
+          exec ${noSB}/bin/flash-signed-${innerName} "''${args[@]}"
         fi
       '';
     };

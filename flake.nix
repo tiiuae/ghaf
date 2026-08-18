@@ -139,7 +139,7 @@
     # Nvidia Orin support for NixOS
     jetpack-nixos = {
       #url = "github:anduril/jetpack-nixos";
-      url = "github:tiiuae/jetpack-nixos/uki-sec-boot";
+      url = "github:tiiuae/jetpack-nixos/august-rebase";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
