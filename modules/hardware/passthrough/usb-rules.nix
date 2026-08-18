@@ -55,6 +55,11 @@ let
           description = "Communications - Ethernet Networking";
         }
         {
+          interfaceClass = 2;
+          interfaceSubclass = 13;
+          description = "Communications - Network Control Model";
+        }
+        {
           driverPath = ".*/kernel/drivers/net/usb/.*";
           description = "USB network devices that do not report their class or interfaces";
         }
