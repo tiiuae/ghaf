@@ -117,14 +117,14 @@
 <li>Power management optimization</li>
 <li>Standard peripheral support</li>
 </ul>
-<div class="sl-heading-wrapper level-h4"><h4 id="hardware-lenovo-x1-carbon-gen11">hardware-lenovo-x1-carbon-gen11</h4><a class="sl-anchor-link" href="#hardware-lenovo-x1-carbon-gen11"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “hardware-lenovo-x1-carbon-gen11”</span></a></div>
-<p><strong>Location</strong>: <code dir="auto">modules/hardware/lenovo-x1-carbon-gen11.nix</code>
-<strong>Purpose</strong>: Specific support for Lenovo X1 Carbon Gen 11 laptops
+<div class="sl-heading-wrapper level-h4"><h4 id="hardware-intel-laptop">hardware-intel-laptop</h4><a class="sl-anchor-link" href="#hardware-intel-laptop"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “hardware-intel-laptop”</span></a></div>
+<p><strong>Location</strong>: <code dir="auto">modules/reference/hardware/intel-laptop/</code>
+<strong>Purpose</strong>: The generic image for every Intel laptop in the fleet
 <strong>Features</strong>:</p>
 <ul>
-<li>Fingerprint reader support</li>
-<li>Thermal management</li>
-<li>Display and docking station optimization</li>
+<li>PCI passthrough resolved at runtime by device class, not per-board ID</li>
+<li>Fingerprint reader, webcam and hotkey passthrough matched from union quirk lists</li>
+<li>Suspend mode selected at boot from a DMI model list</li>
 </ul>
 <div class="sl-heading-wrapper level-h4"><h4 id="hardware-nvidia-jetson-orin-agx">hardware-nvidia-jetson-orin-agx</h4><a class="sl-anchor-link" href="#hardware-nvidia-jetson-orin-agx"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “hardware-nvidia-jetson-orin-agx”</span></a></div>
 <p><strong>Location</strong>: <code dir="auto">modules/hardware/nvidia-jetson-orin-agx.nix</code>
