@@ -17,7 +17,7 @@
         "acpi_osi=linux"
         # `xe,` had lost its comma and read `xesnd_hda_intel`, which is not a
         # module -- so the i915 rival driver was never blacklisted on the host
-        "module_blacklist=iwlwifi,snd_hda_intel,snd_sof_pci_intel_tgl,snd_sof_pci_intel_mtl,bluetooth,btusb,snd_pcm,mei_me,xe,snd_sof_pci_intel_lnl,spi_intel_pci,i801_smbus,nouveau,nvidia,nvidiafb,i2c_nvidia_gpu"
+        "module_blacklist=iwlwifi,snd_hda_intel,snd_sof_pci_intel_tgl,snd_sof_pci_intel_mtl,bluetooth,btusb,snd_pcm,mei_me,xe,snd_sof_pci_intel_lnl,spi_intel_pci,i801_smbus,nouveau,nvidia,nvidiafb,i2c_nvidia_gpu,option,qmi_wwan,cdc_mbim"
       ];
       stage1.kernelModules = [
         # Load i915 in the host initrd as a hardware workaround: some laptop models
