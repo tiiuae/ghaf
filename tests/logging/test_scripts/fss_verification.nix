@@ -96,7 +96,7 @@ _: ''
 
           # The NTP wait happens in the separate sync unit, after networking.
           test -s /run/ghaf-clock-sync-state
-          grep -E "sync_result=(synchronized|timeout|disabled|timedatectl-unavailable)" /run/ghaf-clock-sync-state
+          grep -E "sync_result=(synchronized|timeout|disabled|sync-tool-unavailable)" /run/ghaf-clock-sync-state
 
           # The early journal flush only waits on the fast barrier, never the NTP unit.
           for unit in systemd-journal-flush.service journal-fss-setup.service journal-fss-verify.service; do

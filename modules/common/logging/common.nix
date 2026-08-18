@@ -184,11 +184,14 @@ let
   # to ghaf-wait-time-sync, whose literal "synchronised" SPIRE gates on.
   ghafClockSync = pkgs.writeShellApplication {
     name = "ghaf-clock-sync";
-    runtimeInputs = with pkgs; [
-      coreutils
-      gawk
-      systemd
-    ];
+    runtimeInputs =
+      with pkgs;
+      [
+        coreutils
+        gawk
+        systemd
+      ]
+      ++ lib.optional config.services.chrony.enable config.services.chrony.package;
     text = ''
       sync_wait_seconds="${toString effectiveSyncWaitSeconds}"
       sync_state_file="/run/ghaf-clock-sync-state"
@@ -213,10 +216,22 @@ let
 
       if [ "$sync_wait_seconds" -le 0 ]; then
         sync_result="disabled"
-      elif command -v timedatectl >/dev/null 2>&1; then
+      elif command -v ${
+        if config.services.chrony.enable then "chronyc" else "timedatectl"
+      } >/dev/null 2>&1; then
         sync_start_up="$(uptime_seconds)"
         while true; do
-          sync_value="$(timedatectl show -p NTPSynchronized --value 2>/dev/null || true)"
+          if ${
+            if config.services.chrony.enable then
+              "chronyc waitsync 1 0 0 0.1 >/dev/null 2>&1"
+            else
+              ''[ "$(timedatectl show -p NTPSynchronized --value 2>/dev/null || true)" = "yes" ]''
+          }; then
+            sync_value="yes"
+          else
+            sync_value="no"
+          fi
+
           if [ "$sync_value" = "yes" ]; then
             sync_result="synchronized"
             echo "Clock sync observed system time synchronization"
@@ -233,8 +248,10 @@ let
           sleep 1
         done
       else
-        sync_result="timedatectl-unavailable"
-        echo "Clock sync could not check time synchronization: timedatectl unavailable"
+        sync_result="sync-tool-unavailable"
+        echo "Clock sync could not check time synchronization: ${
+          if config.services.chrony.enable then "chronyc" else "timedatectl"
+        } unavailable"
       fi
 
       write_sync_state

@@ -1576,7 +1576,7 @@ in
         default = 120;
         description = ''
           Maximum number of seconds to wait for system time synchronization
-          (timedatectl NTPSynchronized) after local clock readiness before
+          (reported by the configured time daemon) after local clock readiness before
           activating FSS sealing.
 
           This is a best-effort soft gate, not a hard requirement: on an offline
