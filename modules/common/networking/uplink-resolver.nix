@@ -30,6 +30,7 @@ let
 
   stateFile = "/run/ghaf-uplink-state";
   readyFlag = "/run/ghaf-uplink-ready";
+  changedFlag = "/run/ghaf-uplink-changed";
 
   resolver = pkgs.writeShellApplication {
     name = "ghaf-resolve-uplink";
@@ -80,6 +81,14 @@ let
         printf 'uplink_reason=%s\n' "$reason"
       } >"$tmp"
       chmod 0644 "$tmp"
+
+      # NetworkManager can emit several dispatcher events for one transition
+      # (up, DHCP change and connectivity change). Preserve a pending change
+      # marker across an interrupted resolver run, but do not restart consumers
+      # again when the resolved state is identical.
+      if [ ! -r ${stateFile} ] || [ "$(cat ${stateFile})" != "$(cat "$tmp")" ]; then
+        : >${changedFlag}
+      fi
       mv -f "$tmp" ${stateFile}
 
       if [ "$state" = resolved ]; then
@@ -219,7 +228,12 @@ in
         # uplink goes away the flag is gone, so the start half is skipped by
         # ConditionPathExists and the unit correctly ends up stopped.
         # --no-block avoids deadlocking against the resolver they depend on.
-        ExecStartPost = "${pkgs.systemd}/bin/systemctl restart --no-block ${lib.escapeShellArgs cfg.dependentUnits}";
+        ExecStartPost = pkgs.writeShellScript "ghaf-restart-uplink-dependents" ''
+          if [ -e ${changedFlag} ]; then
+            rm -f ${changedFlag}
+            ${pkgs.systemd}/bin/systemctl restart --no-block ${lib.escapeShellArgs cfg.dependentUnits}
+          fi
+        '';
       };
     };
 
