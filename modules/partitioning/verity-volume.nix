@@ -15,14 +15,29 @@ in
   options.ghaf.partitioning.verity = {
     enable = lib.mkEnableOption "the verity (image-based) partitioning scheme";
 
-    uki-signing-key-dir = lib.mkOption {
-      type = lib.types.nullOr lib.types.path;
-      default = null;
+    target = lib.mkOption {
+      type = lib.types.str;
+      default = config.networking.hostName;
       description = ''
-        Directory containing db.key and db.crt for signing the UKI in
-        the OTA update image. When set, the UKI is signed at build time
-        so devices with Secure Boot enabled can boot from OTA-installed
-        slots. In production, the OTA server signs images instead.
+        Exact target identifier embedded in signed update manifests.
+      '';
+    };
+
+    generation = lib.mkOption {
+      type = lib.types.ints.positive;
+      default = 1;
+      description = "Monotonic update generation embedded in the manifest and UKI.";
+    };
+
+    erofsCompression = lib.mkOption {
+      type = lib.types.enum [
+        "zstd"
+        "lz4hc"
+      ];
+      default = "zstd";
+      description = ''
+        EROFS compression algorithm. Targets with older EROFS kernels can
+        select lz4hc explicitly.
       '';
     };
   };
@@ -33,12 +48,6 @@ in
     # nix-gc service would only fail.
     nix.gc.automatic = lib.mkForce false;
 
-    assertions = [
-      {
-        assertion = cfg.uki-signing-key-dir == null || debugEnable;
-        message = "uki-signing-key-dir puts private keys in the Nix store and must only be used in debug builds. In production, the OTA server signs images before distribution.";
-      }
-    ];
     system.build.ghafImage =
       let
         inherit (config.ghaf) version;
@@ -84,7 +93,7 @@ in
           fi
 
           time ${erofs-utils-nix}/bin/mkfs.erofs \
-            -zzstd -T 1 --all-root \
+            -z${cfg.erofsCompression} -T 1 --all-root \
             --workers="$mkfsWorkers" \
             -L nix-store \
             ${fsImage} \
@@ -108,21 +117,13 @@ in
           test -n "$verityRoothash" || (echo "bad root hash" >&2 && exit 1)
 
           # Create UKI kernel with embedded verityhash
-          sed -E "s/^(Cmdline=.*)/\1 ghaf.storehash=$verityRoothash/" \
+          sed -E "s/^(Cmdline=.*)/\1 ghaf.storehash=$verityRoothash ghaf.generation=${toString cfg.generation}/" \
             ${config.boot.uki.configFile} >ukify-verity.conf
           ${pkgs.buildPackages.systemdUkify}/lib/systemd/ukify build \
             --config=ukify-verity.conf \
             --output="kernel.efi"
           # ${kernelImage} don't work for some reasons, so move kernel in place
           mv kernel.efi ${kernelImage}
-          ${lib.optionalString (cfg.uki-signing-key-dir != null) ''
-            echo "Signing UKI with Secure Boot key..."
-            ${pkgs.buildPackages.sbsigntool}/bin/sbsign \
-              --key ${cfg.uki-signing-key-dir}/db.key \
-              --cert ${cfg.uki-signing-key-dir}/db.crt \
-              --output ${kernelImage} ${kernelImage}
-          ''}
-
           # FIXME: move compression into mk-manifest.py and compute unpacked sizes there.
           rootUnpackedSize=$(stat -c%s ${fsImage})
           verityUnpackedSize=$(stat -c%s ${verityImage})
@@ -132,8 +133,11 @@ in
 
           # Create artifacts and manifest.
           ${pkgs.buildPackages.python3}/bin/python ${./mk-manifest.py} \
+            generate \
             --version ${version} \
             --system ${config.nixpkgs.hostPlatform.system} \
+            --target ${lib.escapeShellArg cfg.target} \
+            --generation ${toString cfg.generation} \
             --hash-file $out/dm-verity-root-hash \
             --root-image ${fsImage}.zst \
             --verity-image ${verityImage}.zst \
