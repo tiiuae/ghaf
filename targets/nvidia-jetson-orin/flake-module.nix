@@ -438,6 +438,23 @@ let
       package = hostConfiguration.config.system.build.ghafImage;
     };
 
+  generate-luks-uki =
+    tgt:
+    tgt
+    // rec {
+      name = tgt.name + "-luks-uki";
+      hostConfiguration = tgt.hostConfiguration.extendModules {
+        modules = [
+          {
+            ghaf.hardware.nvidia.orin.diskEncryption.enable = true;
+            ghaf.hardware.nvidia.orin.diskEncryption.deviceUniqueKey.enable = true;
+            ghaf.image.sdcard.uki.enable = true;
+          }
+        ];
+      };
+      package = hostConfiguration.config.system.build.ghafImage;
+    };
+
   # LUKS and dm-verity are mutually exclusive root strategies (see the assertion
   # in jetson-orin.nix), so the verity targets get no -luks variant.
   luksable-target-configs = builtins.filter (t: !isVerityTarget t) all-target-configs;
@@ -447,7 +464,9 @@ let
     all-target-configs
     ++ (map generate-nodemoapps all-target-configs)
     ++ (map generate-luks luksable-target-configs)
-    ++ (map (t: generate-luks (generate-nodemoapps t)) luksable-target-configs);
+    ++ (map generate-luks-uki luksable-target-configs)
+    ++ (map (t: generate-luks (generate-nodemoapps t)) luksable-target-configs)
+    ++ (map (t: generate-luks-uki (generate-nodemoapps t)) luksable-target-configs);
   crossTargets = map generate-cross-from-x86_64 targets;
   flashTarget =
     t: qspiOnly:
