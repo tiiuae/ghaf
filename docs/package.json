@@ -14,7 +14,7 @@
     "astro": "^7.2.1",
     "sharp": "^0.35.3",
     "starlight-blog": "^0.28.0",
-    "starlight-links-validator": "^0.25.2",
+    "starlight-links-validator": "^0.25.3",
     "starlight-sidebar-topics-dropdown": "^0.6.0"
   },
   "overrides": {
