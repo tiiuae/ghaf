@@ -795,6 +795,8 @@ in
               systemctl start ${service}
             '') cfg.vm.pciSuspendServices
           )
+          # The GUI profile runs these from resume-actions.service below.
+          # Running them here too races two copies of every resume hook.
           + optionalString (cfg.suspend.extraResumeCommands != "" && !cfg.gui.enable) ''
             # config.ghaf.services.power-manager.suspend.extraResumeCommands
             ${cfg.suspend.extraResumeCommands}

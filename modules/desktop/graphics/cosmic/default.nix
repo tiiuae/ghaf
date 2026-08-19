@@ -439,6 +439,29 @@ in
       # Workaround for https://github.com/pop-os/cosmic-applets/issues/1390
       # TODO: Remove when upstream issue is fixed
       ''
+        # The NetworkManager D-Bus proxy and forwarded PipeWire core recover
+        # asynchronously after net-vm and audio-vm resume. Restarting the panel
+        # before they accept requests leaves their applets permanently empty.
+        if systemctl -q is-enabled dbus-proxy-networkmanager.service; then
+          ${lib.getExe' pkgs.coreutils "timeout"} 30 ${lib.getExe pkgs.bash} -c '
+            until ${lib.getExe' pkgs.systemd "busctl"} --system get-property \
+              org.freedesktop.NetworkManager \
+              /org/freedesktop/NetworkManager \
+              org.freedesktop.NetworkManager State >/dev/null 2>&1; do
+              ${lib.getExe' pkgs.coreutils "sleep"} 0.5
+            done
+          ' || echo "NetworkManager proxy did not recover before the panel restart"
+        fi
+
+        if [ -S /tmp/pipewire-0 ]; then
+          ${lib.getExe' pkgs.coreutils "timeout"} 30 ${lib.getExe pkgs.bash} -c '
+            until PIPEWIRE_RUNTIME_DIR=/tmp ${lib.getExe' pkgs.coreutils "timeout"} 2 \
+              ${lib.getExe' pkgs.wireplumber "wpctl"} status >/dev/null 2>&1; do
+              ${lib.getExe' pkgs.coreutils "sleep"} 0.5
+            done
+          ' || echo "PipeWire control did not recover before the panel restart"
+        fi
+
         pid=$(${lib.getExe' pkgs.busybox "pgrep"} -f "cosmic-panel" | ${lib.getExe' pkgs.busybox "head"} -n1)
         if [ -n "$pid" ]; then
           ${lib.getExe' pkgs.busybox "kill"} "$pid" || true
