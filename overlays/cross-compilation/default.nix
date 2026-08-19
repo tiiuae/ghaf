@@ -38,6 +38,21 @@
     );
   });
 
+  # tpm2-pytss 3.0.0rc1 already invokes $CC -E when preprocessing headers,
+  # so nixpkgs' older cross.patch no longer applies and is no longer needed.
+  pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
+    (_pythonFinal: pythonPrev: {
+      tpm2-pytss = pythonPrev.tpm2-pytss.overrideAttrs (
+        oldAttrs:
+        final.lib.optionalAttrs (oldAttrs.version == "3.0.0rc1") {
+          patches = builtins.filter (patch: !(final.lib.hasSuffix "cross.patch" (toString patch))) (
+            oldAttrs.patches or [ ]
+          );
+        }
+      );
+    })
+  ];
+
   # Fix swtpm cross-compilation.
   # swtpm 0.10.1-unstable-2026-05-21 switched its local CA from gnutls certtool
   # to the openssl CLI, so configure.ac now does AC_PATH_PROG([OPENSSL], ...)
