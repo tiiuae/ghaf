@@ -852,10 +852,12 @@ in
         );
       };
 
-      # Allow the host power manager to trigger kernel GPU suspend in the GUI VM
-      givc.sysvm.capabilities.services = optionals (cfg.vm.enable && useGivc && cfg.gui.gpuSuspend) [
-        "gpu-suspend.service"
-      ];
+      # Allow the host power manager to stop the GUI VM gracefully through GIVC.
+      # Unlike the other system VMs, GUI VM ignores the ACPI power button and
+      # therefore cannot use the host's QMP system_powerdown path.
+      givc.sysvm.capabilities.services = optionals (cfg.vm.enable && useGivc) (
+        [ "poweroff.target" ] ++ optionals cfg.gui.gpuSuspend [ "gpu-suspend.service" ]
+      );
 
       # Override systemd actions for suspend, poweroff, and reboot
       systemd.services = optionalAttrs (cfg.vm.enable && useGivc) (
