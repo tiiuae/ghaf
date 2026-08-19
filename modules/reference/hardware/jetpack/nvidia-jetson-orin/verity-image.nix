@@ -46,7 +46,16 @@ let
       exit 1
     fi
     ln -s "$uki" "$out/uki.efi"
-    basename "$uki" > "$out/uki-filename"
+
+    # The image artifact keeps its manifest-facing ghaf_kernel_* name, but
+    # systemd-boot and ota-update use ghaf-<version>-<hash>.efi as the stable
+    # managed entry ID.  Flash the initial UKI under that same name so the
+    # first slot participates in normal A/B discovery and is removed when its
+    # physical slot is reused.
+    manifest=$(find ${ghafImage} -name '*.manifest' | head -1)
+    version=$(${pkgs.buildPackages.jq}/bin/jq -er '.version' "$manifest")
+    root_hash=$(${pkgs.buildPackages.jq}/bin/jq -er '.root_verity_hash' "$manifest")
+    printf 'ghaf-%s-%s.efi\n' "$version" "''${root_hash:0:16}" > "$out/uki-filename"
 
     # systemd-boot
     ln -s "${config.systemd.package}/lib/systemd/boot/efi/systemd-bootaa64.efi" \
@@ -147,7 +156,9 @@ let
       # The image is small (only A-slot, ~5.5 GiB) so we just
       # zstd-compress the raw image directly — no sparse conversion needed.
       postVM = ''
-        ${buildPkgs.coreutils}/bin/stat -c%s "$out/system.img" > "$out/system.raw_size"
+        # Reserve space for the outer LUKS2 header created at flash time.
+        lvm_size=$(${buildPkgs.coreutils}/bin/stat -c%s "$out/system.img")
+        echo $((lvm_size + 32 * 1024 * 1024)) > "$out/system.raw_size"
         ${buildPkgs.zstd}/bin/zstd --compress --rm "$out/system.img" -o "$out/system.img.zst"
       '';
 

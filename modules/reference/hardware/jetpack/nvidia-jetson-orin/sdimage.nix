@@ -162,6 +162,10 @@ in
               # Minimal loader configuration
               cat > firmware/loader/loader.conf << EOF
               timeout 0
+              # Keep legacy ghaf_kernel_* images outside A/B selection. A
+              # boot-counted ghaf-* trial sorts ahead of the blessed entry
+              # until its attempts are exhausted, then sorts behind it.
+              default ghaf-*.efi
               editor no
               console-mode keep
               EOF

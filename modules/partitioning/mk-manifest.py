@@ -13,7 +13,10 @@ parser.add_argument(
     "--version", required=True, help="Version string for @v placeholder."
 )
 parser.add_argument(
-    "--system", required=True, help="System identifier (e.g. x86_64-linux)."
+    "--target", required=True, help="Exact hardware/update target identifier."
+)
+parser.add_argument(
+    "--generation", required=True, type=int, help="Monotonic generation."
 )
 parser.add_argument(
     "--hash-file", required=True, help="Path to dm-verity root hash file."
@@ -89,8 +92,9 @@ def main() -> None:
     kernel = rename(args.kernel_image, args.version, storehash)
 
     manifest = {
-        "manifest_version": 0,
-        "system": args.system,
+        "manifest_version": 2,
+        "target": args.target,
+        "generation": args.generation,
         "meta": {},  # FIXME: reserved for future, just arbitrary metadata
         "version": args.version,
         "root_verity_hash": root_verity_hash,
@@ -109,6 +113,7 @@ def main() -> None:
         "kernel": {
             "file": os.path.basename(kernel),
             "sha256": sha256_file(kernel),
+            "packed_size": file_size(kernel),
             "unpacked_size": file_size(kernel),
         },
     }
