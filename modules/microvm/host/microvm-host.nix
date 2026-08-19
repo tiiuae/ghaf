@@ -133,14 +133,10 @@ in
         givc.host.enable = true;
 
         # Shared theming (stylix) - from global-config
-        theming = lib.mkDefault (
-          config.ghaf.global-config.theming
-          // {
-            plymouth = {
-              enable = true;
-            };
-          }
-        );
+        theming = {
+          enable = lib.mkDefault config.ghaf.global-config.theming.enable;
+          plymouth.enable = true;
+        };
 
         graphics.boot = {
           enable = true; # Enable graphical boot on host

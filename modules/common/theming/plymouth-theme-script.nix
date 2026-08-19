@@ -6,10 +6,6 @@
   lib,
   cfg,
   colors,
-  # Number of "throbber-NNNN.png" frames shipped by Plymouth's own "spinner"
-  # theme. Kept as a plain integer (rather than discovered via readDir) so
-  # evaluating this file never needs to build pkgs.plymouth first.
-  spinnerFrameCount,
 }:
 let
   backgroundColor = with colors; "${base00-dec-r}, ${base00-dec-g}, ${base00-dec-b}";
@@ -28,67 +24,38 @@ builtins.toFile "ghaf-plymouth-theme" ''
   Window.SetBackgroundBottomColor(${backgroundColor});
 
   ### LOGO ###
+  # Pulses the logo's opacity in a slow sine wave ("breathing") in place of
+  # a spinner, to indicate progress without a separate throbber graphic.
 
   logo.image = Image("logo.png");
   logo.sprite = Sprite(logo.image);
-
-  ### SPINNER ###
-  # Plymouth's own "spinner" theme throbber animation, shown under the logo.
-
-  spinner.active = ${if cfg.spinnerAnimated then "1" else "0"};
-  spinner.index = 0;
-  spinner.tick = 0;
-  spinner.frame_count = ${toString spinnerFrameCount};
-  spinner.ticks_per_frame = 2;
-
-  for (i = 1; i <= spinner.frame_count; i++) {
-    if (i < 10)
-      frame_name = "throbber-000" + i + ".png";
-    else if (i < 100)
-      frame_name = "throbber-00" + i + ".png";
-    else
-      frame_name = "throbber-0" + i + ".png";
-    spinner.image[i - 1] = Image(frame_name);
-  }
-
-  ### LAYOUT ###
-  # Position the logo and spinner as a single group, vertically centered.
-
-  group_gap = Window.GetHeight() * 0.15;
-  group_height = logo.image.GetHeight() + group_gap + spinner.image[0].GetHeight();
-  group_top = center_y - (group_height / 2);
-
   logo.sprite.SetPosition(
     center_x - (logo.image.GetWidth() / 2),
-    group_top,
+    center_y - (logo.image.GetHeight() / 2),
     1
   );
 
-  spinner.sprite = Sprite(spinner.image[0]);
-  spinner.sprite.SetPosition(
-    center_x - (spinner.image[0].GetWidth() / 2),
-    group_top + logo.image.GetHeight() + group_gap,
-    1
-  );
-  spinner.sprite.SetOpacity(spinner.active);
+  breathe.active = ${if cfg.logoBreathing then "1" else "0"};
+  breathe.tick = 0;
+  breathe.period = 80; # ticks per full breathe cycle, at 50 ticks/second
+  breathe.min_opacity = 0.35;
 
-  fun activate_spinner () {
-    spinner.active = 1;
-    spinner.sprite.SetOpacity(1);
+  fun activate_breathe () {
+    breathe.active = 1;
   }
 
-  fun deactivate_spinner () {
-    spinner.active = 0;
-    spinner.sprite.SetOpacity(0);
+  fun deactivate_breathe () {
+    breathe.active = 0;
+    breathe.tick = 0;
+    logo.sprite.SetOpacity(1);
   }
 
   fun refresh_callback () {
-    if (spinner.active) {
-      spinner.tick = (spinner.tick + 1) % spinner.ticks_per_frame;
-      if (spinner.tick == 0) {
-        spinner.index = (spinner.index + 1) % spinner.frame_count;
-        spinner.sprite.SetImage(spinner.image[spinner.index]);
-      }
+    if (breathe.active) {
+      breathe.tick = (breathe.tick + 1) % breathe.period;
+      phase = (breathe.tick / breathe.period) * 2 * Math.Pi;
+      opacity = breathe.min_opacity + (1 - breathe.min_opacity) * (0.5 + 0.5 * Math.Sin(phase));
+      logo.sprite.SetOpacity(opacity);
     }
   }
 
@@ -101,7 +68,7 @@ builtins.toFile "ghaf-plymouth-theme" ''
   bullet.image = Image.Text("•", ${foregroundColor});
 
   fun password_callback (prompt_text, bullet_count) {
-    ${lib.optionalString cfg.spinnerAnimated "deactivate_spinner();"}
+    ${lib.optionalString cfg.logoBreathing "deactivate_breathe();"}
 
     prompt.image = Image.Text(prompt_text, ${foregroundColor});
     prompt.sprite = Sprite(prompt.image);
@@ -133,7 +100,7 @@ builtins.toFile "ghaf-plymouth-theme" ''
   answer = null;
 
   fun question_callback(prompt_text, entry) {
-      ${lib.optionalString cfg.spinnerAnimated "deactivate_spinner();"}
+      ${lib.optionalString cfg.logoBreathing "deactivate_breathe();"}
 
       question = null;
       answer = null;
@@ -207,7 +174,7 @@ builtins.toFile "ghaf-plymouth-theme" ''
 
       message = null;
 
-      ${lib.optionalString cfg.spinnerAnimated "activate_spinner();"}
+      ${lib.optionalString cfg.logoBreathing "activate_breathe();"}
   }
 
   Plymouth.SetDisplayNormalFunction(normal_callback);
@@ -217,7 +184,7 @@ builtins.toFile "ghaf-plymouth-theme" ''
   fun quit_callback() {
     prompt = null;
     bullets = null;
-    ${lib.optionalString cfg.spinnerAnimated "deactivate_spinner();"}
+    ${lib.optionalString cfg.logoBreathing "deactivate_breathe();"}
   }
 
   Plymouth.SetQuitFunction(quit_callback);

@@ -80,14 +80,10 @@ in
 
   ghaf = {
     # Shared theming (stylix) - from globalConfig
-    theming = lib.mkDefault (
-      (globalConfig.theming or { })
-      // {
-        plymouth = {
-          enable = true;
-        };
-      }
-    );
+    theming = {
+      enable = lib.mkDefault (globalConfig.theming.enable or false);
+      plymouth.enable = true;
+    };
 
     # Profiles - from globalConfig
     profiles = {

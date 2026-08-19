@@ -26,10 +26,6 @@
     "Panel"
     "Dock"
   ],
-  isDark ? true,
-  iconTheme ? "Papirus",
-  sansSerifFont ? "Open Sans",
-  monospaceFont ? "Noto Sans Mono",
   ...
 }:
 
@@ -195,7 +191,6 @@ pkgs.stdenv.mkDerivation {
 
   nativeBuildInputs = [
     pkgs.yq-go
-    pkgs.imagemagick
     pkgs.rsync
   ];
 
@@ -227,15 +222,6 @@ pkgs.stdenv.mkDerivation {
     mkdir -p $out/share/cosmic
     # cp -r cosmic-unpacked $out/share/cosmic
     rsync -a --exclude '*bottom-panel' cosmic-unpacked/ "$out/share/cosmic/"
-
-    # Install themes
-    mkdir -p $out/share/cosmic-themes
-    for theme in $src/ghaf-themes/*.ron; do
-      install -m0644 "$theme" $out/share/cosmic-themes/
-    done
-    install -m0644 ${pkgs.ghaf-artwork}/1600px-Ghaf_logo.png $out/share/cosmic-themes/ghaf-dark.png
-    magick $out/share/cosmic-themes/ghaf-dark.png -resize 30% $out/share/cosmic-themes/ghaf-dark.png
-    ln -s $out/share/cosmic-themes/ghaf-dark.png $out/share/cosmic-themes/ghaf-light.png
 
     install -Dm0644 ${securityContextConfig} $out/share/cosmic/com.system76.CosmicComp/v1/security_context
   ''
@@ -289,18 +275,6 @@ pkgs.stdenv.mkDerivation {
     substituteInPlace $out/share/cosmic/com.system76.CosmicSettings.Shortcuts/v1/system_actions \
     --replace-fail 'VolumeLower: ""' 'VolumeLower: "${lib.getExe ghaf-volume} down"' \
     --replace-fail 'VolumeRaise: ""' 'VolumeRaise: "${lib.getExe ghaf-volume} up"'
-
-    substituteInPlace $out/share/cosmic/com.system76.CosmicTheme.Mode/v1/is_dark \
-      --replace-fail 'IS_DARK' '${if isDark then "true" else "false"}'
-    substituteInPlace $out/share/cosmic/com.system76.CosmicTk/v1/icon_theme \
-      --replace-fail 'ICON_THEME' '${iconTheme}'
-
-    substituteInPlace \
-      $out/share/cosmic/com.system76.CosmicTerm/v1/font_name \
-      $out/share/cosmic/com.system76.CosmicTk/v1/monospace_font \
-      --replace-fail 'MONO_FONT' '${monospaceFont}'
-    substituteInPlace $out/share/cosmic/com.system76.CosmicTk/v1/interface_font \
-      --replace-fail 'INTERFACE_FONT' '${sansSerifFont}'
   ''
   # After the volume actions above, so that an explicit override wins.
   + lib.concatStrings (

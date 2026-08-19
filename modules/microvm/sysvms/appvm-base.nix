@@ -212,7 +212,7 @@ in
         };
 
         # Shared theming (stylix) - from globalConfig
-        theming = lib.mkDefault (globalConfig.theming or { });
+        theming.enable = lib.mkDefault (globalConfig.theming.enable or false);
 
         # System
         type = "app-vm";

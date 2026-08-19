@@ -18,27 +18,11 @@ let
 
   cfg = config.ghaf.graphics.cosmic;
   graphicsProfileCfg = config.ghaf.profiles.graphics;
-  themingCfg = config.ghaf.theming;
-
-  # When shared theming is enabled, follow its polarity/icon theme/fonts
-  # instead of the ghaf defaults, so COSMIC matches the rest of the system.
-  isDark = if themingCfg.enable then themingCfg.polarity == "dark" else true;
-  iconTheme =
-    if themingCfg.enable then
-      (if isDark then themingCfg.iconTheme.dark else themingCfg.iconTheme.light)
-    else
-      "Papirus";
-  sansSerifFont = if themingCfg.enable then themingCfg.fonts.sansSerif.name else "Open Sans";
-  monospaceFont = if themingCfg.enable then themingCfg.fonts.monospace.name else "Noto Sans Mono";
 
   ghaf-cosmic-config = import ./config/cosmic-config.nix {
     inherit
       lib
       pkgs
-      isDark
-      iconTheme
-      sansSerifFont
-      monospaceFont
       ;
     inherit (cfg)
       topPanelApplets
@@ -67,11 +51,7 @@ let
   };
 
   # Change papirus folder icons to grey
-  papirus-icon-theme-grey = pkgs.papirus-icon-theme.override {
-    color = "grey";
-    # The following fixes a cross-compilation issue
-    inherit (pkgs.buildPackages) papirus-folders;
-  };
+
 in
 {
   _file = ./default.nix;
@@ -407,23 +387,14 @@ in
       systemPackages =
         with pkgs;
         [
-          papirus-icon-theme-grey
-          adwaita-icon-theme
           ghaf-wallpapers
           grim # promptless screenshot for test automation
           (import ../launchers-pkg.nix { inherit pkgs config lib; })
         ]
         ++ [ (lib.hiPrio ghaf-cosmic-config) ];
       sessionVariables = {
-        XDG_CONFIG_HOME = "$HOME/.config";
-        XDG_DATA_HOME = "$HOME/.local/share";
-        XDG_STATE_HOME = "$HOME/.local/state";
-        XDG_CACHE_HOME = "$HOME/.cache";
         XDG_PICTURES_DIR = "$HOME/Pictures";
         XDG_VIDEOS_DIR = "$HOME/Videos";
-        XCURSOR_THEME = "Cosmic";
-        XCURSOR_SIZE = 24;
-        RUST_LOG = "error";
       }
       // lib.optionalAttrs (cfg.renderDevice != null) {
         COSMIC_RENDER_DEVICE = cfg.renderDevice;

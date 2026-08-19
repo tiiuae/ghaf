@@ -44,7 +44,7 @@ in
     };
 
     # Shared theming (stylix) - from globalConfig
-    theming = lib.mkDefault (globalConfig.theming or { });
+    theming.enable = lib.mkDefault (globalConfig.theming.enable or false);
 
     # Networking hosts - from hostConfig
     # Required for vm-networking.nix to look up this VM's MAC/IP

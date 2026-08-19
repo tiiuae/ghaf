@@ -92,7 +92,7 @@ in
 
       image = mkOption {
         type = types.path;
-        default = "${pkgs.ghaf-artwork}/1600px-Ghaf_logo.png";
+        default = "${pkgs.ghaf-artwork}/ghaf-logo-512px.png";
         description = ''
           Image to use in place of the UEFI firmware (BGRT) boot logo.
           Default is the Ghaf logo.

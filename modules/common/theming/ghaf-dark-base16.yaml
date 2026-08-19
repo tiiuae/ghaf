@@ -1,21 +1,21 @@
 system: "base16"
-name: "Ghaf dark base16"
+name: "Ghaf Dark"
 author: "TII (SSRC) and the Ghaf contributors"
 variant: "dark"
 palette:
-  base00: "#151515" # neutral_0
-  base01: "#1a1a1a" # neutral_1
-  base02: "#222222" # neutral_2
-  base03: "#2c2c2c" # neutral_3
-  base04: "#6e6e6e" # neutral_7
-  base05: "#9e9e9e" # neutral_9
-  base06: "#b6b6b6" # neutral_10
-  base07: "#e5e9f8" # text_tint
-  base08: "#e04e4b" # accent_red
-  base09: "#f7a030" # accent_orange
-  base0A: "#f1e641" # accent_yellow
-  base0B: "#5ac379" # accent_green
-  base0C: "#5bb2ec" # accent_blue
-  base0D: "#6b6fd1" # accent_indigo
-  base0E: "#8724ae" # accent_purple
-  base0F: "#cd5eb6" # accent_pink
+  base00: "#151515"
+  base01: "#1a1a1a"
+  base02: "#222222"
+  base03: "#2c2c2c"
+  base04: "#6e6e6e"
+  base05: "#9e9e9e"
+  base06: "#b6b6b6"
+  base07: "#e5e9f8"
+  base08: "#F4252C"
+  base09: "#F15025"
+  base0A: "#FABC3C"
+  base0B: "#5AC379"
+  base0C: "#25E2F4"
+  base0D: "#2559F4"
+  base0E: "#9D25F4"
+  base0F: "#A6683A"

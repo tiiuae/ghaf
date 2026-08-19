@@ -37,8 +37,8 @@ let
   gtkSettingsIni = pkgs.writeText "gtk-settings.ini" ''
     [Settings]
     gtk-application-prefer-dark-theme=${if cfg.polarity == "dark" then "true" else "false"}
-    gtk-theme-name=${gtkThemeName}
-    gtk-icon-theme-name=${iconThemeName}
+    ${lib.optionalString cfg.gtkQtTheme.enable "gtk-theme-name=${gtkThemeName}"}
+    ${lib.optionalString (iconThemeName != null) "gtk-icon-theme-name=${iconThemeName}"}
     gtk-font-name=${cfg.fonts.sansSerif.name} ${fontSize}
   '';
 
@@ -67,28 +67,69 @@ let
 
   qtctSettingsIni = pkgs.writeText "qtct-settings.ini" ''
     [Appearance]
-    custom_palette=true
-    icon_theme=${iconThemeName}
+    ${lib.optionalString cfg.gtkQtTheme.enable "custom_palette=true"}
+    ${lib.optionalString (iconThemeName != null) "icon_theme=${iconThemeName}"}
     standard_dialogs=default
-    style=kvantum
+    ${lib.optionalString cfg.gtkQtTheme.enable "style=kvantum"}
 
     [Fonts]
     fixed="${cfg.fonts.monospace.name},${fontSize}"
     general="${cfg.fonts.sansSerif.name},${fontSize}"
   '';
 
-  plymouthSpinnerThemeDir = "${pkgs.plymouth}/share/plymouth/themes/spinner";
-
-  # Number of "throbber-NNNN.png" frames shipped by pkgs.plymouth's own
-  # "spinner" theme, reused under our logo.
-  plymouthSpinnerFrameCount = 30;
-
   plymouthThemeScript = import ./plymouth-theme-script.nix {
     inherit lib;
     cfg = cfg.plymouth;
     colors = config.lib.stylix.colors;
-    spinnerFrameCount = plymouthSpinnerFrameCount;
   };
+
+  cosmicInterfaceFont = pkgs.writeText "cosmic-interface-font.ron" ''
+    (
+        family: "${cfg.fonts.sansSerif.name}",
+        weight: Normal,
+        stretch: Normal,
+        style: Normal,
+    )
+  '';
+
+  cosmicMonospaceFont = pkgs.writeText "cosmic-monospace-font.ron" ''
+    (
+        family: "${cfg.fonts.monospace.name}",
+        weight: Normal,
+        stretch: Normal,
+        style: Normal,
+    )
+  '';
+
+  cosmicThemeConfig =
+    pkgs.runCommand "ghaf-cosmic-theme-config" { nativeBuildInputs = [ pkgs.imagemagick ]; }
+      ''
+        settingsDir="$out/share/cosmic/com.system76.CosmicSettings/v1"
+        modeDir="$out/share/cosmic/com.system76.CosmicTheme.Mode/v1"
+        tkDir="$out/share/cosmic/com.system76.CosmicTk/v1"
+        termDir="$out/share/cosmic/com.system76.CosmicTerm/v1"
+        themesDir="$out/share/cosmic-themes"
+        mkdir -p "$settingsDir" "$modeDir" "$tkDir" "$termDir" "$themesDir"
+
+        install -m0644 ${cfg.cosmic.accentPalette.dark} "$settingsDir/accent_palette_dark.ron"
+        install -m0644 ${cfg.cosmic.accentPalette.light} "$settingsDir/accent_palette_light.ron"
+
+        printf '%s' ${if cfg.polarity == "dark" then "true" else "false"} > "$modeDir/is_dark"
+
+        ${lib.optionalString (
+          iconThemeName != null
+        ) ''printf '"%s"' "${iconThemeName}" > "$tkDir/icon_theme"''}
+        install -m0644 ${cosmicInterfaceFont} "$tkDir/interface_font"
+        install -m0644 ${cosmicMonospaceFont} "$tkDir/monospace_font"
+
+        printf '"%s"' "${cfg.fonts.monospace.name}" > "$termDir/font_name"
+
+        install -m0644 ${cfg.cosmic.theme.dark} "$themesDir/ghaf-dark.ron"
+        install -m0644 ${cfg.cosmic.theme.light} "$themesDir/ghaf-light.ron"
+        install -m0644 ${pkgs.ghaf-artwork}/1600px-Ghaf_logo.png "$themesDir/ghaf-dark.png"
+        magick "$themesDir/ghaf-dark.png" -resize 30% "$themesDir/ghaf-dark.png"
+        ln -s "$themesDir/ghaf-dark.png" "$themesDir/ghaf-light.png"
+      '';
 
   plymouthTheme = pkgs.runCommand "ghaf-plymouth" { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
     themeDir="$out/share/plymouth/themes/ghaf"
@@ -100,7 +141,6 @@ let
         -background transparent -resize x200 \
         $themeDir/logo.png
     fi
-    cp ${plymouthSpinnerThemeDir}/throbber-*.png "$themeDir/"
     cp ${plymouthThemeScript} "$themeDir/ghaf.script"
 
     echo "
@@ -140,18 +180,18 @@ in
 
     iconTheme = {
       package = lib.mkOption {
-        type = lib.types.str;
-        default = "papirus-icon-theme";
-        description = "Nixpkgs attribute name of the icon theme package";
+        type = lib.types.nullOr lib.types.package;
+        default = pkgs.papirus-icon-theme;
+        description = "Icon theme package. If null, stylix icon theming will not be used";
       };
       light = lib.mkOption {
-        type = lib.types.str;
-        default = "Papirus-Light";
+        type = lib.types.nullOr lib.types.str;
+        default = "Papirus";
         description = "Icon theme name used in light mode";
       };
       dark = lib.mkOption {
-        type = lib.types.str;
-        default = "Papirus-Dark";
+        type = lib.types.nullOr lib.types.str;
+        default = "Papirus";
         description = "Icon theme name used in dark mode";
       };
     };
@@ -159,9 +199,9 @@ in
     fonts = {
       sansSerif = {
         package = lib.mkOption {
-          type = lib.types.str;
-          default = "inter";
-          description = "Nixpkgs attribute name of the sans-serif font package";
+          type = lib.types.package;
+          default = pkgs.roboto;
+          description = "Sans-serif font package";
         };
         name = lib.mkOption {
           type = lib.types.str;
@@ -172,27 +212,78 @@ in
 
       monospace = {
         package = lib.mkOption {
-          type = lib.types.str;
-          default = "jetbrains-mono";
-          description = "Nixpkgs attribute name of the monospace font package";
+          type = lib.types.package;
+          default = pkgs.roboto-mono;
+          description = "Monospace font package";
         };
         name = lib.mkOption {
           type = lib.types.str;
-          default = "JetBrains Mono";
+          default = "Roboto Mono";
           description = "Monospace font family name";
         };
       };
 
       emoji = {
         package = lib.mkOption {
-          type = lib.types.str;
-          default = "noto-fonts-color-emoji";
-          description = "Nixpkgs attribute name of the emoji font package";
+          type = lib.types.package;
+          default = pkgs.noto-fonts-color-emoji;
+          description = "Emoji font package";
         };
         name = lib.mkOption {
           type = lib.types.str;
           default = "Noto Color Emoji";
           description = "Emoji font family name";
+        };
+      };
+    };
+
+    gtkQtTheme = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''
+          Whether to build and apply Ghaf's custom GTK/Qt themes (adw-gtk3
+          with the base16 accent colours baked in, and a matching Kvantum Qt
+          style).
+
+          When disabled, the system GTK/Qt theme and style are left
+          untouched, but polarity (light/dark preference) and font settings
+          still apply.
+        '';
+      };
+    };
+
+    cosmic = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = config.services.desktopManager.cosmic.enable;
+        defaultText = lib.literalMD "`services.desktopManager.cosmic.enable`";
+        description = "Whether to apply shared theming (polarity, icon theme, fonts, accent colours) to the COSMIC desktop.";
+      };
+
+      accentPalette = {
+        dark = lib.mkOption {
+          type = lib.types.path;
+          default = ./cosmic/accent-palette-dark.ron;
+          description = "Path to the COSMIC accent colour palette RON file used in dark mode.";
+        };
+        light = lib.mkOption {
+          type = lib.types.path;
+          default = ./cosmic/accent-palette-light.ron;
+          description = "Path to the COSMIC accent colour palette RON file used in light mode.";
+        };
+      };
+
+      theme = {
+        dark = lib.mkOption {
+          type = lib.types.path;
+          default = ./cosmic/ghaf-dark.ron;
+          description = "Path to the full COSMIC theme RON file used in dark mode.";
+        };
+        light = lib.mkOption {
+          type = lib.types.path;
+          default = ./cosmic/ghaf-light.ron;
+          description = "Path to the full COSMIC theme RON file used in light mode.";
         };
       };
     };
@@ -204,11 +295,11 @@ in
         description = "Logo to be used on the boot screen.";
         type = with lib.types; either path package;
         defaultText = lib.literalMD "Ghaf logo";
-        default = "${pkgs.ghaf-artwork}/1600px-Ghaf_logo.png";
+        default = "${pkgs.ghaf-artwork}/ghaf-logo-512px.png";
       };
 
-      spinnerAnimated = lib.mkOption {
-        description = "Whether to animate Plymouth's spinner shown under the logo.";
+      logoBreathing = lib.mkOption {
+        description = "Whether to pulse the Plymouth logo's opacity ('breathe') while booting.";
         type = lib.types.bool;
         default = true;
       };
@@ -239,34 +330,29 @@ in
           inherit (cfg) polarity base16Scheme;
 
           fonts = {
-            serif = config.stylix.fonts.sansSerif;
-
-            sansSerif = {
-              package = pkgs.${cfg.fonts.sansSerif.package};
-              inherit (cfg.fonts.sansSerif) name;
-            };
-
-            monospace = {
-              package = pkgs.${cfg.fonts.monospace.package};
-              inherit (cfg.fonts.monospace) name;
-            };
-
-            emoji = {
-              package = pkgs.${cfg.fonts.emoji.package};
-              inherit (cfg.fonts.emoji) name;
-            };
+            inherit (cfg.fonts) sansSerif monospace emoji;
+            serif = cfg.fonts.sansSerif;
           };
 
           icons = {
-            enable = true;
-            package = pkgs.${cfg.iconTheme.package};
-            inherit (cfg.iconTheme) light dark;
+            enable = cfg.iconTheme.package != null;
+            inherit (cfg.iconTheme) package light dark;
           };
 
-          # We build our own Plymouth theme below instead, so that we can show
-          # Plymouth's own spinner under the logo rather than spinning the logo.
+          # We build our own Plymouth theme below instead, so that we can pulse
+          # the logo's opacity ("breathe") rather than spinning it.
           targets.plymouth.enable = false;
         };
+
+        # Remove all unused fonts
+        fonts.packages = lib.mkForce (
+          with cfg.fonts;
+          [
+            sansSerif.package
+            monospace.package
+            emoji.package
+          ]
+        );
 
         environment.systemPackages = lib.mkAfter (
           lib.rmDesktopEntries [
@@ -303,6 +389,7 @@ in
             # Flatpak always overrides XDG_DATA_DIRS/XDG_CONFIG_DIRS, so
             # these restate Flatpak's own defaults plus our theme dir.
             [Environment]
+            GTK_THEME=${gtkThemeName}
             XDG_DATA_DIRS=${flattenedGtkTheme}/share:/app/share:/usr/share:/usr/share/runtime/share:/run/host/user-share:/run/host/share
             XDG_CONFIG_DIRS=${flattenedGtkTheme}/config:/app/etc/xdg:/etc/xdg
           '';
@@ -321,31 +408,24 @@ in
         };
       })
 
+      (lib.mkIf cfg.cosmic.enable {
+        environment.systemPackages = [ cosmicThemeConfig ];
+      })
+
       (lib.mkIf config.stylix.targets.gtk.enable {
         environment.etc = {
           "xdg/gtk-3.0/settings.ini".source = gtkSettingsIni;
           "xdg/gtk-4.0/settings.ini".source = gtkSettingsIni;
-          "xdg/gtk-3.0/gtk.css".source = gtkCss;
-          "xdg/gtk-4.0/gtk.css".source = gtkCss;
         };
 
-        environment.systemPackages = [
-          gtkThemePackage
-          pkgs.gsettings-desktop-schemas
-        ];
+        environment.systemPackages = [ pkgs.gsettings-desktop-schemas ];
 
-        # gsettings needs its schemas compiled onto XDG_DATA_DIRS (unlike
-        # `dconf read`, which ignores schemas). These packages install to
-        # share/gsettings-schemas/<name>, not share/glib-2.0, so
-        # pathsToLink can't reach them - same fix as wireguard-gui.nix.
         environment.sessionVariables.XDG_DATA_DIRS = [
           "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}"
           "${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}"
           "${pkgs.gtk4}/share/gsettings-schemas/${pkgs.gtk4.name}"
         ];
 
-        # Belt-and-suspenders: points GLib straight at a pre-compiled
-        # schema cache, bypassing XDG_DATA_DIRS-based schema lookup.
         environment.sessionVariables.GSETTINGS_SCHEMA_DIR =
           pkgs.runCommand "ghaf-gsettings-schemas" { nativeBuildInputs = [ pkgs.glib ]; }
             ''
@@ -356,16 +436,11 @@ in
               glib-compile-schemas $out
             '';
 
-        # GNOME/GTK3-4/libadwaita apps (and COSMIC) read theme settings via
-        # gsettings/dconf, not settings.ini - mirrors stylix's home-manager
-        # gtk module, as a system-wide dconf default instead of per-user.
         programs.dconf = {
           enable = lib.mkForce true;
           profiles.user.databases = [
             {
               settings."org/gnome/desktop/interface" = {
-                gtk-theme = gtkThemeName;
-                icon-theme = iconThemeName;
                 color-scheme = if cfg.polarity == "dark" then "prefer-dark" else "prefer-light";
                 font-name = "${cfg.fonts.sansSerif.name} ${fontSize}";
               };
@@ -374,20 +449,41 @@ in
         };
       })
 
+      (lib.mkIf (config.stylix.targets.gtk.enable && cfg.gtkQtTheme.enable) {
+        environment.etc = {
+          "xdg/gtk-3.0/gtk.css".source = gtkCss;
+          "xdg/gtk-4.0/gtk.css".source = gtkCss;
+        };
+
+        environment.systemPackages = [ gtkThemePackage ];
+
+        programs.dconf.profiles.user.databases = [
+          {
+            settings."org/gnome/desktop/interface" = {
+              gtk-theme = gtkThemeName;
+            };
+          }
+        ];
+      })
+
       (lib.mkIf config.stylix.targets.qt.enable {
         environment.etc = {
           "xdg/qt5ct/qt5ct.conf".source = qtctSettingsIni;
           "xdg/qt6ct/qt6ct.conf".source = qtctSettingsIni;
-          "xdg/Kvantum/kvantum.kvconfig".source = kvantumConfig;
         };
-
-        environment.systemPackages = [ kvantumThemePackage ];
 
         qt = {
           enable = lib.mkForce true;
           platformTheme = lib.mkForce "qt5ct";
-          style = lib.mkForce "kvantum";
         };
+      })
+
+      (lib.mkIf (config.stylix.targets.qt.enable && cfg.gtkQtTheme.enable) {
+        environment.etc."xdg/Kvantum/kvantum.kvconfig".source = kvantumConfig;
+
+        environment.systemPackages = [ kvantumThemePackage ];
+
+        qt.style = lib.mkForce "kvantum";
       })
     ]
   );
