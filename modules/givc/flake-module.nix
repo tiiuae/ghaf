@@ -13,6 +13,7 @@
       inputs.givc.nixosModules.sysvm
       inputs.givc.nixosModules.appvm
       ./common.nix
+      ./spire-workload.nix
       ./adminvm.nix
       ./host.nix
       ./guivm.nix

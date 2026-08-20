@@ -131,6 +131,8 @@ in
           withHardenedConfigs = true;
         };
         givc.host.enable = true;
+        givc.spireWorkload.enable =
+          config.ghaf.global-config.givc.enable && config.ghaf.global-config.spire.enable;
         graphics.boot = {
           enable = true; # Enable graphical boot on host
           renderer = "simpledrm"; # Force simpledrm framebuffer for graphical boot on host

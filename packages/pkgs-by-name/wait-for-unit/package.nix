@@ -2,18 +2,27 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   writeShellApplication,
-  grpcurl,
-  jq,
+  givc-cli ? null,
+  cliArgs ? "",
 }:
+let
+  givc-cli-pkg =
+    if givc-cli != null then
+      givc-cli
+    else
+      writeShellApplication {
+        name = "givc-cli";
+        text = "exit 1";
+      };
+in
 writeShellApplication {
   name = "wait-for-unit";
 
   runtimeInputs = [
-    grpcurl
-    jq
+    givc-cli-pkg
   ];
 
-  text = builtins.readFile ./wait-for-unit.sh;
+  text = builtins.replaceStrings [ "@GIVC_ARGS@" ] [ cliArgs ] (builtins.readFile ./wait-for-unit.sh);
 
   meta = {
     description = "Script to query a systemd unit status across VMs.";

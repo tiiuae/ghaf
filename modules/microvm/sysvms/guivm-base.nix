@@ -30,6 +30,7 @@
 #   base.extendModules { modules = [ ../services ]; }
 #
 {
+  config,
   lib,
   pkgs,
   inputs,
@@ -135,6 +136,7 @@ in
     givc = {
       enable = globalConfig.givc.enable or false;
       debug = globalConfig.givc.debug or false;
+      spireWorkload.enable = (globalConfig.givc.enable or false) && (globalConfig.spire.enable or false);
     };
     givc.guivm.enable = true;
     givc.sni.enable = true;
@@ -336,11 +338,20 @@ in
         GIVC_ADDR = hostConfig.networking.hosts."admin-vm".ipv4 or "192.168.101.10";
         GIVC_PORT = "9001";
       }
-      // lib.optionalAttrs (hostConfig.givc.enableTls or false) {
-        GIVC_CA_CERT = "/run/givc/ca-cert.pem";
-        GIVC_HOST_CERT = "/run/givc/cert.pem";
-        GIVC_HOST_KEY = "/run/givc/key.pem";
-      }
+      // lib.optionalAttrs (hostConfig.givc.enableTls or false) (
+        if config.ghaf.givc.spireWorkload.enable then
+          {
+            AUTH_TYPE = "spire";
+            SPIRE_AGENT_SOCKET = config.ghaf.security.spire.agents.downstream.socketPath;
+            TRUST_DOMAIN = config.ghaf.common.spire.server.trustDomain;
+          }
+        else
+          {
+            GIVC_CA_CERT = "/run/givc/ca-cert.pem";
+            GIVC_HOST_CERT = "/run/givc/cert.pem";
+            GIVC_HOST_KEY = "/run/givc/key.pem";
+          }
+      )
     );
     # Add flatpak desktop entries if the flatpak VM is enabled AND its share is
     # actually provisioned. Enabling the VM and granting it the share are two separate decisions.

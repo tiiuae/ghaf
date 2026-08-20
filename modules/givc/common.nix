@@ -45,6 +45,11 @@ let
     (config.ghaf.virtualization.microvm.idsvm.enable or false)
     && (config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable or false);
   idsExtraArgs = optionalString mitmEnabled "--user-data-dir=/home/${config.ghaf.users.appUser.name}/.config/google-chrome/Default --test-type --ignore-certificate-errors-spki-list=Bq49YmAq1CG6FuBzp8nsyRXumW7Dmkp7QQ/F82azxGU=";
+  spireWorkloadEnabled = config.ghaf.givc.spireWorkload.enable;
+  useSpireTls = config.ghaf.givc.enableTls && spireWorkloadEnabled;
+  useLegacyTls = config.ghaf.givc.enableTls && !spireWorkloadEnabled;
+  spireAgent = config.ghaf.security.spire.agents.downstream;
+  spireTrustDomain = config.ghaf.common.spire.server.trustDomain;
 in
 {
   _file = ./common.nix;
@@ -152,9 +157,12 @@ in
           --name ${adminAddress.name}
           --addr ${adminAddress.addr}
           --port ${adminAddress.port}
-          ${optionalString config.ghaf.givc.enableTls "--cacert /run/givc/ca-cert.pem"}
-          ${optionalString config.ghaf.givc.enableTls "--cert /run/givc/cert.pem"}
-          ${optionalString config.ghaf.givc.enableTls "--key /run/givc/key.pem"}
+          ${optionalString useSpireTls "--auth-type spire"}
+          ${optionalString useSpireTls "--spire-agent-socket ${spireAgent.socketPath}"}
+          ${optionalString useSpireTls "--trust-domain ${spireTrustDomain}"}
+          ${optionalString useLegacyTls "--cacert /run/givc/ca-cert.pem"}
+          ${optionalString useLegacyTls "--cert /run/givc/cert.pem"}
+          ${optionalString useLegacyTls "--key /run/givc/key.pem"}
           ${optionalString (!config.ghaf.givc.enableTls) "--notls"}
         '';
         # Givc admin server configuration

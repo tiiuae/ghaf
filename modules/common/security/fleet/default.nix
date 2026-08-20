@@ -9,9 +9,12 @@
 let
   cfg = config.ghaf.services.orbit;
 
-  givc-cli = "${lib.getExe' pkgs.givc-cli "givc-cli"} ${
-    lib.replaceString "/run" "/etc" config.ghaf.givc.cliArgs
-  }";
+  givcCliArgs =
+    if config.ghaf.givc.spireWorkload.enable then
+      config.ghaf.givc.cliArgs
+    else
+      lib.replaceString "/run" "/etc" config.ghaf.givc.cliArgs;
+  givc-cli = "${lib.getExe' pkgs.givc-cli "givc-cli"} ${givcCliArgs}";
 
   nullOrBoolToString = v: if v == null then null else lib.boolToString v;
 

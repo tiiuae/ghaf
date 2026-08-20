@@ -88,6 +88,7 @@ in
     givc = {
       enable = globalConfig.givc.enable or false;
       debug = globalConfig.givc.debug or false;
+      spireWorkload.enable = (globalConfig.givc.enable or false) && (globalConfig.spire.enable or false);
     };
     givc.netvm.enable = true;
 
