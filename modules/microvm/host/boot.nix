@@ -139,14 +139,7 @@ in
           };
           system-login = {
             description = "System Login target";
-            # Not wantedBy microvms.target: reaching this waits on the user
-            # actually logging in to gui-vm, which must not hold up the
-            # host's own boot-finished timestamp (systemd-analyze). It's
-            # triggered asynchronously instead, once system-ui.target is
-            # reached (see wait-for-ui's ExecStartPost below). Units that
-            # still need to wait for real login (e.g. low-priority app VMs)
-            # can keep ordering after this target; that ordering is honored
-            # regardless of what started it.
+            wantedBy = [ "microvms.target" ];
             requires = [ "wait-for-login.service" ];
             after = [ "wait-for-login.service" ];
           };
@@ -176,11 +169,6 @@ in
                   greetd.service \
                   60
                 '';
-                # Kick off system-login.target asynchronously (--no-block, so
-                # this doesn't hold up wait-for-ui's own completion). Nothing
-                # else pulls system-login.target in on purpose: see the
-                # comment on that target above.
-                ExecStartPost = "${pkgs.systemd}/bin/systemctl --no-block start system-login.target";
                 RemainAfterExit = true;
               };
             };

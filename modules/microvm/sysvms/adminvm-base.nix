@@ -87,8 +87,7 @@ in
 
     # GIVC configuration - from globalConfig
     givc = {
-      inherit (globalConfig.givc) enable;
-      inherit (globalConfig.givc) debug;
+      inherit (globalConfig.givc) enable debug;
     };
 
     # Enable dynamic hostname export for VMs

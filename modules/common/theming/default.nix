@@ -25,7 +25,7 @@ let
   fontSize = toString config.stylix.fonts.sizes.applications;
 
   gtkThemePackage = pkgs.adw-gtk3;
-  gtkThemeName = "adw-gtk3";
+  gtkThemeName = "adw-gtk3" + lib.optionalString (cfg.polarity == "dark") "-dark";
 
   gtkCss = config.lib.stylix.colors {
     # Must be the mustache source text, not a path string - base16.nix's
@@ -353,6 +353,10 @@ in
           # We build our own Plymouth theme below instead, so that we can pulse
           # the logo's opacity ("breathe") rather than spinning it.
           targets.plymouth.enable = false;
+
+          # qt5ct/qt6ct fail to cross-compile
+          targets.qt.enable =
+            config.ghaf.global-config.platform.buildSystem == config.ghaf.global-config.platform.hostSystem;
         };
 
         # Remove all unused fonts
@@ -362,13 +366,6 @@ in
             sansSerif.package
             monospace.package
             emoji.package
-          ]
-        );
-
-        environment.systemPackages = lib.mkAfter (
-          lib.rmDesktopEntries [
-            pkgs.libsForQt5.qt5ct
-            pkgs.qt6Packages.qt6ct
           ]
         );
       }
@@ -386,7 +383,7 @@ in
               themeDir="$out/share/themes/${gtkThemeName}"
               mkdir -p "$themeDir"
               cp --recursive . "$themeDir"
-              cat ${gtkCss} | tee --append "$themeDir"/gtk-{3,4}.0/gtk.css
+              ${lib.optionalString cfg.gtkQtTheme.enable "cat ${gtkCss} >> $themeDir/gtk-{3,4}.0/gtk.css"}
 
               mkdir -p "$out"/config/gtk-{3,4}.0
               cat ${gtkSettingsIni} | tee "$out"/config/gtk-{3,4}.0/settings.ini > /dev/null
@@ -487,6 +484,13 @@ in
           enable = lib.mkForce true;
           platformTheme = lib.mkForce "qt5ct";
         };
+
+        environment.systemPackages = lib.mkAfter (
+          lib.rmDesktopEntries [
+            pkgs.libsForQt5.qt5ct
+            pkgs.qt6Packages.qt6ct
+          ]
+        );
       })
 
       (lib.mkIf (config.stylix.targets.qt.enable && cfg.gtkQtTheme.enable) {

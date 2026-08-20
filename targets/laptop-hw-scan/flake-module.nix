@@ -16,6 +16,7 @@ let
       hostConfiguration = lib.nixosSystem {
         specialArgs = {
           inherit (inputs.self) lib;
+          inherit inputs; # Required by the shared theming module (stylix)
         };
         modules = [
           (
