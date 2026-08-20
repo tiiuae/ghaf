@@ -5,6 +5,10 @@
   ...
 }:
 {
+  # Keep the recovery menu available without delaying every normal boot by the
+  # systemd-boot default timeout.
+  boot.loader.timeout = lib.mkDefault 1;
+
   ghaf = {
     services.power-manager.suspend = {
       mode = lib.mkDefault "auto";
