@@ -287,12 +287,7 @@ let
             resume)
               wake_socket="${config.microvm.stateDir}/$vm_name/vm-wake.sock"
               echo "Signaling kernel GPU resume to $vm_name..."
-              if [ ! -S "$wake_socket" ]; then
-                if [[ " ${lib.concatStringsSep " " crosvmGpuSuspendVms} " != *" $vm_name "* ]]; then
-                  echo "Wake socket $wake_socket does not exist for QEMU VM $vm_name" >&2
-                  exit 1
-                fi
-
+              if [[ " ${lib.concatStringsSep " " crosvmGpuSuspendVms} " == *" $vm_name "* ]]; then
                 resume_signal_sent=0
                 case "$vm_name" in
                   ${crosvmGpuResumeCases}
@@ -327,7 +322,20 @@ let
                   exit 1
                 fi
                 echo "Crosvm VM $vm_name confirmed GPU resume"
+
+                # Crosvm wakes the guest kernel directly, so the guest's
+                # sleep.target is not stopped and its ExecStop-based resume
+                # hook does not run automatically as it does with QEMU.
+                echo "Running resume actions in $vm_name..."
+                if ! ${givc-cli} start service --vm "$vm_name" resume-actions.service; then
+                  echo "Failed to start resume actions in Crosvm VM $vm_name" >&2
+                  exit 1
+                fi
               else
+                if [ ! -S "$wake_socket" ]; then
+                  echo "Wake socket $wake_socket does not exist for QEMU VM $vm_name" >&2
+                  exit 1
+                fi
                 printf 'resume\n' | socat -u - "UNIX-CONNECT:$wake_socket"
               fi
               ;;
@@ -856,7 +864,11 @@ in
       # Unlike the other system VMs, GUI VM ignores the ACPI power button and
       # therefore cannot use the host's QMP system_powerdown path.
       givc.sysvm.capabilities.services = optionals (cfg.vm.enable && useGivc) (
-        [ "poweroff.target" ] ++ optionals cfg.gui.gpuSuspend [ "gpu-suspend.service" ]
+        [ "poweroff.target" ]
+        ++ optionals cfg.gui.gpuSuspend [
+          "gpu-suspend.service"
+          "resume-actions.service"
+        ]
       );
 
       # Override systemd actions for suspend, poweroff, and reboot
@@ -886,12 +898,11 @@ in
 
           resume-actions = {
             description = "Resume Actions";
-            wantedBy = [
-              "sleep.target"
-            ];
-            before = [
-              "sleep.target"
-            ];
+            # QEMU stops sleep.target on wake, which runs ExecStop below.
+            # Crosvm wakes the guest kernel directly, so the host starts this
+            # otherwise-unneeded service explicitly after confirming wake.
+            wantedBy = optionals (config.microvm.hypervisor != "crosvm") [ "sleep.target" ];
+            before = optionals (config.microvm.hypervisor != "crosvm") [ "sleep.target" ];
             unitConfig = {
               DefaultDependencies = false;
               StopWhenUnneeded = true;
@@ -1303,6 +1314,20 @@ in
                         pid="''${MAINPID:-}"
                         if [ -z "$pid" ]; then
                           echo "Crosvm '${vmName}' has no MAINPID; nothing to stop"
+                          exit 0
+                        fi
+
+                        # Keep host activation bounded: switch-to-configuration
+                        # restarts changed units synchronously, so graceful guest
+                        # shutdown here would serialize up to 25 seconds per VM.
+                        jobs=$(${getExe' pkgs.systemd "systemctl"} list-jobs 2>/dev/null || true)
+                        if ! echo "$jobs" | grep -qiE '(sleep|suspend|poweroff|reboot|halt)\.target.*start' \
+                          && ${getExe' pkgs.procps "pgrep"} -f 'bin/switch-to-configuration (switch|test)' >/dev/null 2>&1; then
+                          echo "switch-to-configuration activation in progress, SIGTERM '${vmName}'"
+                          kill -15 "$pid" 2>/dev/null || true
+                          while kill -0 "$pid" 2>/dev/null; do
+                            sleep 1
+                          done
                           exit 0
                         fi
 

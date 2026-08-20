@@ -442,6 +442,9 @@ in
         # The NetworkManager D-Bus proxy and forwarded PipeWire core recover
         # asynchronously after net-vm and audio-vm resume. Restarting the panel
         # before they accept requests leaves their applets permanently empty.
+        network_wait_pid=""
+        pipewire_wait_pid=""
+        bluetooth_wait_pid=""
         if systemctl -q is-enabled dbus-proxy-networkmanager.service; then
           ${lib.getExe' pkgs.coreutils "timeout"} 30 ${lib.getExe pkgs.bash} -c '
             until ${lib.getExe' pkgs.systemd "busctl"} --system get-property \
@@ -450,7 +453,8 @@ in
               org.freedesktop.NetworkManager State >/dev/null 2>&1; do
               ${lib.getExe' pkgs.coreutils "sleep"} 0.5
             done
-          ' || echo "NetworkManager proxy did not recover before the panel restart"
+          ' &
+          network_wait_pid=$!
         fi
 
         if [ -S /tmp/pipewire-0 ]; then
@@ -459,7 +463,84 @@ in
               ${lib.getExe' pkgs.wireplumber "wpctl"} status >/dev/null 2>&1; do
               ${lib.getExe' pkgs.coreutils "sleep"} 0.5
             done
-          ' || echo "PipeWire control did not recover before the panel restart"
+          ' &
+          pipewire_wait_pid=$!
+        fi
+
+        ${lib.optionalString graphicsProfileCfg.bluetooth.applet.enable ''
+          if systemctl -q is-enabled dbus-proxy-bluetooth.service; then
+            # Stop clients before replacing the proxy. Otherwise they can
+            # retain stale BlueZ objects or race adapter power restoration.
+            while read -r user_id _; do
+              ${lib.getExe' pkgs.systemd "systemctl"} --user \
+                --machine="$user_id@.host" stop blueman-applet.service \
+                || echo "Blueman applet did not stop for user $user_id"
+            done < <(${lib.getExe' pkgs.systemd "loginctl"} list-users --no-legend)
+
+            while read -r manager_pid; do
+              if [ -n "$manager_pid" ]; then
+                ${lib.getExe' pkgs.busybox "kill"} "$manager_pid" || true
+              fi
+            done < <(${lib.getExe' pkgs.busybox "pgrep"} -x blueman-manager || true)
+
+            # The GIVC socket may reappear before BlueZ is ready. Wait for the
+            # source adapter, then rebuild the proxy so it does not retain the
+            # stale pre-suspend object map.
+            ${lib.getExe' pkgs.coreutils "timeout"} 30 ${lib.getExe pkgs.bash} -c '
+              stable_powered=0
+              until [ "$stable_powered" -ge 3 ]; do
+                if [ "$(
+                  ${lib.getExe' pkgs.coreutils "timeout"} 2 \
+                    ${lib.getExe' pkgs.systemd "busctl"} --address=unix:path=/tmp/dbusproxy_snd.sock \
+                      get-property org.bluez /org/bluez/hci0 org.bluez.Adapter1 Powered \
+                      2>/dev/null
+                )" = "b true" ]; then
+                  stable_powered=$((stable_powered + 1))
+                else
+                  stable_powered=0
+                fi
+                ${lib.getExe' pkgs.coreutils "sleep"} 0.5
+              done
+
+              ${lib.getExe' pkgs.systemd "systemctl"} restart dbus-proxy-bluetooth.service
+
+              until ${lib.getExe' pkgs.coreutils "timeout"} 2 \
+                ${lib.getExe' pkgs.systemd "busctl"} --system get-property \
+                  org.bluez /org/bluez/hci0 org.bluez.Adapter1 Powered \
+                  >/dev/null 2>&1; do
+                ${lib.getExe' pkgs.coreutils "sleep"} 0.5
+              done
+
+              ${lib.getExe' pkgs.systemd "busctl"} --system set-property \
+                org.bluez /org/bluez/hci0 org.bluez.Adapter1 Powered b true
+
+              until [ "$(
+                ${lib.getExe' pkgs.systemd "busctl"} --system get-property \
+                  org.bluez /org/bluez/hci0 org.bluez.Adapter1 Powered \
+                  2>/dev/null
+              )" = "b true" ]; do
+                ${lib.getExe' pkgs.coreutils "sleep"} 0.5
+              done
+            ' &
+            bluetooth_wait_pid=$!
+          fi
+        ''}
+
+        if [ -n "$network_wait_pid" ]; then
+          wait "$network_wait_pid" || echo "NetworkManager proxy did not recover before the panel restart"
+        fi
+        if [ -n "$pipewire_wait_pid" ]; then
+          wait "$pipewire_wait_pid" || echo "PipeWire control did not recover before the panel restart"
+        fi
+        if [ -n "$bluetooth_wait_pid" ]; then
+          if ! wait "$bluetooth_wait_pid"; then
+            echo "Bluetooth proxy did not recover before the applet restart"
+          fi
+          while read -r user_id _; do
+            ${lib.getExe' pkgs.systemd "systemctl"} --user \
+              --machine="$user_id@.host" start blueman-applet.service \
+              || echo "Blueman applet did not start for user $user_id"
+          done < <(${lib.getExe' pkgs.systemd "loginctl"} list-users --no-legend)
         fi
 
         pid=$(${lib.getExe' pkgs.busybox "pgrep"} -f "cosmic-panel" | ${lib.getExe' pkgs.busybox "head"} -n1)

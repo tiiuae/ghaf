@@ -48,6 +48,11 @@ let
   localeEnabled = lib.ghaf.features.isEnabledFor globalConfig "locale" vmName;
   timezoneEnabled = lib.ghaf.features.isEnabledFor globalConfig "timezone" vmName;
   isCrosvm = config.microvm.hypervisor == "crosvm";
+  deviceManagerPackage =
+    if hostConfig.passthrough.deviceManagerBackend == "ghaf-device-manager" then
+      pkgs.ghaf-device-manager
+    else
+      pkgs.vhotplug;
 
   # A list of applications from all AppVMs (accessed via hostConfig)
   enabledVms = lib.filterAttrs (_: vm: vm.enable) (hostConfig.appvms or { });
@@ -330,7 +335,7 @@ in
       pkgs.libva-utils
       pkgs.glib
     ]
-    ++ [ (if isCrosvm then pkgs.ghaf-device-manager else pkgs.vhotplug) ]
+    ++ [ deviceManagerPackage ]
     ++ [ pkgs.xrdb ];
     sessionVariables = lib.optionalAttrs (globalConfig.debug.enable or false) (
       {

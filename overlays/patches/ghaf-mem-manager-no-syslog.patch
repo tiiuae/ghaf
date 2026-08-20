@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Carry https://github.com/tiiuae/ghafpkgs/pull/362 until it merges.
+diff --git a/src/crosvm.rs b/src/crosvm.rs
+index de5ddfe9..4d4a7881 100644
+--- a/src/crosvm.rs
++++ b/src/crosvm.rs
+@@ -50,7 +50,10 @@ impl CrosvmEndpoint {
+ 
+     async fn command(&self, arguments: &[&str]) -> Result<Output> {
+         let mut command = Command::new(&self.binary);
+-        command.args(arguments).kill_on_drop(true);
++        command
++            .arg("--no-syslog")
++            .args(arguments)
++            .kill_on_drop(true);
+         let output = timeout(TIMEOUT, command.output())
+             .await
+             .with_context(|| {
+@@ -150,7 +153,7 @@ mod tests {
+         let script = format!(
+             r#"#!/bin/sh
+ printf '%s\n' "$@" >> '{}'
+-if [ "$1" = balloon_stats ]; then
++if [ "$2" = balloon_stats ]; then
+     printf '%s\n' '{{"BalloonStats":{{"stats":{{"available_memory":2147483648,"free_memory":1073741824}},"balloon_actual":4294967296}}}}'
+ fi
+ "#,
+@@ -170,7 +173,7 @@ fi
+         );
+         assert_eq!(
+             fs::read_to_string(&log)?,
+-            "balloon_stats\n/run/crosvm.sock\n"
++            "--no-syslog\nballoon_stats\n/run/crosvm.sock\n"
+         );
+         fs::write(&log, "")?;
+ 
+@@ -180,7 +183,7 @@ fi
+ 
+         assert_eq!(
+             fs::read_to_string(log)?,
+-            "balloon\n8589934592\n/run/crosvm.sock\n"
++            "--no-syslog\nballoon\n8589934592\n/run/crosvm.sock\n"
+         );
+         Ok(())
+     }

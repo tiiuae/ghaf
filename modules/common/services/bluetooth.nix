@@ -156,6 +156,7 @@ in
         for _ in $(seq 1 30); do
           if bluetoothctl show | grep -q "Powered: yes"; then
             powered=true
+            break
           else
             powered=false
             bluetoothctl power on || true

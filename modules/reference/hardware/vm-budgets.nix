@@ -12,5 +12,11 @@
   };
 
   # Tablet-class units.
-  minimal.sysvms.guivm.mem = 2047;
+  minimal.sysvms = {
+    guivm.mem = 2047;
+    # Keep AudioVM at its QEMU-sized budget on tablet-class machines. The
+    # Crosvm default uses 1024 MiB, which is too large for this constrained
+    # profile.
+    audiovm.mem = 512;
+  };
 }

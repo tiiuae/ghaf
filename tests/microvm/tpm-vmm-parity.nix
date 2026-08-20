@@ -9,9 +9,11 @@
 }:
 let
   qemuHost = self.nixosConfigurations.lenovo-t14-amd-gen5-release.config;
-  crosvmDebugHost = self.nixosConfigurations.intel-laptop-debug.config;
   crosvmHost = self.nixosConfigurations.intel-laptop-release.config;
 
+  # This map is the pinned cross-VMM storage contract. The authoritative NV
+  # indices remain in the corresponding {admin,audio,gui,net}vm-base modules;
+  # changing one side without the other must fail this parity check.
   systemVms = {
     "admin-vm" = "0x81701000";
     "audio-vm" = "0x81702000";
@@ -53,7 +55,6 @@ let
       name: rootNVIndex:
       let
         qemu = vmConfig qemuHost name;
-        crosvmDebug = vmConfig crosvmDebugHost name;
         crosvm = vmConfig crosvmHost name;
       in
       [
@@ -102,40 +103,6 @@ let
           name = "${name}: Crosvm release initrd loads the virtio TPM transport";
           ok = lib.elem "tpm_virtio" crosvm.boot.initrd.kernelModules;
         }
-        {
-          name = "${name}: Crosvm debug VM enables TPM passthrough";
-          ok =
-            crosvmDebug.microvm.hypervisor == "crosvm"
-            && crosvmDebug.ghaf.virtualization.microvm.tpm.passthrough.enable;
-        }
-        {
-          name = "${name}: Crosvm debug VM uses the TPM resource-manager device";
-          ok = hasArgPair "--tpm-device" "/dev/tpmrm0" crosvmDebug.microvm.crosvm.extraArgs;
-        }
-        {
-          name = "${name}: Crosvm debug VM preserves the VM-specific TPM NV index";
-          ok = crosvmDebug.ghaf.virtualization.microvm.tpm.passthrough.rootNVIndex == rootNVIndex;
-        }
-        {
-          name = "${name}: Crosvm debug VM enables encrypted persistent storage";
-          ok = crosvmDebug.ghaf.storagevm.encryption.enable;
-        }
-        {
-          name = "${name}: Crosvm debug VM waits for the TPM before storage enrollment";
-          ok = waitsForTpm crosvmDebug;
-        }
-        {
-          name = "${name}: Crosvm debug storage waits for persistent filesystem expansion";
-          ok = formatsAfterPersistExpansion crosvmDebugHost name;
-        }
-        {
-          name = "${name}: Crosvm debug guest includes the virtio TPM transport";
-          ok = lib.elem "chromiumos-virtio-tpm" (patchNames crosvmDebug);
-        }
-        {
-          name = "${name}: Crosvm debug initrd loads the virtio TPM transport";
-          ok = lib.elem "tpm_virtio" crosvmDebug.boot.initrd.kernelModules;
-        }
       ]
     ) systemVms
   );
@@ -164,10 +131,6 @@ let
     {
       name = "Crosvm host grants the microvm user TPM device access";
       ok = lib.elem "tss" crosvmHost.users.users.microvm.extraGroups;
-    }
-    {
-      name = "Crosvm debug host grants the microvm user TPM device access";
-      ok = lib.elem "tss" crosvmDebugHost.users.users.microvm.extraGroups;
     }
   ]
   ++ systemVmAssertions

@@ -293,6 +293,8 @@ in
             # microvm.nix expands extraArgsScript output as shell words. The
             # vhotplug CLI rejects whitespace inside arguments; disabling glob
             # expansion completes the safe one-word-per-argument contract.
+            # TODO: remove this process-wide workaround after microvm.nix
+            # quotes each generated argument in its Crosvm runner.
             Environment = "BASH_ENV=${disableRunnerGlobbing}";
           };
         };

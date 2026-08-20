@@ -3,7 +3,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 let
@@ -50,7 +49,6 @@ in
           evaluatedConfig = config.ghaf.profiles.laptop-x86.idsvmBase.extendModules {
             modules = lib.ghaf.vm.applyVmConfig {
               inherit config;
-              hostPkgs = pkgs;
               vmName = "idsvm";
             };
           };
