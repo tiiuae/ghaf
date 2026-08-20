@@ -6,8 +6,6 @@
 }:
 {
   ghaf = {
-    global-config.storage.encryption.enable = true;
-
     services.power-manager.suspend = {
       mode = lib.mkDefault "auto";
       s2idleModels = [ "System76 Darter Pro" ];
@@ -18,8 +16,7 @@
     virtualization.vmConfig = {
       defaultSysVmVmm = "crosvm";
       defaultAppVmVmm = "crosvm";
-      # Override the encrypted AdminVM's conservative QEMU fallback; vm-tpm
-      # wires TPM passthrough for Crosvm.
+      # vm-tpm wires TPM passthrough for encrypted Crosvm variants.
       sysvms.adminvm.vmm = "crosvm";
     };
   };

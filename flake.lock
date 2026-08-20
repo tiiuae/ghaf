@@ -258,6 +258,7 @@
         "url": "https://github.com/tiiuae/ghaf-crosvm"
       },
       "original": {
+        "rev": "767f265b3edbb65ab0d69a79023ca0a57e66a256",
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
@@ -311,16 +312,15 @@
         ]
       },
       "locked": {
-        "lastModified": 1787052754,
-        "narHash": "sha256-qcUNHT7UjOHu1qGdcDgRvoLQzcbDWfB+W+vi1I8OvFk=",
-        "owner": "vadika",
+        "lastModified": 1786479821,
+        "narHash": "sha256-IjlgULYzJHftvGTEap4vfpltBPN56f21aN0IpxeqpK8=",
+        "owner": "tiiuae",
         "repo": "ghafpkgs",
-        "rev": "4f181fe02222f9f7ef74ebb230f23f67b028714a",
+        "rev": "ad9b7f3269b945b40ecb30fa3461fd8b798bce1a",
         "type": "github"
       },
       "original": {
-        "owner": "vadika",
-        "ref": "fix/crosvm-cli-log-spam",
+        "owner": "tiiuae",
         "repo": "ghafpkgs",
         "type": "github"
       }
@@ -803,16 +803,15 @@
         ]
       },
       "locked": {
-        "lastModified": 1786614239,
-        "narHash": "sha256-jh4QOHemA1WMFLWS06uIHv56sjX0UwaD7NQP701HAOw=",
-        "owner": "vadika",
+        "lastModified": 1786994697,
+        "narHash": "sha256-3Xa86R12YJ1kP/Xx6Ol3yaZuacVv5H/4+CUvJB/zCfw=",
+        "owner": "tiiuae",
         "repo": "vhotplug",
-        "rev": "123ea2d56380a1353d671fa1f88b241d08dcffe1",
+        "rev": "51286cf26629d17722fdbf371f54883a6f1f44a4",
         "type": "github"
       },
       "original": {
-        "owner": "vadika",
-        "ref": "feat/crosvm-pci-hotplug",
+        "owner": "tiiuae",
         "repo": "vhotplug",
         "type": "github"
       }

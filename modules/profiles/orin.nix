@@ -137,7 +137,7 @@ in
         # Export Net VM base for profiles to extend
         orin.netvmBase = lib.nixosSystem {
           modules = [
-            inputs.self.nixosModules.microvm-nix
+            inputs.microvm.nixosModules.microvm
             inputs.self.nixosModules.netvm-base
             # Import nixpkgs config module to get overlays
             {
@@ -162,7 +162,7 @@ in
         # Export Admin VM base for profiles to extend
         orin.adminvmBase = lib.nixosSystem {
           modules = [
-            inputs.self.nixosModules.microvm-nix
+            inputs.microvm.nixosModules.microvm
             inputs.self.nixosModules.adminvm-base
             # Import nixpkgs config module to get overlays
             {
@@ -186,7 +186,7 @@ in
         # Export GPU VM base for profiles to extend
         orin.gpuvmBase = lib.nixosSystem {
           modules = [
-            inputs.self.nixosModules.microvm-nix
+            inputs.microvm.nixosModules.microvm
             inputs.self.nixosModules.gpuvm-base
             # Import nixpkgs config module to get overlays
             {
@@ -210,7 +210,7 @@ in
         # Export Disp VM base for profiles to extend
         orin.dispvmBase = lib.nixosSystem {
           modules = [
-            inputs.self.nixosModules.microvm-nix
+            inputs.microvm.nixosModules.microvm
             inputs.self.nixosModules.dispvm-base
             # Import nixpkgs config module to get overlays
             {
@@ -233,7 +233,7 @@ in
 
         orin.guivmBase = lib.nixosSystem {
           modules = [
-            inputs.self.nixosModules.microvm-nix
+            inputs.microvm.nixosModules.microvm
             inputs.self.nixosModules.guivm-base
             inputs.self.nixosModules.guivm-features
             inputs.self.nixosModules.orin-guivm-specialization
@@ -258,12 +258,16 @@ in
         orin.mkAppVm =
           vmDef:
           let
-            resolved = lib.ghaf.vm.resolveAppVmConfig { inherit config vmDef; };
-            inherit (resolved) effectiveDef selectedVmm;
+            vmCfg = config.ghaf.virtualization.vmConfig.appvms.${vmDef.name} or { };
+            effectiveDef =
+              vmDef
+              // lib.optionalAttrs ((vmCfg.mem or null) != null) { inherit (vmCfg) mem; }
+              // lib.optionalAttrs ((vmCfg.vcpu or null) != null) { inherit (vmCfg) vcpu; }
+              // lib.optionalAttrs ((vmCfg.balloonRatio or null) != null) { inherit (vmCfg) balloonRatio; };
           in
           lib.nixosSystem {
             modules = [
-              inputs.self.nixosModules.microvm-nix
+              inputs.microvm.nixosModules.microvm
               inputs.self.nixosModules.appvm-base
               {
                 nixpkgs = {
@@ -273,7 +277,7 @@ in
                 };
               }
             ]
-            ++ resolved.extraModules;
+            ++ (vmCfg.extraModules or [ ]);
             specialArgs = lib.ghaf.vm.mkSpecialArgs {
               inherit lib inputs;
               globalConfig = hostGlobalConfig;
@@ -284,7 +288,6 @@ in
                 }
                 // {
                   appvm = effectiveDef;
-                  appvmVmm = selectedVmm;
                   sharedVmDirectory =
                     config.ghaf.virtualization.microvm-host.sharedVmDirectory or {
                       enable = false;
@@ -366,7 +369,6 @@ in
             evaluatedConfig = config.ghaf.profiles.orin.netvmBase.extendModules {
               modules = lib.ghaf.vm.applyVmConfig {
                 inherit config;
-                hostPkgs = pkgs;
                 vmName = "netvm";
               };
             };
@@ -378,7 +380,6 @@ in
             evaluatedConfig = cfg.adminvmBase.extendModules {
               modules = lib.ghaf.vm.applyVmConfig {
                 inherit config;
-                hostPkgs = pkgs;
                 vmName = "adminvm";
               };
             };
@@ -394,7 +395,6 @@ in
             evaluatedConfig = config.ghaf.profiles.orin.gpuvmBase.extendModules {
               modules = lib.ghaf.vm.applyVmConfig {
                 inherit config;
-                hostPkgs = pkgs;
                 vmName = "gpuvm";
               };
             };
@@ -408,7 +408,6 @@ in
             evaluatedConfig = config.ghaf.profiles.orin.dispvmBase.extendModules {
               modules = lib.ghaf.vm.applyVmConfig {
                 inherit config;
-                hostPkgs = pkgs;
                 vmName = "dispvm";
               };
             };
@@ -426,7 +425,6 @@ in
               config.ghaf.profiles.orin.guivmBase.extendModules {
                 modules = lib.ghaf.vm.applyVmConfig {
                   inherit config;
-                  hostPkgs = pkgs;
                   vmName = "guivm";
                 };
               }

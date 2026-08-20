@@ -9,7 +9,7 @@
 # This is separate from hardware.definition which handles physical
 # hardware properties. vmConfig handles:
 # - VMM selection - QEMU by default for system VMs, profile-specific system VM
-#   overrides, crosvm for AppVMs, and per-VM overrides
+#   overrides, and per-VM overrides
 # - Resource allocation (mem, vcpu) - varies by profile
 # - Profile-specific modules (apps, services)
 # - Downstream customizations
@@ -30,11 +30,7 @@
 #   3. hardware.definition.guivm.extraModules          <- hardware-specific (GPU quirks)
 #   4. virtualization.vmConfig.sysvms.guivm.extraModules <- profile/downstream (highest priority)
 #
-{
-  config,
-  lib,
-  ...
-}:
+{ lib, ... }:
 let
   inherit (lib)
     mkOption
@@ -178,11 +174,11 @@ in
         "qemu"
         "crosvm"
       ];
-      default = "crosvm";
+      default = "qemu";
       description = ''
         Default VMM for App VMs without a per-VM override.
       '';
-      example = "crosvm";
+      example = "qemu";
     };
 
     sysvms = mkOption {
@@ -219,10 +215,4 @@ in
     };
   };
 
-  # Keep QEMU as the system-wide default while migrating AdminVM to crosvm.
-  # Encrypted AdminVMs still need QEMU's TPM path until crosvm TPM support is
-  # wired. Targets and downstream configurations can override this selection.
-  config.ghaf.virtualization.vmConfig.sysvms.adminvm.vmm = lib.mkDefault (
-    if config.ghaf.global-config.storage.encryption.enable then "qemu" else "crosvm"
-  );
 }

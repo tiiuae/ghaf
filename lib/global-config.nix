@@ -788,6 +788,7 @@ rec {
 
         # Hardware passthrough settings
         passthrough = {
+          deviceManagerBackend = config.ghaf.hardware.passthrough.deviceManager.backend;
           qemuExtraArgs = config.ghaf.hardware.passthrough.qemuExtraArgs.${vmName} or [ ];
           vmUdevExtraRules =
             let
@@ -882,7 +883,6 @@ rec {
     #
     # Arguments:
     #   config - Host configuration (with ghaf.hardware.definition and ghaf.virtualization.vmConfig)
-    #   hostPkgs - Host package set used by generated host-side runner commands
     #   vmName - VM name without -vm suffix (e.g., "guivm", "netvm")
     #
     # Returns: List of modules to add via extendModules
@@ -894,7 +894,6 @@ rec {
     applyVmConfig =
       {
         config,
-        hostPkgs ? null,
         vmName,
       }:
       let
@@ -967,8 +966,8 @@ rec {
             assertions =
               lib.optionals usesPciVhotplug [
                 {
-                  assertion = vhotplugEnabled && hostPkgs != null && config.microvm.socket != null;
-                  message = "Crosvm PCI passthrough for ${vhotplugVmName} requires a device manager, a host package set, and a control socket";
+                  assertion = vhotplugEnabled && config.microvm.socket != null;
+                  message = "Crosvm PCI passthrough for ${vhotplugVmName} requires a device manager and a control socket";
                 }
               ]
               ++ lib.optionals (selectedVmm == "crosvm") [

@@ -80,8 +80,7 @@
 
     # A set of useful nix packages and utilities for ghaf
     ghafpkgs = {
-      # TODO: switch back to tiiuae/ghafpkgs after ghafpkgs#362 merges.
-      url = "github:vadika/ghafpkgs/fix/crosvm-cli-log-spam";
+      url = "github:tiiuae/ghafpkgs";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
@@ -96,7 +95,7 @@
     # Crosvm with Ghaf's swtpm backend. This is a non-flake source input
     # because nixpkgs supplies the package expression and Rust dependencies.
     ghaf-crosvm = {
-      url = "git+https://github.com/tiiuae/ghaf-crosvm?submodules=1";
+      url = "git+https://github.com/tiiuae/ghaf-crosvm?rev=767f265b3edbb65ab0d69a79023ca0a57e66a256&submodules=1";
       flake = false;
     };
 
@@ -214,8 +213,7 @@
 
     # Hot-plugging devices into QEMU virtual machines
     vhotplug = {
-      # TODO: switch back to tiiuae/vhotplug after vhotplug#22 merges.
-      url = "github:vadika/vhotplug/feat/crosvm-pci-hotplug";
+      url = "github:tiiuae/vhotplug";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";

@@ -118,17 +118,17 @@ The `vmConfig` parameter selects separate defaults for system VMs and App VMs,
 and supports per-VM VMM and resource overrides. The system-wide default is
 QEMU. Every generic `intel-laptop` target selects crosvm for all system VMs,
 including debug, release, low-memory, and store-disk variants. Machine-specific
-x86, generic VM, and aarch64 targets keep their existing selections. AdminVM
-normally defaults to crosvm only when storage encryption is disabled; generic
-Intel laptop targets also select crosvm for the encrypted AdminVM and use
-crosvm's TPM passthrough path. App VMs default to crosvm. crosvm VMs run as Ghaf's
-unprivileged `microvm` user with crosvm's internal minijail disabled, because
-its namespace setup requires `CAP_SYS_ADMIN`.
+x86, generic VM, and aarch64 targets keep their existing selections. Generic
+Intel laptop targets also select crosvm for encrypted AdminVM variants and use
+crosvm's TPM passthrough path. App VMs default to QEMU system-wide and to crosvm
+on generic Intel laptop targets. crosvm VMs run as Ghaf's unprivileged
+`microvm` user with crosvm's internal minijail disabled, because its namespace
+setup requires `CAP_SYS_ADMIN`.
 
 ```nix
 vmConfig = {
   defaultSysVmVmm = "qemu";
-  defaultAppVmVmm = "crosvm";
+  defaultAppVmVmm = "qemu";
 
   # System VMs, keyed by the unhyphenated name (guivm, netvm, audiovm,
   # adminvm, idsvm)

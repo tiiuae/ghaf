@@ -10,25 +10,40 @@
   flake.overlays = {
     cross-compilation = import ./cross-compilation;
     custom-packages = import ./custom-packages;
-    crosvm = _final: prev: {
-      crosvm = prev.crosvm.overrideAttrs (old: {
-        src = inputs.ghaf-crosvm;
-        cargoDeps = prev.rustPlatform.fetchCargoVendor {
+    crosvm =
+      _final: prev:
+      inputs.nixpkgs.lib.optionalAttrs prev.stdenv.hostPlatform.isx86_64 {
+        crosvm = prev.crosvm.overrideAttrs (old: {
           src = inputs.ghaf-crosvm;
-          hash = "sha256-lU30pTzJ1hYyHcpFKemZou9d2ZqSlFu4JC+IUe2Gm5A=";
-        };
-        cargoBuildFeatures = (old.cargoBuildFeatures or (old.buildFeatures or [ ])) ++ [
-          "pci-hotplug"
-          "power-monitor-sysfs"
-          "vtpm"
-        ];
-        buildInputs = (old.buildInputs or [ ]) ++ [ prev.dbus ];
-      });
-    };
+          cargoDeps = prev.rustPlatform.fetchCargoVendor {
+            src = inputs.ghaf-crosvm;
+            hash = "sha256-lU30pTzJ1hYyHcpFKemZou9d2ZqSlFu4JC+IUe2Gm5A=";
+          };
+          cargoBuildFeatures = (old.cargoBuildFeatures or (old.buildFeatures or [ ])) ++ [
+            "pci-hotplug"
+            "power-monitor-sysfs"
+            "vtpm"
+          ];
+          buildInputs = (old.buildInputs or [ ]) ++ [ prev.dbus ];
+        });
+      };
 
-    ghaf-device-manager = _final: prev: {
-      ghaf-device-manager =
-        inputs.ghaf-device-manager.packages.${prev.stdenv.hostPlatform.system}.default;
+    ghaf-device-manager =
+      _final: prev:
+      inputs.nixpkgs.lib.optionalAttrs prev.stdenv.hostPlatform.isx86_64 {
+        ghaf-device-manager =
+          inputs.ghaf-device-manager.packages.${prev.stdenv.hostPlatform.system}.default;
+      };
+
+    # Carry the two focused logging fixes from ghafpkgs#362 until it merges,
+    # while retaining the authoritative tiiuae/ghafpkgs input.
+    ghafpkgs-crosvm-fixes = _final: prev: {
+      ghaf-mem-manager = prev.ghaf-mem-manager.overrideAttrs (old: {
+        patches = (old.patches or [ ]) ++ [ ./patches/ghaf-mem-manager-no-syslog.patch ];
+      });
+      ghaf-usb-applet = prev.ghaf-usb-applet.overrideAttrs (old: {
+        patches = (old.patches or [ ]) ++ [ ./patches/ghaf-usb-applet-log-level.patch ];
+      });
     };
 
     # Jetson-only Python fixes for the EDK2/UEFI firmware build. Deliberately
@@ -50,6 +65,7 @@
       inputs.self.overlays.ghaf-device-manager
       #external overlays that we use
       inputs.ghafpkgs.overlays.default
+      inputs.self.overlays.ghafpkgs-crosvm-fixes
       inputs.ctrl-panel.overlays.default
       inputs.givc.overlays.default
       inputs.gp-gui.overlays.default
