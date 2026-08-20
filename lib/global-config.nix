@@ -55,6 +55,20 @@ rec {
       logging = {
         enable = mkEnableOption "logging globally";
 
+        fss.enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = ''
+            Enable Ghaf's systemd journal Forward Secure Sealing implementation
+            on the host and every logged VM.
+
+            Set false to keep the logging pipeline enabled while disabling FSS
+            key setup, sealing, verification, and its supporting services. The
+            existing journals and FSS keys are preserved so the implementation
+            can be re-enabled later.
+          '';
+        };
+
         listener = {
           address = mkOption {
             type = types.str;
