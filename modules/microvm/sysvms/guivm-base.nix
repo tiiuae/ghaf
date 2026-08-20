@@ -79,7 +79,6 @@ in
   # See: modules/reference/profiles/mvp-user-trial.nix
 
   ghaf = {
-    # Shared theming (stylix) - from globalConfig
     theming = {
       enable = lib.mkDefault (globalConfig.theming.enable or false);
       plymouth.enable = true;

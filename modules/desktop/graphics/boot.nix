@@ -20,6 +20,8 @@ let
 
   cfg = config.ghaf.graphics.boot;
 
+  logo = config.ghaf.theming.logo or "${pkgs.ghaf-artwork}/ghaf-logo-512px.png";
+
   plymouth-ghaf-background = mkIf cfg.firmwareLogo.enable (
     pkgs.runCommand "plymouth-ghaf-background" { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
       if [ -n "${cfg.firmwareLogo.image}" ]; then
@@ -92,22 +94,10 @@ in
 
       image = mkOption {
         type = types.path;
-        default = "${pkgs.ghaf-artwork}/ghaf-logo-512px.png";
+        default = logo;
+        defaultText = lib.literalMD "`ghaf.theming.logo`";
         description = ''
           Image to use in place of the UEFI firmware (BGRT) boot logo.
-          Default is the Ghaf logo.
-        '';
-      };
-    };
-
-    logo = {
-      enable = mkEnableOption "custom logo at the bottom of the splash screen";
-
-      image = mkOption {
-        type = types.path;
-        default = "${pkgs.ghaf-artwork}/ghaf-logo-512px.png";
-        description = ''
-          Image to use at the bottom of the splash screen.
           Default is the Ghaf logo.
         '';
       };
@@ -182,8 +172,6 @@ in
     (mkIf (!config.ghaf.theming.plymouth.enable) {
       boot.plymouth = {
         inherit (cfg) theme;
-        logo = if cfg.logo.enable then cfg.logo.image else "/dev/null";
-
         # This is a bit hacky, as we're overriding the default spinner theme
         # It would be better to create our own custom theme
         themePackages = optionals cfg.firmwareLogo.enable [ plymouth-ghaf-background ];

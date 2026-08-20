@@ -178,6 +178,17 @@ in
       description = "Path to the base16 scheme yaml used for shared theming";
     };
 
+    logo = lib.mkOption {
+      type = lib.types.path;
+      default = "${pkgs.ghaf-artwork}/ghaf-logo-512px.png";
+      description = ''
+        Default Ghaf logo image used across theming (e.g. as the base for the
+        Plymouth boot splash logo). Kept as a single option so branding stays
+        consistent even where it is used outside of stylix, such as
+        ghaf.graphics.boot's firmware (BGRT) logo override.
+      '';
+    };
+
     iconTheme = {
       package = lib.mkOption {
         type = lib.types.nullOr lib.types.package;
@@ -294,8 +305,8 @@ in
       logo = lib.mkOption {
         description = "Logo to be used on the boot screen.";
         type = with lib.types; either path package;
-        defaultText = lib.literalMD "Ghaf logo";
-        default = "${pkgs.ghaf-artwork}/ghaf-logo-512px.png";
+        defaultText = lib.literalMD "`ghaf.theming.logo`";
+        default = cfg.logo;
       };
 
       logoBreathing = lib.mkOption {

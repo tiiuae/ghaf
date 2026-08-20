@@ -52,7 +52,6 @@ in
       nix-setup.enable = lib.mkDefault (globalConfig.development.nix-setup.enable or false);
     };
 
-    # Shared theming (stylix) - from globalConfig
     theming.enable = lib.mkDefault (globalConfig.theming.enable or false);
 
     users = {

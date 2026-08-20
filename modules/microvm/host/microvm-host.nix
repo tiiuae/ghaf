@@ -132,7 +132,6 @@ in
         };
         givc.host.enable = true;
 
-        # Shared theming (stylix) - from global-config
         theming = {
           enable = lib.mkDefault config.ghaf.global-config.theming.enable;
           plymouth.enable = true;

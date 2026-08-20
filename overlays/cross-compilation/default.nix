@@ -38,6 +38,25 @@
     );
   });
 
+  # Fix qt5ct cross-compilation.
+  # qt5ct pulls in qttools as a nativeBuildInput purely to compile optional
+  # translation (.qm) files via lrelease. qttools propagates a build-platform
+  # qtbase, which brings in that qtbase's setup hook alongside the one from
+  # the (cross) qtbase already in buildInputs. Both hooks set/check the same
+  # "$__nix_qtbase" marker, and since the two qtbase paths differ when
+  # cross-compiling, the second hook aborts with "detected mismatched Qt
+  # dependencies". Dropping qttools loses translations (English-only UI) but
+  # is otherwise harmless, since qt5ct only needs it for lrelease.
+  libsForQt5 = prev.libsForQt5.overrideScope (
+    _lfinal: lprev: {
+      qt5ct = lprev.qt5ct.overrideAttrs (oldAttrs: {
+        nativeBuildInputs = builtins.filter (d: (d.pname or "") != "qttools") (
+          oldAttrs.nativeBuildInputs or [ ]
+        );
+      });
+    }
+  );
+
   # tpm2-pytss 3.0.0rc1 already invokes $CC -E when preprocessing headers,
   # so nixpkgs' older cross.patch no longer applies and is no longer needed.
   pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
@@ -52,6 +71,18 @@
       );
     })
   ];
+
+  # Fix qt6ct cross-compilation, same cause and fix as qt5ct above: qttools
+  # is only needed for optional translations (CMake's LinguistTools).
+  qt6Packages = prev.qt6Packages.overrideScope (
+    _qfinal: qprev: {
+      qt6ct = qprev.qt6ct.overrideAttrs (oldAttrs: {
+        nativeBuildInputs = builtins.filter (d: (d.pname or "") != "qttools") (
+          oldAttrs.nativeBuildInputs or [ ]
+        );
+      });
+    }
+  );
 
   # Fix swtpm cross-compilation.
   # swtpm 0.10.1-unstable-2026-05-21 switched its local CA from gnutls certtool

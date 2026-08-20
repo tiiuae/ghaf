@@ -207,13 +207,9 @@ in
           DISPLAY = mkIf (cfg.persistentWaypipeServer.xDisplay != null) cfg.persistentWaypipeServer.xDisplay;
         };
 
-        # logind normally pulls in graphical-session.target on a real
-        # graphical login (seat, display manager); that never happens here
-        # since this AppVM has no local compositor - its display is a
-        # waypipe client forwarding to gui-vm. graphical-session.target
-        # refuses direct/manual starts, so - same as sway/Hyprland/river's
-        # systemd integration - a target of our own binds to it instead;
-        # starting ours pulls it in as an allowed dependency.
+        # Start graphical-session.target as soon as waypipe is established
+        # and gui-vm can be reached, since some apps and services depend
+        # on it being reached before they can start.
         systemd.user.targets.waypipe-graphical-session = {
           description = "Waypipe graphical session";
           bindsTo = [ "graphical-session.target" ];
