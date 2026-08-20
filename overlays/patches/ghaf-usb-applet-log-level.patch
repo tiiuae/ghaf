@@ -23,3 +23,24 @@ index 97d2817c..761f9cab 100755
          event = msg.get("event", "")
          if event == "usb_select_vm":
              self.show_notif_window(msg)
+diff --git a/src/ghaf_usb_applet/settings.py b/src/ghaf_usb_applet/settings.py
+--- a/src/ghaf_usb_applet/settings.py
++++ b/src/ghaf_usb_applet/settings.py
+@@ -10,8 +10,6 @@ from gi.repository import Gtk, Gdk, Pango, GLib
+ from ghaf_usb_applet.api_client import APIClient
+ from ghaf_usb_applet.logger import logger
+ 
+-import json
+-
+ 
+ class OptionsPopover(Gtk.Popover):
+     def __init__(self, parent_widget, title, options, selected, on_chosen):
+@@ -135,7 +133,7 @@ class DeviceSettings(Gtk.ApplicationWindow):
+     def refresh(self):
+         try:
+             self._model = self.apiclient.get_devices_pretty()
+-            logger.info(json.dumps(self._model, indent=4, sort_keys=True))
++            logger.debug("USB device inventory: %s", self._model)
+         except Exception as e:
+             logger.exception("Failed fetching devices")
+             GLib.idle_add(self._notify_error, "Device Error", f"Message: {e}")
