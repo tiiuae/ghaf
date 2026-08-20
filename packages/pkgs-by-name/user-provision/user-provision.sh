@@ -1405,9 +1405,6 @@ non_interactive_setup() {
   export PASSWORD
   export NEWPASSWORD="$PASSWORD"
 
-  # Disable recovery key for non-interactive mode
-  RECOVERY_KEY=false
-
   debug "Creating user account with the following settings:"
   debug "Username:     $USERNAME"
   debug "Real name:    $REALNAME"
