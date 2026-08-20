@@ -111,7 +111,7 @@ in
 
   options.ghaf.microvm-boot = {
     enable = mkEnableOption "ghaf-specific microvm boot order";
-    debug = mkEnableOption "resource tracing of the ghaf-specific microvm boot order";
+    bootchart.enable = mkEnableOption "systemd-bootchart tracing of the microVM boot sequence";
     uiEnabled = mkOption {
       type = types.bool;
       default = config.ghaf.virtualization.microvm.guivm.enable && config.ghaf.givc.enable;
@@ -201,8 +201,7 @@ in
       # See: modules/desktop/guivm/boot-ui.nix
     })
 
-    # Enable systemd-bootchart if debug is enabled
-    (mkIf cfg.debug {
+    (mkIf cfg.bootchart.enable {
       systemd.services.systemd-bootchart = {
         description = "Trace microvm boot with systemd-bootchart";
         wantedBy = [ "local-fs.target" ];

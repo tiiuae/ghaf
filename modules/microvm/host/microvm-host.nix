@@ -112,7 +112,6 @@ in
         type = "host";
         microvm-boot = {
           inherit (config.ghaf.virtualization.microvm.guivm) enable;
-          debug = config.ghaf.profiles.debug.enable;
         };
         systemd = {
           withName = "host-systemd";

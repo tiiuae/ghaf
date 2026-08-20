@@ -204,13 +204,13 @@ in
           # first accepted reply only at 127s. Keeping the ceiling next to the
           # floor roughly halves that.
           #
-          # 16s/17s is as tight as systemd allows: PollIntervalMinSec must not be
-          # smaller than 16s, and PollIntervalMaxSec must be strictly larger than
-          # PollIntervalMinSec (timesyncd.conf(5)).
+          # Keep both limits at 16s. timesyncd doubles the current interval before
+          # checking it against the maximum, so a 16s/17s range actually retries
+          # after 32s. Equal limits are accepted and prevent that overshoot.
           settings.Time = {
             RootDistanceMaxSec = "30s";
             PollIntervalMinSec = "16s";
-            PollIntervalMaxSec = "17s";
+            PollIntervalMaxSec = "16s";
             ConnectionRetrySec = "5s";
           };
         };
