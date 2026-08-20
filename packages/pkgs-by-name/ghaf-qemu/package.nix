@@ -50,8 +50,9 @@
           ./patches/0004-hw-acpi-Introduce-the-QEMU-lid-button.patch
         ];
 
+      # qemu configures into ./build; nixpkgs no longer cds there before the build phases.
       postInstall = (prev.postInstall or "") + ''
-        cp contrib/ivshmem-server/ivshmem-server $out/bin
+        cp build/contrib/ivshmem-server/ivshmem-server $out/bin
       '';
     }
   )
