@@ -25,6 +25,21 @@ ghaf.logging.fss = {
 };
 ```
 
+Ghaf FSS is disabled by default across the host and all logged VMs without
+disabling the logging pipeline. The global policy is:
+
+```nix
+ghaf.global-config.logging.fss.enable = false;
+```
+
+This explicitly configures journald with `Seal=no` and removes the Ghaf FSS
+setup, verification, and activation dependencies. Clock-jump recovery keeps
+log forwarders healthy, but skips FSS-specific journal restarts, rotations, and
+recovery metadata while FSS is disabled. Existing journals, sealing keys,
+verification keys, and metadata are retained so FSS can be re-enabled later by
+setting the option to `true`. Reboot after changing the option so every VM
+restarts with the new policy.
+
 ### Seal Interval Considerations
 
 | Interval | Tamper Granularity | Storage Overhead | Verification Time |

@@ -161,6 +161,11 @@ in
             address = lib.mkDefault config.ghaf.global-config.logging.listener.address;
             port = lib.mkDefault config.ghaf.global-config.logging.listener.port;
           };
+          fss.enable =
+            if config.ghaf.global-config.logging.fss.enable then
+              lib.mkDefault config.ghaf.logging.enable
+            else
+              lib.mkForce false;
           journalClient = {
             inherit (config.ghaf.logging) enable;
           };

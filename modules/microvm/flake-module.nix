@@ -36,6 +36,7 @@
     ];
 
     vm-modules.imports = [
+      ./common/global-fss-policy.nix
       ./common/microvm-store-mode.nix
       ./common/shared-directory.nix
       ./common/store-disk-erofs.nix
