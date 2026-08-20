@@ -99,6 +99,9 @@ in
       KERNEL=="rfkill", SUBSYSTEM=="misc", GROUP="${bluetoothUser}"
       KERNEL=="uinput", SUBSYSTEM=="misc", GROUP="${bluetoothUser}"
       KERNEL=="uhid", GROUP="${bluetoothUser}" MODE="0660"
+    ''
+    + lib.optionalString cfg.powerOnBoot ''
+      ACTION=="add", SUBSYSTEM=="bluetooth", KERNEL=="hci[0-9]*", TAG+="systemd", ENV{SYSTEMD_WANTS}+="bluetooth-power-on.service"
     '';
 
     # Dbus policy updates
@@ -150,28 +153,49 @@ in
         "bluetooth.service"
         "bluetooth.target"
       ];
-      path = [ pkgs.bluez ];
+      path = [
+        pkgs.bluez
+        pkgs.gawk
+      ];
       script = ''
-        powered=false
-        for _ in $(seq 1 30); do
-          if bluetoothctl show | grep -q "Powered: yes"; then
-            powered=true
-            break
-          else
-            powered=false
-            bluetoothctl power on || true
-          fi
-          sleep 1
-        done
+        controllers=()
+        while IFS= read -r controller; do
+          controllers+=("$controller")
+        done < <(bluetoothctl list | awk '$1 == "Controller" { print $2 }')
 
-        if "$powered"; then
+        # Passthrough adapters normally appear after bluetoothd. Their udev add
+        # event starts this unit again, so an empty controller list is not an
+        # error and must not delay or fail AudioVM boot.
+        if [ "''${#controllers[@]}" -eq 0 ]; then
+          echo "No Bluetooth adapter is currently available"
           exit 0
         fi
-        exit 1
+
+        failed=false
+        for controller in "''${controllers[@]}"; do
+          powered=false
+          for _ in $(seq 1 30); do
+            if bluetoothctl show "$controller" | grep -q "Powered: yes"; then
+              powered=true
+              break
+            fi
+            bluetoothctl select "$controller" >/dev/null || true
+            bluetoothctl power on || true
+            sleep 1
+          done
+
+          if ! "$powered"; then
+            echo "Failed to power on Bluetooth adapter $controller" >&2
+            failed=true
+          fi
+        done
+
+        if "$failed"; then
+          exit 1
+        fi
       '';
       serviceConfig = {
         Type = "oneshot";
-        RemainAfterExit = true;
       };
     };
 

@@ -899,10 +899,15 @@ in
           resume-actions = {
             description = "Resume Actions";
             # QEMU stops sleep.target on wake, which runs ExecStop below.
-            # Crosvm wakes the guest kernel directly, so the host starts this
-            # otherwise-unneeded service explicitly after confirming wake.
-            wantedBy = optionals (config.microvm.hypervisor != "crosvm") [ "sleep.target" ];
-            before = optionals (config.microvm.hypervisor != "crosvm") [ "sleep.target" ];
+            # With Crosvm GPU suspend, the host instead starts this service
+            # explicitly after confirming wake. Crosvm without GPU suspend
+            # still needs the normal sleep.target lifecycle.
+            wantedBy = optionals (!(config.microvm.hypervisor == "crosvm" && cfg.gui.gpuSuspend)) [
+              "sleep.target"
+            ];
+            before = optionals (!(config.microvm.hypervisor == "crosvm" && cfg.gui.gpuSuspend)) [
+              "sleep.target"
+            ];
             unitConfig = {
               DefaultDependencies = false;
               StopWhenUnneeded = true;
