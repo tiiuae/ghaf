@@ -72,6 +72,12 @@ pkgs.testers.nixosTest {
           maxWaitSeconds = 5;
         };
 
+        services.openssh.enable = true;
+        services.fail2ban = {
+          enable = true;
+          jails.sshd.settings.enabled = true;
+        };
+
         networking.hostName = "test-host";
 
         # /etc/fss-verify-classifier.sh is provided by modules/common/logging/fss.nix.
@@ -181,6 +187,13 @@ pkgs.testers.nixosTest {
         ghaf.logging.enable = true;
         ghaf.logging.fss.enable = lib.mkForce false;
         ghaf.storagevm.enable = lib.mkForce false;
+
+        services.openssh.enable = true;
+        services.fail2ban = {
+          enable = true;
+          jails.sshd.settings.enabled = true;
+        };
+
         networking.hostName = "stateless-vm";
       };
     };
@@ -270,9 +283,50 @@ pkgs.testers.nixosTest {
         )
 
     with subtest("FSS stays disabled for stateless VMs"):
+        stateless_vm.wait_for_unit("fail2ban.service")
         stateless_vm.succeed("test ! -e /etc/systemd/system/journal-fss-setup.service")
         stateless_vm.succeed("test ! -e /etc/systemd/system/journal-fss-verify.service")
         stateless_vm.succeed("test ! -e /etc/systemd/system/ghaf-clock-ready.service")
+        stateless_vm.succeed("grep -Fx 'Seal=no' /etc/systemd/journald.conf.d/99-ghaf-fss-disabled.conf")
+        stateless_vm.succeed("""
+          bash -lc '
+            set -euo pipefail
+            source /etc/fss-verify-classifier.sh
+            [ "$(fss_journald_effective_seal)" = no ]
+
+            # Model a nixos-rebuild switch after FSS activation. The old
+            # runtime Seal=yes drop-in can still exist until the next reboot;
+            # the disabled policy must sort after it and remain authoritative.
+            install -d -m 0755 /run/systemd/journald.conf.d
+            printf "%s\\n" "[Journal]" "Seal=yes" > \
+              /run/systemd/journald.conf.d/90-ghaf-fss-activation.conf
+            [ "$(fss_journald_effective_seal)" = no ]
+            rm -f /run/systemd/journald.conf.d/90-ghaf-fss-activation.conf
+          '
+        """)
+
+    with subtest("FSS-disabled recovery leaves journald and Fail2Ban running in place"):
+        stateless_vm.succeed("""
+          bash -lc '
+            set -euo pipefail
+            journal_invocation=$(systemctl show systemd-journald.service --property=InvocationID --value)
+            fail2ban_invocation=$(systemctl show fail2ban.service --property=InvocationID --value)
+
+            rm -f /run/ghaf-journal-alloy-recover.stamp
+            systemctl start ghaf-journal-alloy-recover.service
+
+            [ "$(systemctl show systemd-journald.service --property=InvocationID --value)" = "$journal_invocation" ]
+            [ "$(systemctl show fail2ban.service --property=InvocationID --value)" = "$fail2ban_invocation" ]
+            journalctl -u ghaf-journal-alloy-recover.service -n 20 --no-pager |
+              grep -F "FSS disabled; skipping FSS journal restart, rotation, and receipts"
+            fail2ban-client status sshd | grep -F "Status for the jail: sshd"
+            if journalctl -b -u fail2ban.service --no-pager |
+              grep -F "NoneType"; then
+              echo "Fail2Ban lost its journal reader with FSS disabled" >&2
+              exit 1
+            fi
+          '
+        """)
         stateless_vm.succeed("""
           bash -lc '
             set -euo pipefail

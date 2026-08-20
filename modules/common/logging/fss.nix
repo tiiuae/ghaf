@@ -164,6 +164,7 @@ let
       UNCLEAN_SHUTDOWN_MAX_RECEIPTS="${toString cfg.uncleanShutdown.maxReceipts}"
       ACTIVATION_FAILED=0
       ACTIVATION_RESTARTED_THIS_RUN=0
+      JOURNALD_RESTART_ATTEMPTED_THIS_RUN=0
       RECORD_PRE_ACTIVATION_THIS_RUN=0
       SETUP_ARCHIVES_BEFORE=""
       JOURNALD_RUNTIME_CONF_DIR="/run/systemd/journald.conf.d"
@@ -758,6 +759,7 @@ let
           systemd-journald.socket \
           systemd-journald-dev-log.socket \
           systemd-journald-audit.socket >/dev/null 2>&1 || true
+        JOURNALD_RESTART_ATTEMPTED_THIS_RUN=1
         if ! systemctl restart systemd-journald; then
           fss_log fail "Journald restart failed - sealing may not be active"
           restart_ok=0
@@ -1240,7 +1242,24 @@ let
       cleanup_setup_tmp() {
         rm -f "$SETUP_ARCHIVES_BEFORE"
       }
-      trap cleanup_setup_tmp EXIT
+
+      # shellcheck disable=SC2329  # invoked indirectly via the EXIT trap below
+      finalize_setup_process() {
+        local status=$?
+
+        trap - EXIT
+        cleanup_setup_tmp
+        if [ "$JOURNALD_RESTART_ATTEMPTED_THIS_RUN" = 1 ] \
+          && systemctl is-active --quiet fail2ban.service; then
+          fss_log info "Restarting active Fail2Ban after journald FSS activation"
+          if ! systemctl restart fail2ban.service; then
+            fss_log fail "Failed to refresh Fail2Ban's journal reader after restarting journald"
+            status=1
+          fi
+        fi
+        exit "$status"
+      }
+      trap finalize_setup_process EXIT
       # Broad list: the jump-receipt path gates on membership here, and a
       # time-jump rotation freezes user journals and corpses too.
       list_time_jump_receiptable_journals "$JOURNAL_DIR" > "$SETUP_ARCHIVES_BEFORE" 2>/dev/null || true
@@ -1880,7 +1899,31 @@ in
     # runtime by journal-fss-setup, journal-fss-verify, fss-triage, fss-test,
     # and common.nix's clock-jump recovery -- unconditional (not gated by
     # cfg.enable) since that last consumer runs even when FSS itself is off.
-    { environment.etc."fss-verify-classifier.sh".source = ./fss-verify-classifier.sh; }
+    {
+      environment.etc."fss-verify-classifier.sh".source = ./fss-verify-classifier.sh;
+
+      # Persisted keys can keep sealing after setup is disabled. Set the boot
+      # policy explicitly; activation may override it after clock readiness.
+      services.journald =
+        if hasStructuredJournald then
+          {
+            settings.Journal.Seal = cfg.staticSealEnabled;
+          }
+        else
+          {
+            extraConfig = lib.mkAfter ''
+              Seal=${if cfg.staticSealEnabled then "yes" else "no"}
+            '';
+          };
+    }
+
+    (mkIf (!cfg.enable) {
+      # Override stale /run/90-ghaf-fss-activation.conf after a live switch.
+      environment.etc."systemd/journald.conf.d/99-ghaf-fss-disabled.conf".text = ''
+        [Journal]
+        Seal=no
+      '';
+    })
 
     (mkIf cfg.enable {
       assertions = [
@@ -1905,16 +1948,12 @@ in
       services.journald =
         if hasStructuredJournald then
           {
-            settings.Journal = {
-              Storage = "persistent";
-              Seal = cfg.staticSealEnabled;
-            };
+            settings.Journal.Storage = "persistent";
           }
         else
           {
             extraConfig = lib.mkAfter ''
               Storage=persistent
-              Seal=${if cfg.staticSealEnabled then "yes" else "no"}
             '';
           };
 
