@@ -486,13 +486,23 @@ in
             # The GIVC socket may reappear before BlueZ is ready. Wait for the
             # source adapter, then rebuild the proxy so it does not retain the
             # stale pre-suspend object map.
-            ${lib.getExe' pkgs.coreutils "timeout"} 30 ${lib.getExe pkgs.bash} -c '
+            (
               stable_powered=0
-              until [ "$stable_powered" -ge 3 ]; do
-                if [ "$(
+              source_deadline=$((SECONDS + 15))
+              while [ "$SECONDS" -lt "$source_deadline" ] && [ "$stable_powered" -lt 3 ]; do
+                source_adapter=$(
                   ${lib.getExe' pkgs.coreutils "timeout"} 2 \
                     ${lib.getExe' pkgs.systemd "busctl"} --address=unix:path=/tmp/dbusproxy_snd.sock \
-                      get-property org.bluez /org/bluez/hci0 org.bluez.Adapter1 Powered \
+                      --json=short call org.bluez / org.freedesktop.DBus.ObjectManager GetManagedObjects \
+                      2>/dev/null \
+                    | ${lib.getExe pkgs.jq} -r \
+                      ".data[0] | to_entries[] | select(.value | has(\"org.bluez.Adapter1\")) | .key" \
+                    | ${lib.getExe' pkgs.coreutils "head"} -n1
+                )
+                if [ -n "$source_adapter" ] && [ "$(
+                  ${lib.getExe' pkgs.coreutils "timeout"} 2 \
+                    ${lib.getExe' pkgs.systemd "busctl"} --address=unix:path=/tmp/dbusproxy_snd.sock \
+                      get-property org.bluez "$source_adapter" org.bluez.Adapter1 Powered \
                       2>/dev/null
                 )" = "b true" ]; then
                   stable_powered=$((stable_powered + 1))
@@ -502,26 +512,55 @@ in
                 ${lib.getExe' pkgs.coreutils "sleep"} 0.5
               done
 
+              if [ "$stable_powered" -lt 3 ]; then
+                echo "Source Bluetooth adapter did not stabilize before proxy restart" >&2
+                exit 1
+              fi
+
               ${lib.getExe' pkgs.systemd "systemctl"} restart dbus-proxy-bluetooth.service
 
-              until ${lib.getExe' pkgs.coreutils "timeout"} 2 \
-                ${lib.getExe' pkgs.systemd "busctl"} --system get-property \
-                  org.bluez /org/bluez/hci0 org.bluez.Adapter1 Powered \
-                  >/dev/null 2>&1; do
+              proxy_adapter=""
+              proxy_deadline=$((SECONDS + 5))
+              while [ "$SECONDS" -lt "$proxy_deadline" ] && [ -z "$proxy_adapter" ]; do
+                proxy_adapter=$(
+                  ${lib.getExe' pkgs.coreutils "timeout"} 2 \
+                    ${lib.getExe' pkgs.systemd "busctl"} --system --json=short \
+                      call org.bluez / org.freedesktop.DBus.ObjectManager GetManagedObjects \
+                      2>/dev/null \
+                    | ${lib.getExe pkgs.jq} -r \
+                      ".data[0] | to_entries[] | select(.value | has(\"org.bluez.Adapter1\")) | .key" \
+                    | ${lib.getExe' pkgs.coreutils "head"} -n1
+                )
+                [ -n "$proxy_adapter" ] && break
                 ${lib.getExe' pkgs.coreutils "sleep"} 0.5
               done
 
-              ${lib.getExe' pkgs.systemd "busctl"} --system set-property \
-                org.bluez /org/bluez/hci0 org.bluez.Adapter1 Powered b true
+              if [ -z "$proxy_adapter" ]; then
+                echo "Bluetooth adapter did not appear through the rebuilt proxy" >&2
+                exit 1
+              fi
 
-              until [ "$(
-                ${lib.getExe' pkgs.systemd "busctl"} --system get-property \
-                  org.bluez /org/bluez/hci0 org.bluez.Adapter1 Powered \
-                  2>/dev/null
-              )" = "b true" ]; do
+              # Give property restoration its own budget. Unlike one timeout
+              # around the whole sequence, this cannot terminate after the
+              # proxy restart but before the power-on attempt.
+              power_deadline=$((SECONDS + 8))
+              while [ "$SECONDS" -lt "$power_deadline" ]; do
+                ${lib.getExe' pkgs.systemd "busctl"} --system set-property \
+                  org.bluez "$proxy_adapter" org.bluez.Adapter1 Powered b true \
+                  >/dev/null 2>&1 || true
+                if [ "$(
+                  ${lib.getExe' pkgs.systemd "busctl"} --system get-property \
+                    org.bluez "$proxy_adapter" org.bluez.Adapter1 Powered \
+                    2>/dev/null
+                )" = "b true" ]; then
+                  exit 0
+                fi
                 ${lib.getExe' pkgs.coreutils "sleep"} 0.5
               done
-            ' &
+
+              echo "Bluetooth adapter $proxy_adapter did not power on" >&2
+              exit 1
+            ) &
             bluetooth_wait_pid=$!
           fi
         ''}
