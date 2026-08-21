@@ -24,6 +24,9 @@ let
 
   fontSize = toString config.stylix.fonts.sizes.applications;
 
+  isCross =
+    config.ghaf.global-config.platform.buildSystem != config.ghaf.global-config.platform.hostSystem;
+
   gtkThemePackage = pkgs.adw-gtk3;
   gtkThemeName = "adw-gtk3" + lib.optionalString (cfg.polarity == "dark") "-dark";
 
@@ -83,54 +86,6 @@ let
     colors = config.lib.stylix.colors;
   };
 
-  cosmicInterfaceFont = pkgs.writeText "cosmic-interface-font.ron" ''
-    (
-        family: "${cfg.fonts.sansSerif.name}",
-        weight: Normal,
-        stretch: Normal,
-        style: Normal,
-    )
-  '';
-
-  cosmicMonospaceFont = pkgs.writeText "cosmic-monospace-font.ron" ''
-    (
-        family: "${cfg.fonts.monospace.name}",
-        weight: Normal,
-        stretch: Normal,
-        style: Normal,
-    )
-  '';
-
-  cosmicThemeConfig =
-    pkgs.runCommand "ghaf-cosmic-theme-config" { nativeBuildInputs = [ pkgs.imagemagick ]; }
-      ''
-        settingsDir="$out/share/cosmic/com.system76.CosmicSettings/v1"
-        modeDir="$out/share/cosmic/com.system76.CosmicTheme.Mode/v1"
-        tkDir="$out/share/cosmic/com.system76.CosmicTk/v1"
-        termDir="$out/share/cosmic/com.system76.CosmicTerm/v1"
-        themesDir="$out/share/cosmic-themes"
-        mkdir -p "$settingsDir" "$modeDir" "$tkDir" "$termDir" "$themesDir"
-
-        install -m0644 ${cfg.cosmic.accentPalette.dark} "$settingsDir/accent_palette_dark.ron"
-        install -m0644 ${cfg.cosmic.accentPalette.light} "$settingsDir/accent_palette_light.ron"
-
-        printf '%s' ${if cfg.polarity == "dark" then "true" else "false"} > "$modeDir/is_dark"
-
-        ${lib.optionalString (
-          iconThemeName != null
-        ) ''printf '"%s"' "${iconThemeName}" > "$tkDir/icon_theme"''}
-        install -m0644 ${cosmicInterfaceFont} "$tkDir/interface_font"
-        install -m0644 ${cosmicMonospaceFont} "$tkDir/monospace_font"
-
-        printf '"%s"' "${cfg.fonts.monospace.name}" > "$termDir/font_name"
-
-        install -m0644 ${cfg.cosmic.theme.dark} "$themesDir/ghaf-dark.ron"
-        install -m0644 ${cfg.cosmic.theme.light} "$themesDir/ghaf-light.ron"
-        install -m0644 ${pkgs.ghaf-artwork}/1600px-Ghaf_logo.png "$themesDir/ghaf-dark.png"
-        magick "$themesDir/ghaf-dark.png" -resize 30% "$themesDir/ghaf-dark.png"
-        ln -s "$themesDir/ghaf-dark.png" "$themesDir/ghaf-light.png"
-      '';
-
   plymouthTheme = pkgs.runCommand "ghaf-plymouth" { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
     themeDir="$out/share/plymouth/themes/ghaf"
     mkdir -p "$themeDir"
@@ -157,7 +112,10 @@ in
 {
   _file = ./default.nix;
 
-  imports = [ inputs.stylix.nixosModules.stylix ];
+  imports = [
+    inputs.stylix.nixosModules.stylix
+    ./cosmic
+  ];
 
   options.ghaf.theming = {
     enable = lib.mkEnableOption "shared system theming (stylix)";
@@ -224,12 +182,12 @@ in
       monospace = {
         package = lib.mkOption {
           type = lib.types.package;
-          default = pkgs.jetbrains-mono;
+          default = if isCross then pkgs.dejavu_fonts else pkgs.jetbrains-mono;
           description = "Monospace font package";
         };
         name = lib.mkOption {
           type = lib.types.str;
-          default = "JetBrains Mono";
+          default = if isCross then "DejaVu Sans Mono" else "JetBrains Mono";
           description = "Monospace font family name";
         };
       };
@@ -271,41 +229,6 @@ in
           untouched, but polarity (light/dark preference) and font settings
           still apply.
         '';
-      };
-    };
-
-    cosmic = {
-      enable = lib.mkOption {
-        type = lib.types.bool;
-        default = config.services.desktopManager.cosmic.enable;
-        defaultText = lib.literalMD "`services.desktopManager.cosmic.enable`";
-        description = "Whether to apply shared theming (polarity, icon theme, fonts, accent colours) to the COSMIC desktop.";
-      };
-
-      accentPalette = {
-        dark = lib.mkOption {
-          type = lib.types.path;
-          default = ./cosmic/accent-palette-dark.ron;
-          description = "Path to the COSMIC accent colour palette RON file used in dark mode.";
-        };
-        light = lib.mkOption {
-          type = lib.types.path;
-          default = ./cosmic/accent-palette-light.ron;
-          description = "Path to the COSMIC accent colour palette RON file used in light mode.";
-        };
-      };
-
-      theme = {
-        dark = lib.mkOption {
-          type = lib.types.path;
-          default = ./cosmic/ghaf-dark.ron;
-          description = "Path to the full COSMIC theme RON file used in dark mode.";
-        };
-        light = lib.mkOption {
-          type = lib.types.path;
-          default = ./cosmic/ghaf-light.ron;
-          description = "Path to the full COSMIC theme RON file used in light mode.";
-        };
       };
     };
 
@@ -365,8 +288,7 @@ in
           targets.plymouth.enable = false;
 
           # qt5ct/qt6ct fail to cross-compile
-          targets.qt.enable =
-            config.ghaf.global-config.platform.buildSystem == config.ghaf.global-config.platform.hostSystem;
+          targets.qt.enable = !isCross;
         };
 
         # Remove all unused fonts
@@ -427,18 +349,6 @@ in
         boot.plymouth = {
           theme = "ghaf";
           themePackages = [ plymouthTheme ];
-        };
-      })
-
-      (lib.mkIf cfg.cosmic.enable {
-        environment = {
-          systemPackages = [ cosmicThemeConfig ];
-          # This is normally by nixpkgs desktopManager.cosmic.enable
-          # Here we force link so COSMIC apps in other VMs can inherit the theme
-          # settings even if the desktopManager as a whole is not enabled
-          pathsToLink = [
-            "/share/cosmic"
-          ];
         };
       })
 

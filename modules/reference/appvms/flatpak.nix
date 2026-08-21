@@ -456,8 +456,6 @@ in
 
             environment.systemPackages = [
               xdgUrlFlatpakItem
-              pkgs.cosmic-icons
-              pkgs.cosmic-initial-setup
             ];
 
             xdg = {
