@@ -133,6 +133,7 @@ in
         inherit lib;
         cap = capabilities.gpuvm;
         dtb = gpuvm-dtb;
+        guestKernelPackages = config.ghaf.hardware.nvidia.orin.guestKernelPackages;
         inherit (payload) vfioArgs;
         inherit (virt) sourcesPatch;
       })

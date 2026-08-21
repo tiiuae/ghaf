@@ -101,10 +101,17 @@ in
       {
         name = "Bpmp virtualization host kernel configuration";
         patch = null;
-        structuredExtraConfig = with lib.kernel; {
-          VFIO_PLATFORM = yes;
-          TEGRA_BPMP_HOST_PROXY = yes;
-        };
+        structuredExtraConfig =
+          with lib.kernel;
+          {
+            VFIO_PLATFORM = yes;
+            TEGRA_BPMP_HOST_PROXY = yes;
+          }
+          // lib.optionalAttrs (lib.versionAtLeast config.boot.kernelPackages.kernel.version "7.1") {
+            # Linux 7.1 makes VFIO depend on IOMMUFD at the same tristate
+            # level. Keep both built in for the early platform assignment path.
+            IOMMUFD = yes;
+          };
       }
     ];
 

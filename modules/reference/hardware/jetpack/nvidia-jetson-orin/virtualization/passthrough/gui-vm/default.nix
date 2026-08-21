@@ -45,10 +45,19 @@ in
 {
   _file = ./default.nix;
 
-  options.ghaf.hardware.nvidia.passthroughs.gui_vm.enable = lib.mkOption {
-    type = lib.types.bool;
-    default = false;
-    description = "Pass the Tegra234 GPU, engines and display through to a single combined microvm, gui-vm, on NVIDIA Orin AGX";
+  options.ghaf.hardware.nvidia.passthroughs.gui_vm = {
+    enable = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Pass the Tegra234 GPU, engines and display through to a single combined microvm, gui-vm, on NVIDIA Orin AGX";
+    };
+
+    guestKernelPackages = lib.mkOption {
+      type = lib.types.raw;
+      default = config.ghaf.hardware.nvidia.orin.guestKernelPackages;
+      defaultText = lib.literalExpression "config.ghaf.hardware.nvidia.orin.guestKernelPackages";
+      description = "Kernel package set used by the combined NVIDIA Orin GUIVM payload";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -130,6 +139,7 @@ in
         cap = capabilities.guivm;
         dtb = guivm-dtb;
         crosvmOverlay = guivm-crosvm-overlay;
+        inherit (cfg) guestKernelPackages;
         inherit (payload) vfioArgs;
         inherit (virt) sourcesPatch;
       })
