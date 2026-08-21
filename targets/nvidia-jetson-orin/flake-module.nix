@@ -49,6 +49,75 @@ let
     orinCrosvmModule
   ];
 
+  linux71PkvmGuestModule =
+    { lib, pkgs, ... }:
+    {
+      boot.kernelPackages = lib.mkForce pkgs.linuxPackages_7_1;
+      boot.kernelPatches = [
+        {
+          name = "Arm pKVM guest support";
+          patch = null;
+          structuredExtraConfig = with lib.kernel; {
+            DMA_RESTRICTED_POOL = yes;
+            ARM_PKVM_GUEST = yes;
+          };
+        }
+      ];
+    };
+
+  netvmCrosvmVgicItsModule =
+    { config, lib, ... }:
+    {
+      assertions = [
+        {
+          assertion = config.microvm.hypervisor == "crosvm";
+          message = "The AGX NetVM vGIC ITS canary requires Crosvm";
+        }
+      ];
+
+      # AArch64 Crosvm leaves the virtual ITS disabled by default, which makes
+      # PCI passthrough fall back to legacy INTx. Expose the ITS so the
+      # physical WLAN device can use MSI inside NetVM.
+      microvm.crosvm.extraArgs = lib.mkIf (config.microvm.hypervisor == "crosvm") [
+        "--irqchip"
+        "kernel[allow-vgic-its]"
+      ];
+    };
+
+  linux71PkvmHostModule =
+    { lib, pkgs, ... }:
+    {
+      # jetpack-nixos owns the NVIDIA host compatibility layer. Select Linux
+      # 7.1 only for this AGX debug target while retaining its 6.6 default for
+      # every other Orin export.
+      hardware.nvidia-jetpack.virtualization.dceHost.kernelPackages = lib.mkForce pkgs.linuxPackages_7_1;
+
+      # MGBE0 owns NetVM's kernel selection so its BPMP integration follows
+      # the selected package set. GUIVM retains its independent 6.12 default.
+      ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm.guestKernelPackages =
+        lib.mkForce pkgs.linuxPackages_7_1;
+
+      # Linux 7.1's defconfig makes the eMMC block layer modular. Preserve the
+      # upstream Tegra boot closure without requesting unavailable NVIDIA OOT
+      # modules such as nvethernet and nvpps.
+      boot.initrd.availableKernelModules = lib.mkForce [
+        "autofs"
+        "efivarfs"
+        "ext2"
+        "ext4"
+        "xhci-tegra"
+        "ucsi_ccg"
+        "typec_ucsi"
+        "typec"
+        "nvme"
+        "mmc_block"
+        "phy-tegra-xusb"
+        "i2c-tegra"
+        "phy_tegra194_p2u"
+        "pcie_tegra194"
+      ];
+    };
+
   # A/B verity boot targets: LVM-based A/B slots + UKI instead of the sd-card
   # format module
   orinVerityModules = [
@@ -92,9 +161,15 @@ let
       profile = "orin";
       hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx;
       variant = "debug";
-      extraModules = commonModules;
+      extraModules = commonModules ++ [ linux71PkvmHostModule ];
       extraConfig = {
         reference.profiles.mvp-orinuser-trial.enable = true;
+      };
+      vmConfig = {
+        sysvms.adminvm.extraModules = [ linux71PkvmGuestModule ];
+        sysvms.netvm.extraModules = [ netvmCrosvmVgicItsModule ];
+        appvms.chromium.extraModules = [ linux71PkvmGuestModule ];
+        appvms.flatpak.extraModules = [ linux71PkvmGuestModule ];
       };
     })
 
