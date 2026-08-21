@@ -90,7 +90,9 @@ let
   assertions = targetAssertions ++ [
     {
       name = "all expected Orin configurations are exported";
-      ok = builtins.length (builtins.attrNames orinTargets) == 104;
+      # The pKVM debug target adds a native and a cross export to the parent
+      # Orin target matrix.
+      ok = builtins.length (builtins.attrNames orinTargets) == 106;
     }
     {
       name = "AGX NetVM waits for MGBE bind and Crosvm overlay preparation";
