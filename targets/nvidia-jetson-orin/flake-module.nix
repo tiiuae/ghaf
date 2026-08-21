@@ -49,10 +49,21 @@ let
     orinCrosvmModule
   ];
 
-  linux71PkvmGuestModule =
-    { lib, pkgs, ... }:
+  linuxPkvmPackages =
+    pkgs:
+    pkgs.linuxPackagesFor (
+      pkgs.linux_7_1.override {
+        argsOverride = rec {
+          src = inputs.linux-pkvm;
+          version = "7.1.7";
+          modDirVersion = version;
+        };
+      }
+    );
+
+  linux71PkvmGuestSupportModule =
+    { lib, ... }:
     {
-      boot.kernelPackages = lib.mkForce pkgs.linuxPackages_7_1;
       boot.kernelPatches = [
         {
           name = "Arm pKVM guest support";
@@ -63,6 +74,13 @@ let
           };
         }
       ];
+    };
+
+  linux71PkvmGuestModule =
+    { lib, pkgs, ... }:
+    {
+      imports = [ linux71PkvmGuestSupportModule ];
+      boot.kernelPackages = lib.mkForce pkgs.linuxPackages_7_1;
     };
 
   netvmCrosvmVgicItsModule =
@@ -116,6 +134,124 @@ let
         "phy_tegra194_p2u"
         "pcie_tegra194"
       ];
+    };
+
+  pkvmHostOnlyModule =
+    { lib, pkgs, ... }:
+    {
+      # The rollback target keeps pristine Linux stable. Only this derived
+      # target consumes the validated pKVM integration source.
+      hardware.nvidia-jetpack.virtualization.dceHost = {
+        # Retain the validated host DCE compatibility closure even though this
+        # reduced target has no GUI consumer.
+        enable = lib.mkForce true;
+        kernelPackages = lib.mkOverride 40 (linuxPkvmPackages pkgs);
+      };
+      ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm.guestKernelPackages = lib.mkOverride 40 (
+        linuxPkvmPackages pkgs
+      );
+
+      # Diagnose protected host mode independently of guest startup.
+      boot.kernelParams = [
+        "kvm-arm.mode=protected"
+        # Keep protected identity-DMA allocations below SDMMC's 34-bit limit.
+        "mem=12G"
+        # The validated firmware state-save path is protected nVHE.
+        "arm64_sw.hvhe=0"
+        "id_aa64mmfr1.vh=0"
+      ];
+
+      boot.blacklistedKernelModules = [
+        # The DSU PMU callback accesses a register trapped by protected EL2.
+        "arm_dsu_pmu"
+        # GUIVM is absent, so its high-IOVA display anchor has no consumer.
+        "dce-iso-anchor"
+        # Protected PCI assignment requires a separate reset backend.
+        "rtw88_8822ce"
+      ];
+
+      # Keep the host-only canary small and leave the normal AGX target as the
+      # complete GUI rollback image.
+      ghaf.hardware.nvidia.passthroughs.gui_vm.enable = lib.mkForce false;
+      ghaf.virtualization.microvm.guivm.enable = lib.mkForce false;
+      ghaf.reference.appvms.chromium.enable = lib.mkForce false;
+      ghaf.reference.appvms.flatpak.enable = lib.mkForce false;
+
+      # Kernel code comes from linux-pkvm; Ghaf retains target configuration.
+      boot.kernelPatches = [
+        {
+          name = "Tegra pKVM protected-device configuration";
+          patch = null;
+          structuredExtraConfig = with lib.kernel; {
+            ARM_SMMU = no;
+            ARM_SMMU_TEGRA_PKVM = yes;
+            IOMMU_POOL_PAGES = freeform "0x10000";
+            PKVM_PVIOMMU = yes;
+            VFIO_PKVM_IOMMU = yes;
+          };
+        }
+      ];
+
+      hardware.deviceTree = {
+        enable = true;
+        overlays = [
+          {
+            name = "mgbe0-protected-assignment";
+            dtsFile = ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/pkvm/mgbe0-protected-assignment-overlay.dts;
+          }
+        ];
+      };
+
+      ghaf.hardware.nvidia.orin.agx.enableNetvmWlanPCIPassthrough = lib.mkForce false;
+      ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm.crosvmIommu = "pkvm-iommu";
+
+      # Preserve the nVHE timer, virtualization, and interrupt-control state
+      # across NVIDIA R36.5 TF-A CPU power-down.
+      nixpkgs.overlays = [
+        (_final: prev: {
+          nvidia-jetpack = prev.nvidia-jetpack.overrideScope (
+            _finalJetpack: prevJetpack: {
+              gitRepos = prevJetpack.gitRepos // {
+                "tegra/optee-src/atf" = prev.applyPatches {
+                  name = "atf-pkvm";
+                  src = prevJetpack.gitRepos."tegra/optee-src/atf";
+                  patches = [
+                    ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/pkvm/0001-tegra-t234-save-and-restore-virtualization-registers.patch
+                  ];
+                };
+              };
+            }
+          );
+        })
+      ];
+
+      ghaf.microvm-boot.enable = lib.mkForce false;
+      systemd.services.balloon-manager.wantedBy = lib.mkForce [ ];
+
+      # Keep the MGBE reset clocks voted on for the complete assignment life.
+      systemd.services.pkvm-mgbe0-clocks = {
+        description = "Keep MGBE0 clocks enabled for protected assignment";
+        wantedBy = [ "multi-user.target" ];
+        before = [ "microvm@net-vm.service" ];
+        after = [ "sys-kernel-debug.mount" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        script = ''
+          for clock in /sys/kernel/debug/bpmp/debug/clk/mgbe0_*; do
+            echo 1 > "$clock/state"
+          done
+        '';
+      };
+      systemd.services."microvm@net-vm" = {
+        requires = [ "pkvm-mgbe0-clocks.service" ];
+        after = [ "pkvm-mgbe0-clocks.service" ];
+      };
+      microvm.vms = {
+        "admin-vm".autostart = lib.mkForce false;
+        "net-vm".autostart = lib.mkForce false;
+      };
     };
 
   # A/B verity boot targets: LVM-based A/B slots + UKI instead of the sd-card
@@ -322,6 +458,21 @@ let
       ];
   all-target-configs = target-configs ++ verity-target-configs;
 
+  pkvmHostOnlyTarget =
+    let
+      baseTarget = lib.findFirst (
+        target: target.name == "nvidia-jetson-orin-agx-debug"
+      ) (throw "AGX debug target not found") target-configs;
+    in
+    baseTarget
+    // rec {
+      name = "nvidia-jetson-orin-agx-accelerated-guivm-pkvm-host-only-debug";
+      hostConfiguration = baseTarget.hostConfiguration.extendModules {
+        modules = [ pkvmHostOnlyModule ];
+      };
+      package = hostConfiguration.config.system.build.ghafImage;
+    };
+
   generate-nodemoapps =
     tgt:
     tgt
@@ -390,7 +541,8 @@ let
     ++ (map generate-luks luksable-target-configs)
     ++ (map generate-luks-uki luksable-target-configs)
     ++ (map (t: generate-luks (generate-nodemoapps t)) luksable-target-configs)
-    ++ (map (t: generate-luks-uki (generate-nodemoapps t)) luksable-target-configs);
+    ++ (map (t: generate-luks-uki (generate-nodemoapps t)) luksable-target-configs)
+    ++ [ pkvmHostOnlyTarget ];
   crossTargets = map generate-cross-from-x86_64 targets;
   flashTarget =
     t: qspiOnly:

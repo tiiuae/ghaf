@@ -248,16 +248,18 @@
     "ghaf-crosvm": {
       "flake": false,
       "locked": {
-        "lastModified": 1787724426,
-        "narHash": "sha256-7JjNkqwJg4wie3ESosbxCS3iGcV10keqr3WyuZX/CFM=",
-        "ref": "refs/heads/fix/uas-stop-endpoint",
-        "rev": "f2f3d2102da1f69dd151221bae13b9046ed79b15",
-        "revCount": 11726,
+        "lastModified": 1787809422,
+        "narHash": "sha256-AFHAZ611b1oxg6zH3bE6XfF1w3Ao0+KdqG2rP9dDYZQ=",
+        "ref": "refs/heads/fix/pkvm-vfio-early-map",
+        "rev": "aa2478bef0750cc4013f24aa2cda472346db4a93",
+        "revCount": 11728,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
       },
       "original": {
+        "ref": "refs/heads/fix/pkvm-vfio-early-map",
+        "rev": "aa2478bef0750cc4013f24aa2cda472346db4a93",
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
@@ -451,17 +453,34 @@
         ]
       },
       "locked": {
-        "lastModified": 1787770654,
-        "narHash": "sha256-j/q3Tck0fwsOE8h45Bm+PdTVpnwE9faBg4HdrK2R8zs=",
+        "lastModified": 1787772676,
+        "narHash": "sha256-+DVcpRnkyQWQMKZfKppJqFsIhVdYQWrOXxG1+X1wLJw=",
         "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "785168159ad616d9c3c7ee5e8e6f7b21951ae1c4",
+        "rev": "9ad43a2697bc3da7e9b4911192607df6541b90e4",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
         "ref": "feat/orin-proxy-lifecycle",
         "repo": "jetpack-nixos",
+        "type": "github"
+      }
+    },
+    "linux-pkvm": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1787295153,
+        "narHash": "sha256-m70o3vSxsAohxD+p8CWMgaK+VtJ1SHJGmcYNXKdqsbI=",
+        "owner": "tiiuae",
+        "repo": "linux-pkvm",
+        "rev": "a62ea5215093d4595de020d5ae55e2a74d274491",
+        "type": "github"
+      },
+      "original": {
+        "owner": "tiiuae",
+        "repo": "linux-pkvm",
+        "rev": "a62ea5215093d4595de020d5ae55e2a74d274491",
         "type": "github"
       }
     },
@@ -640,6 +659,7 @@
         "gp-gui": "gp-gui",
         "gpu-partition-manager": "gpu-partition-manager",
         "jetpack-nixos": "jetpack-nixos",
+        "linux-pkvm": "linux-pkvm",
         "microvm": "microvm",
         "nix-store-veritysetup-generator": "nix-store-veritysetup-generator",
         "nixd": "nixd",
