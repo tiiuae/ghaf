@@ -43,6 +43,16 @@ in
       defaultText = lib.literalExpression "pkgs.linuxPackages_6_12";
       description = "Base kernel package set used by the MGBE0 NetVM guest.";
     };
+    crosvmIommu = lib.mkOption {
+      type = lib.types.enum [
+        "off"
+        "viommu"
+        "coiommu"
+        "pkvm-iommu"
+      ];
+      default = "off";
+      description = "Crosvm IOMMU backend used for MGBE0 assignment.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -87,7 +97,10 @@ in
               {
                 bus = "platform";
                 path = mgbe0.sysfsName;
-                crosvm.dtSymbol = mgbe0.dtSymbol;
+                crosvm = {
+                  inherit (mgbe0) dtSymbol;
+                  iommu = cfg.crosvmIommu;
+                };
               }
             ];
             crosvm = lib.mkIf (config.microvm.hypervisor == "crosvm") {
