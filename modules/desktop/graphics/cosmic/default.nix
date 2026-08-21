@@ -20,7 +20,10 @@ let
   graphicsProfileCfg = config.ghaf.profiles.graphics;
 
   ghaf-cosmic-config = import ./config/cosmic-config.nix {
-    inherit lib pkgs;
+    inherit
+      lib
+      pkgs
+      ;
     inherit (cfg)
       topPanelApplets
       bottomPanelApplets
@@ -47,12 +50,6 @@ let
     text = "" + cfg.extraAutostart;
   };
 
-  # Change papirus folder icons to grey
-  papirus-icon-theme-grey = pkgs.papirus-icon-theme.override {
-    color = "grey";
-    # The following fixes a cross-compilation issue
-    inherit (pkgs.buildPackages) papirus-folders;
-  };
 in
 {
   _file = ./default.nix;
@@ -388,23 +385,14 @@ in
       systemPackages =
         with pkgs;
         [
-          papirus-icon-theme-grey
-          adwaita-icon-theme
           ghaf-wallpapers
           grim # promptless screenshot for test automation
           (import ../launchers-pkg.nix { inherit pkgs config lib; })
         ]
         ++ [ (lib.hiPrio ghaf-cosmic-config) ];
       sessionVariables = {
-        XDG_CONFIG_HOME = "$HOME/.config";
-        XDG_DATA_HOME = "$HOME/.local/share";
-        XDG_STATE_HOME = "$HOME/.local/state";
-        XDG_CACHE_HOME = "$HOME/.cache";
         XDG_PICTURES_DIR = "$HOME/Pictures";
         XDG_VIDEOS_DIR = "$HOME/Videos";
-        XCURSOR_THEME = "Cosmic";
-        XCURSOR_SIZE = 24;
-        RUST_LOG = "error";
       }
       // lib.optionalAttrs (cfg.renderDevice != null) {
         COSMIC_RENDER_DEVICE = cfg.renderDevice;
@@ -425,15 +413,6 @@ in
         '';
       };
     };
-
-    # Remove fira, as it's unused
-    fonts.packages = lib.mkForce (
-      with pkgs;
-      [
-        noto-fonts
-        open-sans
-      ]
-    );
 
     ghaf.services.power-manager.suspend.extraResumeCommands =
       # Workaround for https://github.com/pop-os/cosmic-applets/issues/1390

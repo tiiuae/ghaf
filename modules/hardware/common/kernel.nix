@@ -6,7 +6,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 let
@@ -14,7 +13,11 @@ let
 
   # Only x86 targets with hw definition supported at the moment
   # TODO: this should at the very least be isx86_64
-  inherit (pkgs.stdenv.hostPlatform) isx86;
+  # Read via nixpkgs.hostPlatform (not pkgs.stdenv.hostPlatform) so this
+  # doesn't force pkgs while nixpkgs.overlays is still being resolved,
+  # which caused infinite recursion once overlay-contributing modules
+  # (e.g. stylix) were added to nixpkgs.overlays.
+  inherit (config.nixpkgs.hostPlatform) isx86;
   fullVirtualization = isx86 && (builtins.hasAttr "hardware" config.ghaf);
 in
 {

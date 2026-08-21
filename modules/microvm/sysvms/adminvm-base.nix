@@ -46,6 +46,8 @@ in
       nix-setup.enable = lib.mkDefault (globalConfig.development.nix-setup.enable or false);
     };
 
+    theming.enable = lib.mkDefault (globalConfig.theming.enable or false);
+
     # Networking hosts - from hostConfig
     # Required for vm-networking.nix to look up this VM's MAC/IP
     networking.hosts = hostConfig.networking.hosts or { };
@@ -81,6 +83,11 @@ in
         enable = true;
         updater.perPolicy.enable = true;
       };
+    };
+
+    # GIVC configuration - from globalConfig
+    givc = {
+      inherit (globalConfig.givc) enable debug;
     };
 
     # Enable dynamic hostname export for VMs
@@ -145,12 +152,6 @@ in
       };
 
       recovery.enable = true;
-    };
-
-    # GIVC configuration - from globalConfig
-    givc = {
-      inherit (globalConfig.givc) enable;
-      inherit (globalConfig.givc) debug;
     };
 
     # Security

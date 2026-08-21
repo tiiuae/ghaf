@@ -165,7 +165,6 @@ let
                                 ];
                                 packages = [
                                   pkgs.cosmic-reader
-                                  pkgs.cosmic-icons
                                 ];
                                 icon = "com.system76.CosmicReader";
                                 exec = "cosmic-reader";

@@ -52,6 +52,8 @@ in
       nix-setup.enable = lib.mkDefault (globalConfig.development.nix-setup.enable or false);
     };
 
+    theming.enable = lib.mkDefault (globalConfig.theming.enable or false);
+
     users = {
       proxyUser = {
         enable = true;

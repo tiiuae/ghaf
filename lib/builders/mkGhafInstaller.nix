@@ -38,6 +38,7 @@
 {
   self,
   lib ? self.lib,
+  inputs ? self.inputs,
   system ? "x86_64-linux",
   extraModules ? [ ],
 }:
@@ -46,7 +47,7 @@ let
   # reuse this evaluation via derivation override.
   baseInstallerConfig = lib.nixosSystem {
     specialArgs = {
-      inherit lib;
+      inherit lib inputs;
     };
     modules = [
       # Everything not about the boot medium lives in installer-common.nix and is

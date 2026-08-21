@@ -207,6 +207,17 @@ in
           DISPLAY = mkIf (cfg.persistentWaypipeServer.xDisplay != null) cfg.persistentWaypipeServer.xDisplay;
         };
 
+        # Start graphical-session.target as soon as waypipe is established
+        # and gui-vm can be reached, since some apps and services depend
+        # on it being reached before they can start.
+        systemd.user.targets.waypipe-graphical-session = {
+          description = "Waypipe graphical session";
+          bindsTo = [ "graphical-session.target" ];
+          before = [ "graphical-session.target" ];
+          wantedBy = [ "waypipe-server-env.service" ];
+          after = [ "waypipe-server-env.service" ];
+        };
+
         systemd.user.services = {
           waypipe-server = {
             description = "Persistent Waypipe Wayland Socket Forwarder";

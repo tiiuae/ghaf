@@ -43,6 +43,8 @@ in
       nix-setup.enable = lib.mkDefault (globalConfig.development.nix-setup.enable or false);
     };
 
+    theming.enable = lib.mkDefault (globalConfig.theming.enable or false);
+
     # Networking hosts - from hostConfig
     # Required for vm-networking.nix to look up this VM's MAC/IP
     networking.hosts = hostConfig.networking.hosts or { };

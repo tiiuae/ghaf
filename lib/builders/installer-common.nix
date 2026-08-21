@@ -67,6 +67,8 @@ in
       variables.IMG_PATH = cfg.imageSource;
     };
 
+    ghaf.theming.enable = true;
+
     ghaf.graphics.boot = {
       enable = true;
       renderer = "simpledrm";
