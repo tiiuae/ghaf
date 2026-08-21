@@ -17,6 +17,7 @@
 let
   cfg = config.ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm;
   virt-support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
+  inherit (cfg) guestKernelPackages;
   configuredNetVmVmm = config.ghaf.virtualization.vmConfig.sysvms.netvm.vmm or null;
   isCrosvm =
     (
@@ -34,8 +35,15 @@ in
 {
   _file = ./default.nix;
 
-  options.ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm.enable =
-    lib.mkEnableOption "MGBE0 (${mgbe0.nodeName}) passthrough to the Net-VM on NVIDIA Orin";
+  options.ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm = {
+    enable = lib.mkEnableOption "MGBE0 (${mgbe0.nodeName}) passthrough to the Net-VM on NVIDIA Orin";
+    guestKernelPackages = lib.mkOption {
+      type = lib.types.raw;
+      default = pkgs.linuxPackages_6_12;
+      defaultText = lib.literalExpression "pkgs.linuxPackages_6_12";
+      description = "Base kernel package set used by the MGBE0 NetVM guest.";
+    };
+  };
 
   config = lib.mkIf cfg.enable {
     hardware.nvidia-jetpack.virtualization.bpmpHost.consumers.net-vm =
@@ -57,7 +65,10 @@ in
         }:
         {
           imports = [ inputs.jetpack-nixos.nixosModules.orin-virtualization ];
-          hardware.nvidia-jetpack.virtualization.mgbe0Guest.enable = true;
+          hardware.nvidia-jetpack.virtualization.mgbe0Guest = {
+            enable = true;
+            kernelPackages = guestKernelPackages;
+          };
 
           # Only this VM gets the QEMU that has the BPMP bridge and, crucially,
           # still has -device vfio-platform (removed upstream in 10.2). It also
