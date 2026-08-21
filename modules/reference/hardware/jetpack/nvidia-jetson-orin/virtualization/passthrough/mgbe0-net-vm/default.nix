@@ -168,6 +168,14 @@ in
       defaultText = lib.literalExpression "config.ghaf.hardware.nvidia.orin.guestKernelPackages";
       description = "Kernel package set used by the MGBE0 NetVM guest.";
     };
+    crosvmIommu = lib.mkOption {
+      type = lib.types.enum [
+        "off"
+        "pkvm-iommu"
+      ];
+      default = "off";
+      description = "Crosvm IOMMU mode used for the MGBE0 platform device.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -399,7 +407,7 @@ in
               path = "6800000.ethernet";
               crosvm = {
                 dtSymbol = "mgbe0";
-                iommu = "off";
+                iommu = cfg.crosvmIommu;
               };
             }
           ];

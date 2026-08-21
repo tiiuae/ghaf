@@ -41,10 +41,21 @@ let
     self.nixosModules.profiles
   ];
 
-  linux71PkvmGuestModule =
-    { lib, pkgs, ... }:
+  linuxPkvmPackages =
+    pkgs:
+    pkgs.linuxPackagesFor (
+      pkgs.linux_7_1.override {
+        argsOverride = rec {
+          src = inputs.linux-pkvm;
+          version = "7.1.7";
+          modDirVersion = version;
+        };
+      }
+    );
+
+  linux71PkvmGuestSupportModule =
+    { lib, ... }:
     {
-      boot.kernelPackages = lib.mkForce pkgs.linuxPackages_7_1;
       boot.kernelPatches = [
         {
           name = "Arm pKVM guest support";
@@ -55,6 +66,13 @@ let
           };
         }
       ];
+    };
+
+  linux71PkvmGuestModule =
+    { lib, pkgs, ... }:
+    {
+      imports = [ linux71PkvmGuestSupportModule ];
+      boot.kernelPackages = lib.mkForce pkgs.linuxPackages_7_1;
     };
 
   netvmCrosvmVgicItsModule =
@@ -82,7 +100,7 @@ let
     {
       # Keep this canary target-local. The Orin hardware module still defaults
       # to JetPack's 6.6 host kernel for every other target.
-      ghaf.hardware.nvidia.orin.hostKernelPackages = lib.mkForce pkgs.linuxPackages_7_1;
+      ghaf.hardware.nvidia.orin.hostKernelPackages = lib.mkOverride 60 pkgs.linuxPackages_7_1;
 
       # MGBE0 owns the NetVM kernel selection so its BPMP patches follow that
       # kernel. Keep GUIVM on the independently selected 6.12 package set.
@@ -110,6 +128,146 @@ let
         "phy_tegra194_p2u"
         "pcie_tegra194"
       ];
+    };
+
+  pkvmHostOnlyModule =
+    { lib, pkgs, ... }:
+    {
+      # The rollback target keeps pristine Linux stable. Only this derived
+      # target consumes the validated pKVM integration source.
+      ghaf.hardware.nvidia.orin.hostKernelPackages = lib.mkForce (linuxPkvmPackages pkgs);
+      ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm.guestKernelPackages = lib.mkForce (
+        linuxPkvmPackages pkgs
+      );
+
+      # Diagnose protected host mode independently of guest startup. The
+      # ordinary accelerated GUI target remains the rollback image.
+      boot.kernelParams = [
+        "kvm-arm.mode=protected"
+        # The protected identity DMA context uses physical addresses as IOVAs.
+        # Keep all host allocations below SDMMC's 34-bit DMA limit while the
+        # ordinary translated-domain path remains under investigation.
+        "mem=12G"
+        # Linux 7.1 selects protected hVHE on Orin by default. NVIDIA's TF-A
+        # suspend-state fix was developed and validated for protected nVHE;
+        # force that mode until the additional hVHE firmware state has been
+        # identified and preserved across PSCI CPU power-down.
+        "arm64_sw.hvhe=0"
+        "id_aa64mmfr1.vh=0"
+      ];
+
+      # The DSU PMU CPU-online callback accesses a system register that pKVM's
+      # protected hypervisor traps on Orin, causing an EL2 BUG and host panic. The
+      # pKVM canary does not need DSU uncore performance counters.
+      boot.blacklistedKernelModules = [
+        "arm_dsu_pmu"
+        # GUIVM is disabled in this target, so its high-IOVA display anchor has
+        # no consumer. The pKVM host gives that anchor an identity IOMMU domain;
+        # loading it would call iommu_map() on a non-paging domain and trigger a
+        # host warning during every boot.
+        "dce-iso-anchor"
+        # PCI protected assignment is not implemented yet. Leave the onboard
+        # Realtek endpoint unbound so the excluded device cannot initiate DMA.
+        "rtw88_8822ce"
+      ];
+
+      # Keep host-IOMMU debug iterations small. The combined GUI VM and the
+      # Chromium and Flatpak AppVMs do not participate in host eMMC/SMMU
+      # bring-up, and carrying their closures makes every destructive flash
+      # substantially larger. This is intentionally confined to the pKVM debug
+      # target; the accelerated GUI target remains the full-topology rollback.
+      ghaf.hardware.nvidia.passthroughs.gui_vm.enable = lib.mkForce false;
+      ghaf.virtualization.microvm.guivm.enable = lib.mkForce false;
+      ghaf.reference.appvms.chromium.enable = lib.mkForce false;
+      ghaf.reference.appvms.flatpak.enable = lib.mkForce false;
+
+      # Kernel source changes come from the pinned linux-pkvm input. Keep only
+      # the host-specific configuration in Ghaf.
+      boot.kernelPatches = [
+        {
+          name = "Tegra pKVM protected-device configuration";
+          patch = null;
+          structuredExtraConfig = with lib.kernel; {
+            ARM_SMMU = no;
+            ARM_SMMU_TEGRA_PKVM = yes;
+            IOMMU_POOL_PAGES = freeform "0x10000";
+            PKVM_PVIOMMU = yes;
+            VFIO_PKVM_IOMMU = yes;
+          };
+        }
+      ];
+
+      hardware.deviceTree.enable = true;
+      hardware.deviceTree.overlays = [
+        {
+          name = "mgbe0-protected-assignment";
+          dtsFile = ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/pkvm/mgbe0-protected-assignment-overlay.dts;
+        }
+      ];
+
+      # PCI protected assignment needs a separate reset and ownership backend.
+      # Keep it out of the first platform-device canary while retaining MGBE0
+      # as NetVM's physical LAN interface.
+      ghaf.hardware.nvidia.orin.agx.enableNetvmWlanPCIPassthrough = lib.mkForce false;
+      ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm.crosvmIommu = "pkvm-iommu";
+
+      # NVIDIA's R36.5 TF-A loses the nVHE/pKVM timer, virtualization, and
+      # interrupt-control state when a CPU returns from PSCI power-down. Patch
+      # only this opt-in target's firmware source to preserve that state.
+      nixpkgs.overlays = [
+        (_final: prev: {
+          nvidia-jetpack = prev.nvidia-jetpack.overrideScope (
+            _finalJetpack: prevJetpack: {
+              gitRepos = prevJetpack.gitRepos // {
+                "tegra/optee-src/atf" = prev.applyPatches {
+                  name = "atf-pkvm";
+                  src = prevJetpack.gitRepos."tegra/optee-src/atf";
+                  patches = [
+                    ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/pkvm/0001-tegra-t234-save-and-restore-virtualization-registers.patch
+                  ];
+                };
+              };
+            }
+          );
+        })
+      ];
+
+      # Ghaf's boot-order module starts every configured VM regardless of the
+      # microvm.nix autostart setting. Disable it for this host-only canary and
+      # force every VM in this fixed target topology to remain stopped.
+      ghaf.microvm-boot.enable = lib.mkForce false;
+      # balloon-manager is normally pulled into microvms.target and requires
+      # each ballooned AppVM's memory manager, which in turn requires the VM.
+      # Remove that indirect startup path for this host-only target.
+      systemd.services.balloon-manager.wantedBy = lib.mkForce [ ];
+
+      # EL2 must reset MGBE0 before assigning it to a protected guest and
+      # again while reclaiming it. Keep the BPMP clock votes alive across the
+      # complete assignment lifetime; touching the powered-down MAC from nVHE
+      # can raise an external abort instead of returning a reset error.
+      systemd.services.pkvm-mgbe0-clocks = {
+        description = "Keep MGBE0 clocks enabled for protected assignment";
+        wantedBy = [ "multi-user.target" ];
+        before = [ "microvm@net-vm.service" ];
+        after = [ "sys-kernel-debug.mount" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        script = ''
+          for clock in /sys/kernel/debug/bpmp/debug/clk/mgbe0_*; do
+            echo 1 > "$clock/state"
+          done
+        '';
+      };
+      systemd.services."microvm@net-vm" = {
+        requires = [ "pkvm-mgbe0-clocks.service" ];
+        after = [ "pkvm-mgbe0-clocks.service" ];
+      };
+      microvm.vms = {
+        "admin-vm".autostart = lib.mkForce false;
+        "net-vm".autostart = lib.mkForce false;
+      };
     };
 
   # Exercise the complete manager/CDI integration in an existing CI-built
@@ -520,6 +678,21 @@ let
       ];
   all-target-configs = target-configs ++ verity-target-configs;
 
+  pkvmHostOnlyTarget =
+    let
+      baseTarget = lib.findFirst (
+        target: target.name == "nvidia-jetson-orin-agx-accelerated-guivm-debug"
+      ) (throw "AGX accelerated GUI target not found") target-configs;
+    in
+    baseTarget
+    // rec {
+      name = "nvidia-jetson-orin-agx-accelerated-guivm-pkvm-host-only-debug";
+      hostConfiguration = baseTarget.hostConfiguration.extendModules {
+        modules = [ pkvmHostOnlyModule ];
+      };
+      package = hostConfiguration.config.system.build.ghafImage;
+    };
+
   generate-nodemoapps =
     tgt:
     tgt
@@ -588,7 +761,8 @@ let
     ++ (map generate-luks luksable-target-configs)
     ++ (map generate-luks-uki luksable-target-configs)
     ++ (map (t: generate-luks (generate-nodemoapps t)) luksable-target-configs)
-    ++ (map (t: generate-luks-uki (generate-nodemoapps t)) luksable-target-configs);
+    ++ (map (t: generate-luks-uki (generate-nodemoapps t)) luksable-target-configs)
+    ++ [ pkvmHostOnlyTarget ];
   crossTargets = map generate-cross-from-x86_64 targets;
   flashTarget =
     t: qspiOnly:

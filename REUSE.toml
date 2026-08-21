@@ -145,6 +145,14 @@ SPDX-FileCopyrightText = "Copyright (c) NVIDIA CORPORATION"
 precedence = "override"
 path = "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/gpu-vm/nv-dt-bindings/**"
 
+# This Nix module embeds a generated GPL-tagged kernel Makefile as a string;
+# the module file itself is Apache-2.0 as declared by its header.
+[[annotations]]
+SPDX-License-Identifier = "Apache-2.0"
+SPDX-FileCopyrightText = "2022-2026 TII (SSRC) and the Ghaf contributors"
+precedence = "override"
+path = "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/common/dce-virt-common/dce-probe-host.nix"
+
 [[annotations]]
 SPDX-License-Identifier = "LicenseRef-NvidiaProprietary"
 SPDX-FileCopyrightText = "Copyright (c) 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved."
@@ -166,6 +174,14 @@ path = [
   "modules/reference/hardware/jetpack/nvidia-jetson-orin/optee/0001-ta-pkcs11-Build-time-option-for-controlling-pin-lock.patch",
   "targets/nvidia-jetson-orin/0001-Remove-nvidia-display-config.patch"
 ]
+
+[[annotations]]
+SPDX-License-Identifier = "BSD-3-Clause"
+SPDX-FileCopyrightText = [
+  "Copyright (c) 2021-2023, NVIDIA CORPORATION. All rights reserved.",
+  "Copyright (c) 2025 Viktor Rosendahl"
+]
+path = "modules/reference/hardware/jetpack/nvidia-jetson-orin/pkvm/0001-tegra-t234-save-and-restore-virtualization-registers.patch"
 
 
 [[annotations]]

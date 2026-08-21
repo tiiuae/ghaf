@@ -465,6 +465,23 @@
         "type": "github"
       }
     },
+    "linux-pkvm": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1787295153,
+        "narHash": "sha256-m70o3vSxsAohxD+p8CWMgaK+VtJ1SHJGmcYNXKdqsbI=",
+        "owner": "tiiuae",
+        "repo": "linux-pkvm",
+        "rev": "a62ea5215093d4595de020d5ae55e2a74d274491",
+        "type": "github"
+      },
+      "original": {
+        "owner": "tiiuae",
+        "repo": "linux-pkvm",
+        "rev": "a62ea5215093d4595de020d5ae55e2a74d274491",
+        "type": "github"
+      }
+    },
     "microvm": {
       "inputs": {
         "nixpkgs": [
@@ -639,6 +656,7 @@
         "gp-gui": "gp-gui",
         "gpu-partition-manager": "gpu-partition-manager",
         "jetpack-nixos": "jetpack-nixos",
+        "linux-pkvm": "linux-pkvm",
         "microvm": "microvm",
         "nix-store-veritysetup-generator": "nix-store-veritysetup-generator",
         "nixd": "nixd",
