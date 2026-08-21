@@ -271,16 +271,15 @@
         ]
       },
       "locked": {
-        "lastModified": 1787052754,
-        "narHash": "sha256-oKYwwMY63lbrgWy45flMfSxBGtLYdO7GJ+Cspo36h1M=",
+        "lastModified": 1787330506,
+        "narHash": "sha256-V5WAMGcAO5qPeMMKv1ZPtsVakuxypA2hCyzwMOxoq+Q=",
         "owner": "tiiuae",
         "repo": "ghaf-device-manager",
-        "rev": "b93dbc5c32689da179822231089593613c534133",
+        "rev": "02d4cafd8769652969cdcecbeab9095a688af948",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "fix/suppress-noop-notifications",
         "repo": "ghaf-device-manager",
         "type": "github"
       }

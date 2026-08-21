@@ -206,8 +206,7 @@
 
     # Hot-plugging USB and PCI devices into Crosvm virtual machines
     ghaf-device-manager = {
-      # TODO: switch back to mainline after the notification suppression fix merges.
-      url = "github:tiiuae/ghaf-device-manager/fix/suppress-noop-notifications";
+      url = "github:tiiuae/ghaf-device-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

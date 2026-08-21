@@ -16,6 +16,29 @@ let
   };
 
   cfg = config.ghaf.guest.kernel.hardening;
+  baseKernelPackages =
+    if cfg.enable then pkgs.linuxPackagesFor guest_hardened_kernel else pkgs.linuxPackages_latest;
+  needsKernelBootAlias =
+    (config.microvm.hypervisor or null) == "crosvm"
+    && lib.versionAtLeast baseKernelPackages.kernel.version "7.2";
+  kernelPackages =
+    if needsKernelBootAlias then
+      baseKernelPackages.extend (
+        _final: prev: {
+          # Linux 7.2 installs rebuilt x86 kernels as vmlinuz while nixpkgs
+          # still advertises bzImage as the kernel target. Keep that declared
+          # target usable instead of overriding the bootloader globally.
+          kernel = prev.kernel.overrideAttrs (oldAttrs: {
+            postInstall = (oldAttrs.postInstall or "") + ''
+              if [ -e "$out/vmlinuz" ] && [ ! -e "$out/${prev.kernel.target}" ]; then
+                ln -s vmlinuz "$out/${prev.kernel.target}"
+              fi
+            '';
+          });
+        }
+      )
+    else
+      baseKernelPackages;
   gpuSuspend =
     (config.ghaf.services.power-manager.gui.enable or false)
     && (config.ghaf.services.power-manager.gui.gpuSuspend or false);
@@ -36,8 +59,7 @@ in
   };
 
   config = lib.mkIf pkgs.stdenv.hostPlatform.isx86_64 {
-    boot.kernelPackages =
-      if cfg.enable then pkgs.linuxPackagesFor guest_hardened_kernel else pkgs.linuxPackages_latest;
+    boot.kernelPackages = kernelPackages;
 
     boot.kernelPatches = lib.optionals gpuSuspend [
       {
