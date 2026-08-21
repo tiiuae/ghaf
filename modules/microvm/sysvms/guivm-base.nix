@@ -183,10 +183,7 @@ in
 
     # Create launchers for regular apps running in the GUIVM and virtualized ones if GIVC is enabled
     graphics = {
-      boot = {
-        enable = true;
-        renderer = "gpu";
-      };
+      boot.enable = lib.mkDefault (globalConfig.graphics.boot.enable or false);
 
       launchers =
         hostConfig.guivm.applications ++ lib.optionals (globalConfig.givc.enable or false) virtualLaunchers;

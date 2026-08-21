@@ -108,7 +108,8 @@ in
         "gpu"
         "simpledrm"
       ];
-      default = "simpledrm";
+      default = if builtins.elem "i915" config.boot.initrd.kernelModules then "gpu" else "simpledrm";
+      defaultText = "Set to 'gpu' if i915 driver is detected in `config.boot.initrd.kernelModules`, 'simpledrm' otherwise";
       description = ''
         Renderer for the graphical boot splash.
 

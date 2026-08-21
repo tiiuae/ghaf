@@ -50,8 +50,6 @@ let
     text = "" + cfg.extraAutostart;
   };
 
-  # Change papirus folder icons to grey
-
 in
 {
   _file = ./default.nix;

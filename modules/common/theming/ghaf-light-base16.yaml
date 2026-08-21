@@ -3,19 +3,19 @@ name: "Ghaf Light"
 author: "TII (SSRC) and the Ghaf contributors"
 variant: "light"
 palette:
-  base00: "#e9e9e9"
-  base01: "#e0e0e0"
-  base02: "#d7d7d7"
-  base03: "#cccccc"
-  base04: "#989898"
-  base05: "#545454"
-  base06: "#131321"
-  base07: "#131321"
-  base08: "#F4252C"
-  base09: "#F15025"
-  base0A: "#FABC3C"
-  base0B: "#5AC379"
-  base0C: "#25E2F4"
-  base0D: "#2559F4"
-  base0E: "#9D25F4"
-  base0F: "#A6683A"
+  base00: "#fafafa" # Default Background
+  base01: "#f0f0f0" # Lighter Background (Used for status bars, line number and folding marks)
+  base02: "#e2e2e2" # Selection Background
+  base03: "#8c8c8c" # Comments, Invisibles, Line Highlighting
+  base04: "#6b6b6b" # Dark Foreground (Used for status bars)
+  base05: "#33333a" # Default Foreground, Caret, Delimiters, Operators
+  base06: "#1c1c26" # Light Foreground (Not often used)
+  base07: "#131321" # Light Background (Not often used)
+  base08: "#C41219" # Variables, XML Tags, Markup Link Text, Markup Lists, Diff Deleted
+  base09: "#B04A12" # Integers, Boolean, Constants, XML Attributes, Markup Link Url
+  base0A: "#8A6100" # Classes, Markup Bold, Search Text Background
+  base0B: "#217A46" # Strings, Inherited Class, Markup Code, Diff Inserted
+  base0C: "#0E6E7C" # Support, Regular Expressions, Escape Characters, Markup Quotes
+  base0D: "#2559F4" # Functions, Methods, Attribute IDs, Headings
+  base0E: "#8A16DE" # Keywords, Storage, Selector, Markup Italic, Diff Changed
+  base0F: "#8A5327" # Deprecated, Opening/Closing Embedded Language Tags, e.g. <?php ?>

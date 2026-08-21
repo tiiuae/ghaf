@@ -2,29 +2,30 @@
 // SPDX-License-Identifier: Apache-2.0
 [
     // Blue
-    (red: 0.145098, green: 0.349020, blue: 0.956863, alpha: 1.0),
+    (red: 0.078431, green: 0.443137, blue: 0.686275, alpha: 1.0),
 
     // Indigo
-    (red: 0.278431, green: 0.145098, blue: 0.956863, alpha: 1.0),
+    (red: 0.360784, green: 0.376471, blue: 0.800000, alpha: 1.0),
 
     // Purple
-    (red: 0.615686, green: 0.145098, blue: 0.956863, alpha: 1.0),
+    (red: 0.529412, green: 0.141176, blue: 0.682353, alpha: 1.0),
 
     // Pink
-    (red: 0.956863, green: 0.145098, blue: 0.686275, alpha: 1.0),
+    (red: 0.709804, green: 0.219608, blue: 0.607843, alpha: 1.0),
 
     // Red
-    (red: 0.956863, green: 0.145098, blue: 0.172549, alpha: 1.0),
+    (red: 0.819608, green: 0.152941, blue: 0.141176, alpha: 1.0),
 
     // Orange
-    (red: 0.945098, green: 0.313725, blue: 0.145098, alpha: 1.0),
+    (red: 0.623529, green: 0.360784, blue: 0.023529, alpha: 1.0),
 
     // Yellow
-    (red: 0.980392, green: 0.737255, blue: 0.235294, alpha: 1.0),
+    (red: 0.458824, green: 0.435294, blue: 0.035294, alpha: 1.0),
 
     // Green
-    (red: 0.352941, green: 0.764706, blue: 0.474510, alpha: 1.0),
+    (red: 0.176471, green: 0.482353, blue: 0.266667, alpha: 1.0),
 
     // Warm Grey
-    (red: 0.615686, green: 0.549020, blue: 0.482353, alpha: 1.0),
+    (red: 0.474510, green: 0.415686, blue: 0.352941, alpha: 1.0),
+
 ]

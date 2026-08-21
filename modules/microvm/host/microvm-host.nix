@@ -134,13 +134,10 @@ in
 
         theming = {
           enable = lib.mkDefault config.ghaf.global-config.theming.enable;
-          plymouth.enable = true;
+          plymouth.enable = lib.mkDefault true;
         };
 
-        graphics.boot = {
-          enable = true; # Enable graphical boot on host
-          renderer = "simpledrm"; # Force simpledrm framebuffer for graphical boot on host
-        };
+        graphics.boot.enable = lib.mkDefault config.ghaf.global-config.graphics.boot.enable;
 
         services = {
           orbit = {

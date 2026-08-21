@@ -197,12 +197,12 @@ in
       };
       light = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
-        default = "Papirus";
+        default = "Papirus-Light";
         description = "Icon theme name used in light mode";
       };
       dark = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
-        default = "Papirus";
+        default = "Papirus-Dark";
         description = "Icon theme name used in dark mode";
       };
     };
@@ -211,7 +211,7 @@ in
       sansSerif = {
         package = lib.mkOption {
           type = lib.types.package;
-          default = pkgs.roboto;
+          default = pkgs.inter;
           description = "Sans-serif font package";
         };
         name = lib.mkOption {
@@ -224,14 +224,24 @@ in
       monospace = {
         package = lib.mkOption {
           type = lib.types.package;
-          default = pkgs.roboto-mono;
+          default = pkgs.jetbrains-mono;
           description = "Monospace font package";
         };
         name = lib.mkOption {
           type = lib.types.str;
-          default = "Roboto Mono";
+          default = "JetBrains Mono";
           description = "Monospace font family name";
         };
+      };
+
+      console = lib.mkOption {
+        type = lib.types.nullOr lib.types.package;
+        default = null;
+        description = ''
+          The font used for the virtual consoles. Can be `null`, a font name, or a path to a PSF font file.
+
+          Use `null` to let the kernel choose a built-in font.
+        '';
       };
 
       emoji = {
@@ -251,7 +261,7 @@ in
     gtkQtTheme = {
       enable = lib.mkOption {
         type = lib.types.bool;
-        default = false;
+        default = true;
         description = ''
           Whether to build and apply Ghaf's custom GTK/Qt themes (adw-gtk3
           with the base16 accent colours baked in, and a matching Kvantum Qt
@@ -368,6 +378,10 @@ in
             emoji.package
           ]
         );
+
+        environment.systemPackages = lib.optional (cfg.iconTheme.package != null) cfg.iconTheme.package;
+
+        console.font = cfg.fonts.console;
       }
 
       # Flatpak apps run sandboxed and don't see our system-wide GTK/Qt
@@ -383,7 +397,7 @@ in
               themeDir="$out/share/themes/${gtkThemeName}"
               mkdir -p "$themeDir"
               cp --recursive . "$themeDir"
-              ${lib.optionalString cfg.gtkQtTheme.enable "cat ${gtkCss} >> $themeDir/gtk-{3,4}.0/gtk.css"}
+              ${lib.optionalString cfg.gtkQtTheme.enable "cat ${gtkCss} | tee --append $themeDir/gtk-{3,4}.0/gtk.css"}
 
               mkdir -p "$out"/config/gtk-{3,4}.0
               cat ${gtkSettingsIni} | tee "$out"/config/gtk-{3,4}.0/settings.ini > /dev/null
@@ -417,7 +431,15 @@ in
       })
 
       (lib.mkIf cfg.cosmic.enable {
-        environment.systemPackages = [ cosmicThemeConfig ];
+        environment = {
+          systemPackages = [ cosmicThemeConfig ];
+          # This is normally by nixpkgs desktopManager.cosmic.enable
+          # Here we force link so COSMIC apps in other VMs can inherit the theme
+          # settings even if the desktopManager as a whole is not enabled
+          pathsToLink = [
+            "/share/cosmic"
+          ];
+        };
       })
 
       (lib.mkIf config.stylix.targets.gtk.enable {

@@ -7,12 +7,12 @@
 # - GIVC service monitoring for greetd and user-login
 # - User login detection service
 #
-# This module is auto-included when ghaf.graphics.boot.enable is true.
+# This module is enabled automatically when ghaf.graphics.boot.enable is true.
 #
 {
   lib,
   pkgs,
-  globalConfig,
+  config,
   ...
 }:
 let
@@ -41,8 +41,7 @@ let
     '';
   };
 
-  # Only enable if graphics boot is enabled in globalConfig
-  bootEnabled = globalConfig.graphics.boot.enable or false;
+  bootEnabled = config.ghaf.graphics.boot.enable;
 in
 {
   _file = ./boot-ui.nix;
