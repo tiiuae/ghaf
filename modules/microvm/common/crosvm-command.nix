@@ -118,8 +118,8 @@ in
         ]
         ++ (if balloon then [ "--balloon-page-reporting" ] else [ "--no-balloon" ])
         ++ lib.optionals storeOnDisk [
-          "-r"
-          storeDisk
+          "--block"
+          "${storeDisk},ro=true"
         ]
         ++ lib.optionals graphics.enable [
           "--vhost-user"

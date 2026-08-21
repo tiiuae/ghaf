@@ -48,6 +48,9 @@ let
 
     exec ${execArg} ${command} ''${runtime_args:-}
   '';
+  shutdownScript = lib.optionalAttrs hypervisorConfig.canShutdown {
+    path = vmHostPackages.writeShellScript "microvm-${hostName}-microvm-shutdown" hypervisorConfig.shutdownCommand;
+  };
   platformDevices = lib.filter ({ bus, ... }: bus == "platform") microvmConfig.devices;
 in
 vmHostPackages.buildPackages.runCommand "microvm-crosvm-${hostName}"
@@ -61,6 +64,10 @@ vmHostPackages.buildPackages.runCommand "microvm-crosvm-${hostName}"
     chmod -R u+w "$out"
     rm "$out/bin/microvm-run"
     ln -s ${runScript} "$out/bin/microvm-run"
+    ${lib.optionalString hypervisorConfig.canShutdown ''
+      rm "$out/bin/microvm-shutdown"
+      ln -s ${shutdownScript.path} "$out/bin/microvm-shutdown"
+    ''}
     ${lib.optionalString (platformDevices != [ ]) ''
       ${lib.concatMapStringsSep "\n" ({ path, ... }: ''
         echo ${lib.escapeShellArg path} >> "$out/share/microvm/platform-devices"

@@ -163,6 +163,20 @@ let
       };
     }
   ];
+  protectedServicePlane = makeConfig "aarch64-linux" [
+    {
+      microvm = {
+        crosvm.protection.mode = "protected-without-firmware";
+        interfaces = [
+          {
+            type = "tap";
+            id = "tap-admin-vm";
+            mac = "02:ad:00:00:00:03";
+          }
+        ];
+      };
+    }
+  ];
   protectedMissingFirmware = makeConfig "aarch64-linux" [
     { microvm.crosvm.protection.mode = "protected-with-firmware"; }
   ];
@@ -261,6 +275,7 @@ let
   protectedCommand = commandFor protected;
   protectedFirmwareCommand = commandFor protectedWithFirmware;
   protectedLargerSwiotlbCommand = commandFor protectedWithLargerSwiotlb;
+  protectedServicePlaneCommand = commandFor protectedServicePlane;
   aarch64CrossPkgs = import self.inputs.nixpkgs {
     localSystem.system = "x86_64-linux";
     crossSystem.system = "aarch64-linux";
@@ -278,6 +293,9 @@ assert lib.hasInfix "--protected-vm-without-firmware" protectedCommand;
 assert lib.hasInfix "--protected-vm-with-firmware" protectedFirmwareCommand;
 assert lib.hasInfix "--swiotlb 64" protectedCommand;
 assert lib.hasInfix "--swiotlb 128" protectedLargerSwiotlbCommand;
+assert lib.hasInfix "--net 'tap-name=tap-admin-vm,mac=02:ad:00:00:00:03'"
+  protectedServicePlaneCommand;
+assert lib.hasInfix "--vsock 77" protectedServicePlaneCommand;
 assert !lib.hasInfix "--swiotlb" command;
 assert lib.hasInfix "crosvm stop" (shutdownFor protected);
 assert lib.hasInfix "crosvm powerbtn" (shutdownFor valid);
@@ -286,6 +304,7 @@ assert assertionsPass layout;
 assert assertionsPass protected;
 assert assertionsPass protectedWithFirmware;
 assert assertionsPass protectedWithLargerSwiotlb;
+assert assertionsPass protectedServicePlane;
 assert assertionsPass protectedWithAssignedDevice;
 assert !assertionsPass missingSymbol;
 assert !assertionsPass missingOverlay;
