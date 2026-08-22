@@ -33,11 +33,19 @@ in
       inputs.nixpkgs.lib.optionalAttrs prev.stdenv.hostPlatform.isx86_64 (crosvmGhaf final prev);
 
     ghaf-device-manager =
-      _final: prev:
-      inputs.nixpkgs.lib.optionalAttrs prev.stdenv.hostPlatform.isx86_64 {
-        ghaf-device-manager =
-          inputs.ghaf-device-manager.packages.${prev.stdenv.hostPlatform.system}.default;
-      };
+      final: prev:
+      inputs.nixpkgs.lib.optionalAttrs
+        (builtins.elem prev.stdenv.hostPlatform.system [
+          "x86_64-linux"
+          "aarch64-linux"
+        ])
+        {
+          # Build with the consuming package set. In particular, an AArch64
+          # cross target must use its cross stdenv instead of importing a native
+          # package (or falling through to a builder-architecture package from a
+          # later overlay).
+          ghaf-device-manager = final.callPackage "${inputs.ghaf-device-manager}/nix/package.nix" { };
+        };
 
     # Carry the two focused logging fixes from ghafpkgs#362 until it merges,
     # while retaining the authoritative tiiuae/ghafpkgs input.
