@@ -17,11 +17,27 @@
 # Shared by AGX and NX (both Tegra234 + host-owned DCE): imported from
 # agx/orin-agx.nix and nx/orin-nx.nix.
 {
+  config,
   lib,
   pkgs,
   ...
 }:
 let
+  # The accelerated target's Linux 7.1 host canary needs the host-owned DCE and
+  # Ghaf's DCE bridge. Other NVIDIA modules which happen to bind host DT nodes
+  # are deliberately deferred until this target-critical closure boots; GPU,
+  # display, and MGBE0 remain owned by their guests.
+  hostNvidiaOotMakefile = pkgs.writeText "nvidia-oot-host-Makefile" ''
+    # SPDX-License-Identifier: GPL-2.0
+
+    LINUXINCLUDE += -I$(srctree.nvconftest)
+    LINUXINCLUDE += -I$(srctree.nvidia-oot)/include
+
+    subdir-ccflags-y += -Werror
+    subdir-ccflags-y += -Wmissing-prototypes
+    obj-m += drivers/platform/tegra/dce/
+  '';
+
   # Bare "nvidia,dce-host-proxy" node so the platform driver binds and creates
   # /dev/dce-host. Driver reads no reg/vpa (relays via tegra-dce's exported
   # CPU_RM client API), so the node only needs the compatible. Mirrors
@@ -65,45 +81,76 @@ in
   # (it belongs to the guest).
   ghaf.profiles.graphics.enable = lib.mkForce false;
 
-  # Host kernel = base jetpack-nixos for orin-agx
-  # (pkgs.nvidia-jetpack.kernelPackages) + dce-host-proxy spliced into
-  # nvidia-oot-modules. mkForce required: hardware.nvidia-jetpack already sets
-  # boot.kernelPackages at normal priority.
+  # Host kernel = selected Orin base package set + JetPack overlay, with
+  # dce-host-proxy spliced into nvidia-oot-modules. mkForce required:
+  # hardware.nvidia-jetpack already sets boot.kernelPackages at normal priority.
   boot.kernelPackages = lib.mkForce (
-    (pkgs.nvidia-jetpack.kernelPackages.extend pkgs.nvidia-jetpack.kernelPackagesOverlay).extend (
-      _final: prev: {
-        nvidia-oot-modules = prev.nvidia-oot-modules.overrideAttrs (o: {
-          # nvidia-oot-modules' src is the combined l4t-oot-modules-sources tree
-          # (nvidia-oot/, nvgpu/, nvdisplay/, ... each under its project name).
-          # dce-host-proxy links tegra-dce's EXPORT_SYMBOL'd DCE client API, so it
-          # must build INSIDE nvidia-oot (not the kernel tree). Flatten its source
-          # into dce/ (whose Makefile ccflags already resolve the public
-          # dce-client-ipc.h include) and add as its own obj-m .ko.
-          # dtc + xxd: dce-iso-anchor embeds its runtime DT overlay as a C array
-          # (compiled with -@ so &smmu_iso resolves against the live tree's
-          # __symbols__ at of_overlay_fdt_apply time).
-          nativeBuildInputs = (o.nativeBuildInputs or [ ]) ++ [
-            pkgs.buildPackages.dtc
-            pkgs.buildPackages.unixtools.xxd
-          ];
-          postPatch = (o.postPatch or "") + ''
-            install -D ${./sources/drivers/platform/tegra/dce-host-proxy/dce-host-proxy.c} \
-              nvidia-oot/drivers/platform/tegra/dce/dce-host-proxy.c
-            install -D ${./sources/drivers/platform/tegra/dce-host-proxy/dce-host-proxy.h} \
-              nvidia-oot/drivers/platform/tegra/dce/dce-host-proxy.h
-            echo 'obj-m += dce-host-proxy.o' >> nvidia-oot/drivers/platform/tegra/dce/Makefile
+    (config.ghaf.hardware.nvidia.orin.hostKernelPackages.extend pkgs.nvidia-jetpack.kernelPackagesOverlay)
+    .extend
+      (
+        _final: prev: {
+          devicetree =
+            if lib.versionAtLeast prev.kernel.version "7.1" then
+              prev.devicetree.overrideAttrs (old: {
+                postPatch = (old.postPatch or "") + ''
+                  # This DTC check was removed in Linux 7.1. NVIDIA's R36.5
+                  # Makefile still tries to disable it, which is fatal with
+                  # the kernel's in-tree DTC.
+                  sed -i '/-Wno-graph_child_address/d' kernel-devicetree/scripts/Makefile.lib
+                '';
+              })
+            else
+              prev.devicetree;
+          nvidia-oot-modules = prev.nvidia-oot-modules.overrideAttrs (o: {
+            # nvidia-oot-modules' src is the combined l4t-oot-modules-sources tree
+            # (nvidia-oot/, nvgpu/, nvdisplay/, ... each under its project name).
+            # dce-host-proxy links tegra-dce's EXPORT_SYMBOL'd DCE client API, so it
+            # must build INSIDE nvidia-oot (not the kernel tree). Flatten its source
+            # into dce/ (whose Makefile ccflags already resolve the public
+            # dce-client-ipc.h include) and add as its own obj-m .ko.
+            # dtc + xxd: dce-iso-anchor embeds its runtime DT overlay as a C array
+            # (compiled with -@ so &smmu_iso resolves against the live tree's
+            # __symbols__ at of_overlay_fdt_apply time).
+            nativeBuildInputs = (o.nativeBuildInputs or [ ]) ++ [
+              pkgs.buildPackages.dtc
+              pkgs.buildPackages.unixtools.xxd
+            ];
+            postPatch = (o.postPatch or "") + ''
+              ${lib.optionalString (lib.versionAtLeast prev.kernel.version "7.1") ''
+                substituteInPlace Makefile \
+                  --replace-fail 'modules: hwpm nvidia-oot nvgpu nvidia-display' 'modules: nvidia-oot' \
+                  --replace-fail 'modules_install: hwpm nvidia-oot nvgpu nvidia-display-install' 'modules_install: nvidia-oot' \
+                  --replace-fail 'nvidia-oot: conftest hwpm' 'nvidia-oot: conftest'
+                sed -i '/KBUILD_EXTRA_SYMBOLS=.*hwpm.*Module.symvers/d' Makefile
+                install -m 0644 ${hostNvidiaOotMakefile} nvidia-oot/Makefile
 
-            install -D ${./sources/drivers/platform/tegra/dce-iso-anchor/dce-iso-anchor.c} \
-              nvidia-oot/drivers/platform/tegra/dce/dce-iso-anchor.c
-            dtc -@ -I dts -O dtb -o dce-iso-anchor.dtbo \
-              ${./sources/drivers/platform/tegra/dce-iso-anchor/dce-iso-anchor.dts}
-            xxd -i -n dce_iso_anchor_dtbo dce-iso-anchor.dtbo \
-              > nvidia-oot/drivers/platform/tegra/dce/dce-iso-anchor-dtbo.h
-            echo 'obj-m += dce-iso-anchor.o' >> nvidia-oot/drivers/platform/tegra/dce/Makefile
-          '';
-        });
-      }
-    )
+                # R36.5's conftest emits explicit negative results for these
+                # Linux 7.1 API shapes, overriding compiler flags, even though
+                # the NVIDIA sources already carry the matching branches.
+                substituteInPlace nvidia-oot/drivers/platform/tegra/dce/dce-ipc.c \
+                  --replace-fail '#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)' '#if 1 /* Linux 7.1 iosys_map IVC */'
+                substituteInPlace nvidia-oot/drivers/platform/tegra/dce/include/dce-ipc.h \
+                  --replace-fail '#if defined(NV_TEGRA_IVC_STRUCT_HAS_IOSYS_MAP)' '#if 1 /* Linux 7.1 iosys_map IVC */'
+                substituteInPlace nvidia-oot/drivers/platform/tegra/dce/dce-module.c \
+                  --replace-fail '#if defined(NV_PLATFORM_DRIVER_STRUCT_REMOVE_RETURNS_VOID) /* Linux v6.11 */' '#if 1 /* Linux 7.1 */'
+              ''}
+              install -D ${./sources/drivers/platform/tegra/dce-host-proxy/dce-host-proxy.c} \
+                nvidia-oot/drivers/platform/tegra/dce/dce-host-proxy.c
+              install -D ${./sources/drivers/platform/tegra/dce-host-proxy/dce-host-proxy.h} \
+                nvidia-oot/drivers/platform/tegra/dce/dce-host-proxy.h
+              echo 'obj-m += dce-host-proxy.o' >> nvidia-oot/drivers/platform/tegra/dce/Makefile
+
+              install -D ${./sources/drivers/platform/tegra/dce-iso-anchor/dce-iso-anchor.c} \
+                nvidia-oot/drivers/platform/tegra/dce/dce-iso-anchor.c
+              dtc -@ -I dts -O dtb -o dce-iso-anchor.dtbo \
+                ${./sources/drivers/platform/tegra/dce-iso-anchor/dce-iso-anchor.dts}
+              xxd -i -n dce_iso_anchor_dtbo dce-iso-anchor.dtbo \
+                > nvidia-oot/drivers/platform/tegra/dce/dce-iso-anchor-dtbo.h
+              echo 'obj-m += dce-iso-anchor.o' >> nvidia-oot/drivers/platform/tegra/dce/Makefile
+            '';
+          });
+        }
+      )
   );
 
   # boot.extraModulePackages not needed: hardware.nvidia-jetpack already sets

@@ -16,6 +16,7 @@
 #include <linux/sched.h>
 #include <linux/spinlock.h>
 #include <linux/wait.h>
+#include <linux/version.h>
 #include <linux/platform/tegra/dce/dce-client-ipc.h>
 #include "dce-host-proxy.h"
 
@@ -281,7 +282,7 @@ static int dce_host_proxy_probe(struct platform_device *pdev)
 
 
 
-static int dce_host_proxy_remove(struct platform_device *pdev)
+static int dce_host_proxy_remove_impl(struct platform_device *pdev)
 {
 	deb_info("removing module.\n");
 
@@ -316,6 +317,18 @@ static int dce_host_proxy_remove(struct platform_device *pdev)
 	deb_info("Goodbye from the LKM!\n");
 	return 0;
 }
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
+static void dce_host_proxy_remove(struct platform_device *pdev)
+{
+	dce_host_proxy_remove_impl(pdev);
+}
+#else
+static int dce_host_proxy_remove(struct platform_device *pdev)
+{
+	return dce_host_proxy_remove_impl(pdev);
+}
+#endif
 
 static int open(struct inode *inodep, struct file *filep)
 {

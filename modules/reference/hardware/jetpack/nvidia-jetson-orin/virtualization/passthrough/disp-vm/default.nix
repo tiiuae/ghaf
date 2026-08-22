@@ -149,6 +149,7 @@ in
           inherit lib cap vfioArgs;
           dtb = dispvm-dtb;
           dtbName = "tegra234-dispvm.dtb";
+          guestKernelPackages = config.ghaf.hardware.nvidia.orin.guestKernelPackages;
           inherit (virt) sourcesPatch;
         })
       ];

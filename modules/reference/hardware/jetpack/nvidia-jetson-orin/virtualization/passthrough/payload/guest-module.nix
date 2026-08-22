@@ -5,7 +5,9 @@
   lib,
   cap,
   dtb,
+  crosvmOverlay ? null,
   dtbName ? "tegra234-gpuvm.dtb",
+  guestKernelPackages,
   vfioArgs,
   sourcesPatch,
   srcDir ? ../gpu-vm,
@@ -15,6 +17,21 @@ let
 in
 { config, pkgs, ... }:
 let
+  isCrosvm = config.microvm.hypervisor == "crosvm";
+  guestKernelVersion = config.boot.kernelPackages.kernel.version;
+  expectedCrosvmDevicePaths = [
+    "60000000.vm_hs_p"
+    "80000000.vm_cma_p"
+    "b0000000.scanout_p"
+    "13830000.disp_caps_pt"
+    "13870000.disp_chan_pt"
+    "138c8000.disp_cursor_pt"
+    "17000000.gpu"
+    "13e00000.host1x_pt"
+    "15340000.vic"
+    "15480000.nvdec"
+    "15540000.nvjpg"
+  ];
   # L4T EGL rejects modifier-backed GBM surfaces.
   gbm-nomod-shim = pkgs.runCommandCC "gbm-nomod-shim" { } ''
     mkdir -p $out/lib
@@ -110,8 +127,20 @@ in
 
   # Apply the GPU/display passthrough stack to the BYO guest kernel.
   boot.kernelPackages = lib.mkForce (
-    (pkgs.linuxPackages_6_12.extend pkgs.nvidia-jetpack.kernelPackagesOverlay).extend (
+    (guestKernelPackages.extend pkgs.nvidia-jetpack.kernelPackagesOverlay).extend (
       _final: prev: {
+        devicetree =
+          if lib.versionAtLeast prev.kernel.version "7.1" then
+            prev.devicetree.overrideAttrs (old: {
+              postPatch = (old.postPatch or "") + ''
+                # This DTC check was removed in Linux 7.1. NVIDIA's R36.5
+                # Makefile still tries to disable it, which is fatal with
+                # the kernel's in-tree DTC.
+                sed -i '/-Wno-graph_child_address/d' kernel-devicetree/scripts/Makefile.lib
+              '';
+            })
+          else
+            prev.devicetree;
         nvidia-oot-modules = prev.nvidia-oot-modules.overrideAttrs (o: {
           patches =
             (o.patches or [ ])
@@ -144,6 +173,14 @@ in
             );
           # Build the guest DCE relay inside nvidia-oot for tegra-dce symbols.
           postPatch = (o.postPatch or "") + ''
+            ${lib.optionalString (lib.versionAtLeast prev.kernel.version "7.1") ''
+              substituteInPlace hwpm/drivers/tegra/hwpm/os/linux/driver.c \
+                --replace-fail '#if defined(NV_CLASS_STRUCT_DEVNODE_HAS_CONST_DEV_ARG)' '#if 1 /* Linux 7.1 */' \
+                --replace-fail '#if defined(NV_PLATFORM_DRIVER_STRUCT_REMOVE_RETURNS_VOID) /* Linux v6.11 */' '#if 1 /* Linux 7.1 */'
+              substituteInPlace hwpm/drivers/tegra/hwpm/os/linux/mem_mgmt_utils.c \
+                --replace-fail 'MODULE_IMPORT_NS(DMA_BUF);' 'MODULE_IMPORT_NS("DMA_BUF");' \
+                --replace-fail '#if defined(NV_GET_USER_PAGES_HAS_ARGS_FLAGS) /* Linux v6.5 */' '#if 1 /* Linux 7.1 */'
+            ''}
             patch -p1 -d nvidia-oot < ${../../common/dce-virt-common/patches/0001-dce-virt-hooks.patch}
             patch -p1 -d nvidia-oot < ${../../common/dce-virt-common/patches/0002-dce-client-ipc-inject.patch}
             install -D ${../../common/dce-virt-common/sources/drivers/platform/tegra/dce-guest-proxy/dce-guest-proxy.c} \
@@ -169,6 +206,16 @@ in
         && (lib.elem "pd_ignore_unused" config.boot.kernelParams);
       message = "gpu-vm guest must boot with both clk_ignore_unused and pd_ignore_unused, or it can power off clocks/domains the host still uses.";
     }
+  ]
+  ++ lib.optionals isCrosvm [
+    {
+      assertion = crosvmOverlay != null;
+      message = "Orin Crosvm GPU/display passthrough requires its device-tree overlay.";
+    }
+    {
+      assertion = map (device: device.path) payload.crosvmDevices == expectedCrosvmDevicePaths;
+      message = "Orin Crosvm GUI device order drifted from the QEMU-compatible allocation layout.";
+    }
   ];
 
   # NVIDIA OOT modules do not autoload from the guest DT.
@@ -188,7 +235,14 @@ in
     }
     {
       name = "bpmp-virt core hooks";
-      patch = ../../common/bpmp-virt-common/patches/0001-bpmp-virt-hooks-6.12.patch;
+      # Linux 7.1 uses the explicit of_node_put() implementation again, so the
+      # original hook has the correct tegra_bpmp_get() context. Linux 6.12 uses
+      # the scoped __free(device_node) implementation covered by its rebase.
+      patch =
+        if lib.versionAtLeast guestKernelVersion "7.1" then
+          ../../common/bpmp-virt-common/patches/0001-bpmp-virt-hooks.patch
+        else
+          ../../common/bpmp-virt-common/patches/0001-bpmp-virt-hooks-6.12.patch;
     }
     {
       name = "bpmp guest proxy kernel configuration";
@@ -209,11 +263,36 @@ in
     }
   ];
 
-  ghaf.virtualization.qemu.package = lib.mkForce pkgs.ghaf-qemu-bpmp-gpu;
+  ghaf.virtualization.qemu.package = lib.mkIf (!isCrosvm) (lib.mkForce pkgs.ghaf-qemu-bpmp-gpu);
 
-  microvm.qemu.extraArgs = [
-    "-dtb"
-    "${dtb}/${dtbName}"
-  ]
-  ++ vfioArgs;
+  microvm = lib.mkMerge [
+    {
+      qemu.extraArgs = lib.mkIf (!isCrosvm) (
+        [
+          "-dtb"
+          "${dtb}/${dtbName}"
+        ]
+        ++ vfioArgs
+      );
+    }
+    (lib.mkIf isCrosvm {
+      crosvm = {
+        memoryBase = lib.fromHexString "0x2000000000";
+        platformMmio = {
+          base = lib.fromHexString "0x60000000";
+          size = lib.fromHexString "0x1fa0000000";
+        };
+        deviceTreeOverlays = [
+          "${crosvmOverlay}/tegra234-guivm-crosvm-overlay.dtbo"
+        ];
+        extraArgs = [
+          "--nvidia-bpmp-host"
+          "/dev/bpmp-host"
+          "--nvidia-dce-host"
+          "/dev/dce-host"
+        ];
+      };
+      devices = payload.crosvmDevices;
+    })
+  ];
 }

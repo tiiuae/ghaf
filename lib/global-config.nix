@@ -912,8 +912,12 @@ rec {
         # that convention instead of maintaining another per-VM lookup table.
         vhotplugVmName = "${lib.removeSuffix "vm" vmName}-vm";
         pciRules = config.ghaf.hardware.passthrough.vhotplug.pciRules or [ ];
+        # Crosvm implements PCI hotplug only on x86_64. AArch64 system VMs must
+        # retain their statically declared PCI devices.
         usesPciVhotplug =
-          selectedVmm == "crosvm" && lib.any (rule: (rule.targetVm or null) == vhotplugVmName) pciRules;
+          selectedVmm == "crosvm"
+          && config.nixpkgs.hostPlatform.isx86_64
+          && lib.any (rule: (rule.targetVm or null) == vhotplugVmName) pciRules;
         vhotplugEnabled = config.ghaf.hardware.passthrough.vhotplug.enable or false;
         pciBusPrefix = config.ghaf.hardware.passthrough.pciPorts.pcieBusPrefix;
         deviceManagerPackage = config.ghaf.hardware.passthrough.deviceManager.package;

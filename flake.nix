@@ -150,6 +150,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Validated Linux 7.1 pKVM source for the AGX host and protected guests.
+    # flake.lock pins this non-flake input to an immutable integration commit.
+    linux-pkvm = {
+      url = "github:tiiuae/linux-pkvm/a62ea5215093d4595de020d5ae55e2a74d274491";
+      flake = false;
+    };
+
     # For building and managing VMs
     microvm = {
       url = "github:microvm-nix/microvm.nix";

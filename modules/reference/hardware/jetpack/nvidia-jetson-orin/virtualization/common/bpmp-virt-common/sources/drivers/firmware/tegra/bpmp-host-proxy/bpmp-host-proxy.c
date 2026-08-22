@@ -13,6 +13,7 @@
 #include <linux/slab.h>
 #include <soc/tegra/bpmp.h>
 #include <linux/platform_device.h>
+#include <linux/version.h>
 #include "bpmp-host-proxy.h"
 
 
@@ -254,7 +255,11 @@ static int bpmp_host_proxy_probe(struct platform_device *pdev)
 /*
  * Removes module, sends appropriate message to kernel
  */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0)
+static void bpmp_host_proxy_remove(struct platform_device *pdev)
+#else
 static int bpmp_host_proxy_remove(struct platform_device *pdev)
+#endif
 {
 	deb_info("removing module.\n");
 	device_destroy(bpmp_host_proxy_class, MKDEV(major_number, 0)); // remove the device
@@ -263,7 +268,9 @@ static int bpmp_host_proxy_remove(struct platform_device *pdev)
 	unregister_chrdev(major_number, DEVICE_NAME);		  // unregister the major number
 	deb_info("Goodbye from the LKM!\n");
 	unregister_chrdev(major_number, DEVICE_NAME);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(7, 1, 0)
 	return 0;
+#endif
 }
 
 /*

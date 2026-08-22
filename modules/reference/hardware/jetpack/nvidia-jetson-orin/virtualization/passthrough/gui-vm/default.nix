@@ -9,6 +9,13 @@
 }:
 let
   cfg = config.ghaf.hardware.nvidia.passthroughs.gui_vm;
+  configuredGuiVmVmm = config.ghaf.virtualization.vmConfig.sysvms.guivm.vmm or null;
+  guiVmVmm =
+    if configuredGuiVmVmm != null then
+      configuredGuiVmVmm
+    else
+      config.ghaf.virtualization.vmConfig.defaultSysVmVmm;
+  isCrosvm = guiVmVmm == "crosvm";
 
   virt = config.ghaf.hardware.nvidia.virtualization;
 
@@ -22,6 +29,7 @@ let
   board = boardFor config.ghaf.hardware.nvidia.orin.somType;
 
   mkOrinGpuDtb = import ../payload/dtb.nix;
+  mkOrinGpuCrosvmOverlay = import ../payload/crosvm-overlay.nix;
   mkOrinGpuGuestModule = import ../payload/guest-module.nix;
 
   guivm-dtb = mkOrinGpuDtb {
@@ -29,14 +37,27 @@ let
     cap = capabilities.guivm;
     kernel = config.boot.kernelPackages.kernel;
   };
+  guivm-crosvm-overlay = mkOrinGpuCrosvmOverlay {
+    inherit lib pkgs board;
+    kernel = config.boot.kernelPackages.kernel;
+  };
 in
 {
   _file = ./default.nix;
 
-  options.ghaf.hardware.nvidia.passthroughs.gui_vm.enable = lib.mkOption {
-    type = lib.types.bool;
-    default = false;
-    description = "Pass the Tegra234 GPU, engines and display through to a single combined microvm, gui-vm, on NVIDIA Orin AGX";
+  options.ghaf.hardware.nvidia.passthroughs.gui_vm = {
+    enable = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Pass the Tegra234 GPU, engines and display through to a single combined microvm, gui-vm, on NVIDIA Orin AGX";
+    };
+
+    guestKernelPackages = lib.mkOption {
+      type = lib.types.raw;
+      default = config.ghaf.hardware.nvidia.orin.guestKernelPackages;
+      defaultText = lib.literalExpression "config.ghaf.hardware.nvidia.orin.guestKernelPackages";
+      description = "Kernel package set used by the combined NVIDIA Orin GUIVM payload";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -98,7 +119,11 @@ in
     systemd.services."microvm@gui-vm" = {
       requires = [ "bindGuiVm.service" ];
       after = [ "bindGuiVm.service" ];
-      environment = lib.mkIf payload.needsDceBridge { GHAF_DCE_GUEST = "1"; };
+      environment = lib.mkIf (!isCrosvm && payload.needsDceBridge) { GHAF_DCE_GUEST = "1"; };
+      serviceConfig.ExecStartPre = lib.optionals isCrosvm [
+        "${pkgs.bash}/bin/bash -c '${pkgs.coreutils}/bin/test -r /dev/bpmp-host && ${pkgs.coreutils}/bin/test -w /dev/bpmp-host'"
+        "${pkgs.bash}/bin/bash -c '${pkgs.coreutils}/bin/test -r /dev/dce-host && ${pkgs.coreutils}/bin/test -w /dev/dce-host'"
+      ];
     };
 
     hardware.deviceTree.overlays = [
@@ -113,6 +138,8 @@ in
         inherit lib;
         cap = capabilities.guivm;
         dtb = guivm-dtb;
+        crosvmOverlay = guivm-crosvm-overlay;
+        inherit (cfg) guestKernelPackages;
         inherit (payload) vfioArgs;
         inherit (virt) sourcesPatch;
       })

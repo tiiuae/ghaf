@@ -708,6 +708,26 @@ in
       default = "bsp-default";
     };
 
+    hostKernelPackages = mkOption {
+      description = ''
+        Base kernel package set for the Orin host. The NVIDIA JetPack overlay
+        and Ghaf's host-side passthrough modules are applied after this
+        selection.
+      '';
+      type = types.raw;
+      default = pkgs.nvidia-jetpack.kernelPackages;
+    };
+
+    guestKernelPackages = mkOption {
+      description = ''
+        Base kernel package set for NVIDIA platform-device passthrough guests.
+        The NVIDIA JetPack overlay and the guest-specific passthrough patches
+        are applied after this selection.
+      '';
+      type = types.raw;
+      default = pkgs.linuxPackages_6_12;
+    };
+
     runtimeEkProvision.enable = mkOption {
       description = "Provision EK certificates into TPM NV indices at runtime";
       type = types.bool;
@@ -929,9 +949,15 @@ in
           name = "hid-logitech-unifying";
           patch = null;
           structuredExtraConfig = with lib.kernel; {
-            HID_LOGITECH = yes;
-            HID_LOGITECH_DJ = yes;
-            HID_LOGITECH_HIDPP = yes;
+            # Linux 7.1 makes HID_LOGITECH depend on the modular multicolor LED
+            # class in the upstream defconfig, so the receiver drivers must be
+            # modules too. Earlier Orin kernels keep the proven built-in setup.
+            HID_LOGITECH =
+              if lib.versionAtLeast config.boot.kernelPackages.kernel.version "7.1" then module else yes;
+            HID_LOGITECH_DJ =
+              if lib.versionAtLeast config.boot.kernelPackages.kernel.version "7.1" then module else yes;
+            HID_LOGITECH_HIDPP =
+              if lib.versionAtLeast config.boot.kernelPackages.kernel.version "7.1" then module else yes;
           };
         }
       ]
