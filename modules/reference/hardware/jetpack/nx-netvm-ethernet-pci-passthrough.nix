@@ -43,6 +43,16 @@ in
           {
             bus = "pci";
             path = ethPciDevice;
+            crosvm = {
+              # Crosvm guest PCI addresses are domainless. Keep the endpoint's
+              # host domain in the sysfs path and assign it a domain-0 address
+              # in the guest, matching the nonzero-domain AGX PCI devices.
+              guestAddress = "00:1f.0";
+              # The Arm virtio-IOMMU path does not establish usable DMA
+              # mappings for these endpoints. Host VFIO/SMMU isolation remains
+              # active while the guest virtio-IOMMU is bypassed for this device.
+              iommu = "off";
+            };
           }
         ];
       }
