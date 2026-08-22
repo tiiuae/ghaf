@@ -213,13 +213,24 @@ let
               defaultAppVmVmm = lib.mkDefault "crosvm";
             };
 
+            # Use the Crosvm-native manager when the complete dynamically
+            # managed VM set supports it. If a deployment selects QEMU for any
+            # VM, retain vhotplug as the compatible rollback backend.
+            ghaf.hardware.passthrough.deviceManager.backend = lib.mkDefault (
+              if lib.all (vm: vm.type == "crosvm") config.ghaf.hardware.passthrough.vhotplug.vms then
+                "ghaf-device-manager"
+              else
+                "vhotplug"
+            );
+
             # The default overlay intentionally leaves aarch64 Crosvm
             # untouched. Select the Ghaf Crosvm build only for this target;
             # Orin guests inherit the host overlay list.
             nixpkgs.overlays = [ self.overlays.crosvm-ghaf ];
 
-            # QEMU keeps the proven evdev route. Crosvm uses vhotplug's USB
-            # attach/detach path, including for the Unifying receiver.
+            # QEMU keeps the proven evdev route. Crosvm uses the device
+            # manager's USB attach/detach path, including for the Unifying
+            # receiver.
             ghaf.hardware.passthrough.usb.guivmRules = lib.mkForce (acceleratedGuivmUsbRules {
               crosvm = guiVmVmm == "crosvm";
             });

@@ -138,6 +138,11 @@ let
   ];
   command = commandFor valid;
   layoutCommand = commandFor layout;
+  aarch64CrossPkgs = import self.inputs.nixpkgs {
+    localSystem.system = "x86_64-linux";
+    crossSystem.system = "aarch64-linux";
+    overlays = [ self.overlays.ghaf-device-manager ];
+  };
 in
 assert lib.hasInfix "--device-tree-overlay 'overlay file.dtbo'" command;
 assert lib.hasInfix
@@ -155,4 +160,12 @@ assert !assertionsPass fixedPci;
 assert !assertionsPass unsupportedLayout;
 assert !assertionsPass incompleteLayout;
 assert !assertionsPass overlappingLayout;
-pkgs.runCommand "crosvm-platform" { } "touch $out"
+pkgs.runCommand "crosvm-platform"
+  {
+    nativeBuildInputs = [ pkgs.file ];
+  }
+  ''
+    file ${aarch64CrossPkgs.ghaf-device-manager}/bin/ghaf-device-manager \
+      | grep -q 'ARM aarch64'
+    touch "$out"
+  ''
