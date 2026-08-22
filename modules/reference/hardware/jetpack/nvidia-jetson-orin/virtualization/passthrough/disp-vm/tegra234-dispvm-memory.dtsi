@@ -6,7 +6,31 @@
 // the carveouts consumer. Distinct from gpu-vm memory.dtsi (0x80000000-based);
 // disp-vm reuses base/proxies/display/dummies from ../gpu-vm/ unchanged.
 
+#ifdef GHAF_CROSVM_OVERLAY
 / {
+	fragment@10 {
+		target-path = "/";
+		__overlay__ {
+			scanout_p: vfio-memory@b0000000 {
+				compatible = "ghaf,vfio-resource-anchor";
+				reg = <0x00 0xb0000000 0x00 0x08000000>;
+				status = "disabled";
+			};
+
+			dispram_lo_p: vfio-memory@b8000000 {
+				compatible = "ghaf,vfio-resource-anchor";
+				reg = <0x00 0xb8000000 0x00 0x2e000000>;
+				status = "disabled";
+			};
+
+			dispram_hi_p: vfio-memory@200000000 {
+				compatible = "ghaf,vfio-resource-anchor";
+				reg = <0x02 0x00000000 0x00 0x1a000000>;
+				status = "disabled";
+			};
+#else
+/ {
+#endif
 	// disp-vm guest RAM = 1:1 GPA=HPA carveout, like gpu-vm's vm_cma. QEMU -m does
 	// not reliably back the guest in this tegra passthrough setup (virt -m base !=
 	// DTB memory@), so RAM comes from a reserved host carveout mapped 1:1 via vfio
@@ -95,4 +119,8 @@
 		memory-region = <&generic_reserved &vpr &fsi_reserved>;
 		status = "okay";
 	};
+#ifdef GHAF_CROSVM_OVERLAY
+		};
+	};
+#endif
 };

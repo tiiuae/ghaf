@@ -10,7 +10,8 @@ let
   agx = self.nixosConfigurations."nvidia-jetson-orin-agx-accelerated-guivm-debug".config;
   nxConfiguration = self.nixosConfigurations."nvidia-jetson-orin-nx-accelerated-guivm-debug";
   nx = nxConfiguration.config;
-  standardNx = self.nixosConfigurations."nvidia-jetson-orin-nx-debug".config;
+  splitAgx = self.nixosConfigurations."nvidia-jetson-orin-agx-debug".config;
+  splitNx = self.nixosConfigurations."nvidia-jetson-orin-nx-debug".config;
   nxQemuFallback =
     (nxConfiguration.extendModules {
       modules = [
@@ -28,6 +29,12 @@ let
     "gui-vm"
     "net-vm"
   ];
+  splitVmNames = [
+    "admin-vm"
+    "disp-vm"
+    "gpu-vm"
+    "net-vm"
+  ];
   managedVmsUse = host: vmm: lib.all (vm: vm.type == vmm) host.ghaf.hardware.passthrough.vhotplug.vms;
   hasShare = tag: vm: lib.any (share: share.tag == tag) vm.microvm.shares;
   hasArgPair =
@@ -40,6 +47,10 @@ let
 
   nxNet = vmConfig nx "net-vm";
   nxGui = vmConfig nx "gui-vm";
+  splitAgxGpu = vmConfig splitAgx "gpu-vm";
+  splitAgxDisp = vmConfig splitAgx "disp-vm";
+  splitNxGpu = vmConfig splitNx "gpu-vm";
+  splitNxDisp = vmConfig splitNx "disp-vm";
   fallbackNet = vmConfig nxQemuFallback "net-vm";
   expectedGuiDevices = [
     "60000000.vm_hs_p"
@@ -54,6 +65,27 @@ let
     "15480000.nvdec"
     "15540000.nvjpg"
   ];
+  expectedGpuDevices = [
+    "60000000.vm_hs_p"
+    "80000000.vm_cma_p"
+    "17000000.gpu"
+    "13e00000.host1x_pt"
+    "15340000.vic"
+    "15480000.nvdec"
+    "15540000.nvjpg"
+  ];
+  expectedDispDevices = [
+    "b0000000.scanout_p"
+    "b8000000.dispram_lo_p"
+    "200000000.dispram_hi_p"
+    "13830000.disp_caps_pt"
+    "13870000.disp_chan_pt"
+    "138c8000.disp_cursor_pt"
+  ];
+  expectedPlatformMmio = {
+    base = lib.fromHexString "0x60000000";
+    size = lib.fromHexString "0x1fa0000000";
+  };
 
   assertions = [
     {
@@ -79,11 +111,38 @@ let
         && !(nx.systemd.services.vhotplug.enable or false);
     }
     {
-      name = "standard NX keeps its QEMU and vhotplug defaults";
+      name = "split AGX and NX default every managed VM to Crosvm";
       ok =
-        standardNx.ghaf.virtualization.vmConfig.defaultSysVmVmm == "qemu"
-        && standardNx.ghaf.virtualization.vmConfig.defaultAppVmVmm == "qemu"
-        && standardNx.ghaf.hardware.passthrough.deviceManager.backend == "vhotplug";
+        managedVmsUse splitAgx "crosvm"
+        && managedVmsUse splitNx "crosvm"
+        && map (vm: vm.name) splitAgx.ghaf.hardware.passthrough.vhotplug.vms == splitVmNames
+        && map (vm: vm.name) splitNx.ghaf.hardware.passthrough.vhotplug.vms == splitVmNames;
+    }
+    {
+      name = "split AGX and NX select ghaf-device-manager";
+      ok =
+        splitAgx.ghaf.hardware.passthrough.deviceManager.backend == "ghaf-device-manager"
+        && splitNx.ghaf.hardware.passthrough.deviceManager.backend == "ghaf-device-manager"
+        && splitAgx.systemd.services."ghaf-device-manager".enable
+        && splitNx.systemd.services."ghaf-device-manager".enable
+        && !(splitAgx.systemd.services.vhotplug.enable or false)
+        && !(splitNx.systemd.services.vhotplug.enable or false);
+    }
+    {
+      name = "split GPU and display VMs use disjoint Crosvm platform layouts";
+      ok =
+        map (device: device.path) splitAgxGpu.microvm.devices == expectedGpuDevices
+        && map (device: device.path) splitNxGpu.microvm.devices == expectedGpuDevices
+        && map (device: device.path) splitAgxDisp.microvm.devices == expectedDispDevices
+        && map (device: device.path) splitNxDisp.microvm.devices == expectedDispDevices
+        && splitAgxGpu.microvm.crosvm.memoryBase == lib.fromHexString "0x2000000000"
+        && splitNxGpu.microvm.crosvm.memoryBase == lib.fromHexString "0x2000000000"
+        && splitAgxDisp.microvm.crosvm.memoryBase == lib.fromHexString "0x2000000000"
+        && splitNxDisp.microvm.crosvm.memoryBase == lib.fromHexString "0x2000000000"
+        && splitAgxGpu.microvm.crosvm.platformMmio == expectedPlatformMmio
+        && splitNxGpu.microvm.crosvm.platformMmio == expectedPlatformMmio
+        && splitAgxDisp.microvm.crosvm.platformMmio == expectedPlatformMmio
+        && splitNxDisp.microvm.crosvm.platformMmio == expectedPlatformMmio;
     }
     {
       name = "NX maps its nonzero-domain PCI Ethernet endpoint for Crosvm";
@@ -110,11 +169,7 @@ let
       ok =
         map (device: device.path) nxGui.microvm.devices == expectedGuiDevices
         && nxGui.microvm.crosvm.memoryBase == lib.fromHexString "0x2000000000"
-        &&
-          nxGui.microvm.crosvm.platformMmio == {
-            base = lib.fromHexString "0x60000000";
-            size = lib.fromHexString "0x1fa0000000";
-          };
+        && nxGui.microvm.crosvm.platformMmio == expectedPlatformMmio;
     }
     {
       name = "explicit NX QEMU fallback restores vhotplug and fw_cfg";
