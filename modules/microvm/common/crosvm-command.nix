@@ -229,7 +229,9 @@ in
   shutdownCommand =
     if socket != null then
       ''
-        ${crosvmPkg}/bin/crosvm powerbtn ${socket}
+        if ! ${crosvmPkg}/bin/crosvm --no-syslog powerbtn ${socket}; then
+          ${crosvmPkg}/bin/crosvm --no-syslog stop ${socket}
+        fi
       ''
     else
       throw "Cannot shutdown without socket";
