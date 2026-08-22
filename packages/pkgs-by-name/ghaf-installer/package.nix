@@ -6,10 +6,12 @@
   curl,
   e2fsprogs,
   efitools,
+  gawk,
   hwinfo,
   lvm2,
   ncurses,
   parted,
+  systemd,
   util-linux,
   writeShellApplication,
   zstd,
@@ -22,10 +24,12 @@ writeShellApplication {
     curl # fetch the image and its block map when netbooted
     e2fsprogs # Needed for chattr in efivar cleanup
     efitools # Needed for Secure Boot key enrollment
+    gawk # Needed for the awk in find_esp_device
     hwinfo
     lvm2 # Needed for vgchange, pvremove
     ncurses # Needed for `clear` command
     parted # Needed for partprobe
+    systemd # Needed for udevadm settle
     util-linux
     zstd
   ];
