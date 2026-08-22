@@ -17,19 +17,6 @@ in
 { config, pkgs, ... }:
 let
   isCrosvm = config.microvm.hypervisor == "crosvm";
-  expectedCrosvmDevicePaths = [
-    "60000000.vm_hs_p"
-    "80000000.vm_cma_p"
-    "b0000000.scanout_p"
-    "13830000.disp_caps_pt"
-    "13870000.disp_chan_pt"
-    "138c8000.disp_cursor_pt"
-    "17000000.gpu"
-    "13e00000.host1x_pt"
-    "15340000.vic"
-    "15480000.nvdec"
-    "15540000.nvjpg"
-  ];
   # L4T EGL rejects modifier-backed GBM surfaces.
   gbm-nomod-shim = pkgs.runCommandCC "gbm-nomod-shim" { } ''
     mkdir -p $out/lib
@@ -191,8 +178,8 @@ in
       message = "Orin Crosvm GPU/display passthrough requires its device-tree overlay.";
     }
     {
-      assertion = map (device: device.path) payload.crosvmDevices == expectedCrosvmDevicePaths;
-      message = "Orin Crosvm GUI device order drifted from the QEMU-compatible allocation layout.";
+      assertion = map (device: device.path) payload.crosvmDevices == payload.hostDevices;
+      message = "Orin Crosvm device order drifted from the QEMU-compatible allocation layout.";
     }
   ];
 
@@ -254,11 +241,13 @@ in
           size = lib.fromHexString "0x1fa0000000";
         };
         deviceTreeOverlays = [
-          "${crosvmOverlay}/tegra234-guivm-crosvm-overlay.dtbo"
+          "${crosvmOverlay}/${crosvmOverlay.fileName}"
         ];
         extraArgs = [
           "--nvidia-bpmp-host"
           "/dev/bpmp-host"
+        ]
+        ++ lib.optionals payload.needsDceBridge [
           "--nvidia-dce-host"
           "/dev/dce-host"
         ];
