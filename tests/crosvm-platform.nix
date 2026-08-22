@@ -20,14 +20,14 @@ let
       ]
       ++ modules;
     };
-  commandFor =
+  crosvmCommandFor =
     nixos:
-    (import ../modules/microvm/common/crosvm-command.nix {
+    import ../modules/microvm/common/crosvm-command.nix {
       inherit (nixos) pkgs;
       microvmConfig = nixos.config.microvm;
       macvtapFds = { };
       linuxTarget = nixos.pkgs.linux.target or nixos.pkgs.stdenv.hostPlatform.linux-kernel.target;
-    }).command;
+    };
   assertionsPass = nixos: builtins.all ({ assertion, ... }: assertion) nixos.config.assertions;
   valid = makeConfig "x86_64-linux" [
     {
@@ -136,8 +136,9 @@ let
       };
     }
   ];
-  command = commandFor valid;
-  layoutCommand = commandFor layout;
+  inherit ((crosvmCommandFor valid)) command;
+  inherit ((crosvmCommandFor valid)) shutdownCommand;
+  layoutCommand = (crosvmCommandFor layout).command;
   aarch64CrossPkgs = import self.inputs.nixpkgs {
     localSystem.system = "x86_64-linux";
     crossSystem.system = "aarch64-linux";
@@ -151,6 +152,8 @@ assert lib.hasInfix
 assert lib.hasInfix "/sys/bus/pci/devices/0000:01:00.0,iommu=viommu,guest-address=00:1f.0" command;
 assert lib.hasInfix "--mem 'size=512,base=0x2000000000'" layoutCommand;
 assert lib.hasInfix "--platform-mmio 'base=0x60000000,size=0x1fa0000000'" layoutCommand;
+assert lib.hasInfix "--no-syslog powerbtn" shutdownCommand;
+assert lib.hasInfix "--no-syslog stop" shutdownCommand;
 assert assertionsPass valid;
 assert assertionsPass layout;
 assert !assertionsPass missingSymbol;
@@ -167,5 +170,7 @@ pkgs.runCommand "crosvm-platform"
   ''
     file ${aarch64CrossPkgs.ghaf-device-manager}/bin/ghaf-device-manager \
       | grep -q 'ARM aarch64'
+    grep -q -- '--no-syslog powerbtn' ${valid.config.microvm.runner.crosvm}/bin/microvm-shutdown
+    grep -q -- '--no-syslog stop' ${valid.config.microvm.runner.crosvm}/bin/microvm-shutdown
     touch "$out"
   ''
