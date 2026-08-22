@@ -46,6 +46,7 @@
           fss-test = pkgs.callPackage ./logging/test_scripts/fss-test.nix { };
           fss-triage = pkgs.callPackage ./logging/test_scripts/fss-triage.nix { };
           access-control-tests = pkgs.callPackage ./access-control { inherit self; };
+          orin-ftpm = pkgs.callPackage ./orin-ftpm.nix { inherit self; };
         };
     };
 }
