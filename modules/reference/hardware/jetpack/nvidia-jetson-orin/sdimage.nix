@@ -261,7 +261,7 @@ in
           # root-partition offset and sector count
           part_root=$(echo -n "$fdisk_output" | tail -n 1 | head -n 1 | tr -s ' ')
           part_root_begin=$(echo -n "$part_root" | cut -d ' ' -f3)
-          part_root_count=$(echo -n "$part_root" | cut -d ' ' -f4)
+          part_root_count=$(echo -n "$part_root" | cut -d ' ' -f5)
 
           echo -n $part_esp_begin > $out/esp.offset
           echo -n $part_esp_count > $out/esp.size
