@@ -32,7 +32,7 @@ let
     openMacvtapFds
     macvtapFds
     ;
-  inherit (hypervisorConfig) command;
+  inherit (hypervisorConfig) command canShutdown shutdownCommand;
   preStart = hypervisorConfig.preStart or microvmConfig.preStart;
   execArg = lib.optionalString microvmConfig.prettyProcnames ''-a "microvm@${hostName}"'';
   runScript = vmHostPackages.writeShellScript "microvm-${hostName}-run" ''
@@ -48,6 +48,11 @@ let
 
     exec ${execArg} ${command} ''${runtime_args:-}
   '';
+  shutdownScript =
+    if canShutdown then
+      vmHostPackages.writeShellScript "microvm-${hostName}-shutdown" shutdownCommand
+    else
+      null;
   platformDevices = lib.filter ({ bus, ... }: bus == "platform") microvmConfig.devices;
 in
 vmHostPackages.buildPackages.runCommand "microvm-crosvm-${hostName}"
@@ -61,6 +66,10 @@ vmHostPackages.buildPackages.runCommand "microvm-crosvm-${hostName}"
     chmod -R u+w "$out"
     rm "$out/bin/microvm-run"
     ln -s ${runScript} "$out/bin/microvm-run"
+    ${lib.optionalString canShutdown ''
+      rm "$out/bin/microvm-shutdown"
+      ln -s ${shutdownScript} "$out/bin/microvm-shutdown"
+    ''}
     ${lib.optionalString (platformDevices != [ ]) ''
       ${lib.concatMapStringsSep "\n" ({ path, ... }: ''
         echo ${lib.escapeShellArg path} >> "$out/share/microvm/platform-devices"
