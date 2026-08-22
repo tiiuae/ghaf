@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: 2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: GPL-2.0-only
+From: Ghaf contributors <ghaf@tii.ae>
+Subject: [PATCH] tee: optee: time out notification waits
+
+NVIDIA's r36 secure-world notification RPC expects normal world to return
+periodically so it can recheck the wait condition. Match the vendor kernel's
+100 ms polling behavior instead of waiting indefinitely.
+
+diff --git a/drivers/tee/optee/notif.c b/drivers/tee/optee/notif.c
+index 0d9cbad7c7a5..7e548e743144 100644
+--- a/drivers/tee/optee/notif.c
++++ b/drivers/tee/optee/notif.c
+@@ -9,0 +10 @@
++#include <linux/jiffies.h>
+@@ -14,0 +16,2 @@
++#define OPTEE_NOTIFICATION_WAIT_TIMEOUT msecs_to_jiffies(100)
++
+@@ -73 +76,2 @@
+-	wait_for_completion(&entry->c);
++	(void)wait_for_completion_timeout(&entry->c,
++					  OPTEE_NOTIFICATION_WAIT_TIMEOUT);
