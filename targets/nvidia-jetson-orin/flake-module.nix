@@ -169,6 +169,47 @@ let
       }
     ];
 
+  acceleratedGuivmCrosvmModule =
+    { config, ... }:
+    let
+      configuredGuiVmVmm = config.ghaf.virtualization.vmConfig.sysvms.guivm.vmm or null;
+      guiVmVmm =
+        if configuredGuiVmVmm != null then
+          configuredGuiVmVmm
+        else
+          config.ghaf.virtualization.vmConfig.defaultSysVmVmm;
+    in
+    {
+      # Crosvm is supported by every VM in these targets. Keep these as
+      # defaults so a deployment can still override either default or select
+      # QEMU for an individual VM as a rollback.
+      ghaf.virtualization.vmConfig = {
+        defaultSysVmVmm = lib.mkDefault "crosvm";
+        defaultAppVmVmm = lib.mkDefault "crosvm";
+      };
+
+      # Use the Crosvm-native manager when the complete dynamically managed VM
+      # set supports it. If a deployment selects QEMU for any VM, retain
+      # vhotplug as the compatible rollback backend.
+      ghaf.hardware.passthrough.deviceManager.backend = lib.mkDefault (
+        if lib.all (vm: vm.type == "crosvm") config.ghaf.hardware.passthrough.vhotplug.vms then
+          "ghaf-device-manager"
+        else
+          "vhotplug"
+      );
+
+      # The default overlay intentionally leaves aarch64 Crosvm untouched.
+      # Select the Ghaf Crosvm build only for the accelerated Orin targets;
+      # their guests inherit the host overlay list.
+      nixpkgs.overlays = [ self.overlays.crosvm-ghaf ];
+
+      # QEMU keeps the proven evdev route. Crosvm uses the device manager's USB
+      # attach/detach path, including for the Unifying receiver.
+      ghaf.hardware.passthrough.usb.guivmRules = lib.mkForce (acceleratedGuivmUsbRules {
+        crosvm = guiVmVmm == "crosvm";
+      });
+    };
+
   # Non-verity Orin configurations using mkGhafConfiguration
   target-configs = [
     # ============================================================
@@ -193,50 +234,7 @@ let
       profile = "orin";
       hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx;
       variant = "debug";
-      extraModules = commonModules ++ [
-        (
-          { config, ... }:
-          let
-            configuredGuiVmVmm = config.ghaf.virtualization.vmConfig.sysvms.guivm.vmm or null;
-            guiVmVmm =
-              if configuredGuiVmVmm != null then
-                configuredGuiVmVmm
-              else
-                config.ghaf.virtualization.vmConfig.defaultSysVmVmm;
-          in
-          {
-            # Crosvm is supported by every VM in this target. Keep these as
-            # defaults so a deployment can still override either default or
-            # select QEMU for an individual VM as a rollback.
-            ghaf.virtualization.vmConfig = {
-              defaultSysVmVmm = lib.mkDefault "crosvm";
-              defaultAppVmVmm = lib.mkDefault "crosvm";
-            };
-
-            # Use the Crosvm-native manager when the complete dynamically
-            # managed VM set supports it. If a deployment selects QEMU for any
-            # VM, retain vhotplug as the compatible rollback backend.
-            ghaf.hardware.passthrough.deviceManager.backend = lib.mkDefault (
-              if lib.all (vm: vm.type == "crosvm") config.ghaf.hardware.passthrough.vhotplug.vms then
-                "ghaf-device-manager"
-              else
-                "vhotplug"
-            );
-
-            # The default overlay intentionally leaves aarch64 Crosvm
-            # untouched. Select the Ghaf Crosvm build only for this target;
-            # Orin guests inherit the host overlay list.
-            nixpkgs.overlays = [ self.overlays.crosvm-ghaf ];
-
-            # QEMU keeps the proven evdev route. Crosvm uses the device
-            # manager's USB attach/detach path, including for the Unifying
-            # receiver.
-            ghaf.hardware.passthrough.usb.guivmRules = lib.mkForce (acceleratedGuivmUsbRules {
-              crosvm = guiVmVmm == "crosvm";
-            });
-          }
-        )
-      ];
+      extraModules = commonModules ++ [ acceleratedGuivmCrosvmModule ];
       extraConfig = {
         reference.profiles.mvp-orinuser-trial.enable = true;
         # Accelerated topology has one combined GPU/display owner.
@@ -320,7 +318,7 @@ let
       profile = "orin";
       hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-nx;
       variant = "debug";
-      extraModules = commonModules;
+      extraModules = commonModules ++ [ acceleratedGuivmCrosvmModule ];
       extraConfig = {
         reference.profiles.mvp-orinuser-trial.enable = true;
         # Accelerated topology has one combined GPU/display owner.
@@ -332,9 +330,6 @@ let
         # supplies one with -s, which also keeps the script buildable without
         # the image.
         hardware.nvidia.orin.flashScriptOverrides.appPartitionSizeBytes = 34359738368;
-
-        # Keep the Unifying receiver on the working evdev path.
-        hardware.passthrough.usb.guivmRules = lib.mkForce (acceleratedGuivmUsbRules { });
       };
       vmConfig = {
         sysvms.netvm = {
