@@ -169,18 +169,11 @@ let
       }
     ];
 
-  acceleratedGuivmCrosvmModule =
+  orinCrosvmModule =
     { config, ... }:
-    let
-      configuredGuiVmVmm = config.ghaf.virtualization.vmConfig.sysvms.guivm.vmm or null;
-      guiVmVmm =
-        if configuredGuiVmVmm != null then
-          configuredGuiVmVmm
-        else
-          config.ghaf.virtualization.vmConfig.defaultSysVmVmm;
-    in
     {
-      # Crosvm is supported by every VM in these targets. Keep these as
+      # Crosvm is supported by every VM in the Orin split and accelerated
+      # targets. Keep these as
       # defaults so a deployment can still override either default or select
       # QEMU for an individual VM as a rollback.
       ghaf.virtualization.vmConfig = {
@@ -199,9 +192,23 @@ let
       );
 
       # The default overlay intentionally leaves aarch64 Crosvm untouched.
-      # Select the Ghaf Crosvm build only for the accelerated Orin targets;
+      # Select the Ghaf Crosvm build only for the supported Orin targets;
       # their guests inherit the host overlay list.
       nixpkgs.overlays = [ self.overlays.crosvm-ghaf ];
+    };
+
+  acceleratedGuivmCrosvmModule =
+    { config, ... }:
+    let
+      configuredGuiVmVmm = config.ghaf.virtualization.vmConfig.sysvms.guivm.vmm or null;
+      guiVmVmm =
+        if configuredGuiVmVmm != null then
+          configuredGuiVmVmm
+        else
+          config.ghaf.virtualization.vmConfig.defaultSysVmVmm;
+    in
+    {
+      imports = [ orinCrosvmModule ];
 
       # QEMU keeps the proven evdev route. Crosvm uses the device manager's USB
       # attach/detach path, including for the Unifying receiver.
@@ -222,7 +229,7 @@ let
       profile = "orin";
       hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx;
       variant = "debug";
-      extraModules = commonModules;
+      extraModules = commonModules ++ [ orinCrosvmModule ];
       extraConfig = {
         reference.profiles.mvp-orinuser-trial.enable = true;
       };
@@ -274,7 +281,10 @@ let
       profile = "orin";
       hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-nx;
       variant = "debug";
-      extraModules = commonModules ++ [ nxGpuPartitioningDebugModule ];
+      extraModules = commonModules ++ [
+        orinCrosvmModule
+        nxGpuPartitioningDebugModule
+      ];
       extraConfig = {
         reference.profiles.mvp-orinuser-trial.enable = true;
         # Crucial for Orin devices to use the correct render device
