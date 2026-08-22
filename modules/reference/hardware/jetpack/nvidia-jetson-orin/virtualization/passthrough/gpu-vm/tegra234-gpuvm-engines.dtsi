@@ -3,8 +3,20 @@
 // Passed-through compute/media engines: GA10B GPU, interconnect
 // provider, host1x and its VIC/NVDEC/NVJPG children.
 
+#ifdef GHAF_CROSVM_OVERLAY
+/ {
+	fragment@20 {
+		target-path = "/";
+		__overlay__ {
+			aliases {
+				// A label reference becomes a path inside fragment@20 in a
+				// compiled overlay. Name the post-apply root node directly.
+				host1x = "/host1x@13e00000";
+			};
+#else
 / {
 	platform-bus@70000000 {
+#endif
 /* GA10B is absent from display-only guests. */
 #ifndef EXP_DROP_GPU
 		ga10b: gpu@17000000 {
@@ -12,7 +24,9 @@
 			reg = <0x0 0x17000000 0x0 0x01000000>,
 			      <0x0 0x18000000 0x0 0x01000000>,
 			      <0x0 0x03b41000 0x0 0x00001000>;
+#ifndef GHAF_CROSVM_OVERLAY
 			interrupt-parent = <0x8005>;
+#endif
 			interrupts = <GIC_SPI 112 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 113 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 114 IRQ_TYPE_LEVEL_HIGH>,
@@ -85,8 +99,15 @@
 
 			//interrupt-parent = <&gic>;
 
+#ifdef GHAF_CROSVM_OVERLAY
+			// Crosvm patches each VFIO child reg to its allocated guest address.
+			// Use an identity child-bus translation so those patched VIC,
+			// NVDEC, and NVJPG resources remain valid beneath host1x.
+			ranges;
+#else
 			ranges = <0x0 0x14800000 0x0 0x14800000 0x0 0x02000000>,
 				 <0x0 0x24700000 0x0 0x24700000 0x0 0x00080000>;
+#endif
 
 			status = "okay";
 
@@ -108,7 +129,7 @@
 			// 	    <14 &smmu_niso1 TEGRA234_SID_HOST1X_CTX6 1>,
 			// 	    <15 &smmu_niso1 TEGRA234_SID_HOST1X_CTX7 1>;
 
-			vic@15340000 {
+			vic: vic@15340000 {
 				compatible = "nvidia,tegra234-vic";
 				reg = <0x0 0x15340000 0x0 0x00040000>;
 				interrupts = <GIC_SPI 125 IRQ_TYPE_LEVEL_HIGH>;
@@ -126,7 +147,7 @@
 				status = "okay";
 			};
 
-			nvdec@15480000 {
+			nvdec: nvdec@15480000 {
 				compatible = "nvidia,tegra234-nvdec";
 				reg = <0x0 0x15480000 0x0 0x00040000>;
 				clocks = <&bpmp TEGRA234_CLK_NVDEC>,
@@ -162,7 +183,7 @@
 				status = "disabled";
 			};
 
-			nvjpg@15540000 {
+			nvjpg: nvjpg@15540000 {
 				compatible = "nvidia,tegra234-nvjpg";
 				reg = <0x0 0x15540000 0x0 0x00040000>;
 				clocks = <&bpmp TEGRA234_CLK_NVJPG1>;
@@ -183,5 +204,10 @@
 			};
 		};
 #endif
+#ifdef GHAF_CROSVM_OVERLAY
+		};
 	};
+#else
+	};
+#endif
 };

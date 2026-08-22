@@ -6,34 +6,46 @@
   inputs,
   ...
 }:
+let
+  crosvmGhaf = _final: prev: {
+    crosvm = prev.crosvm.overrideAttrs (old: {
+      src = inputs.ghaf-crosvm;
+      cargoDeps = prev.rustPlatform.fetchCargoVendor {
+        src = inputs.ghaf-crosvm;
+        hash = "sha256-lU30pTzJ1hYyHcpFKemZou9d2ZqSlFu4JC+IUe2Gm5A=";
+      };
+      cargoBuildFeatures = (old.cargoBuildFeatures or (old.buildFeatures or [ ])) ++ [
+        "pci-hotplug"
+        "power-monitor-sysfs"
+        "vtpm"
+      ];
+      buildInputs = (old.buildInputs or [ ]) ++ [ prev.dbus ];
+    });
+  };
+in
 {
   flake.overlays = {
     cross-compilation = import ./cross-compilation;
     custom-packages = import ./custom-packages;
+    crosvm-ghaf = crosvmGhaf;
     crosvm =
-      _final: prev:
-      inputs.nixpkgs.lib.optionalAttrs prev.stdenv.hostPlatform.isx86_64 {
-        crosvm = prev.crosvm.overrideAttrs (old: {
-          src = inputs.ghaf-crosvm;
-          cargoDeps = prev.rustPlatform.fetchCargoVendor {
-            src = inputs.ghaf-crosvm;
-            hash = "sha256-lU30pTzJ1hYyHcpFKemZou9d2ZqSlFu4JC+IUe2Gm5A=";
-          };
-          cargoBuildFeatures = (old.cargoBuildFeatures or (old.buildFeatures or [ ])) ++ [
-            "pci-hotplug"
-            "power-monitor-sysfs"
-            "vtpm"
-          ];
-          buildInputs = (old.buildInputs or [ ]) ++ [ prev.dbus ];
-        });
-      };
+      final: prev:
+      inputs.nixpkgs.lib.optionalAttrs prev.stdenv.hostPlatform.isx86_64 (crosvmGhaf final prev);
 
     ghaf-device-manager =
-      _final: prev:
-      inputs.nixpkgs.lib.optionalAttrs prev.stdenv.hostPlatform.isx86_64 {
-        ghaf-device-manager =
-          inputs.ghaf-device-manager.packages.${prev.stdenv.hostPlatform.system}.default;
-      };
+      final: prev:
+      inputs.nixpkgs.lib.optionalAttrs
+        (builtins.elem prev.stdenv.hostPlatform.system [
+          "x86_64-linux"
+          "aarch64-linux"
+        ])
+        {
+          # Build with the consuming package set. In particular, an AArch64
+          # cross target must use its cross stdenv instead of importing a native
+          # package (or falling through to a builder-architecture package from a
+          # later overlay).
+          ghaf-device-manager = final.callPackage "${inputs.ghaf-device-manager}/nix/package.nix" { };
+        };
 
     # Carry the two focused logging fixes from ghafpkgs#362 until it merges,
     # while retaining the authoritative tiiuae/ghafpkgs input.

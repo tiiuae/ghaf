@@ -137,7 +137,7 @@ in
         # Export Net VM base for profiles to extend
         orin.netvmBase = lib.nixosSystem {
           modules = [
-            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.microvm-guest
             inputs.self.nixosModules.netvm-base
             # Import nixpkgs config module to get overlays
             {
@@ -162,7 +162,7 @@ in
         # Export Admin VM base for profiles to extend
         orin.adminvmBase = lib.nixosSystem {
           modules = [
-            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.microvm-guest
             inputs.self.nixosModules.adminvm-base
             # Import nixpkgs config module to get overlays
             {
@@ -186,7 +186,7 @@ in
         # Export GPU VM base for profiles to extend
         orin.gpuvmBase = lib.nixosSystem {
           modules = [
-            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.microvm-guest
             inputs.self.nixosModules.gpuvm-base
             # Import nixpkgs config module to get overlays
             {
@@ -210,7 +210,7 @@ in
         # Export Disp VM base for profiles to extend
         orin.dispvmBase = lib.nixosSystem {
           modules = [
-            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.microvm-guest
             inputs.self.nixosModules.dispvm-base
             # Import nixpkgs config module to get overlays
             {
@@ -233,7 +233,7 @@ in
 
         orin.guivmBase = lib.nixosSystem {
           modules = [
-            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.microvm-guest
             inputs.self.nixosModules.guivm-base
             inputs.self.nixosModules.guivm-features
             inputs.self.nixosModules.orin-guivm-specialization
@@ -258,16 +258,12 @@ in
         orin.mkAppVm =
           vmDef:
           let
-            vmCfg = config.ghaf.virtualization.vmConfig.appvms.${vmDef.name} or { };
-            effectiveDef =
-              vmDef
-              // lib.optionalAttrs ((vmCfg.mem or null) != null) { inherit (vmCfg) mem; }
-              // lib.optionalAttrs ((vmCfg.vcpu or null) != null) { inherit (vmCfg) vcpu; }
-              // lib.optionalAttrs ((vmCfg.balloonRatio or null) != null) { inherit (vmCfg) balloonRatio; };
+            resolved = lib.ghaf.vm.resolveAppVmConfig { inherit config vmDef; };
+            inherit (resolved) effectiveDef selectedVmm;
           in
           lib.nixosSystem {
             modules = [
-              inputs.microvm.nixosModules.microvm
+              inputs.self.nixosModules.microvm-guest
               inputs.self.nixosModules.appvm-base
               {
                 nixpkgs = {
@@ -277,7 +273,7 @@ in
                 };
               }
             ]
-            ++ (vmCfg.extraModules or [ ]);
+            ++ resolved.extraModules;
             specialArgs = lib.ghaf.vm.mkSpecialArgs {
               inherit lib inputs;
               globalConfig = hostGlobalConfig;
@@ -288,6 +284,7 @@ in
                 }
                 // {
                   appvm = effectiveDef;
+                  appvmVmm = selectedVmm;
                   sharedVmDirectory =
                     config.ghaf.virtualization.microvm-host.sharedVmDirectory or {
                       enable = false;

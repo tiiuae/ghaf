@@ -5,6 +5,7 @@
   lib,
   cap,
   dtb,
+  crosvmOverlay ? null,
   dtbName ? "tegra234-gpuvm.dtb",
   vfioArgs,
   sourcesPatch,
@@ -15,6 +16,7 @@ let
 in
 { config, pkgs, ... }:
 let
+  isCrosvm = config.microvm.hypervisor == "crosvm";
   # L4T EGL rejects modifier-backed GBM surfaces.
   gbm-nomod-shim = pkgs.runCommandCC "gbm-nomod-shim" { } ''
     mkdir -p $out/lib
@@ -169,6 +171,16 @@ in
         && (lib.elem "pd_ignore_unused" config.boot.kernelParams);
       message = "gpu-vm guest must boot with both clk_ignore_unused and pd_ignore_unused, or it can power off clocks/domains the host still uses.";
     }
+  ]
+  ++ lib.optionals isCrosvm [
+    {
+      assertion = crosvmOverlay != null;
+      message = "Orin Crosvm GPU/display passthrough requires its device-tree overlay.";
+    }
+    {
+      assertion = map (device: device.path) payload.crosvmDevices == payload.hostDevices;
+      message = "Orin Crosvm device order drifted from the QEMU-compatible allocation layout.";
+    }
   ];
 
   # NVIDIA OOT modules do not autoload from the guest DT.
@@ -209,11 +221,38 @@ in
     }
   ];
 
-  ghaf.virtualization.qemu.package = lib.mkForce pkgs.ghaf-qemu-bpmp-gpu;
+  ghaf.virtualization.qemu.package = lib.mkIf (!isCrosvm) (lib.mkForce pkgs.ghaf-qemu-bpmp-gpu);
 
-  microvm.qemu.extraArgs = [
-    "-dtb"
-    "${dtb}/${dtbName}"
-  ]
-  ++ vfioArgs;
+  microvm = lib.mkMerge [
+    {
+      qemu.extraArgs = lib.mkIf (!isCrosvm) (
+        [
+          "-dtb"
+          "${dtb}/${dtbName}"
+        ]
+        ++ vfioArgs
+      );
+    }
+    (lib.mkIf isCrosvm {
+      crosvm = {
+        memoryBase = lib.fromHexString "0x2000000000";
+        platformMmio = {
+          base = lib.fromHexString "0x60000000";
+          size = lib.fromHexString "0x1fa0000000";
+        };
+        deviceTreeOverlays = [
+          "${crosvmOverlay}/${crosvmOverlay.fileName}"
+        ];
+        extraArgs = [
+          "--nvidia-bpmp-host"
+          "/dev/bpmp-host"
+        ]
+        ++ lib.optionals payload.needsDceBridge [
+          "--nvidia-dce-host"
+          "/dev/dce-host"
+        ];
+      };
+      devices = payload.crosvmDevices;
+    })
+  ];
 }
