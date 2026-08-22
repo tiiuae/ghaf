@@ -395,6 +395,56 @@ let
       [
         "debug"
         "release"
+      ]
+  ++
+    map
+      (
+        variant:
+        ghaf-configuration {
+          name = "nvidia-jetson-orin-nx-verity";
+          inherit system;
+          profile = "orin";
+          hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx;
+          inherit variant;
+          extraModules = orinVerityModules;
+          extraConfig = {
+            reference.profiles.mvp-orinuser-trial.enable = true;
+            partitioning.verity.enable = true;
+            partitioning.verity.uki-signing-key-dir = lib.mkIf (
+              variant == "debug"
+            ) ../../modules/secureboot/dev-keys;
+            hardware.nvidia.orin.secureboot.enable = true;
+            # Debug builds enroll the dev certs so they match the dev signing
+            # keys; release builds keep the production certs from keysSource.
+            hardware.nvidia.orin.secureboot.keysSource = lib.mkIf (
+              variant == "debug"
+            ) ../../modules/secureboot/dev-keys;
+
+            # Crucial for Orin devices to use the correct render device
+            # Also needs 'mesa' to be in hardware.graphics.extraPackages
+            graphics.cosmic.renderDevice = "/dev/dri/renderD128";
+          };
+          vmConfig = {
+            sysvms.netvm = {
+              # 4 vCPUs is the minimum that keeps QEMU USB emulation (libusb
+              # redirection of the ethernet dongle) from starving when alloy, givc
+              # node + stunnel, and spire-agent are all active on Orin NX. At 2 vCPUs
+              # the xhci_hcd guest driver desyncs with the QEMU event ring under load
+              # ("Transfer event TRB DMA ptr not part of current TD" + NETDEV WATCHDOG
+              # TX timeouts). AGX is unaffected because it has more cores per slice.
+              vcpu = 4;
+              # 2GB headroom: alloy + stunnel + spire-agent + givc-agent + auditd
+              # pile up on net-vm with the givc/logging stack enabled, and the
+              # 1GB default OOMs during the first-boot burst on Orin NX. The kernel
+              # then evicts page cache backing the USB-eth driver and the dongle
+              # disconnects, killing sshd on the test-net IP.
+            };
+          };
+        }
+      )
+      [
+        "debug"
+        "release"
       ];
   all-target-configs = target-configs ++ verity-target-configs;
 
