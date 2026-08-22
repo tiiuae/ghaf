@@ -39,7 +39,12 @@ let
     dtsDir = "${pkgs.nvidia-jetpack.orinVirtualizationSupport}/device-trees/gpu-vm";
   };
   guivm-crosvm-overlay = mkOrinGpuCrosvmOverlay {
-    inherit lib pkgs board;
+    inherit
+      lib
+      pkgs
+      board
+      cap
+      ;
     kernel = config.boot.kernelPackages.kernel;
   };
 in

@@ -46,23 +46,42 @@ let
         + lib.optionalString computeWithHost1x "-DEXP_SHRINK_BANK1 ";
 
       reservedMem =
-        lib.optional cap.host1x {
-          dev = "60000000.vm_hs_p";
-          base = "0x60000000";
-          symbol = "vm_hs_p";
-        }
-        ++ [
-          {
-            dev = "80000000.vm_cma_p";
-            base = "0x80000000";
-            symbol = "vm_cma_p";
+        if displayOnly then
+          [
+            {
+              dev = "b0000000.scanout_p";
+              base = "0xb0000000";
+              symbol = "scanout_p";
+            }
+            {
+              dev = "b8000000.dispram_lo_p";
+              base = "0xb8000000";
+              symbol = "dispram_lo_p";
+            }
+            {
+              dev = "200000000.dispram_hi_p";
+              base = "0x200000000";
+              symbol = "dispram_hi_p";
+            }
+          ]
+        else
+          lib.optional cap.host1x {
+            dev = "60000000.vm_hs_p";
+            base = "0x60000000";
+            symbol = "vm_hs_p";
           }
-        ]
-        ++ lib.optional (!computeWithHost1x) {
-          dev = "b0000000.scanout_p";
-          base = "0xb0000000";
-          symbol = "scanout_p";
-        };
+          ++ [
+            {
+              dev = "80000000.vm_cma_p";
+              base = "0x80000000";
+              symbol = "vm_cma_p";
+            }
+          ]
+          ++ lib.optional (!computeWithHost1x) {
+            dev = "b0000000.scanout_p";
+            base = "0xb0000000";
+            symbol = "scanout_p";
+          };
 
       engines =
         lib.optional cap.gpu "17000000.gpu"

@@ -9,6 +9,13 @@
 }:
 let
   cfg = config.ghaf.hardware.nvidia.passthroughs.gpu_vm;
+  configuredGpuVmVmm = config.ghaf.virtualization.vmConfig.sysvms.gpuvm.vmm or null;
+  gpuVmVmm =
+    if configuredGpuVmVmm != null then
+      configuredGpuVmVmm
+    else
+      config.ghaf.virtualization.vmConfig.defaultSysVmVmm;
+  isCrosvm = gpuVmVmm == "crosvm";
 
   virt = config.ghaf.hardware.nvidia.virtualization;
 
@@ -22,6 +29,7 @@ let
   board = boardFor config.ghaf.hardware.nvidia.orin.somType;
 
   mkOrinGpuDtb = import ../payload/dtb.nix;
+  mkOrinGpuCrosvmOverlay = import ../payload/crosvm-overlay.nix;
   mkOrinGpuGuestModule = import ../payload/guest-module.nix;
 
   gpuvm-dtb = mkOrinGpuDtb {
@@ -29,6 +37,15 @@ let
     cap = capabilities.gpuvm;
     kernel = config.boot.kernelPackages.kernel;
     dtsDir = "${pkgs.nvidia-jetpack.orinVirtualizationSupport}/device-trees/gpu-vm";
+  };
+  gpuvm-crosvm-overlay = mkOrinGpuCrosvmOverlay {
+    inherit
+      lib
+      pkgs
+      board
+      cap
+      ;
+    kernel = config.boot.kernelPackages.kernel;
   };
 in
 {
@@ -117,7 +134,9 @@ in
     };
     systemd.services."microvm@gpu-vm" = {
       after = [ "bindGpuVm.service" ];
-      environment = lib.mkIf payload.needsDceBridge { GHAF_DCE_GUEST = "1"; };
+      serviceConfig.ExecStartPre = lib.optionals isCrosvm [
+        "${pkgs.bash}/bin/bash -c '${pkgs.coreutils}/bin/test -r /dev/bpmp-host && ${pkgs.coreutils}/bin/test -w /dev/bpmp-host'"
+      ];
     };
 
     hardware.deviceTree.overlays = [
@@ -134,6 +153,7 @@ in
         inherit lib;
         cap = capabilities.gpuvm;
         dtb = gpuvm-dtb;
+        crosvmOverlay = gpuvm-crosvm-overlay;
         inherit (payload) vfioArgs;
         inherit (virt) sourcesPatch;
       })
