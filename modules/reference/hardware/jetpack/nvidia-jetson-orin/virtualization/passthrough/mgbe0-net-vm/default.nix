@@ -30,6 +30,31 @@ let
       configuredNetVmVmm;
   isCrosvm = netVmVmm == "crosvm";
 
+  stopCrosvmNetVm = pkgs.writeShellScript "stop-crosvm-net-vm" ''
+    set -u
+
+    pid="''${MAINPID:-}"
+    if [ -z "$pid" ]; then
+      echo "Crosvm net-vm has no MAINPID; nothing to stop"
+      exit 0
+    fi
+
+    # Crosvm's powerbtn control command is not supported on AArch64. Ask the
+    # guest to enter poweroff.target through GIVC instead, then keep ExecStop
+    # active until Crosvm exits. This lets the MGBE driver quiesce DMA before
+    # VFIO tears down the SMMU mappings.
+    echo "Starting poweroff target for Crosvm net-vm"
+    ${pkgs.givc-cli}/bin/givc-cli ${
+      lib.replaceStrings [ "/run" ] [ "/etc" ] config.ghaf.givc.cliArgs
+    } start service --vm net-vm poweroff.target &
+
+    echo "Waiting for Crosvm net-vm with PID=$pid to stop"
+    while kill -0 "$pid" 2>/dev/null; do
+      sleep 1
+    done
+    echo "Crosvm net-vm with PID=$pid stopped"
+  '';
+
   mgbe0Overlay =
     pkgs.buildPackages.runCommand "mgbe0-crosvm-overlay.dtbo"
       {
@@ -234,6 +259,13 @@ in
     systemd.services."microvm@net-vm" = {
       requires = lib.optionals isCrosvm [ "prepareMgbe0CrosvmOverlay.service" ];
       after = [ "bindMgbe0.service" ] ++ lib.optionals isCrosvm [ "prepareMgbe0CrosvmOverlay.service" ];
+      serviceConfig = lib.mkIf isCrosvm {
+        TimeoutStopSec = "30";
+        ExecStop = lib.mkForce [
+          ""
+          "+${stopCrosvmNetVm}"
+        ];
+      };
     };
 
     systemd.services.prepareMgbe0CrosvmOverlay = lib.mkIf isCrosvm {
@@ -250,6 +282,29 @@ in
         { config, pkgs, ... }:
         let
           guestKernelVersion = config.boot.kernelPackages.kernel.version;
+          quiesceMgbe0 = pkgs.writeShellScript "quiesce-mgbe0" ''
+            set -eu
+
+            net_path=/sys/bus/platform/devices/c0000000.ethernet/net
+            if [ ! -d "$net_path" ]; then
+              echo "MGBE0 network-device path is missing: $net_path" >&2
+              exit 1
+            fi
+
+            found=0
+            for path in "$net_path"/*; do
+              [ -e "$path" ] || continue
+              found=1
+              interface="''${path##*/}"
+              echo "Quiescing MGBE0 interface $interface"
+              ${pkgs.iproute2}/bin/ip link set dev "$interface" down
+            done
+
+            if [ "$found" -eq 0 ]; then
+              echo "No MGBE0 network interface found under $net_path" >&2
+              exit 1
+            fi
+          '';
         in
         {
           # v6.12 hardcodes MGBE0's SMMU stream id (0x6); v6.13+ reads it from an
@@ -346,6 +401,26 @@ in
             "--nvidia-bpmp-host"
             "/dev/bpmp-host"
           ];
+
+          # Crosvm removes the VFIO mappings as soon as the guest exits. The
+          # MGBE controller must therefore stop DMA before poweroff; otherwise
+          # it continues writing through stale mappings and faults the host
+          # SMMU. Stop this service before GIVC and the network stack so the
+          # driver's ndo_stop path runs while the guest is still operational.
+          systemd.services.quiesce-mgbe0 = lib.mkIf (config.microvm.hypervisor == "crosvm") {
+            description = "Quiesce MGBE0 before Crosvm shutdown";
+            wantedBy = [ "multi-user.target" ];
+            after = [
+              "givc-net-vm.service"
+              "network.target"
+            ];
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+              ExecStart = "${pkgs.coreutils}/bin/true";
+              ExecStop = quiesceMgbe0;
+            };
+          };
         }
       )
     ];

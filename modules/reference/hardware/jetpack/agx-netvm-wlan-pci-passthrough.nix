@@ -31,7 +31,13 @@ in
               {
                 bus = "pci";
                 path = "0001:01:00.0";
-                crosvm.guestAddress = "00:1f.0";
+                crosvm = {
+                  guestAddress = "00:1f.0";
+                  # The Arm virtio-IOMMU path does not establish usable DMA
+                  # mappings for this endpoint. Keep isolation in the host
+                  # VFIO/SMMU domain and map only the guest's memory into it.
+                  iommu = "off";
+                };
               }
               {
                 bus = "pci";
@@ -43,7 +49,12 @@ in
               {
                 bus = "pci";
                 path = "0001:01:00.0";
-                crosvm.guestAddress = "00:1f.0";
+                crosvm = {
+                  guestAddress = "00:1f.0";
+                  # See the devkit entry above: host VFIO/SMMU isolation is
+                  # retained while the broken guest virtio-IOMMU is bypassed.
+                  iommu = "off";
+                };
               }
             ];
         # Network Manager is defined for netvm of Orin Devices
