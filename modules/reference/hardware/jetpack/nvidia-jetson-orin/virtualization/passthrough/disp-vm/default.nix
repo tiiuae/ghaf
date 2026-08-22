@@ -9,6 +9,13 @@
 }:
 let
   cfg = config.ghaf.hardware.nvidia.passthroughs.disp_vm;
+  configuredDispVmVmm = config.ghaf.virtualization.vmConfig.sysvms.dispvm.vmm or null;
+  dispVmVmm =
+    if configuredDispVmVmm != null then
+      configuredDispVmVmm
+    else
+      config.ghaf.virtualization.vmConfig.defaultSysVmVmm;
+  isCrosvm = dispVmVmm == "crosvm";
   virt = config.ghaf.hardware.nvidia.virtualization;
 
   # Guest RAM and display keyholes use fixed GPA-to-HPA mappings.
@@ -60,6 +67,7 @@ let
     && payload.noSyncpointPatch
     && payload.expDtDefines == "-DEXP_DROP_HOST1X -DEXP_DROP_GPU ";
   mkOrinGpuGuestModule = import ../payload/guest-module.nix;
+  mkOrinGpuCrosvmOverlay = import ../payload/crosvm-overlay.nix;
 
   dispvm-dtb = pkgs.stdenv.mkDerivation {
     name = "dispvm-dtb";
@@ -103,6 +111,17 @@ let
       cp tegra234-dispvm.dtb $out/
     '';
   };
+  dispvm-crosvm-overlay = mkOrinGpuCrosvmOverlay {
+    inherit
+      lib
+      pkgs
+      board
+      cap
+      ;
+    kernel = config.boot.kernelPackages.kernel;
+    dtsDir = ../gpu-vm;
+    overlayDts = ./tegra234-dispvm-crosvm-overlay.dts;
+  };
 in
 {
   _file = ./default.nix;
@@ -141,7 +160,11 @@ in
       systemd.services."microvm@disp-vm" = {
         requires = [ "bindDispVm.service" ];
         after = [ "bindDispVm.service" ];
-        environment.GHAF_DCE_GUEST = "1";
+        environment = lib.mkIf (!isCrosvm) { GHAF_DCE_GUEST = "1"; };
+        serviceConfig.ExecStartPre = lib.optionals isCrosvm [
+          "${pkgs.bash}/bin/bash -c '${pkgs.coreutils}/bin/test -r /dev/bpmp-host && ${pkgs.coreutils}/bin/test -w /dev/bpmp-host'"
+          "${pkgs.bash}/bin/bash -c '${pkgs.coreutils}/bin/test -r /dev/dce-host && ${pkgs.coreutils}/bin/test -w /dev/dce-host'"
+        ];
       };
 
       ghaf.hardware.definition.dispvm.extraModules = [
@@ -149,6 +172,7 @@ in
           inherit lib cap vfioArgs;
           dtb = dispvm-dtb;
           dtbName = "tegra234-dispvm.dtb";
+          crosvmOverlay = dispvm-crosvm-overlay;
           inherit (virt) sourcesPatch;
         })
       ];

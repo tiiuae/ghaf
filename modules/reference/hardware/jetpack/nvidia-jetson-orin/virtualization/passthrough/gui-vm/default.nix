@@ -38,7 +38,12 @@ let
     kernel = config.boot.kernelPackages.kernel;
   };
   guivm-crosvm-overlay = mkOrinGpuCrosvmOverlay {
-    inherit lib pkgs board;
+    inherit
+      lib
+      pkgs
+      board
+      cap
+      ;
     kernel = config.boot.kernelPackages.kernel;
   };
 in
