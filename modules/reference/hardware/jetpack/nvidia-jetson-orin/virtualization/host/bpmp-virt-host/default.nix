@@ -10,7 +10,7 @@ let
   cfg = config.ghaf.hardware.nvidia.virtualization.host.bpmp;
 
   ids = map toString;
-  allow = config.ghaf.hardware.nvidia.virtualization.host.bpmp.allow;
+  consumers = config.ghaf.hardware.nvidia.virtualization.host.bpmp.consumers;
 
   # BPMP host-proxy allow-list. The proxy forwards a guest's clock/reset/power
   # requests to the real BPMP ONLY for the ids listed here (bpmp-host-proxy.c
@@ -31,24 +31,29 @@ let
   # devices this list was built for. Do not add the probed ids to "fix" the
   # warnings: that reopens the path to clocks the guest could later disable.
   bpmpHostOverlay = pkgs.writeText "bpmp_host_overlay.dts" ''
-    /dts-v1/;
-    /plugin/;
-    / {
-        overlay-name = "BPMP host proxy allow-list";
-        compatible = "nvidia,tegra234";
-        fragment@0 {
-            target-path = "/";
-            __overlay__ {
-                bpmp_host_proxy: bpmp_host_proxy {
-                    compatible = "nvidia,bpmp-host-proxy";
-                    allowed-clocks = <${lib.concatStringsSep " " (ids allow.clocks)}>;
-                    allowed-resets = <${lib.concatStringsSep " " (ids allow.resets)}>;
-                    allowed-power-domains = <${lib.concatStringsSep " " (ids allow.powerDomains)}>;
-                    status = "okay";
-                };
-            };
+      /dts-v1/;
+      /plugin/;
+      / {
+          overlay-name = "BPMP host proxy allow-list";
+          compatible = "nvidia,tegra234";
+          fragment@0 {
+              target-path = "/";
+              __overlay__ {
+    ${lib.concatStringsSep "\n" (
+      lib.mapAttrsToList (vmName: consumer: ''
+        bpmp-host-proxy-${vmName} {
+            compatible = "nvidia,bpmp-host-proxy";
+            device-name = "bpmp-host-${vmName}";
+            allowed-clocks = <${lib.concatStringsSep " " (ids consumer.clocks)}>;
+            allowed-resets = <${lib.concatStringsSep " " (ids consumer.resets)}>;
+            allowed-power-domains = <${lib.concatStringsSep " " (ids consumer.powerDomains)}>;
+            status = "okay";
         };
-    };
+      '') consumers
+    )}
+              };
+          };
+      };
   '';
 in
 {
@@ -66,36 +71,51 @@ in
     '';
   };
 
-  options.ghaf.hardware.nvidia.virtualization.host.bpmp.allow = {
-    clocks = lib.mkOption {
-      type = lib.types.listOf lib.types.int;
-      default = [ ];
-      apply = lib.unique;
-      description = "Raw BPMP clock ids the host proxy forwards for passed-through devices (union across enabled passthroughs).";
-    };
-    resets = lib.mkOption {
-      type = lib.types.listOf lib.types.int;
-      default = [ ];
-      apply = lib.unique;
-      description = "Raw BPMP reset ids allowed for passed-through devices.";
-    };
-    powerDomains = lib.mkOption {
-      type = lib.types.listOf lib.types.int;
-      default = [ ];
-      apply = lib.unique;
-      description = "Raw BPMP power-domain ids allowed for passed-through devices.";
-    };
+  options.ghaf.hardware.nvidia.virtualization.host.bpmp.consumers = lib.mkOption {
+    type = lib.types.attrsOf (
+      lib.types.submodule {
+        options = {
+          clocks = lib.mkOption {
+            type = lib.types.listOf lib.types.int;
+            default = [ ];
+            apply = lib.unique;
+            description = "Raw BPMP clock ids this VM's host proxy forwards.";
+          };
+          resets = lib.mkOption {
+            type = lib.types.listOf lib.types.int;
+            default = [ ];
+            apply = lib.unique;
+            description = "Raw BPMP reset ids this VM's host proxy forwards.";
+          };
+          powerDomains = lib.mkOption {
+            type = lib.types.listOf lib.types.int;
+            default = [ ];
+            apply = lib.unique;
+            description = "Raw BPMP power-domain ids this VM's host proxy forwards.";
+          };
+        };
+      }
+    );
+    default = { };
+    description = "Per-VM BPMP host-proxy policies keyed by VM name.";
   };
 
   config = lib.mkIf cfg.enable {
     ghaf.hardware.nvidia.virtualization.enable = true;
 
+    assertions = [
+      {
+        assertion = consumers != { };
+        message = "BPMP host proxy is enabled without a per-VM consumer policy.";
+      }
+    ];
+
     # No QEMU override here. The BPMP guest bridge device is needed only by the
     # VM that receives a BPMP-backed passthrough device, and
     # ghaf.virtualization.qemu.package is consumed by every VM
-    # (modules/microvm/common/vm-qemu.nix). The patched QEMU opens /dev/bpmp-host
-    # unconditionally in create_virtio_devices(), so admin-vm and gui-vm must not
-    # get it. The consuming module sets microvm.qemu.package in its own scope.
+    # (modules/microvm/common/vm-qemu.nix). Each consuming module selects its
+    # own host proxy through GHAF_BPMP_HOST and sets microvm.qemu.package in its
+    # own scope.
 
     boot.kernelPatches = [
       {

@@ -14,14 +14,7 @@ let
   guiOn = mv.guivm.enable or false;
 
   gpuDevs = lib.optionals gpuOn (mkPayload capabilities.gpuvm).hostDevices;
-  dispDevs = lib.optionals dispOn [
-    "b0000000.scanout_p"
-    "b8000000.dispram_lo_p"
-    "200000000.dispram_hi_p"
-    "13830000.disp_caps_pt"
-    "13870000.disp_chan_pt"
-    "138c8000.disp_cursor_pt"
-  ];
+  dispDevs = lib.optionals dispOn (mkPayload capabilities.dispvm).hostDevices;
   overlap = lib.intersectLists gpuDevs dispDevs;
 
   displayOwners = lib.optional dispOn "disp-vm" ++ lib.optional guiOn "gui-vm";

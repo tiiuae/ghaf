@@ -6,6 +6,7 @@
   cap,
   dtb,
   crosvmOverlay ? null,
+  bpmpHostPath,
   dtbName ? "tegra234-gpuvm.dtb",
   vfioArgs,
   sourcesPatch,
@@ -18,6 +19,22 @@ in
 let
   support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
   isCrosvm = config.microvm.hypervisor == "crosvm";
+  formatAddress = value: "0x${lib.toLower (lib.toHexString value)}";
+  crosvmDeviceArgs = lib.concatMap (
+    {
+      path,
+      dtSymbol,
+      iommu,
+      mmioBase ? null,
+      mapEarly ? false,
+    }:
+    [
+      "--vfio"
+      "/sys/bus/platform/devices/${path},iommu=${iommu},dt-symbol=${dtSymbol}${
+        lib.optionalString (mmioBase != null) ",mmio-base=${formatAddress mmioBase}"
+      }${lib.optionalString mapEarly ",map-early=true"}"
+    ]
+  ) payload.crosvmDevices;
   # L4T EGL rejects modifier-backed GBM surfaces.
   gbm-nomod-shim = pkgs.runCommandCC "gbm-nomod-shim" { } ''
     mkdir -p $out/lib
@@ -59,6 +76,47 @@ in
       RestartSec = "2";
     };
   };
+
+  # Release display RM before the VMM exits; DCE firmware keeps its state
+  # across VMM lifetimes and otherwise rejects the replacement guest.
+  systemd.services.dce-rm-deinit = lib.mkIf payload.needsDceBridge {
+    description = "Deinitialize NVIDIA DCE RM before the display guest powers off";
+    wantedBy = [ "multi-user.target" ];
+    before =
+      lib.optional (!config.ghaf.graphics.cosmic.enable) "kms-owner.service"
+      ++ lib.optional config.ghaf.graphics.cosmic.enable "greetd.service";
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = lib.getExe' pkgs.coreutils "true";
+      ExecStop = "${lib.getExe' pkgs.kmod "modprobe"} -r nvidia_drm nvidia_modeset nvidia";
+      TimeoutStopSec = "30";
+    };
+  };
+
+  systemd.services.ghaf-crosvm-poweroff = lib.mkIf isCrosvm {
+    description = "Power off the Orin Crosvm guest";
+    serviceConfig.Type = "oneshot";
+    script = ''
+      ${lib.getExe' pkgs.systemd "systemctl"} start --no-block poweroff.target
+    '';
+  };
+  givc.sysvm = lib.mkMerge [
+    { capabilities.services = lib.optionals isCrosvm [ "ghaf-crosvm-poweroff.service" ]; }
+    (lib.mkIf (isCrosvm && !(cap.gpu && cap.display)) {
+      enable = true;
+      inherit (config.ghaf.givc) debug;
+      network = {
+        agent.transport = {
+          name = config.networking.hostName;
+          addr = config.ghaf.networking.hosts.${config.networking.hostName}.ipv4;
+          port = "9000";
+        };
+        tls.enable = config.ghaf.givc.enableTls;
+        admin.transport = lib.head config.ghaf.givc.adminConfig.addresses;
+      };
+    })
+  ];
 
   # Pair the BYO kernel with JetPack graphics userspace.
   hardware.graphics = {
@@ -234,24 +292,21 @@ in
     }
     (lib.mkIf isCrosvm {
       crosvm = {
-        memoryBase = lib.fromHexString "0x2000000000";
-        platformMmio = {
-          base = lib.fromHexString "0x60000000";
-          size = lib.fromHexString "0x1fa0000000";
-        };
-        deviceTreeOverlays = [
-          "${crosvmOverlay}/${crosvmOverlay.fileName}"
-        ];
+        inherit (payload.crosvmLayout) memoryBase;
         extraArgs = [
+          "--platform-mmio"
+          "base=${formatAddress payload.crosvmLayout.platformMmio.base},size=${formatAddress payload.crosvmLayout.platformMmio.size}"
+          "--device-tree-overlay"
+          "${crosvmOverlay}/${crosvmOverlay.fileName}"
           "--nvidia-bpmp-host"
-          "/dev/bpmp-host"
+          bpmpHostPath
         ]
+        ++ crosvmDeviceArgs
         ++ lib.optionals payload.needsDceBridge [
           "--nvidia-dce-host"
           "/dev/dce-host"
         ];
       };
-      devices = payload.crosvmDevices;
     })
   ];
 }

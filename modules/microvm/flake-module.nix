@@ -20,10 +20,7 @@ in
   _file = ./flake-module.nix;
 
   flake.nixosModules = {
-    # Preserve the existing name while exposing a target-neutral guest module
-    # for AArch64 Crosvm platform-device configurations.
     microvm-nix = microvmGuestModule;
-    microvm-guest = microvmGuestModule;
 
     microvm.imports = [
       ./host/microvm-host.nix
