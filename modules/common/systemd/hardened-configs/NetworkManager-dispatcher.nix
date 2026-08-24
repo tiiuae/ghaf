@@ -6,6 +6,13 @@
   IPAccounting = true;
   ProtectHome = true;
   ProtectSystem = "strict";
+  # strict mounts the whole hierarchy read-only apart from /dev, /proc and /sys.
+  # Dispatcher scripts publish runtime state under /run (Ghaf's own uplink
+  # dispatcher restarts a unit that writes there), so without this they fail on
+  # the first write. NOTE: this drop-in previously targeted
+  # "NetworkManager-Dispatcher", which is not a real unit name, so it has never
+  # actually been applied -- it needs a runtime check on the host and net-vm.
+  ReadWritePaths = [ "/run" ];
   ProtectProc = "noaccess";
   PrivateTmp = true;
   PrivateMounts = true;

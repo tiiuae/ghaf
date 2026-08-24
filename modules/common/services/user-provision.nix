@@ -90,12 +90,16 @@ let
       loginctl terminate-seat seat0
 
       # Remove homed users if enabled
+      removed=true
       ${optionalString cfg.enableHomed ''
         SECONDS=0
         while ! user-provision --remove; do
           sleep 2
           if [ $SECONDS -ge 10 ]; then
-            echo "Timeout reached after 10 seconds, proceeding anyway..."
+            # Continue to the AD/keytab cleanup below, but remember the failure:
+            # the home areas are still on disk, so this run did not deprovision.
+            echo "Timeout: user removal did not complete after 10s" >&2
+            removed=false
             break
           fi
         done
@@ -115,6 +119,11 @@ let
       # the lock is legitimately absent on a device that was never provisioned,
       # which would otherwise fail the unit after the users were already removed.
       rm -f /var/lib/ghaf/user-provisioning.lock
+
+      if [ "$removed" != true ]; then
+        echo "Deprovisioning INCOMPLETE: user home areas are still present." >&2
+        exit 1
+      fi
 
       echo "User deprovisioning completed."
     '';

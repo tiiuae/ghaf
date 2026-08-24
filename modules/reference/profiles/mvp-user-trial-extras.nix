@@ -40,21 +40,27 @@ in
         host-hardening.enable = true;
       };
 
+      # The ids-vm MiTM tooling uses a committed development CA and a fixed web
+      # UI password: it must never ship in a release image.
+      #
+      # global-config carries the signal to every guest: idsvm-base turns it
+      # into the ids-vm's own mitmproxy.enable, and appvm-base uses it to put
+      # the mitm CA in each app VM's trust store. Setting the guest option
+      # directly here would instead collide with idsvm-base's definition.
+      global-config.idsvm.mitmproxy.enable = lib.mkForce config.ghaf.profiles.debug.enable;
+
       virtualization.microvm = {
         idsvm = {
-          # The ids-vm MiTM tooling uses a committed development CA and a fixed
-          # web UI password: it must never ship in a release image.
           enable = lib.mkForce config.ghaf.profiles.debug.enable;
-          # mitmproxy is enabled inside the ids-vm guest via extendModules
-          # below; enabling it here as well would materialize the proxy
-          # service in the host evaluation too.
+          # Mirrors the signal for the host-side readers (givc's idsExtraArgs,
+          # the chrome MitmWebUI shortcut). The proxy service itself is gated on
+          # being the ids-vm, so this does not materialize it on the host.
+          mitmproxy.enable = lib.mkForce config.ghaf.profiles.debug.enable;
           evaluatedConfig = config.ghaf.profiles.laptop-x86.idsvmBase.extendModules {
-            modules =
-              lib.ghaf.vm.applyVmConfig {
-                inherit config;
-                vmName = "idsvm";
-              }
-              ++ [ { ghaf.virtualization.microvm.idsvm.mitmproxy.enable = true; } ];
+            modules = lib.ghaf.vm.applyVmConfig {
+              inherit config;
+              vmName = "idsvm";
+            };
           };
         };
       };

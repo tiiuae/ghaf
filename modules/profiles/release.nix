@@ -21,12 +21,17 @@ in
 
     # TODO(release-policy): turn this warning into an assertion once the
     # release credential policy and CI provisioning are agreed.
+    # The condition has to include initialPassword: that is where the
+    # well-known default actually lives (modules/common/users/admin.nix), so
+    # testing only the hashed options would fire at anyone who set a real
+    # password there and teach them to ignore the warning.
     warnings =
       lib.optional
         (
           config.ghaf.users.admin.enable
           && config.ghaf.users.admin.hashedPassword == null
           && config.ghaf.users.admin.initialHashedPassword == null
+          && config.ghaf.users.admin.initialPassword == "ghaf"
         )
         "Release image ships the well-known default admin password. Set ghaf.users.admin.hashedPassword (e.g. mkpasswd -m yescrypt) for production images.";
 
@@ -48,7 +53,10 @@ in
       nix.enable = lib.mkDefault false;
     };
 
-    # Keep the nixpkgs *source* out of release images.
+    # Keep the nixpkgs *source* out of release images. Clearing
+    # ghaf.nix.nixpkgs only drops nix.nixPath; the registry entry is written by
+    # the upstream nixpkgs-flake module, and that is what actually keeps the
+    # source tree in the runtime closure.
     nixpkgs.flake.setNixPath = lib.mkDefault false;
     nixpkgs.flake.setFlakeRegistry = lib.mkDefault false;
   };
