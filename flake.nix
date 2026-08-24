@@ -80,7 +80,8 @@
 
     # A set of useful nix packages and utilities for ghaf
     ghafpkgs = {
-      url = "github:tiiuae/ghafpkgs";
+      # TODO: restore the normal GitHub input after ghafpkgs#368 merges.
+      url = "git+https://github.com/tiiuae/ghafpkgs?ref=refs/pull/368/head";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
@@ -146,7 +147,8 @@
     # Nvidia Orin support for NixOS
     jetpack-nixos = {
       #url = "github:anduril/jetpack-nixos";
-      url = "github:tiiuae/jetpack-nixos/august-rebase";
+      # TODO: restore august-rebase after jetpack-nixos#21 merges.
+      url = "github:tiiuae/jetpack-nixos/feat/orin-virtualization-support";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

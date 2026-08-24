@@ -39,10 +39,9 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
 
 - [qemu: Battery, AC adapter, lid](https://github.com/blochl/qemu/pull/3)
 
-  Four ACPI patches, applied on x86_64 only, in
-  `packages/pkgs-by-name/ghaf-qemu/patches/0001..0004`. They used to be a global qemu
-  overlay; they now live in the standalone `ghaf-qemu` package. Drop them when the series
-  is merged upstream and reaches the qemu in our nixpkgs.
+  Four ACPI patches, applied on x86_64 only, in the standalone `ghaf-qemu`
+  package from ghafpkgs. Drop them when the series is merged upstream and
+  reaches the qemu in our nixpkgs.
 
 ## Backports carried in overlays
 
@@ -94,7 +93,7 @@ only exist until an upstream fix lands, so they should be reverted rather than m
 
 - `0025-tegra-fbdev-use-core-allocated-fb-info.patch`
 
-  In `.../passthrough/gpu-vm/patches/`, applied to `nvidia-oot-modules` from
+  Carried by jetpack-nixos and applied to `nvidia-oot-modules` from
   `.../passthrough/payload/guest-module.nix`. Kernel 6.12.103 backported
   `63c971af4036` and deleted `drm_fb_helper_alloc_info()`, so nvidia-oot's conftest
   ladder falls through to `drm_fb_helper_alloc_fbi()` — gone since v6.2 — and the tegra
