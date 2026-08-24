@@ -96,7 +96,10 @@ in
             ExecStart = lib.getExe' pkgs.coreutils "true";
             ExecStop = mkStopScript name vm (guestService name vm);
             TimeoutStopSec = "35";
-            CapabilityBoundingSet = [ "CAP_KILL" ];
+            CapabilityBoundingSet = [
+              "CAP_DAC_OVERRIDE"
+              "CAP_KILL"
+            ];
             NoNewPrivileges = true;
             PrivateTmp = true;
             ProtectHome = true;
