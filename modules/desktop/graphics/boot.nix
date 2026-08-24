@@ -11,6 +11,7 @@ let
     mkDefault
     mkEnableOption
     mkIf
+    mkMerge
     mkOption
     mkForce
     optionals
@@ -18,6 +19,8 @@ let
     ;
 
   cfg = config.ghaf.graphics.boot;
+
+  logo = config.ghaf.theming.logo or "${pkgs.ghaf-artwork}/ghaf-logo-512px.png";
 
   plymouth-ghaf-background = mkIf cfg.firmwareLogo.enable (
     pkgs.runCommand "plymouth-ghaf-background" { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
@@ -36,11 +39,14 @@ let
   # ShowDelay and DeviceTimeout are not exposed in nixpkgs plymouth module
   # so we have to override the config file ourselves
   # ref: https://github.com/NixOS/nixpkgs/blob/nixos-unstable/nixos/modules/system/boot/plymouth.nix
+  #
+  # Theme is read from the final boot.plymouth.theme (not cfg.theme directly)
+  # so this stays correct whether it came from us or from ghaf.theming.plymouth.
   configFile = pkgs.writeText "plymouthd.conf" ''
     [Daemon]
     ShowDelay=${toString cfg.splashDelay}
     DeviceTimeout=${toString cfg.deviceTimeout}
-    Theme=${cfg.theme}
+    Theme=${config.boot.plymouth.theme}
     ${config.boot.plymouth.extraConfig}
   '';
 in
@@ -88,22 +94,10 @@ in
 
       image = mkOption {
         type = types.path;
-        default = "${pkgs.ghaf-artwork}/1600px-Ghaf_logo.png";
+        default = logo;
+        defaultText = lib.literalMD "`ghaf.theming.logo`";
         description = ''
           Image to use in place of the UEFI firmware (BGRT) boot logo.
-          Default is the Ghaf logo.
-        '';
-      };
-    };
-
-    logo = {
-      enable = mkEnableOption "custom logo at the bottom of the splash screen";
-
-      image = mkOption {
-        type = types.path;
-        default = "${pkgs.ghaf-artwork}/ghaf-logo-512px.png";
-        description = ''
-          Image to use at the bottom of the splash screen.
           Default is the Ghaf logo.
         '';
       };
@@ -114,7 +108,8 @@ in
         "gpu"
         "simpledrm"
       ];
-      default = "simpledrm";
+      default = if builtins.elem "i915" config.boot.initrd.kernelModules then "gpu" else "simpledrm";
+      defaultText = "Set to 'gpu' if i915 driver is detected in `config.boot.initrd.kernelModules`, 'simpledrm' otherwise";
       description = ''
         Renderer for the graphical boot splash.
 
@@ -142,41 +137,46 @@ in
     debug = mkEnableOption "plymouth debug logs";
   };
 
-  config = mkIf cfg.enable {
-    boot = {
-      plymouth = {
-        enable = true;
-        inherit (cfg) theme;
-        logo = if cfg.logo.enable then cfg.logo.image else "/dev/null";
+  config = mkIf cfg.enable (mkMerge [
+    {
+      boot = {
+        plymouth.enable = true;
 
+        # Hide boot log from user completely
+        kernelParams = [
+          "quiet"
+          "udev.log_priority=3"
+        ]
+        ++ optionals cfg.debug [ "plymouth.debug" ]
+        # Disables loading the UEFI logo from firmware to /sys/firmware/acpi/bgrt
+        ++ optionals cfg.firmwareLogo.enable [ "bgrt_disable=1" ]
+        ++ (
+          if cfg.renderer == "simpledrm" then
+            [ "plymouth.use-simpledrm" ]
+          else
+            [
+              "plymouth.use-simpledrm=0"
+              "plymouth.ignore-serial-consoles"
+            ]
+        );
+        consoleLogLevel = mkDefault 0;
+        initrd.verbose = false;
+      };
+      systemd.services.plymouth-quit = {
+        after = mkIf (cfg.waitForService != null && cfg.waitForService != "") [ cfg.waitForService ];
+      };
+      environment.etc."plymouth/plymouthd.conf".source = mkForce configFile;
+      boot.initrd.systemd.contents."/etc/plymouth/plymouthd.conf".source = mkForce configFile;
+    }
+
+    # Ghaf global theming takes priority over these specifically
+    (mkIf (!config.ghaf.theming.plymouth.enable) {
+      boot.plymouth = {
+        inherit (cfg) theme;
         # This is a bit hacky, as we're overriding the default spinner theme
         # It would be better to create our own custom theme
         themePackages = optionals cfg.firmwareLogo.enable [ plymouth-ghaf-background ];
       };
-      # Hide boot log from user completely
-      kernelParams = [
-        "quiet"
-        "udev.log_priority=3"
-      ]
-      ++ optionals cfg.debug [ "plymouth.debug" ]
-      # Disables loading the UEFI logo from firmware to /sys/firmware/acpi/bgrt
-      ++ optionals cfg.firmwareLogo.enable [ "bgrt_disable=1" ]
-      ++ (
-        if cfg.renderer == "simpledrm" then
-          [ "plymouth.use-simpledrm" ]
-        else
-          [
-            "plymouth.use-simpledrm=0"
-            "plymouth.ignore-serial-consoles"
-          ]
-      );
-      consoleLogLevel = mkDefault 0;
-      initrd.verbose = false;
-    };
-    systemd.services.plymouth-quit = {
-      after = mkIf (cfg.waitForService != null && cfg.waitForService != "") [ cfg.waitForService ];
-    };
-    environment.etc."plymouth/plymouthd.conf".source = mkForce configFile;
-    boot.initrd.systemd.contents."/etc/plymouth/plymouthd.conf".source = mkForce configFile;
-  };
+    })
+  ]);
 }

@@ -134,7 +134,11 @@ in
 
         theming = {
           enable = lib.mkDefault config.ghaf.global-config.theming.enable;
-          plymouth.enable = lib.mkDefault true;
+          plymouth = {
+            enable = lib.mkDefault true;
+            bootLabel = lib.mkDefault "Starting Ghaf...";
+            liveUpdates = lib.mkDefault false;
+          };
         };
 
         graphics.boot.enable = lib.mkDefault config.ghaf.global-config.graphics.boot.enable;
