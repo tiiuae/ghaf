@@ -26,12 +26,27 @@ let
     else
       "poweroff.target";
   mkStopScript =
-    name: service:
+    name: vm: service:
+    let
+      vmConfig = lib.ghaf.vm.getConfig vm;
+      crosvm = lib.getExe vmConfig.microvm.crosvm.package;
+      socket = "${config.microvm.stateDir}/${name}/${vmConfig.microvm.socket}";
+    in
     pkgs.writeShellScript "stop-crosvm-${name}" ''
       set -u
       unit=${lib.escapeShellArg "microvm@${name}.service"}
       pid=$(${lib.getExe' pkgs.systemd "systemctl"} show -p MainPID --value "$unit")
       [ -n "$pid" ] && [ "$pid" != 0 ] || exit 0
+      deadline=$((SECONDS + ${toString deadlineSec}))
+      grace_deadline=$((SECONDS + 20))
+
+      wait_until() {
+        while ((SECONDS < $1)); do
+          kill -0 "$pid" 2>/dev/null || return 0
+          ${lib.getExe' pkgs.coreutils "sleep"} 1
+        done
+        return 1
+      }
 
       echo "Requesting ${service} in Crosvm guest ${name}"
       ${lib.getExe' pkgs.coreutils "timeout"} 10s \
@@ -39,10 +54,11 @@ let
         start service --vm ${lib.escapeShellArg name} ${lib.escapeShellArg service} \
         || echo "WARN: GIVC shutdown request for ${name} failed" >&2
 
-      for ((waited = 0; waited < ${toString deadlineSec}; waited++)); do
-        kill -0 "$pid" 2>/dev/null || exit 0
-        ${lib.getExe' pkgs.coreutils "sleep"} 1
-      done
+      wait_until "$grace_deadline" && exit 0
+      echo "WARN: forcing Crosvm ${name} to stop" >&2
+      ${crosvm} --no-syslog stop ${lib.escapeShellArg socket} \
+        || echo "WARN: Crosvm stop request for ${name} failed" >&2
+      wait_until "$deadline" && exit 0
       echo "ERROR: Crosvm ${name} did not stop within ${toString deadlineSec}s" >&2
       exit 1
     '';
@@ -78,7 +94,7 @@ in
             Type = "oneshot";
             RemainAfterExit = true;
             ExecStart = lib.getExe' pkgs.coreutils "true";
-            ExecStop = mkStopScript name (guestService name vm);
+            ExecStop = mkStopScript name vm (guestService name vm);
             TimeoutStopSec = "35";
             CapabilityBoundingSet = [ "CAP_KILL" ];
             NoNewPrivileges = true;
