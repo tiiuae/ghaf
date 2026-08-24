@@ -35,6 +35,7 @@
 {
   self,
   lib ? self.lib,
+  inputs ? self.inputs,
   system ? "x86_64-linux",
   extraModules ? [ ],
   # Where the installer fetches ghaf-image.raw.zst / .bmap from. The default
@@ -46,7 +47,7 @@
 let
   netbootConfig = lib.nixosSystem {
     specialArgs = {
-      inherit lib;
+      inherit lib inputs;
     };
     modules = [
       # Everything not about the boot medium. Sharing this with
