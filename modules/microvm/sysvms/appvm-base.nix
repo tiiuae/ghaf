@@ -78,6 +78,7 @@ in
     inputs.self.nixosModules.hardware-x86_64-guest-kernel
     inputs.self.nixosModules.vm-modules
     inputs.self.nixosModules.profiles
+    inputs.self.nixosModules.theming
   ]
   # Import base application extraModules (from mkAppVm call)
   ++ baseAppExtraModules
@@ -214,6 +215,8 @@ in
           debug.tools.enable = lib.mkDefault (globalConfig.development.debug.tools.enable or false);
           nix-setup.enable = lib.mkDefault (globalConfig.development.nix-setup.enable or false);
         };
+
+        theming.enable = lib.mkDefault (globalConfig.theming.enable or false);
 
         # System
         type = "app-vm";

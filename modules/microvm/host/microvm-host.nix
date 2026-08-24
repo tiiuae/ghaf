@@ -69,6 +69,7 @@ in
     inputs.self.nixosModules.givc
     inputs.self.nixosModules.hardware-x86_64-host-kernel
     inputs.self.nixosModules.mem-manager
+    inputs.self.nixosModules.theming
     ./networking.nix
     ./shared-mem.nix
     ./boot.nix
@@ -130,10 +131,14 @@ in
           withHardenedConfigs = true;
         };
         givc.host.enable = true;
-        graphics.boot = {
-          enable = true; # Enable graphical boot on host
-          renderer = "simpledrm"; # Force simpledrm framebuffer for graphical boot on host
+
+        theming = {
+          enable = lib.mkDefault config.ghaf.global-config.theming.enable;
+          plymouth.enable = lib.mkDefault true;
         };
+
+        graphics.boot.enable = lib.mkDefault config.ghaf.global-config.graphics.boot.enable;
+
         services = {
           orbit = {
             inherit (config.ghaf.global-config.orbit) enable debug;

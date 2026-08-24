@@ -44,6 +44,7 @@ in
     # Enable plymouth graphical boot
     "${self}/modules/desktop/graphics/boot.nix"
     "${self}/modules/development/usb-serial.nix"
+    self.nixosModules.theming
   ];
 
   options.ghaf.installer.imageSource = lib.mkOption {
@@ -66,6 +67,8 @@ in
       sessionVariables.IMG_PATH = cfg.imageSource;
       variables.IMG_PATH = cfg.imageSource;
     };
+
+    ghaf.theming.enable = true;
 
     ghaf.graphics.boot = {
       enable = true;

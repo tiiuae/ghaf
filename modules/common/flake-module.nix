@@ -20,7 +20,6 @@
       ./services
       ./storage-persistence.nix
       ./systemd
-      ./theming
       ./time
       ./users
       ./version
@@ -31,6 +30,10 @@
     # Ghaf-patched QEMU package definition (ivshmem, TPM, USB, ACPI patches).
     # Imported by both host (via `common`) and VMs (via `vm-modules`).
     ghaf-qemu = ./virtualization/qemu.nix;
+
+    # Imporeted as needed by targets that expect to dislpay a GUI of some sort.
+    # Otherwise should be left out to reduce eval cost due to stylix's heavy overlays.
+    theming = ./theming;
 
     # Cross-compilation module for building aarch64 targets from x86_64
     # This should be included via extendModules when generating
