@@ -30,11 +30,12 @@ in
       || (config.nixpkgs.hostPlatform.isAarch64 && config.hardware.nvidia-jetpack.enable)
     ) true;
 
-    # Temporary fix for nvidia service restart remove with new nixpkgs reference.
-    # systemd.services.nvidia-container-toolkit-cdi-generator.WantedBy = [ "multi-user.target" ];
-    # nvidia-cdi-generate only exists on jetpack systems; defining the ordering
-    # elsewhere would create an empty stub unit.
-    systemd.services.nvidia-cdi-generate =
+    # The CDI generator unit is named nvidia-container-toolkit-cdi-generator by
+    # both nixpkgs and jetpack-nixos. This ordering previously named
+    # `nvidia-cdi-generate`, which exists nowhere, so it generated an inert stub
+    # unit and never applied. Guarded so it is only defined where the real unit
+    # is, otherwise the stub comes back on every other target.
+    systemd.services.nvidia-container-toolkit-cdi-generator =
       lib.mkIf (config.nixpkgs.hostPlatform.isAarch64 && config.hardware.nvidia-jetpack.enable)
         {
           after = [

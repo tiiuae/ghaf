@@ -855,8 +855,11 @@ in
           config.ghaf.profiles.release.enable
           && config.hardware.nvidia-jetpack.firmware.eksFile == "${firmwareEkbImage}/eks_t234.img"
         )
-        "This release image bakes the all-zero development EKB (eks_t234.img); TPM-backed secrets are not protected by fused keys. Override hardware.nvidia-jetpack.firmware.eksFile with production key material.";
-    hardware.nvidia-jetpack.firmware.eksFile = "${firmwareEkbImage}/eks_t234.img";
+        "This release image bakes the all-zero development EKB (eks_t234.img); TPM-backed secrets are not protected by fused keys. Set hardware.nvidia-jetpack.firmware.eksFile to production key material.";
+    # mkDefault so the override the warning above asks for is a plain
+    # assignment. At normal priority it would be a conflicting definition, and
+    # the documented remedy would not evaluate.
+    hardware.nvidia-jetpack.firmware.eksFile = lib.mkDefault "${firmwareEkbImage}/eks_t234.img";
     hardware.nvidia-jetpack.kernel.version = "${cfg.kernelVersion}";
     # jetpack-nixos hardcodes the trailing rootfs device as mmcblk0p1; replay
     # the same default here but route it through cfg.flashScriptOverrides.deviceDiskRootfsPartition

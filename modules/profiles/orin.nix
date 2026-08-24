@@ -466,11 +466,23 @@ in
           text = ''
             export SYSTEMD_RELAX_ESP_CHECKS=1
             echo "[ghaf] installing systemd-boot"
-            # install fails when systemd-boot is already present; fall back to
-            # update, but let a real failure fail the switch.
+            # `install` is idempotent over an existing same-or-older loader, so
+            # this fallback is for the cases it genuinely refuses: a newer
+            # loader already present, ESP not found, EFI variables unwritable.
             if ! bootctl --esp-path=/boot install; then
-              echo "[ghaf] bootctl install failed, attempting update"
+              echo "[ghaf] bootctl install failed, attempting update" >&2
               bootctl --esp-path=/boot update
+            fi
+            # `update` exits 0 when there is nothing installed to update, so its
+            # status cannot stand in for "a loader is present". Check the
+            # postcondition directly, or a failed install reports success and
+            # the device reboots without a bootloader.
+            shopt -s nullglob
+            loaders=(/boot/EFI/systemd/systemd-boot*.efi)
+            shopt -u nullglob
+            if [ ''${#loaders[@]} -eq 0 ]; then
+              echo "[ghaf] no systemd-boot binary in the ESP after install/update" >&2
+              exit 1
             fi
           '';
         }

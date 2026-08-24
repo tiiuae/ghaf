@@ -134,15 +134,21 @@ let
       # Note: global-config uses mkDefault so target modules can still override specific
       # values when needed.
 
+      # Validated like `profile` above: an unrecognised variant used to leave
+      # both profile flags false and silently fall back to the minimal
+      # global-config -- an image with neither the debug stack nor the release
+      # gates, and no diagnostic.
+      variantProfile =
+        lib.ghaf.profiles.${variant}
+          or (throw "mkGhafConfiguration: Unknown variant '${variant}'. Valid variants: debug, release");
+
       variantModule = {
         ghaf.profiles = {
           debug.enable = variant == "debug";
           release.enable = variant == "release";
         };
         # Set global-config to match the variant's profile using mkDefault
-        ghaf.global-config = lib.mapAttrsRecursive (_: v: lib.mkDefault v) (
-          lib.ghaf.profiles.${variant} or lib.ghaf.profiles.minimal
-        );
+        ghaf.global-config = lib.mapAttrsRecursive (_: v: lib.mkDefault v) variantProfile;
       };
 
       # Extra names a downstream wants visible from inside its own modules.

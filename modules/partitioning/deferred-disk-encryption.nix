@@ -24,6 +24,7 @@
 let
   inherit (lib)
     mkIf
+    mkMerge
     getExe
     ;
   cfg = config.ghaf.storage.encryption;
@@ -494,189 +495,199 @@ in
 
   # The ghaf.storage.encryption.deferred option is declared in
   # modules/common/security/disk-encryption.nix, which also reads it.
+  # Signal that this implementation is present, so setting `deferred` without
+  # importing this module is an assertion failure rather than an image that
+  # silently ships unencrypted.
+  config = mkMerge [
+    { ghaf.storage.encryption.deferredModuleLoaded = true; }
 
-  config = mkIf (cfg.enable && cfg.deferred) {
-    # Ensure TPM support is enabled
-    security.tpm2.enable = mkIf (cfg.backendType == "tpm2") true;
+    (mkIf (cfg.enable && cfg.deferred) {
+      # Ensure TPM support is enabled
+      security.tpm2.enable = mkIf (cfg.backendType == "tpm2") true;
 
-    # Plymouth is enabled normally, but will be stopped during first-boot encryption
-    # to ensure TTY access for password prompts. After encryption, Plymouth can
-    # be used for subsequent boots including password entry for LUKS unlock.
-    # leaving this here for future debugging purposes/reference.
-    # boot.plymouth.enable = lib.mkForce false;
+      # Plymouth is enabled normally, but will be stopped during first-boot encryption
+      # to ensure TTY access for password prompts. After encryption, Plymouth can
+      # be used for subsequent boots including password entry for LUKS unlock.
+      # leaving this here for future debugging purposes/reference.
+      # boot.plymouth.enable = lib.mkForce false;
 
-    # Install required tools
-    environment.systemPackages = with pkgs; [
-      config.ghaf.security.tpm2.tools
-      cryptsetup
-      gptfdisk
-      lvm2
-      parted
-      util-linux
-    ];
+      # Install required tools
+      environment.systemPackages = with pkgs; [
+        config.ghaf.security.tpm2.tools
+        cryptsetup
+        gptfdisk
+        lvm2
+        parted
+        util-linux
+      ];
 
-    # Include required packages in initrd
-    boot.initrd = {
-      systemd = {
-        storePaths = with pkgs; [
-          # keep-sorted start
-          btrfs-progs
-          config.ghaf.security.tpm2.tools
-          coreutils
-          cryptsetup
-          e2fsprogs
-          firstBootEncryptScript
-          gawk
-          gnugrep
-          gum
-          kmod
-          lvm2
-          ncurses
-          pcsclite.lib
-          plymouth
-          qrencode
-          systemd
-          util-linux
-          # keep-sorted end
-        ];
+      # Include required packages in initrd
+      boot.initrd = {
+        systemd = {
+          storePaths = with pkgs; [
+            # keep-sorted start
+            btrfs-progs
+            config.ghaf.security.tpm2.tools
+            coreutils
+            cryptsetup
+            e2fsprogs
+            firstBootEncryptScript
+            gawk
+            gnugrep
+            gum
+            kmod
+            lvm2
+            ncurses
+            pcsclite.lib
+            plymouth
+            qrencode
+            systemd
+            util-linux
+            # keep-sorted end
+          ];
 
-        services = {
-          # First-boot encryption service (runs in initrd)
-          first-boot-encrypt = {
-            description = "First Boot Disk Encryption Setup (Initrd)";
-            documentation = [ "https://github.com/tiiuae/ghaf" ];
+          services = {
+            # First-boot encryption service (runs in initrd)
+            first-boot-encrypt = {
+              description = "First Boot Disk Encryption Setup (Initrd)";
+              documentation = [ "https://github.com/tiiuae/ghaf" ];
 
-            # Run in initrd BEFORE root is mounted
-            wantedBy = [ "initrd.target" ];
-            before = [
-              "sysroot.mount"
-              "initrd-root-fs.target"
-            ];
-            after = [
-              "cryptsetup-pre.target"
-              "systemd-cryptsetup@crypted.service"
-            ];
-
-            unitConfig = {
-              DefaultDependencies = false;
-            };
-
-            serviceConfig = {
-              Type = "oneshot";
-              RemainAfterExit = true;
-
-              # Interactive service - needs direct TTY access.
-              # "tty" (not "journal+console") is required so GUM's ANSI
-              # escape sequences reach the terminal unmodified; the journal
-              # path prepends timestamps and service metadata to every line
-              # which breaks GUM rendering entirely.
-              StandardInput = "tty-force";
-              StandardOutput = "tty";
-              StandardError = "tty";
-
-              # Disable restart - encryption only happens once
-              Restart = "no";
-
-              # Execute the encryption script
-              ExecStart = getExe firstBootEncryptScript;
-            };
-          };
-
-          # Override systemd-cryptsetup@crypted.service to add a condition
-          # that checks if the device is actually LUKS before attempting unlock
-          # We define the service manually to override the generator and add the condition
-          "systemd-cryptsetup@crypted" = {
-            description = "Cryptography Setup for crypted";
-            documentation = [
-              "man:crypttab(5)"
-              "man:systemd-cryptsetup-generator(8)"
-              "man:systemd-cryptsetup@.service(8)"
-            ];
-
-            unitConfig = {
-              DefaultDependencies = false;
-              Conflicts = "umount.target";
-              Before = [
-                "cryptsetup.target"
-                "umount.target"
+              # Run in initrd BEFORE root is mounted
+              wantedBy = [ "initrd.target" ];
+              before = [
+                "sysroot.mount"
+                "initrd-root-fs.target"
               ];
-              After = [
+              after = [
                 "cryptsetup-pre.target"
-                "${utils.escapeSystemdPath lvmPartition}.device"
+                "systemd-cryptsetup@crypted.service"
               ];
-              BindsTo = [
-                "dev-mapper-crypted.device"
-                "${utils.escapeSystemdPath lvmPartition}.device"
-              ];
-              IgnoreOnIsolate = true;
-              ConditionPathExists = "/run/cryptsetup-pre-checked";
+
+              unitConfig = {
+                DefaultDependencies = false;
+              };
+
+              serviceConfig = {
+                Type = "oneshot";
+                RemainAfterExit = true;
+
+                # Interactive service - needs direct TTY access.
+                # "tty" (not "journal+console") is required so GUM's ANSI
+                # escape sequences reach the terminal unmodified; the journal
+                # path prepends timestamps and service metadata to every line
+                # which breaks GUM rendering entirely.
+                StandardInput = "tty-force";
+                StandardOutput = "tty";
+                StandardError = "tty";
+
+                # Disable restart - encryption only happens once
+                Restart = "no";
+
+                # Execute the encryption script
+                ExecStart = getExe firstBootEncryptScript;
+              };
             };
 
-            serviceConfig = {
-              Type = "oneshot";
-              RemainAfterExit = true;
-              TimeoutSec = 0;
-              KeyringMode = "shared";
-              OOMScoreAdjust = 500;
-              ExecStart =
-                let
-                  # Derive the options from boot.initrd.luks.devices.crypted so this
-                  # manual first-boot unit can never drift from the generator settings.
-                  luksDev = config.boot.initrd.luks.devices.crypted;
-                  options =
-                    lib.optional luksDev.allowDiscards "allow-discards"
-                    ++ lib.optionals luksDev.bypassWorkqueues [
-                      "no-read-workqueue"
-                      "no-write-workqueue"
-                    ]
-                    ++ luksDev.crypttabExtraOpts;
-                  optionsStr = builtins.concatStringsSep "," options;
-                in
-                "${pkgs.systemd}/lib/systemd/systemd-cryptsetup attach crypted ${lvmPartition} - ${optionsStr}";
+            # Override systemd-cryptsetup@crypted.service to add a condition
+            # that checks if the device is actually LUKS before attempting unlock
+            # We define the service manually to override the generator and add the condition
+            "systemd-cryptsetup@crypted" = {
+              description = "Cryptography Setup for crypted";
+              documentation = [
+                "man:crypttab(5)"
+                "man:systemd-cryptsetup-generator(8)"
+                "man:systemd-cryptsetup@.service(8)"
+              ];
+
+              unitConfig = {
+                DefaultDependencies = false;
+                Conflicts = "umount.target";
+                Before = [
+                  "cryptsetup.target"
+                  "umount.target"
+                ];
+                After = [
+                  "cryptsetup-pre.target"
+                  "${utils.escapeSystemdPath lvmPartition}.device"
+                ];
+                BindsTo = [
+                  "dev-mapper-crypted.device"
+                  "${utils.escapeSystemdPath lvmPartition}.device"
+                ];
+                IgnoreOnIsolate = true;
+                ConditionPathExists = "/run/cryptsetup-pre-checked";
+              };
+
+              serviceConfig = {
+                Type = "oneshot";
+                RemainAfterExit = true;
+                TimeoutSec = 0;
+                KeyringMode = "shared";
+                OOMScoreAdjust = 500;
+                ExecStart =
+                  let
+                    # Mirror the crypttab options the stage-1 generator derives
+                    # (nixpkgs luksroot.nix) rather than hardcoding a copy. Note
+                    # the crypttab spelling is `discard`, not `allow-discards`:
+                    # systemd-cryptsetup ignores unknown options, so getting this
+                    # wrong silently disables discards. keyfile/header options are
+                    # not replayed here.
+                    luksDev = config.boot.initrd.luks.devices.crypted;
+                    options =
+                      lib.optional luksDev.allowDiscards "discard"
+                      ++ lib.optionals luksDev.bypassWorkqueues [
+                        "no-read-workqueue"
+                        "no-write-workqueue"
+                      ]
+                      ++ luksDev.crypttabExtraOpts;
+                    optionsStr = builtins.concatStringsSep "," options;
+                  in
+                  "${pkgs.systemd}/lib/systemd/systemd-cryptsetup attach crypted ${lvmPartition} - ${optionsStr}";
+              };
             };
           };
         };
+
+        # After encryption is applied, configure boot with LUKS.
+        # On first boot, device is not encrypted yet. We use a systemd service
+        # bound to cryptsetup-pre.target to skip LUKS unlock if device is not encrypted.
+        luks.devices.crypted = {
+          device = lvmPartition;
+          allowDiscards = true;
+          bypassWorkqueues = true;
+
+          # Crypttab options for TPM/FIDO2
+          crypttabExtraOpts =
+            if cfg.backendType == "tpm2" then
+              [
+                "tpm2-device=auto"
+                "tpm2-measure-pcr=yes"
+              ]
+            else
+              [ "fido2-device=auto" ];
+        };
+
+        # Ensure necessary kernel modules and filesystem support in initrd
+        # supportedFilesystems ensures the filesystem modules and tools are available
+        supportedFilesystems = [
+          "btrfs"
+          "ext4"
+          "vfat"
+        ];
+
+        availableKernelModules = [
+          "dm-crypt"
+          "dm-mod"
+        ];
+
+        kernelModules = [
+          "dm-crypt"
+          "dm-mod"
+        ];
+
+        # Enable LVM support in initrd
+        services.lvm.enable = true;
       };
-
-      # After encryption is applied, configure boot with LUKS.
-      # On first boot, device is not encrypted yet. We use a systemd service
-      # bound to cryptsetup-pre.target to skip LUKS unlock if device is not encrypted.
-      luks.devices.crypted = {
-        device = lvmPartition;
-        allowDiscards = true;
-        bypassWorkqueues = true;
-
-        # Crypttab options for TPM/FIDO2
-        crypttabExtraOpts =
-          if cfg.backendType == "tpm2" then
-            [
-              "tpm2-device=auto"
-              "tpm2-measure-pcr=yes"
-            ]
-          else
-            [ "fido2-device=auto" ];
-      };
-
-      # Ensure necessary kernel modules and filesystem support in initrd
-      # supportedFilesystems ensures the filesystem modules and tools are available
-      supportedFilesystems = [
-        "btrfs"
-        "ext4"
-        "vfat"
-      ];
-
-      availableKernelModules = [
-        "dm-crypt"
-        "dm-mod"
-      ];
-
-      kernelModules = [
-        "dm-crypt"
-        "dm-mod"
-      ];
-
-      # Enable LVM support in initrd
-      services.lvm.enable = true;
-    };
-  };
+    })
+  ];
 }
