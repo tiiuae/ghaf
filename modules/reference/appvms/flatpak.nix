@@ -428,6 +428,8 @@ in
             ghaf = {
               xdgitems.enable = lib.mkDefault true;
 
+              theming.cosmic.enable = lib.mkDefault true;
+
               users.appUser.extraGroups = [
                 "flatpak"
               ];
@@ -454,7 +456,6 @@ in
 
             environment.systemPackages = [
               xdgUrlFlatpakItem
-              pkgs.cosmic-icons
             ];
 
             xdg = {

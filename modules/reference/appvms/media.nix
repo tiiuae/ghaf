@@ -49,6 +49,8 @@ in
               image.enable = true;
               video.enable = true;
             };
+
+            ghaf.theming.cosmic.enable = lib.mkDefault true;
           }
         ];
       };

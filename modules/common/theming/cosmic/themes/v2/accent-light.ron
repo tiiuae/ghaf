@@ -1,0 +1,16 @@
+// SPDX-FileCopyrightText: 2026 TII (SSRC) and the Ghaf contributors
+// SPDX-License-Identifier: Apache-2.0
+(
+    base: "#217A46FF",
+    hover: "#2B764AFF",
+    pressed: "#60A47DFF",
+    selected: "#2B764AFF",
+    selected_text: "#217A46FF",
+    focus: "#217A46FF",
+    divider: "#FFFFFFFF",
+    on: "#FFFFFFFF",
+    disabled: "#217A46FF",
+    on_disabled: "#84C29FFF",
+    border: "#217A46FF",
+    disabled_border: "#217A4680",
+)

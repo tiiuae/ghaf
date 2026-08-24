@@ -484,31 +484,11 @@ com.system76.CosmicSettings.WindowRules:
 
     ]
 
-com.system76.CosmicTerm:
-  font_name: "Noto Sans Mono"
-
 com.system76.CosmicTheme.Mode:
   auto_switch: false
-  is_dark: true
 
 com.system76.CosmicTk:
-  apply_theme_global: true
   show_minimize: true
   show_maximize: true
-  icon_theme: "Papirus"
   interface_density: Standard
   header_size: Standard
-  interface_font: |
-    (
-        family: "Open Sans",
-        weight: Normal,
-        stretch: Normal,
-        style: Normal,
-    )
-  monospace_font: |
-    (
-        family: "Noto Sans Mono",
-        weight: Normal,
-        stretch: Normal,
-        style: Normal,
-    )

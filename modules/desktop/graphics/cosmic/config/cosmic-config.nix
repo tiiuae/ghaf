@@ -191,7 +191,6 @@ pkgs.stdenv.mkDerivation {
 
   nativeBuildInputs = [
     pkgs.yq-go
-    pkgs.imagemagick
     pkgs.rsync
   ];
 
@@ -223,15 +222,6 @@ pkgs.stdenv.mkDerivation {
     mkdir -p $out/share/cosmic
     # cp -r cosmic-unpacked $out/share/cosmic
     rsync -a --exclude '*bottom-panel' cosmic-unpacked/ "$out/share/cosmic/"
-
-    # Install themes
-    mkdir -p $out/share/cosmic-themes
-    for theme in $src/ghaf-themes/*.ron; do
-      install -m0644 "$theme" $out/share/cosmic-themes/
-    done
-    install -m0644 ${pkgs.ghaf-artwork}/1600px-Ghaf_logo.png $out/share/cosmic-themes/ghaf-dark.png
-    magick $out/share/cosmic-themes/ghaf-dark.png -resize 30% $out/share/cosmic-themes/ghaf-dark.png
-    ln -s $out/share/cosmic-themes/ghaf-dark.png $out/share/cosmic-themes/ghaf-light.png
 
     install -Dm0644 ${securityContextConfig} $out/share/cosmic/com.system76.CosmicComp/v1/security_context
   ''
