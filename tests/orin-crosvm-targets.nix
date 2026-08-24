@@ -32,6 +32,8 @@ let
     host: name:
     host.systemd.services ? "ghaf-crosvm-shutdown-${name}"
     && host.systemd.services."microvm@${name}".serviceConfig.TimeoutStopSec == "35";
+  shutdownScript =
+    host: name: host.systemd.services."ghaf-crosvm-shutdown-${name}".serviceConfig.ExecStop;
 
   agxGui = vm agx "gui-vm";
   nxGui = vm nx "gui-vm";
@@ -138,4 +140,7 @@ in
 assert lib.assertMsg (
   failed == [ ]
 ) "Orin Crosvm target checks failed: ${lib.concatStringsSep "; " failed}";
-runCommand "orin-crosvm-targets" { } ''touch "$out"''
+runCommand "orin-crosvm-targets" { } ''
+  grep -Fq -- '--no-syslog stop' ${shutdownScript splitAgx "disp-vm"}
+  touch "$out"
+''
