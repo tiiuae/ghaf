@@ -390,7 +390,7 @@
         "type": "github"
       },
       "original": {
-        "ref": "refs/pull/368/head",
+        "ref": "refs/pull/369/head",
         "type": "git",
         "url": "https://github.com/tiiuae/ghafpkgs"
       }
@@ -546,16 +546,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1787661902,
-        "narHash": "sha256-mJmAXcM7JUbt8sdF8CpKcQzuBIQA0fld8HGWADc3eTs=",
+        "lastModified": 1787592395,
+        "narHash": "sha256-hIzNsLikn2jVab9u/t7jbOX5Sypos19l4yORzVmLpns=",
         "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "5a30003720b195428fbceb01c117a157605c249c",
+        "rev": "9d8836edda93ff99001df62596837a2bcd43a6f2",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "feat/orin-virtualization-support",
+        "ref": "feat/orin-proxy-lifecycle",
         "repo": "jetpack-nixos",
         "type": "github"
       }
