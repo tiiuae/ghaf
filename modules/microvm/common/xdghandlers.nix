@@ -147,12 +147,10 @@ in
     environment.systemPackages =
       (lib.optionals cfg.pdf.enable [
         cfg.pdf.package
-        pkgs.cosmic-icons
       ])
       ++ (lib.optional cfg.image.enable cfg.image.package)
       ++ (lib.optionals cfg.video.enable [
         cfg.video.package
-        pkgs.cosmic-icons
       ]);
 
     ghaf.givc.appvm.applications =
