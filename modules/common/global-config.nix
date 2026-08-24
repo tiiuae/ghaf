@@ -38,8 +38,10 @@
         timeZone = lib.mkDefault config.time.timeZone;
       };
 
-      # Propagate host storeOnDisk setting to global-config for VMs
-      storage.storeOnDisk = config.ghaf.virtualization.microvm.storeOnDisk;
+      # Propagate host storeOnDisk setting to global-config for VMs. The
+      # microvm module isn't imported by non-VM configs (e.g. installers),
+      # so fall back to the submodule's own defaults (storeOnDisk disabled).
+      storage.storeOnDisk = config.ghaf.virtualization.microvm.storeOnDisk or { };
 
       # Auto-populate logging listener address from admin-vm IP
       # The logging listener always runs on admin-vm, so derive the address

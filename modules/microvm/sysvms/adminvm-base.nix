@@ -83,6 +83,11 @@ in
       };
     };
 
+    # GIVC configuration - from globalConfig
+    givc = {
+      inherit (globalConfig.givc) enable debug;
+    };
+
     # Enable dynamic hostname export for VMs
     identity.vmHostNameExport.enable = true;
 
@@ -145,12 +150,6 @@ in
       };
 
       recovery.enable = true;
-    };
-
-    # GIVC configuration - from globalConfig
-    givc = {
-      inherit (globalConfig.givc) enable;
-      inherit (globalConfig.givc) debug;
     };
 
     # Security

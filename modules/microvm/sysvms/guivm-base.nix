@@ -80,12 +80,18 @@ in
     inputs.self.nixosModules.hardware-x86_64-guest-kernel
     inputs.preservation.nixosModules.preservation
     inputs.self.nixosModules.vm-modules
+    inputs.self.nixosModules.theming
   ];
 
   # Reference services are added by profiles via extendModules
   # See: modules/reference/profiles/mvp-user-trial.nix
 
   ghaf = {
+    theming = {
+      enable = lib.mkDefault (globalConfig.theming.enable or false);
+      plymouth.enable = true;
+    };
+
     # Profiles - from globalConfig
     profiles = {
       debug.enable = lib.mkDefault (globalConfig.debug.enable or false);
@@ -185,10 +191,7 @@ in
 
     # Create launchers for regular apps running in the GUIVM and virtualized ones if GIVC is enabled
     graphics = {
-      boot = {
-        enable = true;
-        renderer = "gpu";
-      };
+      boot.enable = lib.mkDefault (globalConfig.graphics.boot.enable or false);
 
       launchers =
         hostConfig.guivm.applications ++ lib.optionals (globalConfig.givc.enable or false) virtualLaunchers;
