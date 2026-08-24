@@ -22,6 +22,7 @@
   ...
 }:
 let
+  support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
   # Bare "nvidia,dce-host-proxy" node so the platform driver binds and creates
   # /dev/dce-host. Driver reads no reg/vpa (relays via tegra-dce's exported
   # CPU_RM client API), so the node only needs the compatible. Mirrors
@@ -87,16 +88,16 @@ in
             pkgs.buildPackages.unixtools.xxd
           ];
           postPatch = (o.postPatch or "") + ''
-            install -D ${./sources/drivers/platform/tegra/dce-host-proxy/dce-host-proxy.c} \
+            install -D ${support}/sources/nvidia-oot/drivers/platform/tegra/dce-host-proxy/dce-host-proxy.c \
               nvidia-oot/drivers/platform/tegra/dce/dce-host-proxy.c
-            install -D ${./sources/drivers/platform/tegra/dce-host-proxy/dce-host-proxy.h} \
+            install -D ${support}/sources/nvidia-oot/drivers/platform/tegra/dce-host-proxy/dce-host-proxy.h \
               nvidia-oot/drivers/platform/tegra/dce/dce-host-proxy.h
             echo 'obj-m += dce-host-proxy.o' >> nvidia-oot/drivers/platform/tegra/dce/Makefile
 
-            install -D ${./sources/drivers/platform/tegra/dce-iso-anchor/dce-iso-anchor.c} \
+            install -D ${support}/sources/nvidia-oot/drivers/platform/tegra/dce-iso-anchor/dce-iso-anchor.c \
               nvidia-oot/drivers/platform/tegra/dce/dce-iso-anchor.c
             dtc -@ -I dts -O dtb -o dce-iso-anchor.dtbo \
-              ${./sources/drivers/platform/tegra/dce-iso-anchor/dce-iso-anchor.dts}
+              ${support}/sources/nvidia-oot/drivers/platform/tegra/dce-iso-anchor/dce-iso-anchor.dts
             xxd -i -n dce_iso_anchor_dtbo dce-iso-anchor.dtbo \
               > nvidia-oot/drivers/platform/tegra/dce/dce-iso-anchor-dtbo.h
             echo 'obj-m += dce-iso-anchor.o' >> nvidia-oot/drivers/platform/tegra/dce/Makefile

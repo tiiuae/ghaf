@@ -390,9 +390,9 @@
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
-        "repo": "ghafpkgs",
-        "type": "github"
+        "ref": "refs/pull/368/head",
+        "type": "git",
+        "url": "https://github.com/tiiuae/ghafpkgs"
       }
     },
     "git-hooks-nix": {
@@ -555,7 +555,7 @@
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "august-rebase",
+        "ref": "feat/orin-virtualization-support",
         "repo": "jetpack-nixos",
         "type": "github"
       }

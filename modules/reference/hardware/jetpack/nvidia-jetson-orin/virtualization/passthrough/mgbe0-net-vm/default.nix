@@ -21,6 +21,7 @@
 let
   cfg = config.ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm;
   virt = config.ghaf.hardware.nvidia.virtualization;
+  support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
 in
 {
   _file = ./default.nix;
@@ -152,7 +153,7 @@ in
               # SMMU stream id from DT and -EINVALs when a passthrough guest has
               # no IOMMU. Fall back to the fixed stream id 6.
               name = "dwmac-tegra fixed stream id";
-              patch = ./0001-dwmac-tegra-fixed-stream-id.patch;
+              patch = "${support}/patches/linux/0001-dwmac-tegra-fixed-stream-id.patch";
             }
             {
               name = "bpmp-virt proxy drivers";
@@ -162,9 +163,9 @@ in
               name = "bpmp-virt core hooks";
               patch =
                 if lib.versionAtLeast guestKernelVersion "6.12" then
-                  ../../common/bpmp-virt-common/patches/0001-bpmp-virt-hooks-6.12.patch
+                  "${support}/patches/linux/bpmp/0001-bpmp-virt-hooks-6.12.patch"
                 else
-                  ../../common/bpmp-virt-common/patches/0001-bpmp-virt-hooks.patch;
+                  "${support}/patches/linux/bpmp/0001-bpmp-virt-hooks.patch";
             }
             {
               name = "bpmp guest proxy kernel configuration";

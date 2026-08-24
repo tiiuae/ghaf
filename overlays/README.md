@@ -87,7 +87,7 @@ only exist until an upstream fix lands, so they should be reverted rather than m
 
 - `0025-tegra-fbdev-use-core-allocated-fb-info.patch`
 
-  In `.../passthrough/gpu-vm/patches/`, applied to `nvidia-oot-modules` from
+  Carried by jetpack-nixos and applied to `nvidia-oot-modules` from
   `.../passthrough/payload/guest-module.nix`. Kernel 6.12.103 backported
   `63c971af4036` and deleted `drm_fb_helper_alloc_info()`, so nvidia-oot's conftest
   ladder falls through to `drm_fb_helper_alloc_fbi()` — gone since v6.2 — and the tegra
