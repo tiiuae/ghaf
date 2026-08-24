@@ -1,5 +1,8 @@
-# SPDX-FileCopyrightText: 2026 TII (SSRC) and the Ghaf contributors
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+#
+# Thin adapter around microvm.nix's lib.buildRunner. The upstream runner stays
+# authoritative; this only changes arguments not yet modeled by microvm.nix.
 {
   config,
   lib,
@@ -7,72 +10,61 @@
   microvmFlake,
 }:
 let
-  microvmConfig = config.microvm // {
-    inherit (config.networking) hostName;
-    hypervisor = "crosvm";
-  };
-  upstreamConfig = microvmConfig // {
-    devices = lib.filter ({ bus, ... }: bus != "platform") microvmConfig.devices;
-  };
+  cfg = config.microvm;
+  formatAddress = value: "0x${lib.toLower (lib.toHexString value)}";
   upstreamRunner = microvmFlake.lib.buildRunner {
     inherit pkgs;
-    microvmConfig = upstreamConfig;
+    microvmConfig = cfg // {
+      inherit (config.networking) hostName;
+      hypervisor = "crosvm";
+    };
     inherit (config.system.build) toplevel;
   };
-  inherit (microvmConfig) hostName vmHostPackages;
-  inherit (import "${microvmFlake}/lib/volumes.nix" { pkgs = vmHostPackages; }) createVolumesScript;
-  hypervisorConfig = import ./crosvm-command.nix {
-    inherit pkgs microvmConfig macvtapFds;
-    linuxTarget = pkgs.linux.target or pkgs.stdenv.hostPlatform.linux-kernel.target;
-  };
-  inherit
-    (microvmFlake.lib.makeMacvtap {
-      inherit microvmConfig hypervisorConfig;
-    })
-    openMacvtapFds
-    macvtapFds
-    ;
-  inherit (hypervisorConfig) command canShutdown shutdownCommand;
-  preStart = hypervisorConfig.preStart or microvmConfig.preStart;
-  execArg = lib.optionalString microvmConfig.prettyProcnames ''-a "microvm@${hostName}"'';
-  runScript = vmHostPackages.writeShellScript "microvm-${hostName}-run" ''
-    set -eou pipefail
-    ${preStart}
-    ${createVolumesScript microvmConfig.volumes}
-    ${lib.optionalString (hypervisorConfig.requiresMacvtapAsFds or false) openMacvtapFds}
-    runtime_args=${
-      lib.optionalString (microvmConfig.extraArgsScript != null) ''
-        $(${microvmConfig.extraArgsScript})
-      ''
-    }
-
-    exec ${execArg} ${command} ''${runtime_args:-}
-  '';
-  shutdownScript =
-    if canShutdown then
-      vmHostPackages.writeShellScript "microvm-${hostName}-shutdown" shutdownCommand
-    else
-      null;
-  platformDevices = lib.filter ({ bus, ... }: bus == "platform") microvmConfig.devices;
+  oldMemoryArg = lib.escapeShellArgs [
+    "-m"
+    (toString cfg.mem)
+  ];
+  newMemoryArg = lib.escapeShellArgs [
+    "--mem"
+    "size=${toString cfg.mem},base=${formatAddress cfg.crosvm.memoryBase}"
+  ];
+  pciSubstitutions = lib.concatStringsSep "\n" (
+    lib.mapAttrsToList (
+      path:
+      {
+        dtSymbol,
+        guestAddress,
+        iommu,
+        ...
+      }:
+      let
+        oldArg = "--vfio /sys/bus/pci/devices/${path},iommu=viommu";
+        newArg = lib.escapeShellArgs [
+          "--vfio"
+          "/sys/bus/pci/devices/${path},iommu=${iommu}${
+            lib.optionalString (guestAddress != null) ",guest-address=${guestAddress}"
+          }${lib.optionalString (dtSymbol != null) ",dt-symbol=${dtSymbol}"}"
+        ];
+      in
+      ''substituteInPlace "$out/bin/microvm-run" --replace-fail ${lib.escapeShellArg oldArg} ${lib.escapeShellArg newArg}''
+    ) cfg.crosvm.pciDeviceOptions
+  );
 in
-vmHostPackages.buildPackages.runCommand "microvm-crosvm-${hostName}"
+pkgs.runCommand "microvm-crosvm-${config.networking.hostName}"
   {
-    inherit (upstreamRunner) meta;
-    inherit (upstreamRunner) passthru;
+    inherit (upstreamRunner) meta passthru;
   }
   ''
     mkdir -p "$out"
-    cp -rs ${upstreamRunner}/* "$out/"
-    chmod -R u+w "$out"
+    # Preserve final system and script symlink targets. An extra symlink layer
+    # makes the single-readlink comparison in microvm -l report false drift.
+    cp -r --no-preserve=mode ${upstreamRunner}/. "$out/"
     rm "$out/bin/microvm-run"
-    ln -s ${runScript} "$out/bin/microvm-run"
-    ${lib.optionalString canShutdown ''
-      rm "$out/bin/microvm-shutdown"
-      ln -s ${shutdownScript} "$out/bin/microvm-shutdown"
+    cp ${upstreamRunner}/bin/microvm-run "$out/bin/microvm-run"
+    chmod u+w "$out/bin/microvm-run"
+    ${lib.optionalString (cfg.crosvm.memoryBase != null) ''
+      substituteInPlace "$out/bin/microvm-run" \
+        --replace-fail ${lib.escapeShellArg oldMemoryArg} ${lib.escapeShellArg newMemoryArg}
     ''}
-    ${lib.optionalString (platformDevices != [ ]) ''
-      ${lib.concatMapStringsSep "\n" ({ path, ... }: ''
-        echo ${lib.escapeShellArg path} >> "$out/share/microvm/platform-devices"
-      '') platformDevices}
-    ''}
+    ${pciSubstitutions}
   ''

@@ -194,6 +194,9 @@ in
         givc.appvm = {
           enable = true;
           applications = givcApps;
+          services = lib.optionals (vmm == "crosvm" && pkgs.stdenv.hostPlatform.isAarch64) [
+            "ghaf-crosvm-poweroff.service"
+          ];
         };
 
         # User configuration
@@ -363,6 +366,29 @@ in
                   ];
                 }
               ];
+      };
+
+      systemd.user.services.ghaf-crosvm-poweroff =
+        lib.mkIf (vmm == "crosvm" && pkgs.stdenv.hostPlatform.isAarch64)
+          {
+            description = "Power off the Crosvm application VM";
+            unitConfig.ConditionUser = config.ghaf.users.appUser.name;
+            serviceConfig = {
+              Type = "oneshot";
+              ExecStart = "${lib.getExe' pkgs.systemd "systemctl"} poweroff";
+            };
+          };
+
+      security.polkit = lib.mkIf (vmm == "crosvm" && pkgs.stdenv.hostPlatform.isAarch64) {
+        enable = true;
+        extraConfig = ''
+          polkit.addRule(function(action, subject) {
+            if (action.id.indexOf("org.freedesktop.login1.power-off") == 0 &&
+                subject.user == "${config.ghaf.users.appUser.name}") {
+              return polkit.Result.YES;
+            }
+          });
+        '';
       };
 
       # Combined udev rules (yubikey + passthrough)
