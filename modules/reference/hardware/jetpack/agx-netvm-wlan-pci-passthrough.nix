@@ -22,46 +22,44 @@ in
 
     # Passthrough devices - use hardware.definition for composition model
     ghaf.hardware.definition.netvm.extraModules = [
-      {
-        ghaf.services.wifi.enable = true;
-        # This bus holds the PCI ethernet or WLAN devices on ORIN AGX's
-        microvm.devices =
-          if cfg.somType == "agx-industrial" then
-            [
-              {
-                bus = "pci";
-                path = "0001:01:00.0";
-                crosvm = {
-                  guestAddress = "00:1f.0";
-                  # The Arm virtio-IOMMU path does not establish usable DMA
-                  # mappings for this endpoint. Keep isolation in the host
-                  # VFIO/SMMU domain and map only the guest's memory into it.
-                  iommu = "off";
-                };
-              }
-              {
-                bus = "pci";
-                path = "0000:01:00.0";
-              }
-            ]
-          else
-            [
-              {
-                bus = "pci";
-                path = "0001:01:00.0";
-                crosvm = {
-                  guestAddress = "00:1f.0";
-                  # See the devkit entry above: host VFIO/SMMU isolation is
-                  # retained while the broken guest virtio-IOMMU is bypassed.
-                  iommu = "off";
-                };
-              }
-            ];
-        # Network Manager is defined for netvm of Orin Devices
-        environment.systemPackages = [ pkgs.networkmanager ];
-        # Network Manager package defines a gnome plugin with build failure on Orin
-        networking.networkmanager.plugins = lib.mkForce [ ];
-      }
+      (
+        { config, ... }:
+        {
+          ghaf.services.wifi.enable = true;
+          # This bus holds the PCI ethernet or WLAN devices on ORIN AGX's
+          microvm.devices =
+            if cfg.somType == "agx-industrial" then
+              [
+                {
+                  bus = "pci";
+                  path = "0001:01:00.0";
+                }
+                {
+                  bus = "pci";
+                  path = "0000:01:00.0";
+                }
+              ]
+            else
+              [
+                {
+                  bus = "pci";
+                  path = "0001:01:00.0";
+                }
+              ];
+          microvm.crosvm.pciDeviceOptions = lib.mkIf (config.microvm.hypervisor == "crosvm") {
+            "0001:01:00.0" = {
+              guestAddress = "00:1f.0";
+              # Host VFIO/SMMU isolation remains active; only the broken guest
+              # virtio-IOMMU path is bypassed for this endpoint.
+              iommu = "off";
+            };
+          };
+          # Network Manager is defined for netvm of Orin Devices
+          environment.systemPackages = [ pkgs.networkmanager ];
+          # Network Manager package defines a gnome plugin with build failure on Orin
+          networking.networkmanager.plugins = lib.mkForce [ ];
+        }
+      )
     ];
 
     hardware.deviceTree.overlays = [

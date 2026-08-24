@@ -48,7 +48,10 @@ in
           HWINFO_FILE=${lib.escapeShellArg (if cfg.filePath == null then "" else cfg.filePath)}
           if [ -n "$HWINFO_FILE" ] && [ -f "$HWINFO_FILE" ]; then
             echo "Hardware Information:"
-            jq . < "$HWINFO_FILE" || cat "$HWINFO_FILE"
+            if ! jq . < "$HWINFO_FILE"; then
+              echo "Hardware information file is not valid JSON: $HWINFO_FILE" >&2
+              exit 1
+            fi
             exit 0
           fi
 
@@ -61,7 +64,10 @@ in
           for path in "''${FW_CFG_PATHS[@]}"; do
             if [ -f "$path" ]; then
               echo "Hardware Information:"
-              jq . < "$path" || cat "$path"
+              if ! jq . < "$path"; then
+                echo "Hardware information fw_cfg entry is not valid JSON: $path" >&2
+                exit 1
+              fi
               exit 0
             fi
           done
@@ -69,15 +75,20 @@ in
           # Not found - provide helpful error
           echo "Hardware information not available" >&2
 
-          if ! lsmod | grep -q qemu_fw_cfg; then
-            echo "Note: fw_cfg kernel module not loaded. Try: sudo modprobe qemu_fw_cfg" >&2
-          elif [ ! -d "/sys/firmware/qemu_fw_cfg" ]; then
-            echo "Note: fw_cfg sysfs interface not available" >&2
-          else
-            echo "Note: Hardware info file not found in fw_cfg" >&2
-            echo "Available fw_cfg entries:" >&2
-            find /sys/firmware/qemu_fw_cfg/by_name/ -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | head -10 >&2
-          fi
+          ${lib.optionalString (cfg.filePath != null) ''
+            echo "Note: configured hardware information file is missing: $HWINFO_FILE" >&2
+          ''}
+          ${lib.optionalString (cfg.filePath == null) ''
+            if ! lsmod | grep -q qemu_fw_cfg; then
+              echo "Note: fw_cfg kernel module not loaded. Try: sudo modprobe qemu_fw_cfg" >&2
+            elif [ ! -d "/sys/firmware/qemu_fw_cfg" ]; then
+              echo "Note: fw_cfg sysfs interface not available" >&2
+            else
+              echo "Note: Hardware info file not found in fw_cfg" >&2
+              echo "Available fw_cfg entries:" >&2
+              find /sys/firmware/qemu_fw_cfg/by_name/ -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | head -10 >&2
+            fi
+          ''}
 
           exit 1
         '';

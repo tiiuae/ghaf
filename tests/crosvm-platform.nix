@@ -4,11 +4,11 @@
 let
   inherit (pkgs) lib;
   makeConfig =
-    system: modules:
+    system: module:
     self.inputs.nixpkgs.lib.nixosSystem {
       inherit system;
       modules = [
-        self.nixosModules.microvm-guest
+        self.nixosModules.microvm-nix
         {
           networking.hostName = "crosvm-platform-test";
           system.stateVersion = "25.11";
@@ -17,160 +17,55 @@ let
             vsock.cid = 77;
           };
         }
-      ]
-      ++ modules;
-    };
-  crosvmCommandFor =
-    nixos:
-    import ../modules/microvm/common/crosvm-command.nix {
-      inherit (nixos) pkgs;
-      microvmConfig = nixos.config.microvm;
-      macvtapFds = { };
-      linuxTarget = nixos.pkgs.linux.target or nixos.pkgs.stdenv.hostPlatform.linux-kernel.target;
+        module
+      ];
     };
   assertionsPass = nixos: builtins.all ({ assertion, ... }: assertion) nixos.config.assertions;
-  valid = makeConfig "x86_64-linux" [
-    {
-      microvm = {
-        crosvm.deviceTreeOverlays = [ "overlay file.dtbo" ];
-        devices = [
-          {
-            bus = "platform";
-            path = "6800000.ethernet test";
-            crosvm.dtSymbol = "mgbe0";
-            crosvm.mmioBase = lib.fromHexString "0x66000000";
-            crosvm.mapEarly = true;
-          }
-          {
-            bus = "pci";
-            path = "0000:01:00.0";
-            crosvm.guestAddress = "00:1f.0";
-          }
-        ];
-      };
-    }
-  ];
-  layout = makeConfig "aarch64-linux" [
-    {
-      microvm.crosvm = {
-        memoryBase = lib.fromHexString "0x2000000000";
-        platformMmio = {
-          base = lib.fromHexString "0x60000000";
-          size = lib.fromHexString "0x1fa0000000";
-        };
-      };
-    }
-  ];
-  missingSymbol = makeConfig "x86_64-linux" [
-    {
-      microvm = {
-        crosvm.deviceTreeOverlays = [ "overlay.dtbo" ];
-        devices = [
-          {
-            bus = "platform";
-            path = "6800000.ethernet";
-          }
-        ];
-      };
-    }
-  ];
-  missingOverlay = makeConfig "x86_64-linux" [
-    {
-      microvm.devices = [
-        {
-          bus = "platform";
-          path = "6800000.ethernet";
-          crosvm.dtSymbol = "mgbe0";
-        }
-      ];
-    }
-  ];
-  unsupportedHypervisor = makeConfig "x86_64-linux" [
-    {
-      microvm = {
-        hypervisor = lib.mkForce "qemu";
-        crosvm.deviceTreeOverlays = [ "overlay.dtbo" ];
-        devices = [
-          {
-            bus = "platform";
-            path = "6800000.ethernet";
-            crosvm.dtSymbol = "mgbe0";
-          }
-        ];
-      };
-    }
-  ];
-  fixedPci = makeConfig "x86_64-linux" [
-    {
-      microvm.devices = [
+  upstream = makeConfig "x86_64-linux" { };
+  pci = makeConfig "x86_64-linux" {
+    microvm = {
+      devices = [
         {
           bus = "pci";
           path = "0000:01:00.0";
-          crosvm.mmioBase = lib.fromHexString "0x66000000";
         }
       ];
-    }
-  ];
-  unsupportedLayout = makeConfig "x86_64-linux" [
-    {
-      microvm.crosvm = {
-        memoryBase = lib.fromHexString "0x2000000000";
-        platformMmio = {
-          base = lib.fromHexString "0x60000000";
-          size = lib.fromHexString "0x1fa0000000";
-        };
+      crosvm.pciDeviceOptions."0000:01:00.0" = {
+        guestAddress = "00:1f.0";
+        iommu = "off";
       };
-    }
-  ];
-  incompleteLayout = makeConfig "aarch64-linux" [
-    { microvm.crosvm.memoryBase = lib.fromHexString "0x2000000000"; }
-  ];
-  overlappingLayout = makeConfig "aarch64-linux" [
-    {
-      microvm.crosvm = {
-        memoryBase = lib.fromHexString "0x80000000";
-        platformMmio = {
-          base = lib.fromHexString "0x90000000";
-          size = lib.fromHexString "0x10000000";
-        };
-      };
-    }
-  ];
-  inherit ((crosvmCommandFor valid)) command;
-  inherit ((crosvmCommandFor valid)) shutdownCommand;
-  layoutCommand = (crosvmCommandFor layout).command;
+    };
+  };
+  layout = makeConfig "aarch64-linux" {
+    microvm.crosvm.memoryBase = lib.fromHexString "0x2000000000";
+  };
+  missingPci = makeConfig "x86_64-linux" {
+    microvm.crosvm.pciDeviceOptions."0000:01:00.0".iommu = "off";
+  };
+  unsupportedLayout = makeConfig "x86_64-linux" {
+    microvm.crosvm.memoryBase = lib.fromHexString "0x2000000000";
+  };
   aarch64CrossPkgs = import self.inputs.nixpkgs {
     localSystem.system = "x86_64-linux";
     crossSystem.system = "aarch64-linux";
     overlays = [ self.overlays.ghaf-device-manager ];
   };
 in
-assert lib.hasInfix "--device-tree-overlay 'overlay file.dtbo'" command;
-assert lib.hasInfix
-  "'/sys/bus/platform/devices/6800000.ethernet test,iommu=off,dt-symbol=mgbe0,mmio-base=0x66000000,map-early=true'"
-  command;
-assert lib.hasInfix "/sys/bus/pci/devices/0000:01:00.0,iommu=viommu,guest-address=00:1f.0" command;
-assert lib.hasInfix "--mem 'size=512,base=0x2000000000'" layoutCommand;
-assert lib.hasInfix "--platform-mmio 'base=0x60000000,size=0x1fa0000000'" layoutCommand;
-assert lib.hasInfix "--no-syslog powerbtn" shutdownCommand;
-assert lib.hasInfix "--no-syslog stop" shutdownCommand;
-assert assertionsPass valid;
+assert assertionsPass pci;
 assert assertionsPass layout;
-assert !assertionsPass missingSymbol;
-assert !assertionsPass missingOverlay;
-assert !assertionsPass unsupportedHypervisor;
-assert !assertionsPass fixedPci;
+assert !assertionsPass missingPci;
 assert !assertionsPass unsupportedLayout;
-assert !assertionsPass incompleteLayout;
-assert !assertionsPass overlappingLayout;
 pkgs.runCommand "crosvm-platform"
   {
     nativeBuildInputs = [ pkgs.file ];
   }
   ''
-    file ${aarch64CrossPkgs.ghaf-device-manager}/bin/ghaf-device-manager \
-      | grep -q 'ARM aarch64'
-    grep -q -- '--no-syslog powerbtn' ${valid.config.microvm.runner.crosvm}/bin/microvm-shutdown
-    grep -q -- '--no-syslog stop' ${valid.config.microvm.runner.crosvm}/bin/microvm-shutdown
+    grep -Fq -- 'iommu=off,guest-address=00:1f.0' \
+      ${pci.config.microvm.runner.crosvm}/bin/microvm-run
+    grep -Fq -- 'size=512,base=0x2000000000' \
+      ${layout.config.microvm.runner.crosvm}/bin/microvm-run
+    test "$(readlink ${pci.config.microvm.runner.crosvm}/bin/microvm-shutdown)" = \
+      "$(readlink ${upstream.config.microvm.runner.crosvm}/bin/microvm-shutdown)"
+    file ${aarch64CrossPkgs.ghaf-device-manager}/bin/ghaf-device-manager | grep -q 'ARM aarch64'
     touch "$out"
   ''

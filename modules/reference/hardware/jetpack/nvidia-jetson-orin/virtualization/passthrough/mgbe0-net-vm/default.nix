@@ -8,7 +8,7 @@
 #   control  the node's clocks/resets/power-domain are <&bpmp ...> refs and the
 #            guest has no BPMP, so the guest tegra_bpmp is redirected (via the
 #            `virtual-pa` prop on its /bpmp node) to a QEMU bridge that forwards
-#            to /dev/bpmp-host. See bpmp-virt-common.
+#            to net-vm's dedicated BPMP host proxy. See bpmp-virt-common.
 #
 # QEMU emits the guest DT (a dynamic sysbus device with no FDT binding aborts
 # `virt`); there is no hand-written -dtb.
@@ -23,37 +23,43 @@ let
   virt = config.ghaf.hardware.nvidia.virtualization;
   support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
   configuredNetVmVmm = config.ghaf.virtualization.vmConfig.sysvms.netvm.vmm or null;
-  netVmVmm =
-    if configuredNetVmVmm == null then
-      config.ghaf.virtualization.vmConfig.defaultSysVmVmm
-    else
-      configuredNetVmVmm;
-  isCrosvm = netVmVmm == "crosvm";
-
-  stopCrosvmNetVm = pkgs.writeShellScript "stop-crosvm-net-vm" ''
-    set -u
-
-    pid="''${MAINPID:-}"
-    if [ -z "$pid" ]; then
-      echo "Crosvm net-vm has no MAINPID; nothing to stop"
-      exit 0
-    fi
-
-    # Crosvm's powerbtn control command is not supported on AArch64. Ask the
-    # guest to enter poweroff.target through GIVC instead, then keep ExecStop
-    # active until Crosvm exits. This lets the MGBE driver quiesce DMA before
-    # VFIO tears down the SMMU mappings.
-    echo "Starting poweroff target for Crosvm net-vm"
-    ${pkgs.givc-cli}/bin/givc-cli ${
-      lib.replaceStrings [ "/run" ] [ "/etc" ] config.ghaf.givc.cliArgs
-    } start service --vm net-vm poweroff.target &
-
-    echo "Waiting for Crosvm net-vm with PID=$pid to stop"
-    while kill -0 "$pid" 2>/dev/null; do
-      sleep 1
-    done
-    echo "Crosvm net-vm with PID=$pid stopped"
-  '';
+  isCrosvm =
+    (
+      if configuredNetVmVmm == null then
+        config.ghaf.virtualization.vmConfig.defaultSysVmVmm
+      else
+        configuredNetVmVmm
+    ) == "crosvm";
+  mgbe0BpmpIds = {
+    clocks = [
+      357
+      361
+      369
+      373
+      374
+      375
+      376
+      377
+      379
+      380
+      381
+      378
+      248
+    ];
+    resets = [
+      46
+      45
+      47
+    ];
+    powerDomains = [ 18 ];
+  };
+  ids = values: lib.concatStringsSep " " (map toString values);
+  bpmpRefs = values: lib.concatMapStringsSep ", " (value: "<&bpmp ${toString value}>") values;
+  mgbe0OverlayDts = pkgs.replaceVars ./mgbe0-crosvm-overlay.dts {
+    bpmpClocks = bpmpRefs mgbe0BpmpIds.clocks;
+    bpmpResets = bpmpRefs mgbe0BpmpIds.resets;
+    bpmpPowerDomains = bpmpRefs mgbe0BpmpIds.powerDomains;
+  };
 
   mgbe0Overlay =
     pkgs.buildPackages.runCommand "mgbe0-crosvm-overlay.dtbo"
@@ -87,11 +93,11 @@ let
 
         test "$(fdtget -t s "$host_dtb" "$host_node" compatible)" = "nvidia,tegra234-mgbe"
         test "$(fdtget -t s "$host_dtb" "$host_node" phy-mode)" = "10gbase-r"
-        check_bpmp_ids clocks "357 361 369 373 374 375 376 377 379 380 381 378 248"
-        check_bpmp_ids resets "46 45 47"
-        check_bpmp_ids power-domains "18"
+        check_bpmp_ids clocks ${lib.escapeShellArg (ids mgbe0BpmpIds.clocks)}
+        check_bpmp_ids resets ${lib.escapeShellArg (ids mgbe0BpmpIds.resets)}
+        check_bpmp_ids power-domains ${lib.escapeShellArg (ids mgbe0BpmpIds.powerDomains)}
 
-        dtc -@ -I dts -O dtb -o "$out" ${./mgbe0-crosvm-overlay.dts}
+        dtc -@ -I dts -O dtb -o "$out" ${mgbe0OverlayDts}
       '';
 
   prepareMgbe0Overlay = pkgs.writeShellApplication {
@@ -108,6 +114,8 @@ let
       live_root=/sys/firmware/devicetree/base
       live_fdt=/sys/firmware/fdt
       output=/run/mgbe0-net-vm.dtbo
+      temporary="$(mktemp --tmpdir=/run .mgbe0-net-vm.dtbo.XXXXXX)"
+      trap 'rm -f "$temporary"' EXIT
       mapfile -d "" nodes < <(find "$live_root" -type d -name 'ethernet@6800000' -print0)
       if [ "''${#nodes[@]}" -ne 1 ]; then
         echo "expected one live ethernet@6800000 node, found ''${#nodes[@]}" >&2
@@ -137,11 +145,11 @@ let
         fi
       }
 
-      check_bpmp_ids clocks "357 361 369 373 374 375 376 377 379 380 381 378 248"
-      check_bpmp_ids resets "46 45 47"
-      check_bpmp_ids power-domains "18"
+      check_bpmp_ids clocks ${lib.escapeShellArg (ids mgbe0BpmpIds.clocks)}
+      check_bpmp_ids resets ${lib.escapeShellArg (ids mgbe0BpmpIds.resets)}
+      check_bpmp_ids power-domains ${lib.escapeShellArg (ids mgbe0BpmpIds.powerDomains)}
 
-      install -m 0644 ${mgbe0Overlay} "$output"
+      install -m 0644 ${mgbe0Overlay} "$temporary"
       if [ -e "$node/mac-address" ]; then
         if [ "$(stat -c %s "$node/mac-address")" -ne 6 ]; then
           echo "live mac-address on $node_path is not six bytes" >&2
@@ -152,8 +160,10 @@ let
           echo "could not decode live mac-address on $node_path" >&2
           exit 1
         fi
-        fdtput -t bx "$output" /fragment@0/__overlay__/ethernet mac-address "''${mac_bytes[@]}"
+        fdtput -t bx "$temporary" /fragment@0/__overlay__/ethernet mac-address "''${mac_bytes[@]}"
       fi
+      mv "$temporary" "$output"
+      trap - EXIT
     '';
   };
 in
@@ -167,25 +177,12 @@ in
     # The guest can only bring MGBE0 up through the BPMP host proxy.
     ghaf.hardware.nvidia.virtualization.host.bpmp.enable = true;
 
-    ghaf.hardware.nvidia.virtualization.host.bpmp.allow = {
+    ghaf.hardware.nvidia.virtualization.host.bpmp.consumers.net-vm = {
       # MGBE0 (ethernet@6800000) clocks, resets, power domain -- raw BPMP ids
       # read from the device's live DT (not TEGRA234_CLK_* macros; NVIDIA's DT
       # has drifted from mainline). "clock not allowed" denials at guest boot are
       # the boundary working, not a bug -- see bpmp-host-proxy.c.
-      clocks = [
-        357
-        361
-        369
-        373
-        374
-        375
-        376
-        377
-        378
-        379
-        380
-        381
-        248
+      clocks = mgbe0BpmpIds.clocks ++ [
         # MGBE0's "tx" (374) is fed by a PLL chain that clk_prepare() walks in
         # full, so every link needs allowing or the child fails: the guest logs
         # "Failed to prepare clk 'tx': -5" and tegra-mgbe probes at -5, while the
@@ -217,18 +214,14 @@ in
         288 # PLLREFE_VCOOUT
         327 # PLLREFE_VCOOUT_GATED
       ];
-      resets = [
-        45
-        46
-        47
-      ];
-      powerDomains = [ 18 ];
+      inherit (mgbe0BpmpIds) resets;
+      inherit (mgbe0BpmpIds) powerDomains;
     };
 
     services.udev.extraRules = ''
-      # The VMM opens /dev/bpmp-host as user microvm, group kvm. The character
-      # device is otherwise 0600 root:root.
-      KERNEL=="bpmp-host", GROUP="kvm", MODE="0660"
+      # The VMM opens net-vm's BPMP proxy as user microvm, group kvm. The
+      # character device is otherwise 0600 root:root.
+      KERNEL=="bpmp-host-net-vm", GROUP="kvm", MODE="0660"
 
       # vfio group nodes for the passed-through platform device.
       SUBSYSTEM=="vfio", GROUP="kvm"
@@ -259,13 +252,7 @@ in
     systemd.services."microvm@net-vm" = {
       requires = lib.optionals isCrosvm [ "prepareMgbe0CrosvmOverlay.service" ];
       after = [ "bindMgbe0.service" ] ++ lib.optionals isCrosvm [ "prepareMgbe0CrosvmOverlay.service" ];
-      serviceConfig = lib.mkIf isCrosvm {
-        TimeoutStopSec = "30";
-        ExecStop = lib.mkForce [
-          ""
-          "+${stopCrosvmNetVm}"
-        ];
-      };
+      environment.GHAF_BPMP_HOST = "/dev/bpmp-host-net-vm";
     };
 
     systemd.services.prepareMgbe0CrosvmOverlay = lib.mkIf isCrosvm {
@@ -285,23 +272,26 @@ in
           quiesceMgbe0 = pkgs.writeShellScript "quiesce-mgbe0" ''
             set -eu
 
-            net_path=/sys/bus/platform/devices/c0000000.ethernet/net
-            if [ ! -d "$net_path" ]; then
-              echo "MGBE0 network-device path is missing: $net_path" >&2
+            driver_path=/sys/bus/platform/drivers/tegra-mgbe
+            if [ ! -d "$driver_path" ]; then
+              echo "MGBE0 driver path is missing: $driver_path" >&2
               exit 1
             fi
 
             found=0
-            for path in "$net_path"/*; do
-              [ -e "$path" ] || continue
-              found=1
-              interface="''${path##*/}"
-              echo "Quiescing MGBE0 interface $interface"
-              ${pkgs.iproute2}/bin/ip link set dev "$interface" down
+            for device in "$driver_path"/*; do
+              [ -d "$device/net" ] || continue
+              for path in "$device/net"/*; do
+                [ -e "$path" ] || continue
+                found=1
+                interface="''${path##*/}"
+                echo "Quiescing MGBE0 interface $interface from ''${device##*/}"
+                ${pkgs.iproute2}/bin/ip link set dev "$interface" down
+              done
             done
 
             if [ "$found" -eq 0 ]; then
-              echo "No MGBE0 network interface found under $net_path" >&2
+              echo "No MGBE0 network interface found under $driver_path" >&2
               exit 1
             fi
           '';
@@ -384,35 +374,26 @@ in
             "vfio-platform,host=6800000.ethernet,startup-rearm=on"
           ];
 
-          microvm.devices = lib.mkIf (config.microvm.hypervisor == "crosvm") [
-            {
-              bus = "platform";
-              path = "6800000.ethernet";
-              crosvm = {
-                dtSymbol = "mgbe0";
-                iommu = "off";
-              };
-            }
-          ];
-          microvm.crosvm.deviceTreeOverlays = lib.mkIf (config.microvm.hypervisor == "crosvm") [
-            "/run/mgbe0-net-vm.dtbo"
-          ];
           microvm.crosvm.extraArgs = lib.mkIf (config.microvm.hypervisor == "crosvm") [
+            "--device-tree-overlay"
+            "/run/mgbe0-net-vm.dtbo"
+            "--vfio"
+            "/sys/bus/platform/devices/6800000.ethernet,iommu=off,dt-symbol=mgbe0"
             "--nvidia-bpmp-host"
-            "/dev/bpmp-host"
+            "/dev/bpmp-host-net-vm"
           ];
 
-          # Crosvm removes the VFIO mappings as soon as the guest exits. The
-          # MGBE controller must therefore stop DMA before poweroff; otherwise
-          # it continues writing through stale mappings and faults the host
-          # SMMU. Stop this service before GIVC and the network stack so the
-          # driver's ndo_stop path runs while the guest is still operational.
+          # Crosvm removes VFIO mappings as soon as the guest exits. Keep a
+          # normal shutdown hook, and expose a GIVC service which powers off
+          # only after the driver's ndo_stop path succeeds. A quiesce failure
+          # therefore leaves the guest running and becomes a loud host timeout
+          # instead of silently tearing down live DMA.
           systemd.services.quiesce-mgbe0 = lib.mkIf (config.microvm.hypervisor == "crosvm") {
             description = "Quiesce MGBE0 before Crosvm shutdown";
             wantedBy = [ "multi-user.target" ];
             after = [
               "givc-net-vm.service"
-              "network.target"
+              "NetworkManager.service"
             ];
             serviceConfig = {
               Type = "oneshot";
@@ -421,6 +402,25 @@ in
               ExecStop = quiesceMgbe0;
             };
           };
+
+          systemd.services.ghaf-mgbe0-poweroff = lib.mkIf (config.microvm.hypervisor == "crosvm") {
+            description = "Quiesce MGBE0 and power off net-vm";
+            after = [
+              "givc-net-vm.service"
+              "NetworkManager.service"
+              "quiesce-mgbe0.service"
+            ];
+            serviceConfig.Type = "oneshot";
+            script = ''
+              set -euo pipefail
+              ${pkgs.systemd}/bin/systemctl stop quiesce-mgbe0.service
+              ${pkgs.systemd}/bin/systemctl start --no-block poweroff.target
+            '';
+          };
+
+          givc.sysvm.capabilities.services = lib.optionals (config.microvm.hypervisor == "crosvm") [
+            "ghaf-mgbe0-poweroff.service"
+          ];
         }
       )
     ];

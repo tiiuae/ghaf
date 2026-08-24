@@ -63,9 +63,7 @@ pkgs.stdenv.mkDerivation {
     + ''
       # These labels are the typed Crosvm VFIO contract. Missing one would
       # otherwise fail only at VM startup when Crosvm patches the overlay.
-      for symbol in ${
-        lib.escapeShellArgs (map (device: device.crosvm.dtSymbol) payload.crosvmDevices)
-      }; do
+      for symbol in ${lib.escapeShellArgs (map (device: device.dtSymbol) payload.crosvmDevices)}; do
         fdtget ${overlayName}.dtbo /__symbols__ "$symbol" >/dev/null
       done
     ''
