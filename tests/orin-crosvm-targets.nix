@@ -31,7 +31,10 @@ let
   hasShutdown =
     host: name:
     host.systemd.services ? "ghaf-crosvm-shutdown-${name}"
-    && host.systemd.services."microvm@${name}".serviceConfig.TimeoutStopSec == "35";
+    && host.systemd.services."microvm@${name}".serviceConfig.TimeoutStopSec == "35"
+    &&
+      lib.elem "CAP_DAC_OVERRIDE"
+        host.systemd.services."ghaf-crosvm-shutdown-${name}".serviceConfig.CapabilityBoundingSet;
   shutdownScript =
     host: name: host.systemd.services."ghaf-crosvm-shutdown-${name}".serviceConfig.ExecStop;
 
