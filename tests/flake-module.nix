@@ -42,6 +42,7 @@
           microvm-tpm-vmm-parity = pkgs.callPackage ./microvm/tpm-vmm-parity.nix { inherit self; };
           uplink-resolver = pkgs.callPackage ./uplink-resolver { };
           logging-fss = pkgs.callPackage ./logging { inherit self; };
+          logging-logseald = pkgs.callPackage ./logseald { inherit self; };
           fss-classifier-unit = pkgs.callPackage ./logging/classifier-unit.nix { };
           fss-test = pkgs.callPackage ./logging/test_scripts/fss-test.nix { };
           fss-triage = pkgs.callPackage ./logging/test_scripts/fss-triage.nix { };

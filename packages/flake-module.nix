@@ -24,6 +24,8 @@
       # exposed to downstream projects
       pkgsDirectory = ./pkgs-by-name;
 
+      packages.logseald = inputs.logseald.lib.mkPackage { inherit pkgs; };
+
       # Generate comprehensive documentation with enhanced module coverage
       packages.doc =
         let
