@@ -15,6 +15,7 @@
       pkgs,
       lib,
       self',
+      system,
       ...
     }:
     let
@@ -29,6 +30,8 @@
         type = "app";
         program = lib.getExe self'.legacyPackages.ghaf-mk-artifacts;
       };
+
+      apps.ghaf-ota-update = inputs.givc.apps.${system}.ota-update;
 
       # Generate comprehensive documentation with enhanced module coverage
       packages.doc =

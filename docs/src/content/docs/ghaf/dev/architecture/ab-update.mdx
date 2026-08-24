@@ -276,9 +276,9 @@ device.
 Sign an unsigned build output without modifying its source directory:
 
 ```sh
-nix run .#ghaf-sign-update -- \
+nix run .#ghaf-mk-artifacts -- \
+  --input-manifest result-update/ghaf_<version>_<hash>.manifest \
   --key-dir "$GHAF_DEV_KEY_DIR" \
-  --input result-update/ghaf_<version>_<hash>.manifest \
   --output signed-update
 ```
 
@@ -655,7 +655,7 @@ SIGNED_MANIFEST="$(find "$SIGNED_DIR" -maxdepth 1 -name '*.manifest' -print -qui
 test -n "$SIGNED_MANIFEST"
 test -s "$SIGNED_MANIFEST.sig"
 
-nix run 'path:../ghaf-givc#ota-update' -- \
+nix run .#ghaf-ota-update -- \
   registry --token "$REGISTRY_TOKEN" push \
   --manifest "$SIGNED_MANIFEST" \
   "$UPDATE_REF"
@@ -670,7 +670,7 @@ Pull into a temporary directory before offering the update to hardware:
 
 ```sh
 PULL_ROOT="$(mktemp -d)"
-nix run 'path:../ghaf-givc#ota-update' -- \
+nix run .#ghaf-ota-update -- \
   registry --token "$REGISTRY_TOKEN" pull --validate \
   --destination "$PULL_ROOT" \
   "$UPDATE_REF"
@@ -687,7 +687,7 @@ and hashes. It does not replace the signed image-policy validation. Authenticate
 the round-tripped bundle separately:
 
 ```sh
-nix run 'path:../ghaf-givc#ota-update' -- image validate \
+nix run .#ghaf-ota-update -- image validate \
   --manifest "$PULLED_MANIFEST" \
   --trusted-key "$GHAF_DEV_KEY_DIR/update.pub" \
   --uki-trusted-cert "$GHAF_DEV_KEY_DIR/db.crt" \
@@ -996,7 +996,7 @@ evaluation or build in `timeout 2h`.
 | Persist, swap, B-slot reservation | `modules/partitioning/firstboot-persist.nix` |
 | Health gate and blessing | `modules/partitioning/boot-health.nix` |
 | Development key generator | `packages/pkgs-by-name/ghaf-dev-keygen/` |
-| Update signer | `packages/pkgs-by-name/ghaf-sign-update/` |
+| Update signer | `packages/pkgs-by-name/ghaf-mk-artifacts/` |
 
 The installer lives in the `ghaf-givc` repository:
 
