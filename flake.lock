@@ -310,17 +310,18 @@
         ]
       },
       "locked": {
-        "lastModified": 1786479821,
-        "narHash": "sha256-IjlgULYzJHftvGTEap4vfpltBPN56f21aN0IpxeqpK8=",
-        "owner": "tiiuae",
-        "repo": "ghafpkgs",
-        "rev": "ad9b7f3269b945b40ecb30fa3461fd8b798bce1a",
-        "type": "github"
+        "lastModified": 1787592327,
+        "narHash": "sha256-fvKdh4miJmjuW+i7miSjjoDQ71qWYUv6/U1YiG9oDg8=",
+        "ref": "refs/pull/368/head",
+        "rev": "21f47328c8e39803b64e9cdf0d6f842b2a775807",
+        "revCount": 287,
+        "type": "git",
+        "url": "https://github.com/tiiuae/ghafpkgs"
       },
       "original": {
-        "owner": "tiiuae",
-        "repo": "ghafpkgs",
-        "type": "github"
+        "ref": "refs/pull/368/head",
+        "type": "git",
+        "url": "https://github.com/tiiuae/ghafpkgs"
       }
     },
     "git-hooks-nix": {
@@ -450,16 +451,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1787088172,
-        "narHash": "sha256-P17S0tFbt1BBuCGQFQBaQuUwni+bo9J0a0tEmpcVfXc=",
+        "lastModified": 1787592352,
+        "narHash": "sha256-Erfh8PB9ZdwSHdNKO0LNOoHp1CJ2OkUiY++RBrv8K80=",
         "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "beecf2d7122359b17aa551d9f0aee3b73bdb891c",
+        "rev": "55fe7dff5b079aa0d64b5eb2b975549f236a5b84",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "august-rebase",
+        "ref": "feat/orin-virtualization-support",
         "repo": "jetpack-nixos",
         "type": "github"
       }

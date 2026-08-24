@@ -58,25 +58,6 @@ path = [
 ]
 
 [[annotations]]
-# See https://github.com/qemu/qemu/blob/master/LICENSE
-# Our changes affects the GPL-2.0+ parts only.
-SPDX-License-Identifier = "GPL-2.0-or-later"
-SPDX-FileCopyrightText = [
-  "Fabrice Bellard and the QEMU team",
-  "Copyright (c) 2021-2022 Canokeys.org <contact@canokeys.org>",
-  "Written by Hongren (Zenithal) Zheng <i@zenithal.me>",
-  "Copyright (c) 2019 Janus Technologies, Inc. (http://janustech.com)",
-  "Copyright (C) 2008-2010  Kevin O'Connor <kevin@koconnor.net>",
-  "Copyright (C) 2006 Fabrice Bellard",
-  "Copyright (C) 2013 Red Hat Inc"
-]
-path = [
-  "packages/pkgs-by-name/ghaf-qemu/patches/*.patch",
-  "packages/pkgs-by-name/ghaf-qemu-bpmp/patches/*.patch",
-  "packages/pkgs-by-name/ghaf-qemu-bpmp/**/*"
-]
-
-[[annotations]]
 SPDX-License-Identifier = "GPL-2.0-only"
 SPDX-FileCopyrightText = "labwc contributors"
 path = "overlays/custom-packages/labwc/*.patch"
@@ -121,17 +102,9 @@ SPDX-FileCopyrightText = [
   "2022-2024 TII (SSRC) and the Ghaf contributors"
 ]
 path = [
-  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/common/bpmp-virt-common/patches/*.patch",
-  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/common/bpmp-virt-common/sources/drivers/firmware/tegra/bpmp-guest-proxy/*",
-  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/common/bpmp-virt-common/sources/drivers/firmware/tegra/bpmp-host-proxy/*",
   "modules/reference/hardware/jetpack/*.patch",
   "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/uarti-net-vm/patches/net_vm_dtb_with_uarti.patch",
-  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/mgbe0-net-vm/*.patch",
-  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/gpu-vm/patches/*.patch",
   "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/gpu-vm/patches/userspace/*.patch",
-  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/common/dce-virt-common/patches/*.patch",
-  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/common/dce-virt-common/sources/drivers/platform/tegra/dce-guest-proxy/*",
-  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/common/dce-virt-common/sources/drivers/platform/tegra/dce-host-proxy/*",
   "modules/hardware/x86_64-generic/kernel/pkvm/0001-pkvm-enable-pkvm-on-intel-x86-6.1-lts.patch",
   "modules/microvm/sysvms/0001-x86-gpu-Don-t-reserve-stolen-memory-for-GPU-passthro.patch",
   "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/uarti-net-vm/tegra234-netvm.dts"

@@ -1,9 +1,7 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# Thin NixOS module exposing the Ghaf-patched QEMU package.
-# The package itself lives in packages/pkgs-by-name/ghaf-qemu/package.nix
-# and can be built standalone: nix build .#ghaf-qemu
+# Thin NixOS module exposing the Ghaf-patched QEMU package from ghafpkgs.
 #
 {
   lib,
