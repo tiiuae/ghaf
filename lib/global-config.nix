@@ -69,6 +69,31 @@ rec {
           '';
         };
 
+        logseald = {
+          revokedPeerKeys = lib.mkOption {
+            type = lib.types.listOf (lib.types.strMatching "spki-sha256:[0-9a-f]{64}");
+            default = [ ];
+            description = "Offline logseald peer leaf-key revocation list, deployed to every producer and sealer.";
+          };
+          enable = mkOption {
+            type = types.bool;
+            default = true;
+            description = ''
+              Enable the clock-independent logseald producer on the host and
+              every logged VM, with the sealer in admin-vm. This is enabled by
+              default wherever global logging is enabled. Set false to disable
+              logseald without deleting its state or modifying the existing
+              FSS implementation.
+            '';
+          };
+
+          port = mkOption {
+            type = types.port;
+            default = 59631;
+            description = "On-device mTLS port used by logseald producers.";
+          };
+        };
+
         listener = {
           address = mkOption {
             type = types.str;
@@ -98,9 +123,10 @@ rec {
               endpoint.
 
               Set false to keep logging entirely on-device: journal clients, the
-              admin-vm aggregator and FSS sealing all stay on, but nothing leaves
-              the machine. This is the switch for a product that wants local,
-              tamper-evident logs without shipping them anywhere.
+              admin-vm aggregator, and enabled log-sealing services all stay on,
+              but nothing leaves the machine. This is the switch for a product
+              that wants local, tamper-evident logs without shipping them
+              anywhere.
 
               Has no effect unless logging.enable is also true.
             '';

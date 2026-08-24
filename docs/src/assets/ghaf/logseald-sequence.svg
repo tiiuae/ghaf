@@ -1,0 +1,127 @@
+<!--
+SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1500" role="img" aria-labelledby="title description">
+  <title id="title">Ghaf logseald sealing sequence</title>
+  <desc id="description">
+    Sequence diagram showing a local journald producer sending a complete queued log block through a systemd socket proxy to the Admin VM sealer. The sealer authenticates the producer with GIVC mutual TLS, validates and signs the block, persists a compact signed chain checkpoint, and returns a seal whose signing key is bound to the GIVC server identity.
+  </desc>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10" fill="none" stroke="#b8b6b0" stroke-width="1.8"/>
+    </marker>
+    <style>
+      .participant { stroke-width: 1.5; }
+      .participant-label { fill: #f0efeb; font: 700 27px system-ui, sans-serif; text-anchor: middle; }
+      .participant-subtitle { fill: #d6d4cf; font: 500 16px system-ui, sans-serif; text-anchor: middle; }
+      .lifeline { stroke: #74736f; stroke-width: 1.5; stroke-dasharray: 8 8; }
+      .message { fill: none; stroke: #b8b6b0; stroke-width: 2.5; marker-end: url(#arrow); }
+      .response { fill: none; stroke: #b8b6b0; stroke-width: 2.5; stroke-dasharray: 8 7; marker-end: url(#arrow); }
+      .message-label { fill: #deddd8; font: 600 22px system-ui, sans-serif; text-anchor: middle; }
+      .message-detail { fill: #aaa8a2; font: 500 17px system-ui, sans-serif; text-anchor: middle; }
+      .phase { fill: #202020; fill-opacity: 0.4; stroke: #4d4c49; stroke-width: 1.5; }
+      .phase-label { fill: #aaa8a2; font: 700 17px system-ui, sans-serif; letter-spacing: 1.5px; }
+      .action { fill: #1c1c1c; stroke: #4c4b48; stroke-width: 1.5; }
+      .action-text { fill: #deddd8; font: 600 20px system-ui, sans-serif; text-anchor: middle; }
+      .action-detail { fill: #aaa8a2; font: 500 16px system-ui, sans-serif; text-anchor: middle; }
+      .note { fill: #27231b; stroke: #8c6721; stroke-width: 1.5; }
+      .note-title { fill: #f1c36d; font: 700 19px system-ui, sans-serif; }
+      .note-text { fill: #deddd8; font: 500 17px system-ui, sans-serif; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1500" rx="18" fill="#151515"/>
+
+  <!-- Participants -->
+  <rect class="participant" x="35" y="40" width="220" height="94" rx="18" fill="#474744" stroke="#8f8e89"/>
+  <text class="participant-label" x="145" y="97">journald</text>
+
+  <rect class="participant" x="285" y="40" width="320" height="94" rx="18" fill="#095645" stroke="#43b497"/>
+  <text class="participant-label" x="445" y="86">logseald producer</text>
+  <text class="participant-subtitle" x="445" y="113">host or local VM</text>
+
+  <rect class="participant" x="635" y="40" width="250" height="94" rx="18" fill="#173e62" stroke="#5d96c4"/>
+  <text class="participant-label" x="760" y="86">PID 1 + proxy</text>
+  <text class="participant-subtitle" x="760" y="113">Admin VM</text>
+
+  <rect class="participant" x="950" y="40" width="260" height="94" rx="18" fill="#44368f" stroke="#8e7ce0"/>
+  <text class="participant-label" x="1080" y="86">logseald sealer</text>
+  <text class="participant-subtitle" x="1080" y="113">Admin VM</text>
+
+  <rect class="participant" x="1285" y="40" width="280" height="94" rx="18" fill="#714000" stroke="#cf8412"/>
+  <text class="participant-label" x="1425" y="86">GIVC credentials</text>
+  <text class="participant-subtitle" x="1425" y="113">producer + Admin VM identities</text>
+
+  <line class="lifeline" x1="145" y1="134" x2="145" y2="1430"/>
+  <line class="lifeline" x1="445" y1="134" x2="445" y2="1430"/>
+  <line class="lifeline" x1="760" y1="134" x2="760" y2="1430"/>
+  <line class="lifeline" x1="1080" y1="134" x2="1080" y2="1430"/>
+  <line class="lifeline" x1="1425" y1="134" x2="1425" y2="1430"/>
+
+  <!-- Startup trust establishment -->
+  <rect class="phase" x="55" y="165" width="1490" height="255" rx="14"/>
+  <text class="phase-label" x="80" y="197">SEALER STARTUP / INITIAL TRUST</text>
+
+  <rect class="action" x="925" y="220" width="310" height="88" rx="14"/>
+  <text class="action-text" x="1080" y="255">load persistent Ed25519 key</text>
+  <text class="action-detail" x="1080" y="282">separate log-signing identity</text>
+
+  <line class="message" x1="1090" y1="342" x2="1405" y2="342"/>
+  <text class="message-label" x="1247" y="331">sign key binding once</text>
+  <text class="message-detail" x="1247" y="369">Admin VM identity + Ed25519 public key</text>
+
+  <line class="response" x1="1405" y1="398" x2="1090" y2="398"/>
+  <text class="message-detail" x="1247" y="391">GIVC-signed binding</text>
+
+  <!-- Per-block operation -->
+  <rect class="phase" x="55" y="450" width="1490" height="940" rx="14"/>
+  <text class="phase-label" x="80" y="482">FOR EVERY JOURNAL BLOCK</text>
+
+  <line class="message" x1="425" y1="540" x2="165" y2="540"/>
+  <text class="message-label" x="295" y="527">read Journal Export records</text>
+
+  <rect class="action" x="275" y="575" width="340" height="118" rx="14"/>
+  <text class="action-text" x="445" y="609">canonical encode + Merkle root</text>
+  <text class="action-text" x="445" y="637">records or oversize digest markers</text>
+  <text class="action-detail" x="445" y="668">bounded block; reserve space; queue + fsync</text>
+
+  <line class="message" x1="465" y1="715" x2="740" y2="715"/>
+  <text class="message-label" x="602" y="700">POST /v1/seal</text>
+  <text class="message-detail" x="602" y="743">complete block over GIVC mTLS</text>
+
+  <line class="message" x1="780" y1="785" x2="1060" y2="785"/>
+  <text class="message-label" x="920" y="770">forward byte stream</text>
+  <text class="message-detail" x="920" y="813">TCP 59631 → protected Unix socket</text>
+
+  <rect class="action" x="895" y="845" width="370" height="143" rx="14"/>
+  <text class="action-text" x="1080" y="878">authenticate + check revoked keys</text>
+  <text class="action-text" x="1080" y="906">derive chain ID from peer SPKI</text>
+  <text class="action-text" x="1080" y="934">recompute root + block ID</text>
+  <text class="action-detail" x="1080" y="965">check sequence, predecessor and capacity</text>
+
+  <rect class="action" x="895" y="1015" width="370" height="113" rx="14"/>
+  <text class="action-text" x="1080" y="1049">assign device-wide seal sequence</text>
+  <text class="action-text" x="1080" y="1077">sign response with Ed25519</text>
+  <text class="action-detail" x="1080" y="1106">persist signed chain checkpoint; fsync</text>
+
+  <line class="response" x1="1060" y1="1160" x2="780" y2="1160"/>
+  <text class="message-label" x="920" y="1146">seal + signed key binding</text>
+
+  <line class="response" x1="740" y1="1215" x2="465" y2="1215"/>
+  <text class="message-detail" x="602" y="1205">end-to-end mTLS response</text>
+
+  <rect class="action" x="255" y="1250" width="380" height="118" rx="14"/>
+  <text class="action-text" x="445" y="1284">verify GIVC-bound signing key</text>
+  <text class="action-text" x="445" y="1312">verify seal + append sidecar</text>
+  <text class="action-detail" x="445" y="1343">fsync, then remove queued request</text>
+
+  <!-- Failure behavior -->
+  <rect class="note" x="680" y="1248" width="815" height="122" rx="14"/>
+  <text class="note-title" x="710" y="1282">FAIL-CLOSED RETRY</text>
+  <text class="note-text" x="710" y="1313">If the sealer is unavailable, PID 1 keeps port 59631 reserved and the proxy cannot</text>
+  <text class="note-text" x="710" y="1342">reach the protected Unix socket. The producer retains its queued block and retries.</text>
+
+  <text class="message-detail" x="800" y="1458">Ordering and block closure use monotonic duration and sequence numbers, not wall-clock time.</text>
+</svg>

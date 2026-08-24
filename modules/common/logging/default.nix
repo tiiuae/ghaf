@@ -9,5 +9,6 @@
     ./fss.nix
     ./journal-client.nix
     ./journal-server.nix
+    ./logseald.nix
   ];
 }
