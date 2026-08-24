@@ -193,6 +193,11 @@ rec {
       # Graphics/boot UI settings
       graphics.boot.enable = mkEnableOption "graphical boot support (splash screen, user login detection)";
 
+      # Shared system theming (stylix) settings, applied to host and all VMs
+      theming = {
+        enable = mkEnableOption "shared system theming (stylix) globally";
+      };
+
       # IDS VM specific settings
       idsvm.mitmproxy.enable = mkEnableOption "MITM proxy in IDS VM for traffic inspection";
 
@@ -460,6 +465,8 @@ rec {
       shm.enable = false;
       idsvm.mitmproxy.enable = false;
 
+      theming.enable = true;
+
       # Feature defaults for debug profile
       features = {
         fprint = {
@@ -562,6 +569,8 @@ rec {
 
       shm.enable = false;
       idsvm.mitmproxy.enable = false;
+
+      theming.enable = true;
 
       # Feature defaults for release profile
       features = {
