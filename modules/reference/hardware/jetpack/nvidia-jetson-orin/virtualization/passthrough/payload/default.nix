@@ -6,6 +6,14 @@
   ...
 }:
 let
+  crosvmLayout = rec {
+    memoryBase = lib.fromHexString "0x2000000000";
+    platformMmio = {
+      base = lib.fromHexString "0x60000000";
+      size = memoryBase - platformMmio.base;
+    };
+  };
+
   capabilities = {
     gpuvm = {
       gpu = true;
@@ -51,16 +59,22 @@ let
             {
               dev = "b0000000.scanout_p";
               base = "0xb0000000";
+              size = "0x08000000";
+              regCells = "0 b0000000 0 8000000";
               symbol = "scanout_p";
             }
             {
               dev = "b8000000.dispram_lo_p";
               base = "0xb8000000";
+              size = "0x2e000000";
+              regCells = "0 b8000000 0 2e000000";
               symbol = "dispram_lo_p";
             }
             {
               dev = "200000000.dispram_hi_p";
               base = "0x200000000";
+              size = "0x1a000000";
+              regCells = "2 0 0 1a000000";
               symbol = "dispram_hi_p";
             }
           ]
@@ -68,18 +82,24 @@ let
           lib.optional cap.host1x {
             dev = "60000000.vm_hs_p";
             base = "0x60000000";
+            size = "0x04000000";
+            regCells = "0 60000000 0 4000000";
             symbol = "vm_hs_p";
           }
           ++ [
             {
               dev = "80000000.vm_cma_p";
               base = "0x80000000";
+              size = "0x30000000";
+              regCells = "0 80000000 0 30000000";
               symbol = "vm_cma_p";
             }
           ]
           ++ lib.optional (!computeWithHost1x) {
             dev = "b0000000.scanout_p";
             base = "0xb0000000";
+            size = "0x08000000";
+            regCells = "0 b0000000 0 8000000";
             symbol = "scanout_p";
           };
 
@@ -105,16 +125,22 @@ let
         {
           dev = "13830000.disp_caps_pt";
           base = "0x66230000";
+          size = "0x00010000";
+          regCells = "0 66230000 0 10000";
           symbol = "disp_caps_pt";
         }
         {
           dev = "13870000.disp_chan_pt";
           base = "0x66270000";
+          size = "0x00010000";
+          regCells = "0 66270000 0 10000";
           symbol = "disp_chan_pt";
         }
         {
           dev = "138c8000.disp_cursor_pt";
           base = "0x662c8000";
+          size = "0x00008000";
+          regCells = "0 662c8000 0 8000";
           symbol = "disp_cursor_pt";
         }
       ];
@@ -133,31 +159,22 @@ let
 
       crosvmDevices =
         (map (r: {
-          bus = "platform";
           path = r.dev;
-          crosvm = {
-            dtSymbol = r.symbol;
-            iommu = "off";
-            mmioBase = lib.fromHexString r.base;
-            mapEarly = true;
-          };
+          dtSymbol = r.symbol;
+          iommu = "off";
+          mmioBase = lib.fromHexString r.base;
+          mapEarly = true;
         }) reservedMem)
         ++ (map (r: {
-          bus = "platform";
           path = r.dev;
-          crosvm = {
-            dtSymbol = r.symbol;
-            iommu = "off";
-            mmioBase = lib.fromHexString r.base;
-          };
+          dtSymbol = r.symbol;
+          iommu = "off";
+          mmioBase = lib.fromHexString r.base;
         }) dispCaps)
         ++ (map (d: {
-          bus = "platform";
           path = d;
-          crosvm = {
-            dtSymbol = engineSymbols.${d};
-            iommu = "off";
-          };
+          dtSymbol = engineSymbols.${d};
+          iommu = "off";
         }) engines);
 
       guestKernelModules =
@@ -178,6 +195,8 @@ let
     {
       inherit
         expDtDefines
+        reservedMem
+        dispCaps
         hostDevices
         vfioArgs
         crosvmDevices
@@ -185,6 +204,7 @@ let
         ;
       needsDceBridge = cap.display;
       noSyncpointPatch = cap.noSyncpointDisplay;
+      inherit crosvmLayout;
     };
 
   # The DCB image is the only board-specific piece; the rest is SoC-level.
@@ -204,6 +224,7 @@ in
 {
   inherit
     capabilities
+    crosvmLayout
     mkPayload
     boards
     boardFor
