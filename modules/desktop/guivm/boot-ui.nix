@@ -7,12 +7,12 @@
 # - GIVC service monitoring for greetd and user-login
 # - User login detection service
 #
-# This module is auto-included when ghaf.graphics.boot.enable is true.
+# This module is enabled automatically when ghaf.graphics.boot.enable is true.
 #
 {
   lib,
   pkgs,
-  globalConfig,
+  config,
   ...
 }:
 let
@@ -41,8 +41,7 @@ let
     '';
   };
 
-  # Only enable if graphics boot is enabled in globalConfig
-  bootEnabled = globalConfig.graphics.boot.enable or false;
+  bootEnabled = config.ghaf.graphics.boot.enable;
 in
 {
   _file = ./boot-ui.nix;
@@ -54,15 +53,16 @@ in
       "user-login.service"
     ];
 
-    # Wait until user logs in and ghaf-session is active
+    # Wait until user logs in and ghaf-session is active.
+    # Type 'simple' marks the unit started as soon as wait-for-session is
+    # forked, so multi-user.target isn't blocked on human login time.
     systemd.services.user-login = {
       description = "Wait for ghaf-session to be active";
       wantedBy = [ "multi-user.target" ];
       after = [ "greetd.service" ];
       serviceConfig = {
-        Type = "oneshot";
-        ExecStartPre = "${lib.getExe wait-for-session}";
-        ExecStart = "/bin/sh -c exit"; # no-op
+        Type = "simple";
+        ExecStart = "${lib.getExe wait-for-session}";
         RemainAfterExit = true;
       };
     };
