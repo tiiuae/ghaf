@@ -222,6 +222,7 @@ export default defineConfig({
                         "ghaf/scs/slsa-framework",
                         "ghaf/scs/sbom",
                         "ghaf/scs/pki",
+                        "ghaf/scs/logseald",
                         "ghaf/scs/fss",
                         "ghaf/scs/ghaf-security-fix-automation",
                         "ghaf/scs/patching-automation",

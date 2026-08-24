@@ -205,7 +205,12 @@ in
           # Optional log preservation
           (mkIf cfg.preserveLogs {
             directories = [
-              "/var/log/journal"
+              {
+                directory = "/var/log/journal";
+                user = "root";
+                group = "systemd-journal";
+                mode = "2755";
+              }
             ]
             ++ optionals config.services.alloy.enable [
               "/var/lib/private/alloy"

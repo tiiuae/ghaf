@@ -2,7 +2,15 @@
 title: Forward Secure Sealing
 ---
 
-Forward Secure Sealing (FSS) provides cryptographic tamper-evidence for Ghaf audit logs. It uses HMAC-SHA256 chains to seal journal entries at regular intervals, ensuring any modification to sealed entries is detectable.
+Forward Secure Sealing (FSS) is an optional systemd journal mechanism that
+provides cryptographic tamper evidence for Ghaf audit logs. It uses HMAC-SHA256
+chains to seal journal entries at regular intervals, making modification of
+sealed entries detectable.
+
+Ghaf keeps FSS available, but disables it globally by default. The default
+tamper-evidence mechanism is the clock-independent [logseald
+service](/ghaf/scs/logseald/). The two implementations are independent and can
+be enabled or disabled separately without disabling journald or log forwarding.
 
 ## Overview
 
@@ -14,19 +22,26 @@ FSS addresses a critical security requirement: ensuring audit logs cannot be tam
 
 ## Configuration
 
-FSS is automatically enabled when `ghaf.logging.enable = true`. Configuration options:
+Enable FSS across the host and every logging-enabled VM with the global policy:
+
+```nix
+ghaf.global-config.logging.fss.enable = true;
+```
+
+When the global policy is enabled, the component-level option defaults to the
+value of `ghaf.logging.enable`. The component options are:
 
 ```nix
 ghaf.logging.fss = {
-  enable = true;              # Enable FSS (default: follows ghaf.logging.enable)
-  sealInterval = "15min";     # Interval between seals (default: 15min)
-  verifyOnBoot = true;        # Run verification on boot (default: true)
-  verifySchedule = "hourly";  # Periodic verification schedule (default: hourly)
+  enable = true;
+  sealInterval = "15min";
+  verifyOnBoot = true;
+  verifySchedule = "hourly";
 };
 ```
 
-Ghaf FSS is disabled by default across the host and all logged VMs without
-disabling the logging pipeline. The global policy is:
+To disable FSS globally while keeping the logging pipeline and logseald
+unchanged, use:
 
 ```nix
 ghaf.global-config.logging.fss.enable = false;
