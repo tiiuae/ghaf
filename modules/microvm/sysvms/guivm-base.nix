@@ -89,7 +89,10 @@ in
   ghaf = {
     theming = {
       enable = lib.mkDefault (globalConfig.theming.enable or false);
-      plymouth.enable = true;
+      plymouth = {
+        enable = lib.mkDefault true;
+        bootLabel = lib.mkDefault "Starting desktop...";
+      };
     };
 
     # Profiles - from globalConfig

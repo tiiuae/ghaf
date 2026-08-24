@@ -264,6 +264,20 @@ in
         default = "";
         example = "Starting desktop...";
       };
+
+      liveUpdates = lib.mkOption {
+        description = ''
+          Whether to show a second, smaller line of status text below `bootLabel` that
+          other processes can update at runtime, e.g. a systemd service reporting that a
+          boot stage has finished.
+
+          Any process can send a status string with `plymouth --update="<text>"`; `bootLabel`
+          itself is left untouched, so context (e.g. which VM's splash this is) is never lost.
+        '';
+        type = lib.types.bool;
+        default = false;
+        example = true;
+      };
     };
   };
 
