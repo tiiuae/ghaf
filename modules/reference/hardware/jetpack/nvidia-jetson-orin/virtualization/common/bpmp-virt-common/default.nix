@@ -9,10 +9,12 @@
 let
   cfg = config.ghaf.hardware.nvidia.virtualization;
   kernelVersion = config.boot.kernelPackages.kernel.version;
-  orinVirtualizationSupport = pkgs.nvidia-jetpack.orinVirtualizationSupport.override {
+  support = pkgs.nvidia-jetpack.orinVirtualizationSupport.override {
     inherit (cfg) bpmpAllowAllDomains;
   };
-  supportPath = "${orinVirtualizationSupport}";
+  bpmpVirtSourcesPatch = pkgs.runCommand "bpmp-virt-add-sources.patch" { } ''
+    cp ${support}/patches/linux/bpmp-sources.patch $out
+  '';
 in
 {
   _file = ./default.nix;
@@ -71,8 +73,8 @@ in
         assertion = lib.versionAtLeast kernelVersion "6.6";
         message = ''
           ghaf.hardware.nvidia.virtualization needs kernel >= 6.6; got ${kernelVersion}.
-          The bpmp-virt drivers provided by orinVirtualizationSupport are written against
-          the 6.6 drivers/firmware/tegra layout. Set
+          The bpmp-virt drivers from jetpack-nixos are written against the
+          6.6 drivers/firmware/tegra layout. Set
           ghaf.hardware.nvidia.orin.kernelVersion = "upstream-6-6".
         '';
       }
@@ -100,7 +102,7 @@ in
       }
       {
         name = "Vfio_platform Reset Required False";
-        patch = "${supportPath}/patches/linux/bpmp/0002-vfio_platform-reset-required-false.patch";
+        patch = "${support}/patches/linux/bpmp/0002-vfio_platform-reset-required-false.patch";
       }
       {
         name = "bpmp-virt proxy drivers";
@@ -108,7 +110,7 @@ in
       }
       {
         name = "bpmp-virt core hooks";
-        patch = "${supportPath}/patches/linux/bpmp/0001-bpmp-virt-hooks.patch";
+        patch = "${support}/patches/linux/bpmp/0001-bpmp-virt-hooks.patch";
       }
     ];
 

@@ -15,7 +15,7 @@ let
 in
 { config, pkgs, ... }:
 let
-  support = if srcDir == null then pkgs.nvidia-jetpack.orinVirtualizationSupport else srcDir;
+  support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
   # L4T EGL rejects modifier-backed GBM surfaces.
   gbm-nomod-shim = pkgs.runCommandCC "gbm-nomod-shim" { } ''
     mkdir -p $out/lib
@@ -117,32 +117,30 @@ in
           patches =
             (o.patches or [ ])
             ++ [
-              (support + "/patches/nvidia-oot/gpu-display/0001-gpu-add-support-for-passthrough.patch")
-              (support + "/patches/nvidia-oot/gpu-display/0002-add-support-for-gpu-display-passthrough.patch")
-              (support + "/patches/nvidia-oot/gpu-display/0003-add-support-for-display-passthrough.patch")
+              "${support}/patches/nvidia-oot/gpu-display/0001-gpu-add-support-for-passthrough.patch"
+              "${support}/patches/nvidia-oot/gpu-display/0002-add-support-for-gpu-display-passthrough.patch"
+              "${support}/patches/nvidia-oot/gpu-display/0003-add-support-for-display-passthrough.patch"
               # Keep DCE-visible NISO allocations in the identity carveout.
-              (support + "/patches/nvidia-oot/gpu-display/0005-force-niso-display-surfaces-contiguous.patch")
+              "${support}/patches/nvidia-oot/gpu-display/0005-force-niso-display-surfaces-contiguous.patch"
               # Translate guest physical display addresses into the native high IOVA.
-              (support + "/patches/nvidia-oot/gpu-display/0006-dce-addresses-cpu-phys-high-iova.patch")
+              "${support}/patches/nvidia-oot/gpu-display/0006-dce-addresses-cpu-phys-high-iova.patch"
               # Let RM select the TMDS partner behind passive DP++ adapters.
-              (support + "/patches/nvidia-oot/gpu-display/0008-fix-dual-mode-honor-rm-connect-state.patch")
+              "${support}/patches/nvidia-oot/gpu-display/0008-fix-dual-mode-honor-rm-connect-state.patch"
               # Core completion requires plain WRITE, not WRITE_AWAKEN.
-              (support + "/patches/nvidia-oot/gpu-display/0009-core-notifier-plain-write-no-awaken.patch")
+              "${support}/patches/nvidia-oot/gpu-display/0009-core-notifier-plain-write-no-awaken.patch"
               # Synthesize the missing HPD edge for a display connected at boot.
-              (support + "/patches/nvidia-oot/gpu-display/0020-synthesize-boot-hotplug-long-pulse.patch")
+              "${support}/patches/nvidia-oot/gpu-display/0020-synthesize-boot-hotplug-long-pulse.patch"
               # Keep the stock R5 FLIP_OCCURRED path as the sole completion owner.
-              (support + "/patches/nvidia-oot/gpu-display/0011-window-notifier-plain-write.patch")
+              "${support}/patches/nvidia-oot/gpu-display/0011-window-notifier-plain-write.patch"
               # Keep the R5's flip-completion binding across modesets, or the
               # desktop session after the greeter never sees a completion.
-              (support + "/patches/nvidia-oot/gpu-display/0024-nvkms-keep-flip-completion-binding.patch")
+              "${support}/patches/nvidia-oot/gpu-display/0024-nvkms-keep-flip-completion-binding.patch"
               # Kernel 6.12.103 removed drm_fb_helper_alloc_info(); without this
               # the tegra fbdev in nvidia-oot does not compile at all.
-              (support + "/patches/nvidia-oot/gpu-display/0025-tegra-fbdev-use-core-allocated-fb-info.patch")
+              "${support}/patches/nvidia-oot/gpu-display/0025-tegra-fbdev-use-core-allocated-fb-info.patch"
             ]
             # disp-vm has no guest-owned host1x syncpoints.
-            ++ lib.optional payload.noSyncpointPatch (
-              support + "/patches/nvidia-oot/gpu-display/0021-nvkms-force-no-syncpt-support.patch"
-            );
+            ++ lib.optional payload.noSyncpointPatch "${support}/patches/nvidia-oot/gpu-display/0021-nvkms-force-no-syncpt-support.patch";
           # Build the guest DCE relay inside nvidia-oot for tegra-dce symbols.
           postPatch = (o.postPatch or "") + ''
             patch -p1 -d nvidia-oot < ${support}/patches/nvidia-oot/dce/0001-dce-virt-hooks.patch
@@ -181,7 +179,7 @@ in
   boot.kernelPatches = [
     {
       name = "tegra fixed chip id";
-      patch = support + "/patches/linux/0004-tegra-fixed-chip-id.patch";
+      patch = "${support}/patches/linux/0004-tegra-fixed-chip-id.patch";
     }
     {
       name = "bpmp-virt proxy drivers";
@@ -189,7 +187,7 @@ in
     }
     {
       name = "bpmp-virt core hooks";
-      patch = support + "/patches/linux/bpmp/0001-bpmp-virt-hooks-6.12.patch";
+      patch = "${support}/patches/linux/bpmp/0001-bpmp-virt-hooks-6.12.patch";
     }
     {
       name = "bpmp guest proxy kernel configuration";
