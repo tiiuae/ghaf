@@ -145,11 +145,12 @@ in
 
       global-config.features.power-manager.enable = false;
 
+      # Orin VMs need Ghaf's microvm-nix wrapper for Crosvm platform support.
       profiles = {
         # Export Net VM base for profiles to extend
         orin.netvmBase = lib.nixosSystem {
           modules = [
-            inputs.self.nixosModules.microvm-guest
+            inputs.self.nixosModules.microvm-nix
             inputs.self.nixosModules.netvm-base
             # Import nixpkgs config module to get overlays
             {
@@ -174,7 +175,7 @@ in
         # Export Admin VM base for profiles to extend
         orin.adminvmBase = lib.nixosSystem {
           modules = [
-            inputs.self.nixosModules.microvm-guest
+            inputs.self.nixosModules.microvm-nix
             inputs.self.nixosModules.adminvm-base
             # Import nixpkgs config module to get overlays
             {
@@ -198,7 +199,7 @@ in
         # Export GPU VM base for profiles to extend
         orin.gpuvmBase = lib.nixosSystem {
           modules = [
-            inputs.self.nixosModules.microvm-guest
+            inputs.self.nixosModules.microvm-nix
             inputs.self.nixosModules.gpuvm-base
             # Import nixpkgs config module to get overlays
             {
@@ -222,7 +223,7 @@ in
         # Export Disp VM base for profiles to extend
         orin.dispvmBase = lib.nixosSystem {
           modules = [
-            inputs.self.nixosModules.microvm-guest
+            inputs.self.nixosModules.microvm-nix
             inputs.self.nixosModules.dispvm-base
             # Import nixpkgs config module to get overlays
             {
@@ -245,7 +246,7 @@ in
 
         orin.guivmBase = lib.nixosSystem {
           modules = [
-            inputs.self.nixosModules.microvm-guest
+            inputs.self.nixosModules.microvm-nix
             inputs.self.nixosModules.guivm-base
             inputs.self.nixosModules.guivm-features
             inputs.self.nixosModules.orin-guivm-specialization
@@ -275,7 +276,7 @@ in
           in
           lib.nixosSystem {
             modules = [
-              inputs.self.nixosModules.microvm-guest
+              inputs.self.nixosModules.microvm-nix
               inputs.self.nixosModules.appvm-base
               {
                 nixpkgs = {
