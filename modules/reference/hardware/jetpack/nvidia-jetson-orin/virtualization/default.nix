@@ -11,17 +11,6 @@ let
   managedVmsUseCrosvm = lib.all (
     vm: vm.type == "crosvm"
   ) config.ghaf.hardware.passthrough.vhotplug.vms;
-  configuredGuiVmm = config.ghaf.virtualization.vmConfig.sysvms.guivm.vmm or null;
-  guiVmm =
-    if configuredGuiVmm == null then
-      config.ghaf.virtualization.vmConfig.defaultSysVmVmm
-    else
-      configuredGuiVmm;
-  unifyingReceiver = {
-    vendorId = "046d";
-    productId = "c52b";
-    description = "Logitech Unifying Receiver: evdev-only with the QEMU rollback";
-  };
 in
 {
   _file = ./default.nix;
@@ -32,10 +21,6 @@ in
     ./host/uarta-host
     ./passthrough/uarti-net-vm
     ./passthrough/mgbe0-net-vm
-    ./passthrough/gpu-vm
-    ./passthrough/disp-vm
-    ./passthrough/gui-vm
-    ./ownership-assertions.nix
     ./crosvm-shutdown.nix
   ];
 
@@ -53,9 +38,5 @@ in
     );
 
     nixpkgs.overlays = [ inputs.self.overlays.crosvm-ghaf ];
-
-    ghaf.hardware.passthrough.usb.guivmDeny =
-      lib.mkIf config.ghaf.hardware.nvidia.passthroughs.gui_vm.enable
-        (lib.optional (guiVmm != "crosvm") unifyingReceiver);
   };
 }

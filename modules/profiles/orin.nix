@@ -383,10 +383,8 @@ in
             };
           };
 
-          # GPU VM: enable comes from the gpu-vm passthrough module
-          # (ghaf.hardware.nvidia.passthroughs.gpu_vm), which sets
-          # ghaf.virtualization.microvm.gpuvm.enable = true under its own mkIf.
-          # Here we only provide the evaluatedConfig, extending gpuvmBase with
+          # GPU VM: a platform composition controls enable. Here we only
+          # provide the evaluatedConfig, extending gpuvmBase with
           # the hardware.definition.gpuvm.extraModules (DTB, vfio, guest kernel)
           # via applyVmConfig.
           gpuvm = {
@@ -398,9 +396,8 @@ in
             };
           };
 
-          # Disp VM: enable comes from the disp_vm passthrough module (sets
-          # dispvm.enable under its own mkIf). Here we only provide
-          # evaluatedConfig, extending dispvmBase with
+          # Disp VM: a platform composition controls enable. Here we only
+          # provide evaluatedConfig, extending dispvmBase with
           # hardware.definition.dispvm.extraModules (DTB, vfio, guest kernel).
           dispvm = {
             evaluatedConfig = config.ghaf.profiles.orin.dispvmBase.extendModules {

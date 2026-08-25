@@ -41,11 +41,6 @@
         };
       };
 
-      # Split topology, as on AGX. The accelerated-guivm target variant
-      # forces these off and enables gui_vm instead.
-      nvidia.passthroughs.gpu_vm.enable = true;
-      nvidia.passthroughs.disp_vm.enable = true;
-
       # Net VM hardware-specific modules - use hardware.definition for composition model
       definition.netvm.extraModules = [
         {
