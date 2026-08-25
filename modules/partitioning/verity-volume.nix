@@ -125,7 +125,9 @@ in
           # Create artifacts and manifest.
           ${pkgs.buildPackages.python3}/bin/python ${./mk-manifest.py} \
             --version ${version} \
+            --system ${config.nixpkgs.hostPlatform.system} \
             --target ${lib.escapeShellArg cfg.target} \
+            --build-system ${pkgs.stdenv.buildPlatform.system} \
             --generation ${toString cfg.generation} \
             --hash-file $out/dm-verity-root-hash \
             --root-image ${fsImage}.zst \

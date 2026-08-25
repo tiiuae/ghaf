@@ -10,7 +10,12 @@ import subprocess
 
 parser = argparse.ArgumentParser(description="Generate or sign Ghaf update artifacts.")
 parser.add_argument("--version", help="Version string for @v placeholder.")
+parser.add_argument("--system", help="System identifier (e.g. x86_64-linux).")
 parser.add_argument("--target", help="Exact hardware/update target identifier.")
+parser.add_argument(
+    "--build-system",
+    help="System identifier for the build platform that produced the artifacts.",
+)
 parser.add_argument("--generation", type=int, help="Monotonic generation.")
 parser.add_argument("--hash-file", help="Path to dm-verity root hash file.")
 parser.add_argument("--root-image", help="Path to compressed root image.")
@@ -79,6 +84,14 @@ def validate_manifest(manifest: dict) -> None:
     target = manifest.get("target")
     if not isinstance(target, str) or not target:
         raise ValueError("target must be a non-empty string")
+
+    system = manifest.get("system")
+    if not isinstance(system, str) or not system:
+        raise ValueError("system must be a non-empty string")
+
+    build_system = manifest.get("build-system")
+    if not isinstance(build_system, str) or not build_system:
+        raise ValueError("build-system must be a non-empty string")
 
     generation = manifest.get("generation")
     if not isinstance(generation, int) or generation <= 0:
@@ -182,7 +195,9 @@ def main() -> None:
     if args.input_manifest:
         build_args = [
             args.version,
+            args.system,
             args.target,
+            args.build_system,
             args.generation,
             args.hash_file,
             args.root_image,
@@ -207,7 +222,9 @@ def main() -> None:
 
     required = {
         "--version": args.version,
+        "--system": args.system,
         "--target": args.target,
+        "--build-system": args.build_system,
         "--generation": args.generation,
         "--hash-file": args.hash_file,
         "--root-image": args.root_image,
@@ -243,7 +260,9 @@ def main() -> None:
 
     manifest = {
         "manifest_version": 2,
+        "system": args.system,
         "target": args.target,
+        "build-system": args.build_system,
         "generation": args.generation,
         "meta": {},  # FIXME: reserved for future, just arbitrary metadata
         "version": args.version,
