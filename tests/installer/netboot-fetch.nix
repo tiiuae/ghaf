@@ -65,16 +65,31 @@ pkgs.testers.nixosTest {
       virtualisation.emptyDiskImages = [ (1024 * 256) ];
       virtualisation.memorySize = 1024 * 16;
 
+      # UEFI, so /sys/firmware/efi/efivars exists and set_boot_to_disk actually
+      # runs instead of degrading to its "no EFI variables" warning. That step
+      # writes the target's NVRAM -- creating the boot entry and setting
+      # BootNext -- and is what stops a netbooted machine coming straight back
+      # into the installer, so it is the last part of the install that should be
+      # covered only on hardware.
+      virtualisation.useEFIBoot = true;
+
       # Drive this the way netboot actually does: through the KERNEL COMMAND
       # LINE, not an environment variable.
       boot.kernelParams = [
         "ghaf.image_url=${imageUrl}"
         "ghaf.install_target=${targetPath}"
+        # Stay in the installer instead of rebooting into the result. An
+        # unattended install ends with `systemctl reboot`, which would take the
+        # machine away mid-assertion -- the test drives the reboot itself below.
+        "ghaf.install_noreboot"
       ];
 
       environment.systemPackages = [
         self.packages.x86_64-linux.ghaf-installer
         self.packages.x86_64-linux.hardware-scan
+        # For the test's own assertions. ghaf-installer carries its own copy via
+        # runtimeInputs, so this does not stand in for that.
+        pkgs.efibootmgr
       ];
     };
   };
@@ -127,7 +142,40 @@ pkgs.testers.nixosTest {
         # bmaptool verifies each range's sha256 as it writes, so a corrupted or
         # truncated transfer fails here rather than producing a silent bad disk.
         #
-        machine.succeed('ghaf-installer </dev/null', timeout=900)
+        out = machine.succeed('ghaf-installer </dev/null', timeout=900)
+
+    with subtest("the firmware is pointed at the disk that was just written"):
+        # Without this the machine netboots again on the next reboot and comes
+        # straight back into the installer -- which used to be prevented only by
+        # the install server shutting itself down after one transfer, and cannot
+        # be once one server is serving a fleet.
+        assert "Boot loader on the ESP" in out, f"set_boot_to_disk did not run:\n{out}"
+        # This node has never had a Linux boot entry, so the create branch is
+        # the one that must fire. It is also the branch that aborted the whole
+        # installer until the grep pipelines were guarded: under `set -euo
+        # pipefail` a grep matching nothing is a fatal error, and "no matching
+        # entry yet" is the normal state of a factory-fresh machine.
+        assert "Creating boot entry" in out, f"boot entry not created:\n{out}"
+        assert "BootNext set to Boot" in out, f"BootNext not set:\n{out}"
+
+        # Assert on the firmware's own state, not on what the script said it did.
+        entries = machine.succeed("efibootmgr -v")
+        assert "Ghaf" in entries, f"no Ghaf boot entry in NVRAM:\n{entries}"
+        assert "BootNext" in entries, f"BootNext not present in NVRAM:\n{entries}"
+        # It must point at the disk we installed to, via the loader on its ESP.
+        ghaf_line = [l for l in entries.splitlines() if "Ghaf" in l][0]
+        assert "systemd-boot" in ghaf_line or "BOOT" in ghaf_line, (
+            f"Ghaf entry does not name a loader:\n{ghaf_line}"
+        )
+
+    with subtest("a second install reuses the entry instead of duplicating it"):
+        # NVRAM is small; a machine reinstalled repeatedly must not accumulate
+        # identical entries until the firmware refuses to add more.
+        before = len([l for l in machine.succeed("efibootmgr").splitlines() if "Ghaf" in l])
+        out2 = machine.succeed('ghaf-installer </dev/null', timeout=900)
+        assert "Reusing existing boot entry" in out2, f"entry not reused:\n{out2}"
+        after = len([l for l in machine.succeed("efibootmgr").splitlines() if "Ghaf" in l])
+        assert after == before, f"boot entries multiplied: {before} -> {after}"
 
     print("Shutting installer machine down")
     machine.shutdown()
