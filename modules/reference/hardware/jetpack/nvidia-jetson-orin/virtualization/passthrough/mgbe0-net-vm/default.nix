@@ -31,11 +31,6 @@ let
     ) == "crosvm";
   mgbe0Policy = support.bpmpPolicies.mgbe0;
   mgbe0 = support.passthrough.mgbe0;
-  mgbe0DevicePath = "/sys/bus/platform/devices/${mgbe0.sysfsName}";
-  mgbe0Artifacts = support.mkMgbe0Overlay {
-    inherit pkgs support;
-    hostDtb = "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}";
-  };
 in
 {
   _file = ./default.nix;
@@ -45,145 +40,24 @@ in
 
   config = lib.mkIf cfg.enable {
     hardware.nvidia-jetpack.virtualization.bpmpHost.consumers.net-vm = mgbe0Policy.proxy;
-
-    services.udev.extraRules = ''
-      # vfio group nodes for the passed-through platform device.
-      SUBSYSTEM=="vfio", GROUP="kvm"
-    '';
-
-    # Stop the host binding MGBE0 by blacklisting its drivers, NOT by dummying
-    # the DT compatible: QEMU's vfio-platform reads of_node/compatible to pick
-    # the FDT emitter, so "nvidia,dummy" makes the nvidia,tegra234-mgbe binding
-    # miss and QEMU exits ("can not be dynamically instantiated"). Leaving the
-    # node pristine also dodges the nvethernet .remove that poisons a rebind.
-    boot.blacklistedKernelModules = [
-      "nvethernet"
-      "dwmac-tegra"
-    ];
-
-    # Bind MGBE0 to vfio-platform before net-vm starts.
-    systemd.services.bindMgbe0 = {
-      description = "Bind MGBE0 (${mgbe0.sysfsName}) to the vfio-platform driver";
-      wantedBy = [ "multi-user.target" ];
-      before = [ "microvm@net-vm.service" ];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = "yes";
-        ExecStartPre = "${pkgs.bash}/bin/bash -c \"echo vfio-platform > ${mgbe0DevicePath}/driver_override\"";
-        ExecStart = "${pkgs.bash}/bin/bash -c \"echo ${mgbe0.sysfsName} > /sys/bus/platform/drivers/vfio-platform/bind\"";
-      };
-    };
+    hardware.nvidia-jetpack.virtualization.mgbe0Host.enable = true;
     systemd.services."microvm@net-vm" = {
       requires = lib.optionals isCrosvm [ "prepareMgbe0CrosvmOverlay.service" ];
       after = [ "bindMgbe0.service" ] ++ lib.optionals isCrosvm [ "prepareMgbe0CrosvmOverlay.service" ];
       environment.GHAF_BPMP_HOST = "/dev/bpmp-host-net-vm";
     };
 
-    systemd.services.prepareMgbe0CrosvmOverlay = lib.mkIf isCrosvm {
-      description = "Prepare the live MGBE0 device-tree overlay for Crosvm";
-      before = [ "microvm@net-vm.service" ];
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = lib.getExe mgbe0Artifacts.prepare;
-      };
-    };
-
     ghaf.hardware.definition.netvm.extraModules = [
       (
-        { config, pkgs, ... }:
-        let
-          guestKernelVersion = config.boot.kernelPackages.kernel.version;
-          quiesceMgbe0 = pkgs.writeShellScript "quiesce-mgbe0" ''
-            set -eu
-
-            driver_path=/sys/bus/platform/drivers/tegra-mgbe
-            if [ ! -d "$driver_path" ]; then
-              echo "MGBE0 driver path is missing: $driver_path" >&2
-              exit 1
-            fi
-
-            found=0
-            for device in "$driver_path"/*; do
-              [ -d "$device/net" ] || continue
-              for path in "$device/net"/*; do
-                [ -e "$path" ] || continue
-                found=1
-                interface="''${path##*/}"
-                echo "Quiescing MGBE0 interface $interface from ''${device##*/}"
-                ${pkgs.iproute2}/bin/ip link set dev "$interface" down
-              done
-            done
-
-            if [ "$found" -eq 0 ]; then
-              echo "No MGBE0 network interface found under $driver_path" >&2
-              exit 1
-            fi
-          '';
-        in
         {
-          # v6.12 hardcodes MGBE0's SMMU stream id (0x6); v6.13+ reads it from an
-          # iommu_fwspec the QEMU virt guest lacks (probe -EINVALs). v6.12 also
-          # carries the Oct-2024 serdes bring-up fix (1cff6ff30) that v6.6 lacks.
-          boot.kernelPackages = lib.mkForce pkgs.linuxPackages_6_12;
-
-          # MANDATORY, independent of the host proxy's allow-list. At
-          # late_initcall the guest runs clk_disable_unused() /
-          # genpd_power_off_unused(); through the guest proxy those reach the REAL
-          # BPMP and switch off clocks the host needs (e.g. its eMMC), wedging it.
-          # These params stop the guest ever issuing the disables. See
-          # bpmp-host-proxy.c.
-          boot.kernelParams = [
-            "clk_ignore_unused"
-            "pd_ignore_unused"
-          ];
-
-          boot.kernelPatches = [
-            {
-              # 6.12.95 backported commit 426046e2d, so dwmac-tegra reads MGBE0's
-              # SMMU stream id from DT and -EINVALs when a passthrough guest has
-              # no IOMMU. Fall back to the fixed stream id 6.
-              name = "dwmac-tegra fixed stream id";
-              patch = "${support}/patches/linux/0001-dwmac-tegra-fixed-stream-id.patch";
-            }
-            {
-              name = "bpmp-virt proxy drivers";
-              patch = "${support}/patches/linux/bpmp-sources.patch";
-            }
-            {
-              name = "bpmp-virt core hooks";
-              patch =
-                if lib.versionAtLeast guestKernelVersion "6.12" then
-                  "${support}/patches/linux/bpmp/0001-bpmp-virt-hooks-6.12.patch"
-                else
-                  "${support}/patches/linux/bpmp/0001-bpmp-virt-hooks.patch";
-            }
-            {
-              name = "bpmp guest proxy kernel configuration";
-              patch = null;
-              structuredExtraConfig = with lib.kernel; {
-                # tegra_bpmp_match[] only registers "nvidia,tegra186-bpmp" when one
-                # of the 186/194/234 SoCs is enabled, and TEGRA_BPMP itself depends
-                # on TEGRA_HSP_MBOX and TEGRA_IVC.
-                ARCH_TEGRA = yes;
-                ARCH_TEGRA_234_SOC = yes;
-                TEGRA_HSP_MBOX = yes;
-                TEGRA_IVC = yes;
-                TEGRA_BPMP = yes;
-                TEGRA_BPMP_GUEST_PROXY = yes;
-                TEGRA_BPMP_HOST_PROXY = no;
-                # BPMP clock/reset/power-domain providers the MGBE0 node refers to.
-                CLK_TEGRA_BPMP = yes;
-                RESET_TEGRA_BPMP = yes;
-                PM_GENERIC_DOMAINS = yes;
-                # The ethernet driver and the AGX devkit's PHY (Aquantia AQR113C,
-                # identified on the host in Task 1).
-                STMMAC_ETH = yes;
-                STMMAC_PLATFORM = yes;
-                DWMAC_TEGRA = yes;
-                AQUANTIA_PHY = yes;
-              };
-            }
-          ];
+          config,
+          inputs,
+          pkgs,
+          ...
+        }:
+        {
+          imports = [ inputs.jetpack-nixos.nixosModules.orin-virtualization ];
+          hardware.nvidia-jetpack.virtualization.mgbe0Guest.enable = true;
 
           # Only this VM gets the QEMU that has the BPMP bridge and, crucially,
           # still has -device vfio-platform (removed upstream in 10.2). It also
@@ -230,7 +104,7 @@ in
               Type = "oneshot";
               RemainAfterExit = true;
               ExecStart = "${pkgs.coreutils}/bin/true";
-              ExecStop = quiesceMgbe0;
+              ExecStop = lib.getExe support.quiesceMgbe0;
             };
           };
 
