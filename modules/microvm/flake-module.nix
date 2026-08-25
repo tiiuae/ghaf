@@ -10,9 +10,7 @@ let
   microvmGuestModule = {
     imports = [
       inputs.microvm.nixosModules.microvm
-      ./common/crosvm-platform.nix
     ];
-    _module.args.microvmFlake = inputs.microvm;
   };
 in
 {
