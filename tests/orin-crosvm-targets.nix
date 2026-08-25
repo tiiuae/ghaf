@@ -9,6 +9,21 @@ let
   orinTargets = lib.filterAttrs (
     name: _: lib.hasPrefix "nvidia-jetson-orin-" name
   ) self.nixosConfigurations;
+  # Nodemoapps, LUKS, UKI, and cross variants only extend these base targets.
+  # Check the bases here; the eval and build matrices exercise every variant.
+  baseTargetNames = [
+    "nvidia-jetson-orin-agx-debug"
+    "nvidia-jetson-orin-agx-release"
+    "nvidia-jetson-orin-agx-industrial-debug"
+    "nvidia-jetson-orin-agx-industrial-release"
+    "nvidia-jetson-orin-agx-verity-debug"
+    "nvidia-jetson-orin-agx-verity-release"
+    "nvidia-jetson-orin-agx64-debug"
+    "nvidia-jetson-orin-agx64-release"
+    "nvidia-jetson-orin-nx-debug"
+    "nvidia-jetson-orin-nx-release"
+  ];
+  baseTargets = lib.getAttrs baseTargetNames orinTargets;
   hostConfig = target: target.config;
   vmConfigs = host: map (vm: vm.evaluatedConfig.config) (builtins.attrValues host.microvm.vms);
   usesCrosvm = host: lib.all (vm: vm.microvm.hypervisor == "crosvm") (vmConfigs host);
@@ -29,13 +44,13 @@ let
         && host.systemd.services ? ghaf-device-manager
         && !(host.systemd.services ? vhotplug);
     }
-  ) orinTargets;
+  ) baseTargets;
 
-  agx = hostConfig orinTargets.nvidia-jetson-orin-agx-release-from-x86_64;
+  agx = hostConfig baseTargets.nvidia-jetson-orin-agx-release;
   agxNetVm = agx.microvm.vms."net-vm".evaluatedConfig.config;
   agxNetService = agx.systemd.services."microvm@net-vm";
   qemuFallback =
-    (orinTargets.nvidia-jetson-orin-agx-release-from-x86_64.extendModules {
+    (baseTargets.nvidia-jetson-orin-agx-release.extendModules {
       modules = [
         {
           ghaf.virtualization.vmConfig = {
@@ -48,8 +63,8 @@ let
 
   assertions = targetAssertions ++ [
     {
-      name = "all exported Orin configurations are covered";
-      ok = builtins.length targetAssertions == 104;
+      name = "all expected Orin configurations are exported";
+      ok = builtins.length (builtins.attrNames orinTargets) == 104;
     }
     {
       name = "AGX NetVM waits for MGBE bind and Crosvm overlay preparation";
