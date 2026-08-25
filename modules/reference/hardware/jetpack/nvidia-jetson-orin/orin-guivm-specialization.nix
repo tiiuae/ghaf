@@ -3,9 +3,8 @@
 # AArch64 specialization of the generic gui-vm desktop.
 { lib, pkgs, ... }:
 let
-  # L4T EGL rejects modifier-backed GBM surfaces.
-  gbm-nomod-shim = pkgs.nvidia-jetpack.orinVirtualizationSupport.gbmNoModifiersShim;
-  cosmicPreload = "${gbm-nomod-shim}/lib/gbm-nomod-shim.so";
+  support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
+  cosmicPreload = "${support.gbmNoModifiersShim}/lib/gbm-nomod-shim.so";
 in
 {
   _file = ./orin-guivm-specialization.nix;
