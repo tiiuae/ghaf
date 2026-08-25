@@ -18,7 +18,6 @@ let
       description = "GPU devices";
       ownsGpu = true;
       includeDispRam = true;
-      hostOverlay = ../gpu-vm/gpu_passthrough_overlay.dts;
     };
     dispvm = {
       optionName = "disp_vm";
@@ -28,7 +27,6 @@ let
       description = "display devices";
       ownsGpu = false;
       includeDispRam = false;
-      hostOverlay = null;
     };
     guivm = {
       optionName = "gui_vm";
@@ -38,18 +36,19 @@ let
       description = "GPU and display devices";
       ownsGpu = true;
       includeDispRam = false;
-      hostOverlay = ../gpu-vm/gpu_passthrough_overlay.dts;
     };
   };
   roleConfig = roles.${role};
   cfg = config.ghaf.hardware.nvidia.passthroughs.${roleConfig.optionName};
   virt = config.ghaf.hardware.nvidia.virtualization;
-  payloadLib = import ./default.nix { inherit lib; };
-  bpmpPolicies = import ./bpmp-allowlist.nix;
+  support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
+  dtsRoot = "${support}/device-trees";
+  payloadLib = import ./default.nix { inherit lib pkgs; };
+  inherit (support) bpmpPolicies;
   cap = payloadLib.capabilities.${role};
   payload = payloadLib.mkPayload cap;
   bpmpHostPath = "/dev/bpmp-host-${roleConfig.vmName}";
-  board = payloadLib.boardFor config.ghaf.hardware.nvidia.orin.somType;
+  board = support.boards.${if config.ghaf.hardware.nvidia.orin.somType == "nx" then "nx" else "agx"};
   configuredVmm = config.ghaf.virtualization.vmConfig.sysvms.${roleConfig.definitionName}.vmm or null;
   selectedVmm =
     if configuredVmm == null then
@@ -65,7 +64,9 @@ let
       cap
       board
       kernel
+      payload
       role
+      dtsRoot
       ;
   };
   crosvmOverlay = import ./crosvm-overlay.nix {
@@ -75,12 +76,9 @@ let
       cap
       board
       kernel
+      payload
+      dtsRoot
       ;
-    overlayDts =
-      if role == "dispvm" then
-        ../disp-vm/tegra234-dispvm-crosvm-overlay.dts
-      else
-        ../gpu-vm/tegra234-guivm-crosvm-overlay.dts;
   };
   guestModule = import ./guest-module.nix {
     inherit
@@ -89,9 +87,9 @@ let
       dtb
       crosvmOverlay
       bpmpHostPath
+      payload
       ;
     dtbName = if role == "dispvm" then "tegra234-dispvm.dtb" else "tegra234-gpuvm.dtb";
-    inherit (payload) vfioArgs;
     inherit (virt) sourcesPatch;
   };
   bindDevices = pkgs.writeShellScript "bind-${roleConfig.vmName}-vfio-platform" ''
@@ -183,7 +181,7 @@ in
         hardware.deviceTree.overlays = [
           {
             name = "gpu_passthrough_overlay";
-            dtsFile = roleConfig.hostOverlay;
+            dtsFile = "${dtsRoot}/gpu-vm/gpu_passthrough_overlay.dts";
           }
         ];
       })
