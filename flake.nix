@@ -216,7 +216,8 @@
     };
 
     ghaf-device-manager = {
-      url = "github:tiiuae/ghaf-device-manager";
+      # TODO: restore main after ghaf-device-manager#10 merges.
+      url = "github:tiiuae/ghaf-device-manager/feat/export-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

@@ -18,10 +18,8 @@
   # they are scoped to the Jetson targets rather than living in overlays.default
   # -- globally they break packages that need a newer setuptools (see
   # overlays/jetpack-python/default.nix).
-  # jetpack-nvdisplay patches the R36.5 nvdisplay tree for the pci_resize_resource()
-  # signature change in kernels >= 6.12.97; the guest VMs build the OOT modules
-  # against vanilla linuxPackages_6_12, and inherit these overlays from the host
-  # (see modules/profiles/orin.nix, gpuvmBase/dispvmBase).
+  # jetpack-nvdisplay patches the R36.5 nvdisplay tree for the
+  # pci_resize_resource() signature change in kernels >= 6.12.97.
   nixpkgs.overlays = [
     self.overlays.jetpack-python
     self.overlays.jetpack-nvdisplay
