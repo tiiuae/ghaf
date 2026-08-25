@@ -7,14 +7,17 @@
   cap,
   board,
   kernel,
+  payload,
   role,
-  dtsDir ? ../gpu-vm,
+  dtsRoot,
 }:
 let
-  inherit (import ./default.nix { inherit lib; }) mkPayload;
-  inherit (mkPayload cap) expDtDefines;
+  inherit (payload) expDtDefines;
   displayOnly = role == "dispvm";
-  mainDts = if displayOnly then ../disp-vm/tegra234-dispvm.dts else dtsDir + "/tegra234-gpuvm.dts";
+  gpuDtsDir = "${dtsRoot}/gpu-vm";
+  dispDtsDir = "${dtsRoot}/disp-vm";
+  mainDts =
+    if displayOnly then "${dispDtsDir}/tegra234-dispvm.dts" else "${gpuDtsDir}/tegra234-gpuvm.dts";
   outputName = if displayOnly then "tegra234-dispvm.dtb" else "tegra234-gpuvm.dtb";
   mainInc = "${kernel.dev}/lib/modules/${kernel.modDirVersion}/source/include";
 in
@@ -30,9 +33,9 @@ pkgs.stdenv.mkDerivation {
     $CC -E -nostdinc -undef -D__DTS__ ${expDtDefines}-DGHAF_DCB_DTSI='"${board.dcbDtsi}"' \
       -x assembler-with-cpp \
       -I${mainInc} \
-      -I${dtsDir + "/nv-dt-bindings"} \
-      -I${dtsDir} \
-      -I${../disp-vm} \
+      -I${gpuDtsDir}/nv-dt-bindings \
+      -I${gpuDtsDir} \
+      -I${dispDtsDir} \
       ${mainDts} > preprocessed.dts
     dtc -I dts -O dtb -o ${outputName} preprocessed.dts
   ''

@@ -45,7 +45,8 @@ let
   splitNxNet = vm splitNx "net-vm";
   nxQemuGui = vm nxQemu "gui-vm";
   nxApp = vm nx "chromium-vm";
-  memoryBase = lib.fromHexString "0x2000000000";
+  memoryBase =
+    self.nixosConfigurations."nvidia-jetson-orin-agx-accelerated-guivm-debug".pkgs.nvidia-jetpack.orinVirtualizationSupport.passthrough.crosvmLayout.memoryBase;
   managedNames = host: map (entry: entry.name) host.ghaf.hardware.passthrough.vhotplug.vms;
   assertions = [
     {

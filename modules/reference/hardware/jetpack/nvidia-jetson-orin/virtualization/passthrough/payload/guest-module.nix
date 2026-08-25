@@ -8,13 +8,10 @@
   crosvmOverlay ? null,
   bpmpHostPath,
   dtbName ? "tegra234-gpuvm.dtb",
-  vfioArgs,
+  payload,
   sourcesPatch,
   srcDir ? ../gpu-vm,
 }:
-let
-  payload = (import ./default.nix { inherit lib; }).mkPayload cap;
-in
 { config, pkgs, ... }:
 let
   support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
@@ -287,7 +284,7 @@ in
           "-dtb"
           "${dtb}/${dtbName}"
         ]
-        ++ vfioArgs
+        ++ payload.vfioArgs
       );
     }
     (lib.mkIf isCrosvm {
