@@ -72,6 +72,7 @@ in
     inputs.self.nixosModules.theming
     ./networking.nix
     ./shared-mem.nix
+    ./crosvm-shutdown.nix
     ./boot.nix
     ./vtpm-proxy.nix
   ];
