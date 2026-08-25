@@ -138,7 +138,7 @@ in
         # logging can be enabled without forwarding to a server
         enable = globalConfig.logging.enable && globalConfig.logging.server.enable;
         endpoint = globalConfig.logging.server.endpoint or "";
-
+        useuniqueid = globalConfig.logging.server.useuniqueid or false;
         tls = {
           serverName = "loki.ghaflogs.vedenemo.dev";
         };

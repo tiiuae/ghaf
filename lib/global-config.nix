@@ -92,6 +92,19 @@ rec {
             default = "";
             description = "Logging server endpoint";
           };
+
+          useuniqueid = mkOption {
+            type = types.bool;
+            default = false;
+            description = ''
+              Whether to use a unique ID for the tenant in the logging server
+              configuration. If true, the unique ID is derived from the machine's
+              /etc/machine-id file. If false, no tenant ID is used.
+
+              This setting is useful for multi-tenant logging setups where each
+              machine should have its own unique identifier.
+            '';
+          };
         };
       };
 

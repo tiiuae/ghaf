@@ -39,6 +39,19 @@ in
       default = null;
     };
 
+    useuniqueid = mkOption {
+      type = types.bool;
+      default = false;
+      description = ''
+        Whether to use a unique ID for the tenant in the logging server
+        configuration. If true, the unique ID is derived from the machine's
+        /etc/machine-id file. If false, no tenant ID is used.
+
+        This setting is useful for multi-tenant logging setups where each
+        machine should have its own unique identifier.
+      '';
+    };
+
     identifierFilePath = mkOption {
       description = ''
         This configuration option used to specify the identifier file path.
@@ -136,7 +149,11 @@ in
             // Alloy service can read file in this specific location
             filename = "${cfg.identifierFilePath}"
           }
-
+          ${optionalString cfg.useuniqueid ''
+            local.file "machine_id" {
+              filename = "/etc/machine-id"
+            }
+          ''}
           // TLS materials arrive via systemd credentials
           local.file "tls_cert" {
             filename = sys.env("CREDENTIALS_DIRECTORY") + "/loki_cert"
@@ -224,7 +241,7 @@ in
                 username = "ghaf"
                 password_file = "/etc/loki/pass"
               }
-
+              ${optionalString cfg.useuniqueid "tenant_id = local.file.machine_id.content"}
               batch_size          = "256KiB"
               max_backoff_period  = "30s"
               max_backoff_retries = 0
