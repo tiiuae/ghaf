@@ -339,7 +339,6 @@ in
       reference.host-demo-apps.demo-apps.enableDemoApplications = true;
 
       hardware.nvidia = {
-        virtualization.enable = true;
         # MGBE0 passthrough is AGX-only, so it's enabled per-SoM in the AGX
         # modules, not in this NX-shared profile: NX has no MGBE0 and would
         # crash net-vm on `-device vfio-platform,host=6800000.ethernet`.
