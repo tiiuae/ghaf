@@ -34,6 +34,12 @@ let
     jetpack-nixos.nixosModules.default
   ];
 
+  # Crosvm and ghaf-device-manager are the default virtualization stack for
+  # every exported Orin target and all generated variants.
+  orinCrosvmModule = {
+    ghaf.hardware.nvidia.orin.crosvm.enable = true;
+  };
+
   # Common modules shared across all Orin configurations
   commonModules = orinSpecificModules ++ [
     self.nixosModules.reference-host-demo-apps
@@ -42,6 +48,7 @@ let
     # In-tree targets are TII's reference images; the profiles stay
     # org-free so a downstream can reuse them with its own org module.
     { ghaf.reference.org.tii.enable = true; }
+    orinCrosvmModule
   ];
 
   # A/B verity boot targets: LVM-based A/B slots + UKI instead of the sd-card
@@ -52,6 +59,7 @@ let
     self.nixosModules.reference-profiles-orin
     self.nixosModules.profiles
     { ghaf.reference.org.tii.enable = true; }
+    orinCrosvmModule
     ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/verity-image.nix
     ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/partition-template-verity.nix
     inputs.nix-store-veritysetup-generator.nixosModules.ghaf-store-veritysetup-generator
@@ -90,7 +98,6 @@ let
       extraModules = commonModules;
       extraConfig = {
         reference.profiles.mvp-orinuser-trial.enable = true;
-        hardware.nvidia.orin.crosvm.enable = true;
       };
     })
 
@@ -127,7 +134,6 @@ let
       extraModules = commonModules;
       extraConfig = {
         reference.profiles.mvp-orinuser-trial.enable = true;
-        hardware.nvidia.orin.crosvm.enable = true;
         # Crucial for Orin devices to use the correct render device
         # Also needs 'mesa' to be in hardware.graphics.extraPackages
         graphics.cosmic.renderDevice = "/dev/dri/renderD128";
