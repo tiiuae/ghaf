@@ -45,29 +45,16 @@ in
         text = ''
           set -euo pipefail
 
-          HWINFO_FILE=${lib.escapeShellArg (if cfg.filePath == null then "" else cfg.filePath)}
-          if [ -n "$HWINFO_FILE" ] && [ -f "$HWINFO_FILE" ]; then
-            echo "Hardware Information:"
-            if ! jq . < "$HWINFO_FILE"; then
-              echo "Hardware information file is not valid JSON: $HWINFO_FILE" >&2
-              exit 1
-            fi
-            exit 0
-          fi
-
-          # Check possible fw_cfg paths
-          FW_CFG_PATHS=(
+          HWINFO_PATHS=(
+            ${lib.optionalString (cfg.filePath != null) (lib.escapeShellArg cfg.filePath)}
             "/sys/firmware/qemu_fw_cfg/by_name/opt/com.ghaf.hwinfo/raw"
             "/sys/firmware/qemu_fw_cfg/by_name/opt/com.ghaf.hwinfo/data"
           )
 
-          for path in "''${FW_CFG_PATHS[@]}"; do
+          for path in "''${HWINFO_PATHS[@]}"; do
             if [ -f "$path" ]; then
               echo "Hardware Information:"
-              if ! jq . < "$path"; then
-                echo "Hardware information fw_cfg entry is not valid JSON: $path" >&2
-                exit 1
-              fi
+              jq . < "$path" || cat "$path"
               exit 0
             fi
           done
@@ -76,7 +63,7 @@ in
           echo "Hardware information not available" >&2
 
           ${lib.optionalString (cfg.filePath != null) ''
-            echo "Note: configured hardware information file is missing: $HWINFO_FILE" >&2
+            echo "Note: configured hardware information file is missing: ${lib.escapeShellArg cfg.filePath}" >&2
           ''}
           ${lib.optionalString (cfg.filePath == null) ''
             if ! lsmod | grep -q qemu_fw_cfg; then
