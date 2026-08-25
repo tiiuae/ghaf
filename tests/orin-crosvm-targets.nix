@@ -58,6 +58,9 @@ let
   agx = hostConfig baseTargets.nvidia-jetson-orin-agx-release;
   agxNetVm = agx.microvm.vms."net-vm".evaluatedConfig.config;
   agxNetService = agx.systemd.services."microvm@net-vm";
+  nxGuiShutdown =
+    (hostConfig baseTargets.nvidia-jetson-orin-nx-debug).systemd.services."ghaf-crosvm-shutdown-gui-vm";
+  nxGuiShutdownScript = nxGuiShutdown.serviceConfig.ExecStop;
   qemuFallback =
     (baseTargets.nvidia-jetson-orin-agx-release.extendModules {
       modules = [
@@ -92,6 +95,12 @@ let
       ok = agxNetVm.ghaf.services.hwinfo-guest.filePath == "/run/ghaf-hwinfo/hwinfo.json";
     }
     {
+      name = "Crosvm shutdown is bounded and reuses the MicroVM helper";
+      ok =
+        nxGuiShutdown.serviceConfig.TimeoutStopSec == "95"
+        && nxGuiShutdown.serviceConfig.WorkingDirectory == "/var/lib/microvms/gui-vm";
+    }
+    {
       name = "explicit QEMU overrides retain the supported rollback path";
       ok =
         qemuFallback.ghaf.hardware.passthrough.deviceManager.backend == "vhotplug"
@@ -106,4 +115,8 @@ in
 assert lib.assertMsg (
   failed == [ ]
 ) "Orin Crosvm target policy: ${lib.concatStringsSep "; " failed}";
-runCommand "orin-crosvm-targets" { } ''touch "$out"''
+runCommand "orin-crosvm-targets" { } ''
+  grep -Fq 'while ((SECONDS < grace_deadline))' ${nxGuiShutdownScript}
+  grep -Fq /booted/bin/microvm-shutdown ${nxGuiShutdownScript}
+  touch "$out"
+''
