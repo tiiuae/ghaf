@@ -2,7 +2,8 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# ghaf-netboot - serve a Ghaf netboot install to one machine on one interface.
+# ghaf-netboot - serve a Ghaf netboot install on one interface, to one machine
+# or to a fleet.
 #
 # Pixiecore answers PXE clients in ProxyDHCP mode (it never assigns addresses,
 # so it cannot disturb the lab's own DHCP), and asks our HTTP API what to do
@@ -22,6 +23,17 @@ Serve a Ghaf netboot install. Requires root.
 Required:
   -i, --interface <IFACE>  Interface facing the target. No default, deliberately.
   -m, --mac <MAC>          Target's MAC. Repeatable. Only these machines boot.
+      --mac-file <FILE>    ...or a file of MACs, one per line, # for comments.
+                           Combines with --mac. For a fleet this is the roster,
+                           and the server reports when every machine on it is
+                           done.
+      --any-mac            ...or serve EVERY PXE client on the segment. For a
+                           dedicated provisioning network, where collecting a
+                           hundred MACs first is friction with no safety return.
+                           Refused on the interface carrying the default route
+                           unless --force-interface is also given: proving the
+                           segment is isolated is the guard rail here, and it is
+                           a stronger one than a MAC list.
   -n, --netboot <DIR>      Result of .#<target>-netboot-installer
   -g, --image <DIR>        Result of .#<target> (ghaf-image.raw.zst + .bmap)
 
@@ -31,7 +43,18 @@ Options:
       --encrypt            With --install-target: enable disk encryption
       --secureboot         With --install-target: enroll Secure Boot keys
   -p, --port <PORT>        HTTP port (default 8080)
-  -t, --timeout <MIN>      Exit after this long (default 60, 0 disables)
+  -t, --timeout <MIN>      Exit after this long (default 60, 0 disables).
+                           Use 0 for a long-running fleet server.
+      --max-concurrent-images <N>
+                           How many clients may download the image at once
+                           (default 8). Everything else -- the boot API, kernel,
+                           initrd and block map -- is never queued, because a
+                           client waiting at that stage is still in firmware and
+                           iPXE gives up after ten DHCP attempts. Clients over
+                           the cap get 503 + Retry-After and wait; a hundred
+                           clients sharing one pipe would instead each crawl and
+                           time out.
+      --retry-after <SEC>  What to tell a queued client to wait (default 30)
       --exit-after-serve   Exit once the image has been fetched once. ON by
                            default with --install-target: the installer reboots
                            itself when it finishes, and a target with network
@@ -82,6 +105,10 @@ DRY_RUN=false
 # parsing to true for an unattended install and false otherwise.
 EXIT_AFTER_SERVE=""
 MACS=()
+MAC_FILE=""
+ANY_MAC=false
+MAX_CONCURRENT_IMAGES=8
+RETRY_AFTER=30
 # package.nix exports GHAF_NETBOOT_IPXE as our snponly.efi on x86_64, and as the
 # empty string elsewhere (an aarch64 host can serve an x86_64 target, but cannot
 # build the binary natively). Empty means "let pixiecore use its own embedded
@@ -96,6 +123,22 @@ while [ $# -gt 0 ]; do
     ;;
   -m | --mac)
     MACS+=("$2")
+    shift 2
+    ;;
+  --mac-file)
+    MAC_FILE="$2"
+    shift 2
+    ;;
+  --any-mac)
+    ANY_MAC=true
+    shift
+    ;;
+  --max-concurrent-images)
+    MAX_CONCURRENT_IMAGES="$2"
+    shift 2
+    ;;
+  --retry-after)
+    RETRY_AFTER="$2"
     shift 2
     ;;
   -n | --netboot)
@@ -174,9 +217,46 @@ die() {
   exit 1
 }
 
+# One line saying who will be served, for the banner. Kept out of the heredoc
+# because the three cases read badly inlined.
+describe_allowlist() {
+  if $ANY_MAC; then
+    echo "ANY -- every PXE client on this segment"
+    return
+  fi
+  local out=""
+  [ ${#MACS[@]} -eq 0 ] || out="${MACS[*]}"
+  if [ -n "$MAC_FILE" ]; then
+    [ -z "$out" ] || out="$out + "
+    out="$out$MAC_FILE ($(grep -cvE '^[[:space:]]*(#|$)' "$MAC_FILE" 2>/dev/null || echo 0) entries)"
+  fi
+  echo "$out"
+}
+
 # --- G0: nothing is optional, and there is no autodetect -----------------------
 [ -n "$IFACE" ] || die "--interface is required (no default: picking the wrong NIC is the whole hazard)"
-[ ${#MACS[@]} -gt 0 ] || die "--mac is required; without an allowlist any PXE client on this LAN would be served"
+
+if [ -n "$MAC_FILE" ]; then
+  [ -r "$MAC_FILE" ] || die "cannot read --mac-file $MAC_FILE"
+fi
+
+# Fail closed, as before -- only the ways of saying "these machines" have grown.
+# --any-mac is an explicit, separate decision, never something an empty list
+# decays into.
+if ! $ANY_MAC && [ ${#MACS[@]} -eq 0 ] && [ -z "$MAC_FILE" ]; then
+  die "--mac, --mac-file or --any-mac is required; without one, any PXE client on this LAN would be served"
+fi
+if $ANY_MAC && { [ ${#MACS[@]} -gt 0 ] || [ -n "$MAC_FILE" ]; }; then
+  die "--any-mac serves everything; passing an allowlist as well is contradictory"
+fi
+
+case "$MAX_CONCURRENT_IMAGES" in
+'' | *[!0-9]*) die "--max-concurrent-images must be a positive integer" ;;
+esac
+[ "$MAX_CONCURRENT_IMAGES" -ge 1 ] || die "--max-concurrent-images must be at least 1"
+case "$RETRY_AFTER" in
+'' | *[!0-9]*) die "--retry-after must be a positive integer" ;;
+esac
 [ -n "$NETBOOT_DIR" ] || die "--netboot is required"
 [ -n "$IMAGE_DIR" ] || die "--image is required"
 
@@ -201,16 +281,42 @@ if [ -n "$INSTALL_TARGET" ]; then
   [[ $INSTALL_TARGET =~ ^/dev/[a-zA-Z0-9._-]+$ ]] || die "--install-target must look like /dev/nvme0n1"
 fi
 
-# An unattended install now ends with the installer rebooting itself, so a
-# server still answering PXE catches that reboot and reinstalls the machine --
-# an install loop, on the one operation where a loop is most expensive. Default
-# it on rather than leaving it to be remembered.
-if [ -z "$EXIT_AFTER_SERVE" ]; then
-  if [ -n "$INSTALL_TARGET" ]; then EXIT_AFTER_SERVE=true; else EXIT_AFTER_SERVE=false; fi
+# Fleet mode is any run that can serve more than one machine.
+FLEET_MODE=false
+if $ANY_MAC || [ -n "$MAC_FILE" ] || [ ${#MACS[@]} -gt 1 ]; then
+  FLEET_MODE=true
 fi
-if [ -n "$INSTALL_TARGET" ] && [ "$EXIT_AFTER_SERVE" = false ]; then
+
+# Order matters here. EXIT_AFTER_SERVE is tri-state precisely so that "the
+# operator asked for this" can be told apart from "an unattended install
+# defaulted it on", and the refusal below must only ever fire on the former --
+# checking after the default was resolved made --mac-file --install-target
+# refuse to start at all.
+if $FLEET_MODE && [ "$EXIT_AFTER_SERVE" = true ]; then
+  die "--exit-after-serve serves exactly one machine; it would stop the server for the rest of the fleet"
+fi
+
+# An unattended install ends with the installer rebooting itself, so a server
+# still answering PXE could catch that reboot and reinstall the machine -- an
+# install loop, on the one operation where a loop is most expensive. Default it
+# on rather than leaving it to be remembered.
+#
+# Not for a fleet: there, stopping after the first client is the bigger failure,
+# and it is unnecessary anyway because ghaf-installer now points the target at
+# its own disk before rebooting (set_boot_to_disk), so a server that keeps
+# running no longer implies a loop.
+if [ -z "$EXIT_AFTER_SERVE" ]; then
+  if [ -n "$INSTALL_TARGET" ] && ! $FLEET_MODE; then
+    EXIT_AFTER_SERVE=true
+  else
+    EXIT_AFTER_SERVE=false
+  fi
+fi
+if [ -n "$INSTALL_TARGET" ] && [ "$EXIT_AFTER_SERVE" = false ] && ! $FLEET_MODE; then
   echo "ghaf-netboot: WARNING --no-exit-after-serve with --install-target: if this target" >&2
-  echo "ghaf-netboot:   prefers network boot it will reinstall itself on every reboot." >&2
+  echo "ghaf-netboot:   prefers network boot it will reinstall itself on every reboot," >&2
+  echo "ghaf-netboot:   unless it is running an installer new enough to set its own" >&2
+  echo "ghaf-netboot:   BootNext (see set_boot_to_disk in ghaf-installer)." >&2
 fi
 
 # --- interface guard rails ----------------------------------------------------
@@ -221,6 +327,22 @@ default_iface=$(ip route show default 2>/dev/null | awk '/^default/ {print $5; e
 if [ -n "$default_iface" ] && [ "$default_iface" = "$IFACE" ]; then
   $FORCE_IFACE || die "$IFACE carries the default route; refusing (--force-interface to override)"
   echo "ghaf-netboot: WARNING serving on the default-route interface because --force-interface was given" >&2
+
+  # --any-mac removes the allowlist, so the segment is the only thing left
+  # deciding which machines can be reinstalled. The default route is the best
+  # available evidence that the segment is NOT dedicated.
+  #
+  # The exposure is narrower than it first looks -- a machine only reaches this
+  # server while it is actively PXE booting, so nothing running is at risk -- but
+  # plenty of machines emit a PXE request on EVERY boot and fall through to disk
+  # when nothing answers. One of those rebooting during a multi-hour fleet run
+  # gets an unattended, destructive install.
+  if $ANY_MAC; then
+    echo "ghaf-netboot: WARNING --any-mac on the default-route interface: any machine" >&2
+    echo "ghaf-netboot:   that PXE boots on this LAN during this run will be INSTALLED." >&2
+  fi
+elif $ANY_MAC; then
+  echo "ghaf-netboot: --any-mac: serving every PXE client on $IFACE" >&2
 fi
 
 # G2: a wireless NIC is always the wrong answer here, and usually a typo.
@@ -256,8 +378,17 @@ firewall_has_nixos_fw() {
 
 firewall_open() {
   firewall_has_nixos_fw || {
-    echo "ghaf-netboot: WARNING --open-firewall: no nixos-fw temp-ports set here;" >&2
-    echo "ghaf-netboot:   open $FW_ELEMENTS yourself if the target times out" >&2
+    # Not a NixOS host -- most likely a lab or build machine running the
+    # container image. `$FW_ELEMENTS` is nftables SET-ELEMENT syntax and means
+    # nothing to ufw or firewalld, so spell the ports out instead: an operator
+    # told to "open udp . 67" has been given a puzzle, not an instruction.
+    echo "ghaf-netboot: WARNING --open-firewall: this host has no nixos-fw table, so nothing" >&2
+    echo "ghaf-netboot:   was opened. If this host filters inbound traffic the target will time" >&2
+    echo "ghaf-netboot:   out with nothing logged here. Open these yourself, and close them after:" >&2
+    echo "ghaf-netboot:     udp 67 (DHCP)  udp 69 (TFTP)  udp 4011 (ProxyDHCP)" >&2
+    echo "ghaf-netboot:     tcp $PORT (artefacts + image)  tcp $((PORT + 1)) (pixiecore)" >&2
+    echo "ghaf-netboot:   e.g. ufw:  sudo ufw allow 67,69,4011/udp && sudo ufw allow $PORT,$((PORT + 1))/tcp" >&2
+    echo "ghaf-netboot:   Many hosts filter nothing by default, in which case there is nothing to do." >&2
     return 0
   }
   nft add element inet nixos-fw temp-ports "{ $FW_ELEMENTS }" 2>/dev/null || {
@@ -332,13 +463,14 @@ fi
 cat >&2 <<EOF
 ghaf-netboot:
   interface   $IFACE ($LISTEN_IP)
-  allowlist   ${MACS[*]}
+  allowlist   $(describe_allowlist)
   netboot     $NETBOOT_DIR
   image       $IMAGE_DIR
   http        http://${LISTEN_IP}:${PORT}
   ipxe        ${IPXE_EFI64:-pixiecore built-in (native drivers; broadcast DHCP fails on some NICs)}
   cmdline     $CMDLINE
   mode        $(if [ -n "$INSTALL_TARGET" ]; then echo "UNATTENDED INSTALL to $INSTALL_TARGET (destructive)"; else echo "interactive TUI"; fi)
+  serving     $(if $FLEET_MODE; then echo "fleet"; else echo "single machine"; fi), $MAX_CONCURRENT_IMAGES concurrent image download(s)
   stop        $(if $EXIT_AFTER_SERVE; then echo "once the image has been served in full"; else echo "on timeout or signal only"; fi)
   timeout     $(if [ "$TIMEOUT_MIN" = 0 ]; then echo "none"; else echo "${TIMEOUT_MIN} min"; fi)
 EOF
@@ -377,13 +509,18 @@ trap cleanup EXIT INT TERM
 $OPEN_FIREWALL && firewall_open
 
 mac_args=()
-for m in "${MACS[@]}"; do mac_args+=(--mac "$m"); done
+for m in "${MACS[@]+"${MACS[@]}"}"; do mac_args+=(--mac "$m"); done
+[ -n "$MAC_FILE" ] && mac_args+=(--mac-file "$MAC_FILE")
+$ANY_MAC && mac_args+=(--any-mac)
 
 serve_args=()
 $EXIT_AFTER_SERVE && serve_args+=(--exit-after-serve)
 
 ghaf-netboot-api --root "$ROOT" --listen "$LISTEN_IP" --port "$PORT" \
-  --cmdline "$CMDLINE" "${mac_args[@]}" "${serve_args[@]+"${serve_args[@]}"}" &
+  --cmdline "$CMDLINE" \
+  --max-concurrent-images "$MAX_CONCURRENT_IMAGES" \
+  --retry-after "$RETRY_AFTER" \
+  "${mac_args[@]+"${mac_args[@]}"}" "${serve_args[@]+"${serve_args[@]}"}" &
 API_PID=$!
 sleep 1
 kill -0 "$API_PID" 2>/dev/null || die "HTTP server failed to start"

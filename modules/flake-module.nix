@@ -9,6 +9,7 @@
     ./givc/flake-module.nix
     ./hardware/flake-module.nix
     ./microvm/flake-module.nix
+    ./netboot-server/flake-module.nix
     ./reference/hardware/flake-module.nix
     ./profiles/flake-module.nix
     ./common/flake-module.nix
