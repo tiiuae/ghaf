@@ -6,25 +6,20 @@
 # Note: Modules receive `inputs` via specialArgs from mkLaptopConfiguration.
 # This eliminates the need for the `{ inputs }:` wrapper anti-pattern.
 { inputs, ... }:
-let
-  microvmGuestModule = {
-    imports = [
-      inputs.microvm.nixosModules.microvm
-      ./common/microvm-nix-crosvm-store-disk-overlay.nix
-    ];
-  };
-in
 {
   _file = ./flake-module.nix;
 
   flake.nixosModules = {
-    microvm-nix = microvmGuestModule;
+    microvm-nix = {
+      imports = [
+        inputs.microvm.nixosModules.microvm
+        ./common/microvm-nix-crosvm-store-disk-overlay.nix
+      ];
+    };
 
     microvm.imports = [
       ./host/microvm-host.nix
       ./sysvms/netvm.nix
-      ./sysvms/gpuvm.nix
-      ./sysvms/dispvm.nix
       ./sysvms/adminvm.nix
       ./appvm.nix
       ./sysvms/guivm.nix
@@ -102,19 +97,6 @@ in
     #     .extendModules { modules = [ ... ]; }
     # Note: Jetson and other non-laptop platforms continue to use netvm.extraModules
     netvm-base = ./sysvms/netvm-base.nix;
-
-    # GPU VM base module for layered composition (Orin AGX GPU passthrough).
-    # Use with extendModules pattern:
-    #   lib.nixosSystem { modules = [ inputs.self.nixosModules.gpuvm-base ]; ... }
-    #     .extendModules { modules = [ ... ]; }
-    gpuvm-base = ./sysvms/gpuvm-base.nix;
-
-    # Disp VM base module for layered composition (Orin AGX display
-    # passthrough, experiment/orin-two-vm-host1x concurrent build).
-    # Use with extendModules pattern:
-    #   lib.nixosSystem { modules = [ inputs.self.nixosModules.dispvm-base ]; ... }
-    #     .extendModules { modules = [ ... ]; }
-    dispvm-base = ./sysvms/dispvm-base.nix;
 
     # App VM base module for layered composition
     # Unlike singleton VMs, App VMs are instantiated multiple times using mkAppVm.
