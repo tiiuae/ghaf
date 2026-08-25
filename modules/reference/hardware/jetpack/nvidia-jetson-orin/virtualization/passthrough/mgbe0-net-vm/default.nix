@@ -5,13 +5,9 @@
 #
 #   data     vfio-platform hands the MAC's MMIO + IRQs to the guest; MGBE0 is
 #            alone in its IOMMU group, so VFIO takes it cleanly.
-#   control  the node's clocks/resets/power-domain are <&bpmp ...> refs and the
-#            guest has no BPMP, so the guest tegra_bpmp is redirected (via the
-#            `virtual-pa` prop on its /bpmp node) to a QEMU bridge that forwards
-#            to net-vm's dedicated BPMP host proxy from jetpack-nixos.
-#
-# QEMU emits the guest DT (a dynamic sysbus device with no FDT binding aborts
-# `virt`); there is no hand-written -dtb.
+#   control  the guest BPMP transport forwards requests to net-vm's dedicated
+#            BPMP host proxy from jetpack-nixos. QEMU emits its guest DT while
+#            Crosvm consumes Jetpack's live-DT-derived overlay.
 {
   lib,
   pkgs,
@@ -29,8 +25,11 @@ let
       else
         configuredNetVmVmm
     ) == "crosvm";
-  mgbe0Policy = support.bpmpPolicies.mgbe0;
   mgbe0 = support.passthrough.mgbe0;
+  hostServices = [
+    "bindMgbe0.service"
+  ]
+  ++ lib.optionals isCrosvm [ "prepareMgbe0CrosvmOverlay.service" ];
 in
 {
   _file = ./default.nix;
@@ -39,11 +38,11 @@ in
     lib.mkEnableOption "MGBE0 (${mgbe0.nodeName}) passthrough to the Net-VM on NVIDIA Orin";
 
   config = lib.mkIf cfg.enable {
-    hardware.nvidia-jetpack.virtualization.bpmpHost.consumers.net-vm = mgbe0Policy.proxy;
+    hardware.nvidia-jetpack.virtualization.bpmpHost.consumers.net-vm = support.bpmpPolicies.mgbe0.proxy;
     hardware.nvidia-jetpack.virtualization.mgbe0Host.enable = true;
     systemd.services."microvm@net-vm" = {
-      requires = lib.optionals isCrosvm [ "prepareMgbe0CrosvmOverlay.service" ];
-      after = [ "bindMgbe0.service" ] ++ lib.optionals isCrosvm [ "prepareMgbe0CrosvmOverlay.service" ];
+      requires = hostServices;
+      after = hostServices;
       environment.GHAF_BPMP_HOST = "/dev/bpmp-host-net-vm";
     };
 
@@ -80,7 +79,7 @@ in
               }
             ];
             crosvm = lib.mkIf (config.microvm.hypervisor == "crosvm") {
-              deviceTreeOverlays = [ "/run/mgbe0-net-vm.dtbo" ];
+              deviceTreeOverlays = [ mgbe0.crosvmOverlayPath ];
               extraArgs = [
                 "--nvidia-bpmp-host"
                 "/dev/bpmp-host-net-vm"
@@ -90,9 +89,9 @@ in
 
           # Crosvm removes VFIO mappings as soon as the guest exits. Keep a
           # normal shutdown hook, and expose a GIVC service which powers off
-          # only after the driver's ndo_stop path succeeds. A quiesce failure
-          # therefore leaves the guest running and becomes a loud host timeout
-          # instead of silently tearing down live DMA.
+          # only after the driver's ndo_stop path succeeds. The host-side
+          # shutdown coordinator reports a failed or timed-out request instead
+          # of issuing a Crosvm control-socket stop.
           systemd.services.quiesce-mgbe0 = lib.mkIf (config.microvm.hypervisor == "crosvm") {
             description = "Quiesce MGBE0 before Crosvm shutdown";
             wantedBy = [ "multi-user.target" ];

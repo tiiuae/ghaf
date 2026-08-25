@@ -7,17 +7,7 @@
 {
   _file = ./orin-agx64.nix;
 
-  imports = [
-    ../../../../common/services/hwinfo
-  ];
-
   ghaf = {
-    # Enable hardware info generation on host
-    services.hwinfo = {
-      enable = true;
-      outputDir = "/var/lib/ghaf-hwinfo";
-    };
-
     hardware = {
       nvidia.orin = {
         enable = true;
@@ -58,25 +48,6 @@
             wirelessRegulatoryDatabase = true;
           };
 
-        }
-        # Hardware info guest support
-        {
-          imports = [ ../../../../common/services/hwinfo ];
-          ghaf.services.hwinfo-guest.enable = true;
-        }
-        # Ensure hardware info is generated before net-vm starts
-        {
-          systemd.services."microvm@net-vm" = {
-            wants = [ "ghaf-hwinfo-generate.service" ];
-            after = [ "ghaf-hwinfo-generate.service" ];
-          };
-        }
-        # QEMU arguments to pass hardware info via fw_cfg
-        {
-          microvm.qemu.extraArgs = [
-            "-fw_cfg"
-            "name=opt/com.ghaf.hwinfo,file=/var/lib/ghaf-hwinfo/hwinfo.json"
-          ];
         }
         ../../../personalize
         # Developer SSH access is a DEBUG-build affordance: this option defaults to
