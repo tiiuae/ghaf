@@ -30,32 +30,11 @@ let
       else
         configuredNetVmVmm
     ) == "crosvm";
-  mgbe0BpmpIds = {
-    clocks = [
-      357
-      361
-      369
-      373
-      374
-      375
-      376
-      377
-      379
-      380
-      381
-      378
-      248
-    ];
-    resets = [
-      46
-      45
-      47
-    ];
-    powerDomains = [ 18 ];
-  };
+  mgbe0Policy = support.bpmpPolicies.mgbe0;
+  mgbe0BpmpIds = mgbe0Policy.device;
   ids = values: lib.concatStringsSep " " (map toString values);
   bpmpRefs = values: lib.concatMapStringsSep ", " (value: "<&bpmp ${toString value}>") values;
-  mgbe0OverlayDts = pkgs.replaceVars ./mgbe0-crosvm-overlay.dts {
+  mgbe0OverlayDts = pkgs.replaceVars "${support}/device-trees/mgbe0/mgbe0-crosvm-overlay.dts" {
     bpmpClocks = bpmpRefs mgbe0BpmpIds.clocks;
     bpmpResets = bpmpRefs mgbe0BpmpIds.resets;
     bpmpPowerDomains = bpmpRefs mgbe0BpmpIds.powerDomains;
@@ -177,46 +156,7 @@ in
     # The guest can only bring MGBE0 up through the BPMP host proxy.
     ghaf.hardware.nvidia.virtualization.host.bpmp.enable = true;
 
-    ghaf.hardware.nvidia.virtualization.host.bpmp.consumers.net-vm = {
-      # MGBE0 (ethernet@6800000) clocks, resets, power domain -- raw BPMP ids
-      # read from the device's live DT (not TEGRA234_CLK_* macros; NVIDIA's DT
-      # has drifted from mainline). "clock not allowed" denials at guest boot are
-      # the boundary working, not a bug -- see bpmp-host-proxy.c.
-      clocks = mgbe0BpmpIds.clocks ++ [
-        # MGBE0's "tx" (374) is fed by a PLL chain that clk_prepare() walks in
-        # full, so every link needs allowing or the child fails: the guest logs
-        # "Failed to prepare clk 'tx': -5" and tegra-mgbe probes at -5, while the
-        # host logs "bpmp-host: Warning, clock not allowed for: <id>, command: 7".
-        # Allowing only part of the chain just moves the denial to the next link
-        # (seen going 319 -> 367). All of these are gigabit-ethernet dedicated,
-        # so the boundary stays ethernet-scoped: host-critical display/memory
-        # PLLs stay denied, and the MGBE1/2/3 instances are deliberately not
-        # listed since only MGBE0 is passed through.
-        319 # PLLGBE
-        320 # PLLGBE_HPS
-        366 # MGBES_APP
-        367 # UPHY_GBE_PLL2_TX_REF
-        368 # UPHY_GBE_PLL2_XDIG
-        # mgbe0_app (380) does not hang off the GBE PLLs at all: it is clocked
-        # at 480 MHz from the USB/UTMI tree, so clk_prepare walks
-        # mgbe0_app -> utmipll_clkout480 -> utmip_pll -> osc/clk_m. Every one of
-        # these is shared with host USB, so bpmp-host-proxy.c also lists them in
-        # protected_clk_roots: net-vm may enable and read them, but
-        # disable/set_rate/set_parent stay denied, so a guest cannot pull the
-        # clock out from under the host's USB (keyboard, net-vm's own NIC).
-        103 # UTMIP_PLL
-        292 # UTMIPLL_CLKOUT480
-        91 # OSC
-        14 # CLK_M
-        # ptp-ref (381) hangs off the PLLREFE tree rather than the USB one, so
-        # it needs its own two ancestors. PLLREFE is a shared reference PLL
-        # (PCIe/UPHY use it too), hence protected_clk_roots as well.
-        288 # PLLREFE_VCOOUT
-        327 # PLLREFE_VCOOUT_GATED
-      ];
-      inherit (mgbe0BpmpIds) resets;
-      inherit (mgbe0BpmpIds) powerDomains;
-    };
+    ghaf.hardware.nvidia.virtualization.host.bpmp.consumers.net-vm = mgbe0Policy.proxy;
 
     services.udev.extraRules = ''
       # The VMM opens net-vm's BPMP proxy as user microvm, group kvm. The
