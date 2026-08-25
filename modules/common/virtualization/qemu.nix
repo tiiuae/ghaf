@@ -12,8 +12,10 @@
   options.ghaf.virtualization.qemu = {
     package = lib.mkOption {
       type = lib.types.package;
-      default = pkgs.ghaf-qemu;
-      defaultText = lib.literalExpression "pkgs.ghaf-qemu";
+      default = if pkgs.stdenv.hostPlatform.isx86_64 then pkgs.ghaf-x86-qemu else pkgs.ghaf-nvidia-qemu;
+      defaultText = lib.literalExpression ''
+        if pkgs.stdenv.hostPlatform.isx86_64 then pkgs.ghaf-x86-qemu else pkgs.ghaf-nvidia-qemu
+      '';
       description = "The QEMU package used across Ghaf modules.";
     };
   };

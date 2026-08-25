@@ -63,7 +63,7 @@ in
           # still has -device vfio-platform (removed upstream in 10.2). It also
           # emits MGBE0's guest DT node.
           ghaf.virtualization.qemu.package = lib.mkIf (config.microvm.hypervisor == "qemu") (
-            lib.mkForce pkgs.ghaf-qemu-bpmp
+            lib.mkForce pkgs.ghaf-nvidia-qemu-bpmp
           );
           microvm = {
             qemu.extraArgs = lib.mkIf (config.microvm.hypervisor == "qemu") [
