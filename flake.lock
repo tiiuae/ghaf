@@ -451,11 +451,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1787592395,
-        "narHash": "sha256-hIzNsLikn2jVab9u/t7jbOX5Sypos19l4yORzVmLpns=",
+        "lastModified": 1787637778,
+        "narHash": "sha256-Lj8eaHrCzTZd2iYydi+lIFRJSEqGo/0OGyTvnJiTrYM=",
         "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "9d8836edda93ff99001df62596837a2bcd43a6f2",
+        "rev": "128dc59400933140cef56d1349de0d2eca52eb4a",
         "type": "github"
       },
       "original": {
