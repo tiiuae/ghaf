@@ -10,105 +10,116 @@
 let
   roles = {
     gpuvm = {
-      option = "gpu_vm";
-      vm = "gpu-vm";
-      definition = "gpuvm";
-      policy = "compute";
+      optionName = "gpu_vm";
+      vmName = "gpu-vm";
+      definitionName = "gpuvm";
+      policyName = "compute";
       ownsGpu = true;
+      description = "GPU and media passthrough to GPU VM";
     };
     dispvm = {
-      option = "disp_vm";
-      vm = "disp-vm";
-      definition = "dispvm";
-      policy = "display";
+      optionName = "disp_vm";
+      vmName = "disp-vm";
+      definitionName = "dispvm";
+      policyName = "display";
       ownsGpu = false;
+      description = "display passthrough to Display VM";
     };
     guivm = {
-      option = "gui_vm";
-      vm = "gui-vm";
-      definition = "guivm";
-      policy = "combined";
+      optionName = "gui_vm";
+      vmName = "gui-vm";
+      definitionName = "guivm";
+      policyName = "combined";
       ownsGpu = true;
+      description = "combined GPU and display passthrough to GUI VM";
     };
   };
-  inherit (roles.${role})
-    option
-    vm
-    definition
-    policy
-    ownsGpu
-    ;
-  cfg = config.ghaf.hardware.nvidia.passthroughs.${option};
+  roleConfig = roles.${role};
+  cfg = config.ghaf.hardware.nvidia.passthroughs.${roleConfig.optionName};
   support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
-  payload = support.passthrough.roles.${policy};
-  bpmpHostPath = "/dev/bpmp-host-${vm}";
+  payload = support.passthrough.roles.${roleConfig.policyName};
+  bpmpHostPath = "/dev/bpmp-host-${roleConfig.vmName}";
   board = support.boards.${if config.ghaf.hardware.nvidia.orin.somType == "nx" then "nx" else "agx"};
+  kernel = config.boot.kernelPackages.kernel;
+  dtsRoot = "${support}/device-trees";
   dtb = support.mkGuestDtb {
-    inherit pkgs board;
-    kernel = config.boot.kernelPackages.kernel;
-    dtsRoot = "${support}/device-trees";
+    inherit
+      pkgs
+      board
+      kernel
+      dtsRoot
+      ;
     role = payload;
   };
-  bindService = "bind-${vm}-vfio-platform.service";
+  crosvmOverlay = support.mkCrosvmOverlay {
+    inherit
+      pkgs
+      board
+      kernel
+      dtsRoot
+      ;
+    role = payload;
+  };
+  configuredVmm = config.ghaf.virtualization.vmConfig.sysvms.${roleConfig.definitionName}.vmm or null;
+  selectedVmm =
+    if configuredVmm == null then
+      config.ghaf.virtualization.vmConfig.defaultSysVmVmm
+    else
+      configuredVmm;
+  isCrosvm = selectedVmm == "crosvm";
+  bindService = "bind-${roleConfig.vmName}-vfio-platform.service";
 in
 {
   _file = ./role.nix;
 
-  options.ghaf.hardware.nvidia.passthroughs.${option} = {
-    enable = lib.mkEnableOption "Orin ${policy} GPU/display passthrough";
-  }
-  // lib.optionalAttrs (role == "gpuvm") {
-    containerRuntime = {
-      enable = lib.mkEnableOption "Docker with NVIDIA CDI devices in GPU VM";
-      addGhafUserToDockerGroup = lib.mkEnableOption "root-equivalent Docker access for the ghaf user in GPU VM";
-    };
-    partitionManager = {
-      enable = lib.mkEnableOption "the cooperative CUDA Green Context job manager in GPU VM";
-      plugins = lib.mkOption {
-        type = lib.types.listOf lib.types.package;
-        default = [ ];
-        description = "Trusted Nix-built workload plugins loaded by gpu-partition-manager.";
-      };
-    };
-  };
+  options.ghaf.hardware.nvidia.passthroughs.${roleConfig.optionName}.enable =
+    lib.mkEnableOption "Orin ${roleConfig.description}";
 
   config = lib.mkIf cfg.enable (
     lib.mkMerge [
       {
-        hardware.nvidia-jetpack.virtualization.gpuPassthroughHost.assignments.${vm}.role = policy;
-        ghaf.virtualization.microvm.${definition}.enable = true;
-        ghaf.hardware.definition.${definition}.extraModules = [
+        hardware.nvidia-jetpack.virtualization.gpuPassthroughHost.assignments.${roleConfig.vmName}.role =
+          roleConfig.policyName;
+        ghaf.virtualization.microvm.${roleConfig.definitionName}.enable = true;
+        ghaf.hardware.definition.${roleConfig.definitionName}.extraModules = [
           (import ./guest.nix {
             inherit
+              bpmpHostPath
+              crosvmOverlay
               dtb
               payload
-              policy
               ;
+            role = roleConfig.policyName;
           })
-        ]
-        ++ lib.optional (role == "gpuvm") {
-          ghaf.virtualization.gpuPartitionManager = {
-            inherit (cfg.partitionManager) enable plugins;
-          };
-          ghaf.virtualization.gpuContainerRuntime = {
-            inherit (cfg.containerRuntime) enable addGhafUserToDockerGroup;
-          };
-        };
+        ];
 
-        systemd.services."microvm@${vm}" = {
+        systemd.services."microvm@${roleConfig.vmName}" = {
           requires = [ bindService ];
           after = [ bindService ];
-          environment = {
+          environment = lib.optionalAttrs (!isCrosvm && payload.needsDceBridge) { GHAF_DCE_GUEST = "1"; } // {
             GHAF_BPMP_HOST = bpmpHostPath;
-          }
-          // lib.optionalAttrs payload.needsDceBridge { GHAF_DCE_GUEST = "1"; };
+          };
+          serviceConfig.ExecStartPre = lib.optionals isCrosvm (
+            [ "${pkgs.coreutils}/bin/test -e ${bpmpHostPath}" ]
+            ++ lib.optional payload.needsDceBridge "${pkgs.coreutils}/bin/test -e /dev/dce-host"
+          );
         };
       }
 
-      (lib.mkIf ownsGpu {
+      (lib.mkIf roleConfig.ownsGpu {
         services.nvpmodel.enable = lib.mkForce false;
         ghaf.profiles.graphics.enable = lib.mkForce false;
         ghaf.virtualization.nvidia-docker.daemon.enable = lib.mkForce false;
+      })
+
+      (lib.mkIf (role == "guivm" && !isCrosvm) {
+        ghaf.hardware.passthrough.usb.guivmDeny = [
+          {
+            vendorId = "046d";
+            productId = "c52b";
+            description = "Logitech Unifying Receiver: evdev-only with the QEMU rollback";
+          }
+        ];
       })
     ]
   );

@@ -7,17 +7,16 @@
 #
 # VM Configuration on Jetson:
 # ===========================
-# Enabled VMs:
-# - Net VM (netvmBase exported for composition)
-# - Admin VM (adminvmBase exported for composition)
+# Enabled VMs in the standard target:
+# - Net VM
+# - Admin VM
+# - GUI VM with combined GPU and display passthrough
 #
 # Disabled VMs (architectural reasons):
-# - GUI VM: GPU passthrough not supported, desktop runs natively on host (COSMIC)
 # - Audio VM: Audio hardware directly accessible from host
 # - IDS VM: Resource constraints on embedded platform
-# - App VMs: No GUI VM means no Waypipe, apps run on host or via Docker
 #
-# Both netvmBase and adminvmBase are exported for composition needs.
+# VM bases are exported for target-specific composition.
 #
 {
   config,
