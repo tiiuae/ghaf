@@ -19,7 +19,6 @@ in
     ./host/uarta-host
     ./passthrough/uarti-net-vm
     ./passthrough/mgbe0-net-vm
-    ./crosvm-shutdown.nix
   ];
 
   options.ghaf.hardware.nvidia.orin.crosvm.enable =
