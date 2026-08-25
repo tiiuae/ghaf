@@ -33,6 +33,12 @@ in
                 {
                   bus = "pci";
                   path = "0001:01:00.0";
+                  crosvm = lib.optionalAttrs (config.microvm.hypervisor == "crosvm") {
+                    guestAddress = "00:1f.0";
+                    # Host VFIO/SMMU isolation remains active; only the broken
+                    # guest virtio-IOMMU path is bypassed for this endpoint.
+                    iommu = "off";
+                  };
                 }
                 {
                   bus = "pci";
@@ -44,16 +50,14 @@ in
                 {
                   bus = "pci";
                   path = "0001:01:00.0";
+                  crosvm = lib.optionalAttrs (config.microvm.hypervisor == "crosvm") {
+                    guestAddress = "00:1f.0";
+                    # Host VFIO/SMMU isolation remains active; only the broken
+                    # guest virtio-IOMMU path is bypassed for this endpoint.
+                    iommu = "off";
+                  };
                 }
               ];
-          microvm.crosvm.pciDeviceOptions = lib.mkIf (config.microvm.hypervisor == "crosvm") {
-            "0001:01:00.0" = {
-              guestAddress = "00:1f.0";
-              # Host VFIO/SMMU isolation remains active; only the broken guest
-              # virtio-IOMMU path is bypassed for this endpoint.
-              iommu = "off";
-            };
-          };
           # Network Manager is defined for netvm of Orin Devices
           environment.systemPackages = [ pkgs.networkmanager ];
           # Network Manager package defines a gnome plugin with build failure on Orin

@@ -11,9 +11,7 @@ let
     imports = [
       inputs.microvm.nixosModules.microvm
       ./common/microvm-nix-crosvm-store-disk-overlay.nix
-      ./common/crosvm-platform.nix
     ];
-    _module.args.microvmFlake = inputs.microvm;
   };
 in
 {
