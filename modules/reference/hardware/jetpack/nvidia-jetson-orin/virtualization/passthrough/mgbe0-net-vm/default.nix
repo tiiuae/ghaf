@@ -16,7 +16,7 @@
 }:
 let
   cfg = config.ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm;
-  support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
+  virt-support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
   configuredNetVmVmm = config.ghaf.virtualization.vmConfig.sysvms.netvm.vmm or null;
   isCrosvm =
     (
@@ -25,7 +25,7 @@ let
       else
         configuredNetVmVmm
     ) == "crosvm";
-  mgbe0 = support.passthrough.mgbe0;
+  mgbe0 = virt-support.passthrough.mgbe0;
   hostServices = [
     "bindMgbe0.service"
   ]
@@ -38,7 +38,8 @@ in
     lib.mkEnableOption "MGBE0 (${mgbe0.nodeName}) passthrough to the Net-VM on NVIDIA Orin";
 
   config = lib.mkIf cfg.enable {
-    hardware.nvidia-jetpack.virtualization.bpmpHost.consumers.net-vm = support.bpmpPolicies.mgbe0.proxy;
+    hardware.nvidia-jetpack.virtualization.bpmpHost.consumers.net-vm =
+      virt-support.bpmpPolicies.mgbe0.proxy;
     hardware.nvidia-jetpack.virtualization.mgbe0Host.enable = true;
     systemd.services."microvm@net-vm" = {
       requires = hostServices;
@@ -103,7 +104,7 @@ in
               Type = "oneshot";
               RemainAfterExit = true;
               ExecStart = "${pkgs.coreutils}/bin/true";
-              ExecStop = lib.getExe support.quiesceMgbe0;
+              ExecStop = lib.getExe virt-support.quiesceMgbe0;
             };
           };
 

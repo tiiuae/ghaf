@@ -3,8 +3,8 @@
 # AArch64 specialization of the generic gui-vm desktop.
 { lib, pkgs, ... }:
 let
-  support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
-  cosmicPreload = "${support.gbmNoModifiersShim}/lib/gbm-nomod-shim.so";
+  virt-support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
+  cosmicPreload = "${virt-support.gbmNoModifiersShim}/lib/gbm-nomod-shim.so";
 in
 {
   _file = ./orin-guivm-specialization.nix;
