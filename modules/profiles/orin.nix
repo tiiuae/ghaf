@@ -88,26 +88,6 @@ in
       '';
     };
 
-    # GPU VM base configuration for profiles to extend
-    gpuvmBase = lib.mkOption {
-      type = lib.types.unspecified;
-      readOnly = true;
-      description = ''
-        Orin GPU VM base configuration.
-        Profiles can extend this with extendModules if customization needed.
-      '';
-    };
-
-    # Disp VM base configuration for profiles to extend
-    dispvmBase = lib.mkOption {
-      type = lib.types.unspecified;
-      readOnly = true;
-      description = ''
-        Orin Disp VM base configuration.
-        Profiles can extend this with extendModules if customization needed.
-      '';
-    };
-
     guivmBase = lib.mkOption {
       type = lib.types.unspecified;
       readOnly = true;
@@ -180,54 +160,6 @@ in
             hostConfig = lib.ghaf.vm.mkHostConfig {
               inherit config;
               vmName = "admin-vm";
-            };
-          };
-        };
-
-        # Export GPU VM base for profiles to extend
-        orin.gpuvmBase = lib.nixosSystem {
-          modules = [
-            inputs.self.nixosModules.microvm-nix
-            inputs.self.nixosModules.gpuvm-base
-            # Import nixpkgs config module to get overlays
-            {
-              nixpkgs = {
-                hostPlatform.system = "aarch64-linux";
-                inherit (config.nixpkgs) overlays;
-                inherit (config.nixpkgs) config;
-              };
-            }
-          ];
-          specialArgs = lib.ghaf.vm.mkSpecialArgs {
-            inherit lib inputs;
-            globalConfig = hostGlobalConfig;
-            hostConfig = lib.ghaf.vm.mkHostConfig {
-              inherit config;
-              vmName = "gpu-vm";
-            };
-          };
-        };
-
-        # Export Disp VM base for profiles to extend
-        orin.dispvmBase = lib.nixosSystem {
-          modules = [
-            inputs.self.nixosModules.microvm-nix
-            inputs.self.nixosModules.dispvm-base
-            # Import nixpkgs config module to get overlays
-            {
-              nixpkgs = {
-                hostPlatform.system = "aarch64-linux";
-                inherit (config.nixpkgs) overlays;
-                inherit (config.nixpkgs) config;
-              };
-            }
-          ];
-          specialArgs = lib.ghaf.vm.mkSpecialArgs {
-            inherit lib inputs;
-            globalConfig = hostGlobalConfig;
-            hostConfig = lib.ghaf.vm.mkHostConfig {
-              inherit config;
-              vmName = "disp-vm";
             };
           };
         };
@@ -378,31 +310,6 @@ in
               modules = lib.ghaf.vm.applyVmConfig {
                 inherit config;
                 vmName = "adminvm";
-              };
-            };
-          };
-
-          # GPU VM: a platform composition controls enable. Here we only
-          # provide the evaluatedConfig, extending gpuvmBase with
-          # the hardware.definition.gpuvm.extraModules (DTB, vfio, guest kernel)
-          # via applyVmConfig.
-          gpuvm = {
-            evaluatedConfig = config.ghaf.profiles.orin.gpuvmBase.extendModules {
-              modules = lib.ghaf.vm.applyVmConfig {
-                inherit config;
-                vmName = "gpuvm";
-              };
-            };
-          };
-
-          # Disp VM: a platform composition controls enable. Here we only
-          # provide evaluatedConfig, extending dispvmBase with
-          # hardware.definition.dispvm.extraModules (DTB, vfio, guest kernel).
-          dispvm = {
-            evaluatedConfig = config.ghaf.profiles.orin.dispvmBase.extendModules {
-              modules = lib.ghaf.vm.applyVmConfig {
-                inherit config;
-                vmName = "dispvm";
               };
             };
           };
