@@ -349,7 +349,6 @@
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "feat/export-overlay",
         "repo": "ghaf-device-manager",
         "type": "github"
       }
