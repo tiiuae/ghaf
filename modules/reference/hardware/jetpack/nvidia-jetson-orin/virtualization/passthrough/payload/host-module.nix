@@ -16,6 +16,7 @@ let
       definitionName = "gpuvm";
       bindService = "bindGpuVm";
       description = "GPU devices";
+      policyName = "compute";
       ownsGpu = true;
       includeDispRam = true;
     };
@@ -25,6 +26,7 @@ let
       definitionName = "dispvm";
       bindService = "bindDispVm";
       description = "display devices";
+      policyName = "display";
       ownsGpu = false;
       includeDispRam = false;
     };
@@ -34,6 +36,7 @@ let
       definitionName = "guivm";
       bindService = "bindGuiVm";
       description = "GPU and display devices";
+      policyName = "combined";
       ownsGpu = true;
       includeDispRam = false;
     };
@@ -43,10 +46,9 @@ let
   virt = config.ghaf.hardware.nvidia.virtualization;
   support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
   dtsRoot = "${support}/device-trees";
-  payloadLib = import ./default.nix { inherit lib pkgs; };
   inherit (support) bpmpPolicies;
-  cap = payloadLib.capabilities.${role};
-  payload = payloadLib.mkPayload cap;
+  payload = support.passthrough.roles.${roleConfig.policyName};
+  cap = payload.capabilities;
   bpmpHostPath = "/dev/bpmp-host-${roleConfig.vmName}";
   board = support.boards.${if config.ghaf.hardware.nvidia.orin.somType == "nx" then "nx" else "agx"};
   configuredVmm = config.ghaf.virtualization.vmConfig.sysvms.${roleConfig.definitionName}.vmm or null;
@@ -57,28 +59,23 @@ let
       configuredVmm;
   isCrosvm = selectedVmm == "crosvm";
   kernel = config.boot.kernelPackages.kernel;
-  dtb = import ./dtb.nix {
+  dtb = support.mkGuestDtb {
     inherit
-      lib
       pkgs
-      cap
       board
       kernel
-      payload
-      role
       dtsRoot
       ;
+    role = payload;
   };
-  crosvmOverlay = import ./crosvm-overlay.nix {
+  crosvmOverlay = support.mkCrosvmOverlay {
     inherit
-      lib
       pkgs
-      cap
       board
       kernel
-      payload
       dtsRoot
       ;
+    role = payload;
   };
   guestModule = import ./guest-module.nix {
     inherit
@@ -89,7 +86,6 @@ let
       bpmpHostPath
       payload
       ;
-    dtbName = if role == "dispvm" then "tegra234-dispvm.dtb" else "tegra234-gpuvm.dtb";
     inherit (virt) sourcesPatch;
   };
   bindDevices = pkgs.writeShellScript "bind-${roleConfig.vmName}-vfio-platform" ''

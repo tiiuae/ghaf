@@ -23,28 +23,6 @@
 }:
 let
   support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
-  # Bare "nvidia,dce-host-proxy" node so the platform driver binds and creates
-  # /dev/dce-host. Driver reads no reg/vpa (relays via tegra-dce's exported
-  # CPU_RM client API), so the node only needs the compatible. Mirrors
-  # bpmp-virt-host's bpmp_host_overlay: a DT overlay, not a patch against
-  # NVIDIA's device trees.
-  dceHostOverlay = pkgs.writeText "dce_host_overlay.dts" ''
-    /dts-v1/;
-    /plugin/;
-    / {
-        overlay-name = "DCE host proxy";
-        compatible = "nvidia,tegra234";
-        fragment@0 {
-            target-path = "/";
-            __overlay__ {
-                dce_host_proxy: dce_host_proxy {
-                    compatible = "nvidia,dce-host-proxy";
-                    status = "okay";
-                };
-            };
-        };
-    };
-  '';
 in
 {
   _file = ./dce-probe-host.nix;
@@ -147,7 +125,7 @@ in
   hardware.deviceTree.overlays = [
     {
       name = "dce_host_overlay";
-      dtsFile = dceHostOverlay;
+      dtsFile = "${support}/device-trees/host/dce-host-proxy-overlay.dts";
     }
   ];
 }
