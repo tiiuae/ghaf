@@ -279,6 +279,7 @@
       },
       "original": {
         "owner": "tiiuae",
+        "ref": "feat/export-overlay",
         "repo": "ghaf-device-manager",
         "type": "github"
       }
@@ -451,11 +452,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1787651889,
-        "narHash": "sha256-wizH1Q4kdHvav5v+VEcFAelvxFSxEEK2qMJfDlh2OZc=",
+        "lastModified": 1787664412,
+        "narHash": "sha256-UCFUTi+oVOeRqbiOXbQwOcpQ/z52ZnJMGncWtlv11Bg=",
         "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "c00cccf9381be49d700d3221dd2c348fc1e07bc9",
+        "rev": "39272212be5cba1c30e130fd108b7e2fd4941c90",
         "type": "github"
       },
       "original": {

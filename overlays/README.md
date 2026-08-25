@@ -94,12 +94,12 @@ only exist until an upstream fix lands, so they should be reverted rather than m
 - `0025-tegra-fbdev-use-core-allocated-fb-info.patch`
 
   Carried by jetpack-nixos and applied to `nvidia-oot-modules` from
-  `.../passthrough/payload/guest-module.nix`. Kernel 6.12.103 backported
+  the GPU partitioning examples' Orin guest module. Kernel 6.12.103 backported
   `63c971af4036` and deleted `drm_fb_helper_alloc_info()`, so nvidia-oot's conftest
   ladder falls through to `drm_fb_helper_alloc_fbi()` — gone since v6.2 — and the tegra
   fbdev no longer compiles. Only Ghaf sees this, because the passthrough guests build
   the L4T out-of-tree modules against mainline `linuxPackages_6_12` rather than jetpack's
   own 5.15 kernel.
 
-  Drop it when a `jetpack-nixos` bump brings an `nvidia-oot` that knows the new
-  fb-helper contract.
+  Drop it from jetpack-nixos when its `nvidia-oot` knows the new fb-helper
+  contract.
