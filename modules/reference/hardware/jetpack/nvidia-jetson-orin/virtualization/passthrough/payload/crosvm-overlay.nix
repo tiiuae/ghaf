@@ -7,12 +7,17 @@
   cap,
   board,
   kernel,
-  dtsDir ? ../gpu-vm,
-  overlayDts ? dtsDir + "/tegra234-guivm-crosvm-overlay.dts",
+  payload,
+  dtsRoot,
 }:
 let
-  inherit (import ./default.nix { inherit lib; }) mkPayload;
-  payload = mkPayload cap;
+  gpuDtsDir = "${dtsRoot}/gpu-vm";
+  dispDtsDir = "${dtsRoot}/disp-vm";
+  overlayDts =
+    if cap.display && !cap.gpu then
+      "${dispDtsDir}/tegra234-dispvm-crosvm-overlay.dts"
+    else
+      "${gpuDtsDir}/tegra234-guivm-crosvm-overlay.dts";
   overlayName = "tegra234-${
     if cap.display && !cap.gpu then
       "dispvm"
@@ -39,9 +44,9 @@ pkgs.stdenv.mkDerivation {
       $CC -E -nostdinc -undef -D__DTS__ ${payload.expDtDefines}-DGHAF_DCB_DTSI='"${board.dcbDtsi}"' \
         -x assembler-with-cpp \
         -I${mainInc} \
-        -I${dtsDir + "/nv-dt-bindings"} \
-        -I${dtsDir} \
-        -I${../disp-vm} \
+        -I${gpuDtsDir}/nv-dt-bindings \
+        -I${gpuDtsDir} \
+        -I${dispDtsDir} \
         ${overlayDts} > preprocessed.dts
       dtc -@ -I dts -O dtb -o ${overlayName}.dtbo preprocessed.dts
 
