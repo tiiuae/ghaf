@@ -8,8 +8,7 @@
 # use evaluatedConfig with a profile's gpuvmBase.
 #
 # gpuvmBase (like netvmBase) is exported by the orin profile, which also wires
-# evaluatedConfig. Inert unless that wiring is present: enable is true only when
-# gpu_vm.enable is (Orin AGX), and the assertion below fires otherwise.
+# evaluatedConfig. Inert unless a platform composition enables it.
 {
   config,
   lib,

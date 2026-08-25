@@ -8,9 +8,7 @@
 # platforms use the evaluatedConfig pattern with a profile's dispvmBase.
 #
 # dispvmBase (like gpuvmBase) is exported by the orin profile, which also
-# wires dispvm.evaluatedConfig. Inert unless that wiring is present: enable
-# is only true when ghaf.hardware.nvidia.passthroughs.disp_vm.enable is true
-# (Orin AGX only); the assertion below fires if enable is set without it.
+# wires dispvm.evaluatedConfig. Inert unless a platform composition enables it.
 {
   config,
   lib,
