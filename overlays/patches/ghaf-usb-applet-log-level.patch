@@ -3,18 +3,18 @@
 #
 # Carry https://github.com/tiiuae/ghafpkgs/pull/362 until it merges.
 diff --git a/src/ghaf_usb_applet/notification_handler.py b/src/ghaf_usb_applet/notification_handler.py
-index 97d2817c..761f9cab 100755
+index 2aa6ed6..b6fd1c3 100644
 --- a/src/ghaf_usb_applet/notification_handler.py
 +++ b/src/ghaf_usb_applet/notification_handler.py
-@@ -2,7 +2,6 @@
+@@ -1,7 +1,6 @@
+ # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
  # SPDX-License-Identifier: Apache-2.0
  
- import subprocess
 -import json
+ import subprocess
  
  from ghaf_usb_applet.api_client import APIClient
- from ghaf_usb_applet.logger import logger
-@@ -31,7 +30,7 @@ class NotificationHandler:
+@@ -31,7 +30,7 @@ class USBDeviceNotification:
          return th
  
      def notify_user(self, msg):
@@ -24,23 +24,24 @@ index 97d2817c..761f9cab 100755
          if event == "usb_select_vm":
              self.show_notif_window(msg)
 diff --git a/src/ghaf_usb_applet/settings.py b/src/ghaf_usb_applet/settings.py
+index ef3f4d8..d0ec6aa 100644
 --- a/src/ghaf_usb_applet/settings.py
 +++ b/src/ghaf_usb_applet/settings.py
-@@ -10,8 +10,6 @@ from gi.repository import Gtk, Gdk, Pango, GLib
- from ghaf_usb_applet.api_client import APIClient
- from ghaf_usb_applet.logger import logger
+@@ -5,8 +5,6 @@ import gi
  
+ gi.require_version("Gtk", "4.0")
+ gi.require_version("Gdk", "4.0")
 -import json
 -
+ from gi.repository import Gdk, GLib, Gtk, Pango
  
- class OptionsPopover(Gtk.Popover):
-     def __init__(self, parent_widget, title, options, selected, on_chosen):
+ from ghaf_usb_applet.api_client import APIClient
 @@ -135,7 +133,7 @@ class DeviceSettings(Gtk.ApplicationWindow):
      def refresh(self):
          try:
              self._model = self.apiclient.get_devices_pretty()
 -            logger.info(json.dumps(self._model, indent=4, sort_keys=True))
 +            logger.debug("USB device inventory: %s", self._model)
-         except Exception as e:
+         except Exception as e:  # noqa: BLE001 - GUI boundary: any failure is shown to the user
              logger.exception("Failed fetching devices")
              GLib.idle_add(self._notify_error, "Device Error", f"Message: {e}")
