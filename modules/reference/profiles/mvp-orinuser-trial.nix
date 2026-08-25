@@ -9,7 +9,7 @@
 let
   cfg = config.ghaf.reference.profiles.mvp-orinuser-trial;
   hostGlobalConfig = config.ghaf.global-config;
-  acceleratedGuiVm = config.ghaf.virtualization.microvm.guivm.enable;
+  guiVmEnabled = config.ghaf.virtualization.microvm.guivm.enable;
 in
 {
   _file = ./mvp-orinuser-trial.nix;
@@ -27,7 +27,7 @@ in
         ];
 
         microvm.appvm = {
-          enable = acceleratedGuiVm;
+          enable = guiVmEnabled;
           vms = {
           };
         };
@@ -82,9 +82,9 @@ in
       };
 
       reference = {
-        appvms.enable = acceleratedGuiVm;
-        appvms.chromium.enable = acceleratedGuiVm;
-        appvms.flatpak.enable = acceleratedGuiVm;
+        appvms.enable = guiVmEnabled;
+        appvms.chromium.enable = guiVmEnabled;
+        appvms.flatpak.enable = guiVmEnabled;
 
         services = {
           enable = true;
