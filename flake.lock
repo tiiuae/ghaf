@@ -588,15 +588,16 @@
         "spectrum": "spectrum"
       },
       "locked": {
-        "lastModified": 1789506833,
-        "narHash": "sha256-4L8SOCF84de1irB72Ka9VHcu9wrAJ9Amuey4lU9oh4Y=",
-        "owner": "microvm-nix",
+        "lastModified": 1787644945,
+        "narHash": "sha256-U1zYeulGtXjcs8VXosrg3/SKpJ4jFl1hoSHAlrBmdHE=",
+        "owner": "vadika",
         "repo": "microvm.nix",
-        "rev": "187b0a390ee054028106a674e7b01b1cb940cbba",
+        "rev": "9c2a5cbbb107625e5211df23e6ea0703f12d8a0c",
         "type": "github"
       },
       "original": {
-        "owner": "microvm-nix",
+        "owner": "vadika",
+        "ref": "feat/crosvm-platform-upstream",
         "repo": "microvm.nix",
         "type": "github"
       }

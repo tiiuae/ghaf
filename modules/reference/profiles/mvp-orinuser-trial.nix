@@ -9,7 +9,7 @@
 let
   cfg = config.ghaf.reference.profiles.mvp-orinuser-trial;
   hostGlobalConfig = config.ghaf.global-config;
-  acceleratedGuiVm = config.ghaf.hardware.nvidia.passthroughs.gui_vm.enable;
+  acceleratedGuiVm = config.ghaf.virtualization.microvm.guivm.enable;
 in
 {
   _file = ./mvp-orinuser-trial.nix;
