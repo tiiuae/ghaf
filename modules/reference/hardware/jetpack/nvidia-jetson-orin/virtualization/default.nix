@@ -16,8 +16,6 @@ in
   _file = ./default.nix;
 
   imports = [
-    ./common/bpmp-virt-common
-    ./host/bpmp-virt-host
     ./host/uarta-host
     ./passthrough/uarti-net-vm
     ./passthrough/mgbe0-net-vm
