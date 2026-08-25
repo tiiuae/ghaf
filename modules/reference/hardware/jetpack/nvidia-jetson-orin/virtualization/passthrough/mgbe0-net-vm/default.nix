@@ -309,21 +309,28 @@ in
           ghaf.virtualization.qemu.package = lib.mkIf (config.microvm.hypervisor == "qemu") (
             lib.mkForce pkgs.ghaf-qemu-bpmp
           );
-          microvm.qemu.extraArgs = lib.mkIf (config.microvm.hypervisor == "qemu") [
-            "-device"
-            # Keep the proven, bounded QEMU workaround. Crosvm does not get
-            # startup rearm without trace evidence of the same IRQ wedge.
-            "vfio-platform,host=${mgbe0.sysfsName},startup-rearm=on"
-          ];
-
-          microvm.crosvm.extraArgs = lib.mkIf (config.microvm.hypervisor == "crosvm") [
-            "--device-tree-overlay"
-            "/run/mgbe0-net-vm.dtbo"
-            "--vfio"
-            "${mgbe0DevicePath},iommu=off,dt-symbol=${mgbe0.dtSymbol}"
-            "--nvidia-bpmp-host"
-            "/dev/bpmp-host-net-vm"
-          ];
+          microvm = {
+            qemu.extraArgs = lib.mkIf (config.microvm.hypervisor == "qemu") [
+              "-device"
+              # Keep the proven, bounded QEMU workaround. Crosvm does not get
+              # startup rearm without trace evidence of the same IRQ wedge.
+              "vfio-platform,host=${mgbe0.sysfsName},startup-rearm=on"
+            ];
+            devices = lib.mkIf (config.microvm.hypervisor == "crosvm") [
+              {
+                bus = "platform";
+                path = mgbe0.sysfsName;
+                crosvm.dtSymbol = mgbe0.dtSymbol;
+              }
+            ];
+            crosvm = lib.mkIf (config.microvm.hypervisor == "crosvm") {
+              deviceTreeOverlays = [ "/run/mgbe0-net-vm.dtbo" ];
+              extraArgs = [
+                "--nvidia-bpmp-host"
+                "/dev/bpmp-host-net-vm"
+              ];
+            };
+          };
 
           # Crosvm removes VFIO mappings as soon as the guest exits. Keep a
           # normal shutdown hook, and expose a GIVC service which powers off

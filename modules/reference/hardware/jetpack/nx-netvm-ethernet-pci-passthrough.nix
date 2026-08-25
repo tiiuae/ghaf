@@ -45,17 +45,14 @@ in
             {
               bus = "pci";
               path = ethPciDevice;
+              crosvm = lib.optionalAttrs (config.microvm.hypervisor == "crosvm") {
+                guestAddress = "00:1f.0";
+                # Host VFIO/SMMU isolation remains active; the broken Arm
+                # virtio-IOMMU path is bypassed only inside the guest.
+                iommu = "off";
+              };
             }
           ];
-          # Keep the host domain in the sysfs path but assign a domain-0 guest
-          # address. Host VFIO/SMMU isolation remains active; the broken Arm
-          # virtio-IOMMU path is bypassed only inside the guest.
-          microvm.crosvm.pciDeviceOptions = lib.mkIf (config.microvm.hypervisor == "crosvm") {
-            ${ethPciDevice} = {
-              guestAddress = "00:1f.0";
-              iommu = "off";
-            };
-          };
         }
       )
     ];

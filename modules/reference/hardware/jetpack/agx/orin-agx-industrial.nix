@@ -45,10 +45,6 @@
 
       # Reserve space for the desktop closure on 64 GiB eMMC.
       nvidia.orin.flashScriptOverrides.appPartitionSizeBytes = 34359738368;
-      # Split topology: compute gpu-vm plus display-only disp-vm.
-      nvidia.passthroughs.gpu_vm.enable = true;
-      nvidia.passthroughs.disp_vm.enable = true;
-
       # Net VM hardware-specific modules - use hardware.definition for composition model
       definition.netvm.extraModules = [
         {
