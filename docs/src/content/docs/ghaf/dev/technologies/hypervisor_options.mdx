@@ -17,12 +17,12 @@ hypervisors themselves. Ghaf selects the system VM VMM through
 `ghaf.virtualization.vmConfig`. QEMU is the system-wide default. The x86 laptop
 profile keeps that default, but every generic `intel-laptop` target selects
 crosvm for all system VMs. This includes debug, release, low-memory, and
-store-disk variants. The accelerated AGX and NX GUI-VM targets and their
-generated variants also select crosvm for all system VMs. Other
-machine-specific x86, aarch64, and generic VM targets keep their existing
-selections. Generic Intel laptop targets also select crosvm for encrypted
-AdminVM variants and use crosvm's TPM passthrough path. Each system VM can
-override the target default independently:
+store-disk variants. Every exported NVIDIA Jetson Orin AGX, AGX64, Industrial,
+NX, and verity target also selects crosvm for all system VMs. Other
+machine-specific and generic VM targets keep their existing selections.
+Generic Intel laptop targets also select crosvm for encrypted AdminVM variants
+and use crosvm's TPM passthrough path. Each system VM can override the target
+default independently:
 
 ```nix
 vmConfig = {
@@ -49,10 +49,9 @@ therefore use the VM's configured network CID without raw QEMU arguments.
 
 ### Selecting an App VM VMM
 
-App VMs use QEMU by default. Generic `intel-laptop` targets and the accelerated
-AGX and NX GUI-VM targets select crosvm for their App VMs; other
-machine-specific x86, aarch64, and generic VM targets retain QEMU. Generated
-accelerated Orin variants inherit this selection. The target default and
+App VMs use QEMU by default. Generic `intel-laptop` targets and every exported
+NVIDIA Jetson Orin target select crosvm for their App VMs; other
+machine-specific and generic VM targets retain QEMU. The target default and
 individual App VMs can be overridden through the same
 `ghaf.virtualization.vmConfig` interface:
 
@@ -80,12 +79,12 @@ the crosvm control command from the VM's configured VMM. It also translates
 between QEMU's guest-visible memory value and crosvm's reclaimed-memory value.
 
 App VMs declare their vsock CID through `microvm.vsock.cid`, so QEMU and crosvm
-use the same configured CID. Runtime USB attachment through vhotplug is
-supported by crosvm. vhotplug records the crosvm guest port for each host USB
-device so identical devices can be detached independently and restored safely
-after daemon restarts. x86 laptop system VMs also resolve their configured PCI
-devices through vhotplug at startup and support runtime PCI attachment with
-crosvm's removable VFIO slots.
+use the same configured CID. Runtime USB attachment through the device-manager
+compatibility interface is supported by crosvm. The manager records the crosvm
+guest port for each host USB device so identical devices can be detached
+independently and restored safely after daemon restarts. x86 laptop system VMs
+also resolve configured PCI devices at startup and support runtime PCI
+attachment with crosvm's removable VFIO slots.
 
 ### crosvm Sandbox Boundary
 
