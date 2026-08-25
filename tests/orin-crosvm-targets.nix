@@ -40,6 +40,15 @@ let
         && host.ghaf.virtualization.vmConfig.defaultSysVmVmm == "crosvm"
         && host.ghaf.virtualization.vmConfig.defaultAppVmVmm == "crosvm"
         && host.ghaf.hardware.passthrough.deviceManager.backend == "ghaf-device-manager"
+        && host.ghaf.hardware.nvidia.passthroughs.gui_vm.enable
+        && host.ghaf.virtualization.microvm.guivm.enable
+        && !host.ghaf.profiles.graphics.enable
+        && !host.ghaf.graphics.cosmic.enable
+        &&
+          host.hardware.nvidia-jetpack.virtualization.gpuPassthroughHost.assignments == {
+            gui-vm.role = "combined";
+          }
+        && host.microvm.vms ? "gui-vm"
         && usesCrosvm host
         && host.systemd.services ? ghaf-device-manager
         && !(host.systemd.services ? vhotplug);
