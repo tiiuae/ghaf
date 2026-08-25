@@ -38,6 +38,7 @@ let
   # every exported Orin target and all generated variants.
   orinCrosvmModule = {
     ghaf.hardware.nvidia.orin.crosvm.enable = true;
+    ghaf.hardware.nvidia.passthroughs.gui_vm.enable = true;
   };
 
   # Common modules shared across all Orin configurations

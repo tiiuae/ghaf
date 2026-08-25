@@ -4,9 +4,5 @@
 {
   _file = ./default.nix;
 
-  imports = map (role: import ./role.nix { inherit role; }) [
-    "gpuvm"
-    "dispvm"
-    "guivm"
-  ];
+  imports = [ (import ./role.nix { role = "guivm"; }) ];
 }
