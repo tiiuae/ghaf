@@ -61,6 +61,8 @@ def run_eval(
         "--select",
         select_expr,
         "--force-recurse",
+        "--workers",
+        "1",
         "--accept-flake-config",
         "--option",
         "allow-import-from-derivation",
