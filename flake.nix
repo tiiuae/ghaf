@@ -209,8 +209,7 @@
 
     # Hot-plugging USB and PCI devices into Crosvm virtual machines
     ghaf-device-manager = {
-      # TODO: restore main after ghaf-device-manager#10 merges.
-      url = "github:tiiuae/ghaf-device-manager/feat/export-overlay";
+      url = "github:tiiuae/ghaf-device-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
