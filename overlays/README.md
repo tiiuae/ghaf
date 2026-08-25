@@ -39,7 +39,7 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
 
 - [qemu: Battery, AC adapter, lid](https://github.com/blochl/qemu/pull/3)
 
-  Four ACPI patches, applied on x86_64 only, in the standalone `ghaf-qemu`
+  Four ACPI patches, applied on x86_64 only, in the standalone `ghaf-x86-qemu`
   package from ghafpkgs. Drop them when the series is merged upstream and
   reaches the qemu in our nixpkgs.
 

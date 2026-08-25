@@ -311,10 +311,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1787592441,
-        "narHash": "sha256-qBx8tEyJD5cVazHAEQJAlSdWH47USGXY9gJpSPB2o2A=",
+        "lastModified": 1787670305,
+        "narHash": "sha256-NKiE3XtyT4z24dJEcf3NMlvtrUVaetWOjCuIzrUBaVg=",
         "ref": "refs/pull/369/head",
-        "rev": "752ceda37fb6a253f1631e759db13a5acca7f472",
+        "rev": "a0bbf5eb2af2503c4c0a7b10cf8f7f2c3845c67f",
         "revCount": 288,
         "type": "git",
         "url": "https://github.com/tiiuae/ghafpkgs"
