@@ -31,6 +31,8 @@ let
         configuredNetVmVmm
     ) == "crosvm";
   mgbe0Policy = support.bpmpPolicies.mgbe0;
+  mgbe0 = support.passthrough.mgbe0;
+  mgbe0DevicePath = "/sys/bus/platform/devices/${mgbe0.sysfsName}";
   mgbe0BpmpIds = mgbe0Policy.device;
   ids = values: lib.concatStringsSep " " (map toString values);
   bpmpRefs = values: lib.concatMapStringsSep ", " (value: "<&bpmp ${toString value}>") values;
@@ -47,7 +49,7 @@ let
       }
       ''
         host_dtb=${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}
-        host_node=/bus@0/ethernet@6800000
+        host_node=${lib.escapeShellArg mgbe0.nodePath}
 
         check_bpmp_ids() {
           property="$1"
@@ -70,7 +72,7 @@ let
           fi
         }
 
-        test "$(fdtget -t s "$host_dtb" "$host_node" compatible)" = "nvidia,tegra234-mgbe"
+        test "$(fdtget -t s "$host_dtb" "$host_node" compatible)" = ${lib.escapeShellArg mgbe0.compatible}
         test "$(fdtget -t s "$host_dtb" "$host_node" phy-mode)" = "10gbase-r"
         check_bpmp_ids clocks ${lib.escapeShellArg (ids mgbe0BpmpIds.clocks)}
         check_bpmp_ids resets ${lib.escapeShellArg (ids mgbe0BpmpIds.resets)}
@@ -95,15 +97,15 @@ let
       output=/run/mgbe0-net-vm.dtbo
       temporary="$(mktemp --tmpdir=/run .mgbe0-net-vm.dtbo.XXXXXX)"
       trap 'rm -f "$temporary"' EXIT
-      mapfile -d "" nodes < <(find "$live_root" -type d -name 'ethernet@6800000' -print0)
+      mapfile -d "" nodes < <(find "$live_root" -type d -name ${lib.escapeShellArg mgbe0.nodeName} -print0)
       if [ "''${#nodes[@]}" -ne 1 ]; then
-        echo "expected one live ethernet@6800000 node, found ''${#nodes[@]}" >&2
+        echo "expected one live ${mgbe0.nodeName} node, found ''${#nodes[@]}" >&2
         exit 1
       fi
       node="''${nodes[0]}"
       node_path="/''${node#"$live_root"/}"
-      if ! tr '\0' '\n' < "$node/compatible" | grep -Fxq 'nvidia,tegra234-mgbe'; then
-        echo "live $node_path is not compatible with nvidia,tegra234-mgbe" >&2
+      if ! tr '\0' '\n' < "$node/compatible" | grep -Fxq ${lib.escapeShellArg mgbe0.compatible}; then
+        echo "live $node_path is not compatible with ${mgbe0.compatible}" >&2
         exit 1
       fi
 
@@ -150,7 +152,7 @@ in
   _file = ./default.nix;
 
   options.ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm.enable =
-    lib.mkEnableOption "MGBE0 (ethernet@6800000) passthrough to the Net-VM on NVIDIA Orin";
+    lib.mkEnableOption "MGBE0 (${mgbe0.nodeName}) passthrough to the Net-VM on NVIDIA Orin";
 
   config = lib.mkIf cfg.enable {
     # The guest can only bring MGBE0 up through the BPMP host proxy.
@@ -179,14 +181,14 @@ in
 
     # Bind MGBE0 to vfio-platform before net-vm starts.
     systemd.services.bindMgbe0 = {
-      description = "Bind MGBE0 (6800000.ethernet) to the vfio-platform driver";
+      description = "Bind MGBE0 (${mgbe0.sysfsName}) to the vfio-platform driver";
       wantedBy = [ "multi-user.target" ];
       before = [ "microvm@net-vm.service" ];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = "yes";
-        ExecStartPre = "${pkgs.bash}/bin/bash -c \"echo vfio-platform > /sys/bus/platform/devices/6800000.ethernet/driver_override\"";
-        ExecStart = "${pkgs.bash}/bin/bash -c \"echo 6800000.ethernet > /sys/bus/platform/drivers/vfio-platform/bind\"";
+        ExecStartPre = "${pkgs.bash}/bin/bash -c \"echo vfio-platform > ${mgbe0DevicePath}/driver_override\"";
+        ExecStart = "${pkgs.bash}/bin/bash -c \"echo ${mgbe0.sysfsName} > /sys/bus/platform/drivers/vfio-platform/bind\"";
       };
     };
     systemd.services."microvm@net-vm" = {
@@ -311,14 +313,14 @@ in
             "-device"
             # Keep the proven, bounded QEMU workaround. Crosvm does not get
             # startup rearm without trace evidence of the same IRQ wedge.
-            "vfio-platform,host=6800000.ethernet,startup-rearm=on"
+            "vfio-platform,host=${mgbe0.sysfsName},startup-rearm=on"
           ];
 
           microvm.crosvm.extraArgs = lib.mkIf (config.microvm.hypervisor == "crosvm") [
             "--device-tree-overlay"
             "/run/mgbe0-net-vm.dtbo"
             "--vfio"
-            "/sys/bus/platform/devices/6800000.ethernet,iommu=off,dt-symbol=mgbe0"
+            "${mgbe0DevicePath},iommu=off,dt-symbol=${mgbe0.dtSymbol}"
             "--nvidia-bpmp-host"
             "/dev/bpmp-host-net-vm"
           ];

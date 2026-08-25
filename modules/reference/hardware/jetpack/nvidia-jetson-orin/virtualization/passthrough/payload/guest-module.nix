@@ -7,10 +7,8 @@
   dtb,
   crosvmOverlay ? null,
   bpmpHostPath,
-  dtbName ? "tegra234-gpuvm.dtb",
   payload,
   sourcesPatch,
-  srcDir ? ../gpu-vm,
 }:
 { config, pkgs, ... }:
 let
@@ -32,12 +30,6 @@ let
       }${lib.optionalString mapEarly ",map-early=true"}"
     ]
   ) payload.crosvmDevices;
-  # L4T EGL rejects modifier-backed GBM surfaces.
-  gbm-nomod-shim = pkgs.runCommandCC "gbm-nomod-shim" { } ''
-    mkdir -p $out/lib
-    $CC -O2 -fPIC -shared -o $out/lib/gbm-nomod-shim.so \
-      ${srcDir + "/sources/gbm-nomod-shim.c"} -ldl
-  '';
   kmscube-wrapped =
     pkgs.runCommand "kmscube-nomod"
       {
@@ -46,10 +38,9 @@ let
       ''
         mkdir -p $out/bin
         makeWrapper ${pkgs.kmscube}/bin/kmscube $out/bin/kmscube \
-          --set LD_PRELOAD ${gbm-nomod-shim}/lib/gbm-nomod-shim.so
+          --set LD_PRELOAD ${support.gbmNoModifiersShim}/lib/gbm-nomod-shim.so
       '';
-  # Stable nvdisplay node; host1x also registers a connector-less DRM card.
-  displayCard = "/dev/dri/by-path/platform-66200000.display-card";
+  displayCard = support.passthrough.displayCardPath;
 in
 {
   environment.systemPackages = [
@@ -126,7 +117,7 @@ in
         paths = [
           (pkgs.egl-gbm.overrideAttrs (o: {
             patches = (o.patches or [ ]) ++ [
-              (srcDir + "/patches/userspace/egl-gbm-single-device-fallback.patch")
+              support.eglGbmSingleDevicePatch
             ];
           }))
           pkgs.egl-wayland
@@ -282,7 +273,7 @@ in
       qemu.extraArgs = lib.mkIf (!isCrosvm) (
         [
           "-dtb"
-          "${dtb}/${dtbName}"
+          "${dtb}/${payload.dtbName}"
         ]
         ++ payload.vfioArgs
       );
