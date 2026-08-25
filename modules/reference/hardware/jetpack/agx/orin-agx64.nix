@@ -9,7 +9,6 @@
 
   imports = [
     ../../../../common/services/hwinfo
-    ../nvidia-jetson-orin/virtualization/common/dce-virt-common/dce-probe-host.nix
   ];
 
   ghaf = {
