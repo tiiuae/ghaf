@@ -2,6 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   coreutils,
+  gawk,
+  gnugrep,
+  gnused,
   iproute2,
   ipxe,
   lib,
@@ -63,6 +66,9 @@ writeShellApplication {
   runtimeInputs = [
     api
     coreutils
+    gawk # the interface guard rails, and the cmdline parse out of netboot.ipxe
+    gnugrep # --open-firewall, inspecting the nixos-fw set
+    gnused # rewriting the builder's cmdline
     iproute2 # ip route / ip addr, for the interface guard rails
     nftables # --open-firewall; PXE is dropped outright without it
     pixiecore # ProxyDHCP + TFTP; never assigns addresses
