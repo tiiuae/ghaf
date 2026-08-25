@@ -7,14 +7,15 @@
   ...
 }:
 let
-  inherit (import ./passthrough/payload { inherit lib pkgs; }) capabilities mkPayload;
+  roles = pkgs.nvidia-jetpack.orinVirtualizationSupport.passthrough.roles;
+  capabilities = lib.mapAttrs (_: role: role.capabilities) roles;
   mv = config.ghaf.virtualization.microvm;
   gpuOn = mv.gpuvm.enable or false;
   dispOn = mv.dispvm.enable or false;
   guiOn = mv.guivm.enable or false;
 
-  gpuDevs = lib.optionals gpuOn (mkPayload capabilities.gpuvm).hostDevices;
-  dispDevs = lib.optionals dispOn (mkPayload capabilities.dispvm).hostDevices;
+  gpuDevs = lib.optionals gpuOn roles.compute.hostDevices;
+  dispDevs = lib.optionals dispOn roles.display.hostDevices;
   overlap = lib.intersectLists gpuDevs dispDevs;
 
   displayOwners = lib.optional dispOn "disp-vm" ++ lib.optional guiOn "gui-vm";
