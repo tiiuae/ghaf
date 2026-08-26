@@ -119,9 +119,15 @@
 </tr>
 <tr>
 <td>StartService</td>
-<td><a href="#admin.StartServiceRequest">StartServiceRequest</a></td>
-<td><a href="#admin.StartServiceRequest">StartResponse</a></td>
+<td><a href="#admin.ServiceRequest">ServiceRequest</a></td>
+<td><a href="#admin.ServiceRequest">StartResponse</a></td>
 <td>Start a remote service</td>
+</tr>
+<tr>
+<td>StopService</td>
+<td><a href="#admin.ServiceRequest">ServiceRequest</a></td>
+<td><a href="#admin.ServiceRequest">ApplicationResponse</a></td>
+<td>Stop a remote service (unit) on a target VM</td>
 </tr>
 <tr>
 <td>PauseApplication</td>
@@ -634,6 +640,32 @@
 </tr>
 </tbody>
 </table>
+<a name="admin.ServiceRequest"/>
+<div class="sl-heading-wrapper level-h4"><h4 id="servicerequest">ServiceRequest</h4><a class="sl-anchor-link" href="#servicerequest"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “ServiceRequest”</span></a></div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Label</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ServiceName</td>
+<td><a href="#string">string</a></td>
+<td></td>
+<td>Name of the service to start</td>
+</tr>
+<tr>
+<td>VmName</td>
+<td><a href="#string">string</a></td>
+<td></td>
+<td>Name of the VM hosting service</td>
+</tr>
+</tbody>
+</table>
 <a name="admin.SetGenerationRequest"/>
 <div class="sl-heading-wrapper level-h4"><h4 id="setgenerationrequest">SetGenerationRequest</h4><a class="sl-anchor-link" href="#setgenerationrequest"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “SetGenerationRequest”</span></a></div>
 <table>
@@ -703,32 +735,6 @@
 <td><a href="#string">string</a></td>
 <td></td>
 <td>Registry ID for newly started app, service or vm</td>
-</tr>
-</tbody>
-</table>
-<a name="admin.StartServiceRequest"/>
-<div class="sl-heading-wrapper level-h4"><h4 id="startservicerequest">StartServiceRequest</h4><a class="sl-anchor-link" href="#startservicerequest"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “StartServiceRequest”</span></a></div>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Type</th>
-<th>Label</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>ServiceName</td>
-<td><a href="#string">string</a></td>
-<td></td>
-<td>Name of the service to start</td>
-</tr>
-<tr>
-<td>VmName</td>
-<td><a href="#string">string</a></td>
-<td></td>
-<td>Name of the VM hosting service</td>
 </tr>
 </tbody>
 </table>
