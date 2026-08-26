@@ -7,6 +7,39 @@
   ...
 }:
 let
+  # The B slot is not reserved in the image (see disko-debug-partition.nix), so
+  # it is cut here -- after pvresize has exposed the whole disk and before
+  # persist takes 100%FREE. Ordering is the whole trick: persist claims
+  # everything left, so anything wanted afterwards has to be taken first.
+  #
+  # Guarded because btrfs-postboot is also imported by verity-release-partition,
+  # which does not declare these sizes.
+  hasDisko = config.ghaf.partitioning ? disko;
+  bSlotCmds = lib.optionalString hasDisko ''
+    b_root=${toString config.ghaf.partitioning.disko.rootSize}
+    b_verity=${toString config.ghaf.partitioning.disko.veritySize}
+    b_needed=$((b_root + b_verity))
+    if lvs pool/root_empty >/dev/null 2>&1; then
+      echo "B slot already present, leaving it alone."
+    else
+      vg_free=$(vgs --noheadings --nosuffix --units m -o vg_free pool 2>/dev/null | tr -d ' ' | cut -d. -f1 || true)
+      if [ "''${vg_free:-0}" -ge "$b_needed" ]; then
+        echo "Creating the B slot ($b_needed MiB) before persist claims the rest..."
+        if lvcreate -y -n root_empty -L "''${b_root}M" pool &&
+          lvcreate -y -n verity_empty -L "''${b_verity}M" pool; then
+          echo "B slot created."
+        else
+          echo "WARNING: could not create the B slot; A/B updates will be unavailable."
+        fi
+      else
+        # Not a failure: the machine is installed and boots. It simply has
+        # no room for a second slot, which is a property of the disk.
+        echo "WARNING: ''${vg_free:-0} MiB free but the B slot needs $b_needed MiB."
+        echo "         Installed and bootable; A/B updates will be unavailable."
+      fi
+    fi
+  '';
+
   postBootCmds = pkgs.writeShellApplication {
     name = "postBootScript";
     runtimeInputs =
@@ -109,8 +142,11 @@ let
       fi
     ''
     + ''
+      pvresize "$DEVICE" || true
+    ''
+    + bSlotCmds
+    + ''
         echo "Extending 'persist' Logical Volume to use all free space..."
-        pvresize "$DEVICE" || true
         lvextend -l +100%FREE /dev/pool/persist || true
 
         echo "Creating marker file..."

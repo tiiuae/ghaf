@@ -78,7 +78,16 @@ start_state_machine() {
   while [[ $CURRENT_STATE != "EXIT" ]]; do
     local screen_func="${STATE_FUNCTIONS[$CURRENT_STATE]}"
     if [[ -n $screen_func ]]; then
-      $screen_func
+      # Called bare under `set -e` this exits the whole TUI on any non-zero
+      # return: no menu, no error, a dead installer with the process still up.
+      # Recover to the menu instead -- a screen returning non-zero is a bug, not
+      # a reason to strand the operator.
+      if ! $screen_func; then
+        debug "screen $screen_func returned non-zero; recovering to WELCOME"
+        show_error "Something went wrong. Returning to the main menu."
+        wait_for_user || true
+        goto_state "WELCOME"
+      fi
     else
       debug "Error: No function defined for state: $CURRENT_STATE"
       break
@@ -123,7 +132,7 @@ screen_welcome() {
     "Shutdown" \
     "Reboot" \
     "Reboot into system firmware" \
-    "Exit") || return
+    "Exit") || return 0
 
   case "$choice" in
   "Install Ghaf")
@@ -187,7 +196,7 @@ screen_device_select() {
   device_choices+=("Back")
 
   local choice
-  choice=$(prompt_choice "Select a disk:" "${device_choices[@]}") || return
+  choice=$(prompt_choice "Select a disk:" "${device_choices[@]}") || return 0
 
   if [[ $choice == "Back" ]]; then
     goto_state "WELCOME"
@@ -311,6 +320,13 @@ screen_running() {
   # there is none. Not a run_step -- having no entry yet is normal, not failure.
   $WIPE_ONLY || do_point_bootnext "$DEVICE_NAME"
 
+  # Also before the wipe: an image too big for the disk must not cost the data
+  # already on it, and dd would otherwise write to end-of-device and leave a GPT
+  # describing a disk that does not exist.
+  if ! $WIPE_ONLY; then
+    run_step "The image does not fit this disk." do_check_capacity "$DEVICE_NAME" || return 0
+  fi
+
   # Step: wipe
   run_step "Failed to erase disk." do_wipe "$DEVICE_NAME" || return 0
 
@@ -385,7 +401,7 @@ screen_complete() {
   next_action=$(prompt_choice "What would you like to do next?" \
     "Reboot (recommended)" \
     "Shutdown" \
-    "Return to the main menu") || return
+    "Return to the main menu") || return 0
 
   case "$next_action" in
   "Reboot (recommended)")

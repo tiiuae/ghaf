@@ -284,6 +284,20 @@ resolve_image_source() {
 # entirely unrelated to wiping.
 if [ "$WIPE_ONLY" != true ]; then
   resolve_image_source
+
+  # Before the wipe: an image too big for the disk must not cost the data
+  # already on it, and the dd fallback would write to end-of-device and leave a
+  # GPT describing a disk that does not exist.
+  img_bytes=""
+  if [ -s "$GHAF_BMAP" ]; then
+    img_bytes="$(grep -oP '<ImageSize>\s*\K\d+' "$GHAF_BMAP" 2>/dev/null | head -1 || true)"
+  elif [ "$GHAF_REMOTE" = false ]; then
+    img_bytes="$(zstd -l "$GHAF_RAW_SRC" -v 2>/dev/null | awk '/Decompressed Size:/ {print $5}' | tr -d '()' || true)"
+  fi
+  if ! image_fits_device "$img_bytes" "$DEVICE_NAME"; then
+    echo "Refusing to install: the image does not fit $DEVICE_NAME." >&2
+    exit 1
+  fi
 fi
 
 find_esp_device() {
@@ -373,12 +387,24 @@ if [ "$GHAF_REMOTE" = true ]; then
 fi
 
 # Prefer bmaptool: it skips unmapped ranges and verifies the per-range sha256
-# from the map as it copies. The bare dd below stays as the fallback.
-if [ -n "$GHAF_BMAP" ] && command -v bmaptool >/dev/null 2>&1 &&
-  feed_image | bmaptool copy --bmap "$GHAF_BMAP" - "$DEVICE_NAME"; then
-  echo "Image written and verified against the block map."
+# from the map as it copies.
+#
+# "did not verify" and "could not verify" are separated deliberately. A failure
+# here is not a reason to rewrite the same bytes with dd: the per-range sha256
+# is the only integrity check an image fetched over plain HTTP gets, which is
+# why resolve_image_source already treats a MISSING bmap as fatal.
+if [ -n "$GHAF_BMAP" ] && command -v bmaptool >/dev/null 2>&1; then
+  if feed_image | bmaptool copy --bmap "$GHAF_BMAP" - "$DEVICE_NAME"; then
+    echo "Image written and verified against the block map."
+  else
+    echo "Image verification failed; refusing to rewrite it unverified." >&2
+    echo "bmaptool's output above says why. The disk is now partially written." >&2
+    exit 1
+  fi
 else
-  [ -n "$GHAF_BMAP" ] && echo "bmaptool unavailable or failed; falling back to a plain streaming write."
+  # Verification was never available: no bmap, or no bmaptool. Not reachable on
+  # the netboot path, where resolve_image_source requires a bmap.
+  echo "No block map or no bmaptool; falling back to a plain streaming write."
   feed_image | dd of="$DEVICE_NAME" bs=32M status=progress
 fi
 
