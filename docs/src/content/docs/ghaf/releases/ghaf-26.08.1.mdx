@@ -1,0 +1,290 @@
+---
+title: Release ghaf-26.08.1
+sidebar:
+  order: 9965
+  badge:
+    text: Latest
+    variant: success
+
+---
+
+This Ghaf release is for x86 platforms, it has been fully tested with the reference HW platforms
+
+## Release Tag
+
+https://github.com/tiiuae/ghaf/releases/tag/ghaf-26.08.1
+
+## Supported Hardware
+
+Reference HW platforms:
+* Lenovo ThinkPad X1 Carbon Gen 11
+* System76 Darter Pro
+
+Generic HW support:
+
+* Generic x86_64 systems supporting UEFI boot and hardware virtualization
+* Hardware compatibility may vary depending on graphics, networking, audio, and peripheral devices
+
+## What's Changed
+
+### 🚀  Features
+
+- **access-control**: Enable acl if TLS is enabled - ([b432ee8](https://github.com/tiiuae/ghaf/commit/b432ee885e507b9c316222dad10f27402ec5d52f))
+- **acl**: ACL implementation - ([3dcd45b](https://github.com/tiiuae/ghaf/commit/3dcd45bb89582f3b69dd234682fa2cdd8dbbaf40))
+- **acl**: Acl rules for VMs - ([a9eb506](https://github.com/tiiuae/ghaf/commit/a9eb5066a9c39a93356f937195fa983751a341d5))
+- **builders**: Export pre-bound builders and add extraInputs - ([2243f85](https://github.com/tiiuae/ghaf/commit/2243f8536036e250ff9c6e0535679d2089ad7502))
+- **cosmic**: Add panels option - ([d4c05da](https://github.com/tiiuae/ghaf/commit/d4c05da564ef8077ed41b2a2b22ee4c2040e26ec))
+- **cosmic**: Make shortcuts configurable - ([04e36a6](https://github.com/tiiuae/ghaf/commit/04e36a666c3b45f215e3e9e9003959c158a4692c))
+- **firewall**: Apply uplink-dependent rules at runtime - ([7ba0849](https://github.com/tiiuae/ghaf/commit/7ba0849a3506ebae552229fdb249fc20373b504e))
+- **flatpak**: Add remotes and store options - ([e88d3ab](https://github.com/tiiuae/ghaf/commit/e88d3ab2e7b4aceae96b066d2fbe941b4e1ae549))
+- **givc**: Expose app-vm services option - ([3ae09f1](https://github.com/tiiuae/ghaf/commit/3ae09f1a2a99de2be079bc757e13c3cc4a528457))
+- **gpu-vm**: Plumb the physical display to gpu-vm on Orin AGX - ([71d350f](https://github.com/tiiuae/ghaf/commit/71d350fd26a27b4ba5ce1f3b9d0ce9b9ecef886a))
+- **gpuvm**: Integrate CDI and managed GPU partitions - ([b01c483](https://github.com/tiiuae/ghaf/commit/b01c4831ac2adfd4aa6c250788b7573e5051060e))
+- **jetson**: Add support for UKI image generation - ([ac00d03](https://github.com/tiiuae/ghaf/commit/ac00d03ebab1a6db90ea7d2d11800e7fd98bcd9c))
+- **keys**: Add debug developer key for Eyad - ([dadfaff](https://github.com/tiiuae/ghaf/commit/dadfaffb89840c40432dfdbf36b8ec5b6d912264))
+- **logging**: Logging can be enabled without forwarding - ([cf4a07e](https://github.com/tiiuae/ghaf/commit/cf4a07e5f07db3aa32911ac94e53a83855f5e5c7))
+- **matrix**: Fix the build matrix - ([5349fd0](https://github.com/tiiuae/ghaf/commit/5349fd0021409ded66aa9771919a1468cfe62a44))
+- **netboot**: Abstract out common installer - ([f73b21f](https://github.com/tiiuae/ghaf/commit/f73b21fbdbada32816a437dbef0477489fede994))
+- **netboot**: Add netboot installer - ([e6003fb](https://github.com/tiiuae/ghaf/commit/e6003fb45f2314d1043ad018d84ad0fd2bc571ce))
+- **netboot**: Add netboot server to devshell - ([338d6d4](https://github.com/tiiuae/ghaf/commit/338d6d42aba1aacfb89d17a4b6956cc3b2055df8))
+- **netboot**: Add tests - ([bfef8a9](https://github.com/tiiuae/ghaf/commit/bfef8a9029ef1924b1a1b2129d3c68f48b7fa8dc))
+- **netboot**: Unattended install and docs - ([77b52be](https://github.com/tiiuae/ghaf/commit/77b52bef2100c95fefa349884b9b73bdb2a6539d))
+- **netboot**: Tune to run against Dell devices - ([2b01173](https://github.com/tiiuae/ghaf/commit/2b01173bcb7a4e1a284669ccbba3e07fcaabb3e1))
+- **netvm**: Resolve the LAN-facing interface at runtime (observe only) - ([2e1f013](https://github.com/tiiuae/ghaf/commit/2e1f0139a2b956fef12d3c3151dfd357bf618983))
+- **netvm**: Drive smcroute and nw-packet-forwarder from the resolved uplink - ([335da09](https://github.com/tiiuae/ghaf/commit/335da0987de7ceaa8f0452c4c99cbbc30c8b5694))
+- **orin**: Two-VM host1x ownership split (GPU compute + software display) - ([0727322](https://github.com/tiiuae/ghaf/commit/072732216aed3c895c3050fd070aeea2545ce22c))
+- **orin**: Accelerated single-gui-vm with GPU/display passthrough - ([f14cec2](https://github.com/tiiuae/ghaf/commit/f14cec2278b66b2c0a39b4cc466afb0ed6a2a3b9))
+- **orin**: App VM support on the accelerated profile - ([4e16e10](https://github.com/tiiuae/ghaf/commit/4e16e103c8b555bd829c3f3171c0dca1fca9d1f3))
+- **orin**: Secure boot support for UKI - ([69b64b3](https://github.com/tiiuae/ghaf/commit/69b64b379689e209813d7b72c5bd69a10543ea89))
+- **orin**: Add UKI targets for orin - ([49c52bf](https://github.com/tiiuae/ghaf/commit/49c52bfe34604b3b901124f815dc945ae1ad1d76))
+- **orin/guivm**: COSMIC desktop bring-up on Tegra - ([b4dceea](https://github.com/tiiuae/ghaf/commit/b4dceea2f698c2872e76e90a95b2c0b0b61cf594))
+- **orin/nx**: Three-vm split and accelerated gui-vm topologies - ([2ef9688](https://github.com/tiiuae/ghaf/commit/2ef9688df8e0076d0349d4562c0ecf485cddcafd))
+- **partitioning**: Make disko volume sizes configurable - ([c7f7874](https://github.com/tiiuae/ghaf/commit/c7f7874feee79591002c28ec5dfe30af8906e08b))
+- **passthrough**: Integrate the Crosvm device lifecycle - ([164bf14](https://github.com/tiiuae/ghaf/commit/164bf14d42a8f81fe0969e1e9debb6d5d20d8f38))
+- **profiles**: Wire the system VMs in laptop-x86, as orin already does - ([eb83dfd](https://github.com/tiiuae/ghaf/commit/eb83dfd9a82936b0f0c8286b96cb6b9f47986963))
+- **spire**: Support named agent instances - ([32f814f](https://github.com/tiiuae/ghaf/commit/32f814f3022c5b880da2c87639a937357a72882d))
+- **spire**: Support upstream agent integration - ([e682753](https://github.com/tiiuae/ghaf/commit/e682753821fa9297360febc976f82e8883f7bcb1))
+- **ssh**: Add ssh release configuration - ([686ad97](https://github.com/tiiuae/ghaf/commit/686ad97ece222d159e222c95dfc841ee08fccdf2))
+- **targets**: Reduce the number of actual targets - ([8557657](https://github.com/tiiuae/ghaf/commit/85576577b96bbecfb4071f9b64504d2d0b4175fb))
+- **targets**: Enable Crosvm for generic Intel laptops - ([425f2f6](https://github.com/tiiuae/ghaf/commit/425f2f6c5faa4c28926ce769823c23387dd127dc))
+- **yubikey-ssh**: Add yubikey ssh script - ([7c7d6a3](https://github.com/tiiuae/ghaf/commit/7c7d6a3c810c7ca6e2bdbc82f792e979fe14018a))
+
+### 🐛 Bug Fixes
+
+- **adminvm**: Consume spplyVmConfig when it is set - ([5e609c0](https://github.com/tiiuae/ghaf/commit/5e609c027315bfb22662323672dcec7a4905456f))
+- **appvm**: Type-check the applications passed to mkAppVm - ([f02ed1e](https://github.com/tiiuae/ghaf/commit/f02ed1e7e42fc34eb9bcc15e09ae336786a23adc))
+- **audiovm**: Restore Bluetooth after device reattach - ([473a3f6](https://github.com/tiiuae/ghaf/commit/473a3f6316e9b5ba4efaeb8bbdbcc5b7171ed154))
+- **backlight**: Host backlight control gating - ([b47f8c7](https://github.com/tiiuae/ghaf/commit/b47f8c7c9db8e0f4ad5e7b6b6d29076b40f4175a))
+- **backlight**: Bring the panel up usable when there is nothing to restore - ([db72e95](https://github.com/tiiuae/ghaf/commit/db72e95096ae93f2af0f1a061461713ef412bd7b))
+- **bluetooth**: BLE mouse doesn't work - ([1840cb0](https://github.com/tiiuae/ghaf/commit/1840cb0d227da321190b0fcc5b0b1d1f54a5eb7d))
+- **bot**: Mad skills - ([44a5f4f](https://github.com/tiiuae/ghaf/commit/44a5f4f1fe3261a62ba48299145aa9a209ac601b))
+- **builders**: Call getConfig with a VM entry, not an attrset - ([74a386c](https://github.com/tiiuae/ghaf/commit/74a386c0db935fe9a535ee692ad271ff0207db2a))
+- **camera**: Fix internal camera routing dell - ([d0622db](https://github.com/tiiuae/ghaf/commit/d0622db0efb397e92f4a22aa8c92928f8d28a40e))
+- **chrome-extension**: Support user-data-dir needed - ([be2c453](https://github.com/tiiuae/ghaf/commit/be2c45349d32615ff619850457cb5301b831c79d))
+- **chromecast**: Bound the externalNic wait so a wrong NIC fails visibly - ([6244358](https://github.com/tiiuae/ghaf/commit/6244358b5b94f4d3fb716d3dcf2ec094658129d4))
+- **ci**: Reduce build eval worker pressure - ([3aee63a](https://github.com/tiiuae/ghaf/commit/3aee63a78aa670567bb4bd9794766d815f43c4f3))
+- **ci**: Remove the accelerated gui cross from build matrix - ([b20cd9f](https://github.com/tiiuae/ghaf/commit/b20cd9fe90df95c88086cb164940b094e53191c0))
+- **ci**: Pin nix-eval-jobs to 2.34.3 for the eval workflow REVERT - ([594b6e0](https://github.com/tiiuae/ghaf/commit/594b6e0f06dec1c03ac6c464dc4aef2e560d450c))
+- **cosmic**: Make panel applets respond to touch - ([1f0d6f7](https://github.com/tiiuae/ghaf/commit/1f0d6f789c7d668ffe759395f6fb462f89b0e370))
+- **cosmic**: Fix our patches to epoch-1.5 - ([442eb0d](https://github.com/tiiuae/ghaf/commit/442eb0de9543520dc9b22f126b3fe177bdd4d89d))
+- **cosmic**: And unhide_delay to autohide - ([5235422](https://github.com/tiiuae/ghaf/commit/523542277e16569d966144f96fdc485c3049729d))
+- **cosmic**: Recover applets after suspend - ([b867001](https://github.com/tiiuae/ghaf/commit/b8670010755e92743995ab1a3e07502d16eb34c1))
+- **cosmic-greeter**: Fix focus on unlock input - ([b65ed92](https://github.com/tiiuae/ghaf/commit/b65ed92847bb0f465f45a71664da5bad87d0a316))
+- **cosmic-greeter-daemon**: Authentication errors - ([3256d40](https://github.com/tiiuae/ghaf/commit/3256d40d07df4c7c8bf8ac8d7a9efcbf33bf2ecb))
+- **cosmic-panel**: Autohide - ([3ddc569](https://github.com/tiiuae/ghaf/commit/3ddc5698cde209ad9c130490ab6e3b7356112fe1))
+- **cosmic-settings-daemon**: Restart cosmic-settings after resume - ([f1924f0](https://github.com/tiiuae/ghaf/commit/f1924f0bd87c0e0520554beb18f77ea70fc013e6))
+- **crosvm**: Support Intel laptop device passthrough - ([09882ea](https://github.com/tiiuae/ghaf/commit/09882ea9607a72b71544b607384f43a201a80d34))
+- **crosvm**: Close review and lifecycle regressions - ([b6af0c8](https://github.com/tiiuae/ghaf/commit/b6af0c8877cf6a277320c9cc6becd9b22dafa493))
+- **crosvm**: Update device manager and kernel boot target - ([f824dd6](https://github.com/tiiuae/ghaf/commit/f824dd6327b4de11a0161487c29179f0a6898f5d))
+- **element**: Update for the latest - ([98f99c7](https://github.com/tiiuae/ghaf/commit/98f99c7884e74d789ac0dbe64b9b294dd7f7cd27))
+- **errors**: Caught during ci-test-automation run - ([4a4975b](https://github.com/tiiuae/ghaf/commit/4a4975b047c03d60a7fb859dbeca524f9d8d595d))
+- **errors**: Using incorrect waits during boot - ([9c18291](https://github.com/tiiuae/ghaf/commit/9c18291d7f96fa72a4c914048bf6f91dc6a958da))
+- **event-proxy**: Access control rule based on event source - ([8c38c85](https://github.com/tiiuae/ghaf/commit/8c38c8517cd8c166e4a8f469cdc5d385c4e3d63c))
+- **firewall**: Relax flood limits and bound ban time on debug images - ([6286094](https://github.com/tiiuae/ghaf/commit/6286094fea3281c5f826b433aee7cc8c66ba7774))
+- **flake**: Avoid eager verity target evaluation - ([0d994d9](https://github.com/tiiuae/ghaf/commit/0d994d97607f172c59a9f2f719c8ca776d71e4b2))
+- **flake**: Incorrect pin used for crosvm - ([59ff1fb](https://github.com/tiiuae/ghaf/commit/59ff1fb44afe48555e8f37acd03fb421b6ca8002))
+- **flash**: Pass image to bmaptool in prebuilt-bmap path - ([5ae5ffc](https://github.com/tiiuae/ghaf/commit/5ae5ffcee764f3f9c48dc3c82bc34e6e11bca5b7))
+- **fss**: Make sealed logging recovery evidence-backed - ([b04a140](https://github.com/tiiuae/ghaf/commit/b04a140568c06964a0404b4c1d958247db280908))
+- **fss**: Use Wants instead of Requires for the clock-readiness barrier - ([3fba42d](https://github.com/tiiuae/ghaf/commit/3fba42d1c6e923ef6de5e8da7f0331ca5900ce5c))
+- **fss**: Cap receipt-excused archived FAIL at warning, never a silent pass - ([dda483d](https://github.com/tiiuae/ghaf/commit/dda483d64a62f3bde80e22f6ff05e9398b333475))
+- **fss**: The sealing and verification key diverge - ([acf7e24](https://github.com/tiiuae/ghaf/commit/acf7e240da64f39d8ec200fd26bf536acae21549))
+- **fss-triage**: Stop interpolating root-controlled values into bash -lc - ([d8bb4dd](https://github.com/tiiuae/ghaf/commit/d8bb4dd1cf96a0130bd9d68bda5c3641247bb9e2))
+- **givc**: Use time and locale from givc - ([6617c63](https://github.com/tiiuae/ghaf/commit/6617c63349d4be0ff39e44c9cc166c791dcf7f7d))
+- **givc-cli**: Route stop service commands through CLI - ([8be939a](https://github.com/tiiuae/ghaf/commit/8be939ac53f4e8fc0f7655323ba249e5707340e6))
+- **gpuvm**: Cover partitioning in NX debug build - ([c6fe0c7](https://github.com/tiiuae/ghaf/commit/c6fe0c7abdcd4203c21a64ea0a7589406a261bbe))
+- **graphana**: Version bump changed overlay target - ([962aa77](https://github.com/tiiuae/ghaf/commit/962aa77e130ce0fa31c838339f185bd1345a4d6a))
+- **greetd**: Fix the pam handling of the login auth - ([31fdabe](https://github.com/tiiuae/ghaf/commit/31fdabe6cdb004e2e01e7cb9d1eff7fbcb56f264))
+- **guivm**: Gate the flatpak profile entry on the share, not the VM - ([257c6e7](https://github.com/tiiuae/ghaf/commit/257c6e736622b38a27e3055e35da5895685721ed))
+- **installer**: Include the dependencies - ([9a37dc8](https://github.com/tiiuae/ghaf/commit/9a37dc8c2ed13fffb81a77e836bd97d72898acc6))
+- **intel-laptop**: Blacklist WWAN modules to stop a shutdown hang - ([43d5d79](https://github.com/tiiuae/ghaf/commit/43d5d7993e1517495807237b621f8d8e2fa50edf))
+- **lib**: Stop vmConfig dropping mem when vcpu is also set - ([9f03db4](https://github.com/tiiuae/ghaf/commit/9f03db4776bf5e5f1793e800a683ae0582e076a8))
+- **logging**: Too verbose and spire too eager - ([deb1e64](https://github.com/tiiuae/ghaf/commit/deb1e64d6c836c4c5f259d48e9c1417ea8994b2d))
+- **logging**: Take the clock-readiness barrier off the VM boot path - ([8569821](https://github.com/tiiuae/ghaf/commit/85698214945b4c31489f5794f333ea05584e3858))
+- **logging**: Take the clock-readiness barrier off the VM boot path - ([40a0d7e](https://github.com/tiiuae/ghaf/commit/40a0d7e17a380be39291d442f1e7cbf4dc3cd950))
+- **logging**: Recover FSS sealing from clock jumps instead of failing forever - ([8eae1c9](https://github.com/tiiuae/ghaf/commit/8eae1c92b7cb5fedb89b2de2e985fd815713713f))
+- **logging**: Harden the clock-jump recovery paths - ([261b9ef](https://github.com/tiiuae/ghaf/commit/261b9efb1a7ac40ccbbd36bb3ad208a47a8591ae))
+- **logging**: Re-verify before believing a live-journal counter mismatch - ([d9328b9](https://github.com/tiiuae/ghaf/commit/d9328b9ffce3f37507818169db92ec424ac42822))
+- **mgbe0**: Upstream patch merged - drop ours - ([766eaf0](https://github.com/tiiuae/ghaf/commit/766eaf0887a207a01139cc5caf4dc6ee2c7f3fe3))
+- **microvm**: Wait for a stopping guest instead of killing it immediately - ([dcbb176](https://github.com/tiiuae/ghaf/commit/dcbb176d0de9899590374c2e43306ef112a3d961))
+- **microvm**: Disable systemd service watchdogs in guests - ([abd3f8b](https://github.com/tiiuae/ghaf/commit/abd3f8bd589218b7b19a30a8d679e4c84cb01021))
+- **microvm**: Make Crosvm StoreDisk boot reliably - ([34ecbf7](https://github.com/tiiuae/ghaf/commit/34ecbf72ded88b3dcf4be4da11b8b92659c19400))
+- **microvm**: Make Crosvm TPM storage reboot-safe - ([0f9eb69](https://github.com/tiiuae/ghaf/commit/0f9eb691d6bf1e6d6ad8a38199d8774c64ca7e83))
+- **microvm**: Stabilize USB-backed first boot - ([454c995](https://github.com/tiiuae/ghaf/commit/454c995b0afd0660279d1b00ef1f12edd28ab0f9))
+- **microvm**: Speed up Crosvm guest shutdown - ([724dbb6](https://github.com/tiiuae/ghaf/commit/724dbb6c4772d18df721e75dcd007f0d49385cdf))
+- **netvm**: Support USB CDC NCM adapters - ([d7001ac](https://github.com/tiiuae/ghaf/commit/d7001ac61e37608e531ed0229994ef87a508c5ea))
+- **netvm**: Debounce uplink-dependent restarts - ([2fbc465](https://github.com/tiiuae/ghaf/commit/2fbc4654b15a5de7bd7e2d2412f49b3ebbaa4c76))
+- **nix-eval-jobs**: The update has been merged - ([64e1ab0](https://github.com/tiiuae/ghaf/commit/64e1ab0e0b5fa743380c07bcb998257d324d2b2a))
+- **nix-fast-build**: Seems the underlying nix 2.35 has changed - ([8b8d72b](https://github.com/tiiuae/ghaf/commit/8b8d72b5706afc7487806f0b1422c37a9ff70b99))
+- **oot**: Nvidia-oot broken against 6.12.103 - ([885d666](https://github.com/tiiuae/ghaf/commit/885d666b7a37c480e1e9c658ac6bfdc68a7fbfb1))
+- **oot-kernel**: Patch the oot-kernel for jetpack - ([ca2fd8a](https://github.com/tiiuae/ghaf/commit/ca2fd8a8746ce57d44bb0f80437b33582981747b))
+- **orin**: Stabilize BPMP proxy wire ABI - ([19d5522](https://github.com/tiiuae/ghaf/commit/19d552284e00f7242964f8e6d3ed68ac7aee2e33))
+- **orin**: Harden BPMP proxy against malformed guest requests - ([3715839](https://github.com/tiiuae/ghaf/commit/371583938c689457b9c1716757f93cd328459394))
+- **orin**: Fix multiple python build issues - ([3e06184](https://github.com/tiiuae/ghaf/commit/3e06184613cb43db3652d71227faa4d92a17bee1))
+- **orin**: Stop resize-partitions burning 30 s in initrd on every boot - ([8f90bfa](https://github.com/tiiuae/ghaf/commit/8f90bfa88ffffc7f4eb6a89fa749b5fb19436caf))
+- **orin**: Stop resize-partitions burning 30 s in initrd on every boot - ([f4ac0de](https://github.com/tiiuae/ghaf/commit/f4ac0dee84cb722ee096dce49542d8fa836966ca))
+- **orin**: Let -s consume the sdImage output directory directly - ([9506b3d](https://github.com/tiiuae/ghaf/commit/9506b3d20bd319002f2ad5272c55eb13d34713ae))
+- **orin**: Select the Secure Boot QSPI variant explicitly, not via -s - ([e09c183](https://github.com/tiiuae/ghaf/commit/e09c183f8e662d66fe62854478ff60ecdc1094e7))
+- **orin**: Release unused GPU VRAM carveout - ([a1b7587](https://github.com/tiiuae/ghaf/commit/a1b7587cd83601fc58fb0661d857ffa236998222))
+- **orin**: Reserve display RAM only for split topology - ([d9254dd](https://github.com/tiiuae/ghaf/commit/d9254ddb9777c59c5b965be98e7d1d2cbdd92ca3))
+- **orin**: Build pre-flash helper for host - ([5b3978b](https://github.com/tiiuae/ghaf/commit/5b3978bef355aab35df5c2526b8fe65210f00996))
+- **orin**: Hash the LUKS device-unique key context - ([de1fea9](https://github.com/tiiuae/ghaf/commit/de1fea9debd59d4c4928fc3e86aaacb5059fd099))
+- **orin/dce**: Page-align the DCE reverse-event payload window - ([1727243](https://github.com/tiiuae/ghaf/commit/17272433233a05e29efca541e0a2f2da2126a59f))
+- **orin/flash**: Cap the debug erase fallback to a 32MiB head wipe - ([262f129](https://github.com/tiiuae/ghaf/commit/262f1297e8b96f5208491311cee986406a3e3726))
+- **orin/guivm**: DCE display event delivery path - ([5512205](https://github.com/tiiuae/ghaf/commit/551220569f8f9591e5ca9202cd2a8af5cafcc03c))
+- **orin/guivm**: Complete display synchronization and cursor path - ([e9b0520](https://github.com/tiiuae/ghaf/commit/e9b052025e35359ec6f57c4082e89e708804478b))
+- **orin/guivm**: Keep eglut event dispatch nonblocking - ([3779c84](https://github.com/tiiuae/ghaf/commit/3779c84c1e1ad8fcd2b29529982e85fd7b7cad98))
+- **orin/guivm**: Keep the R5 flip-completion binding across modesets - ([7eb6231](https://github.com/tiiuae/ghaf/commit/7eb62313dfa266a326d494cceabc1d3cea76b123))
+- **orin/netvm**: Allow the MGBE0 clock ancestors in the BPMP allow-list - ([dc0240b](https://github.com/tiiuae/ghaf/commit/dc0240ba14a2fbd2168993433b82ba633dc9733c))
+- **overlays**: Cross-compile waypipe and osquery (aarch64-from-x86_64) - ([b162710](https://github.com/tiiuae/ghaf/commit/b1627102da3e9bd41c3209f4020f31734e013e0d))
+- **overlays**: Cross-compile chromium (aarch64-from-x86_64) - ([1cbab47](https://github.com/tiiuae/ghaf/commit/1cbab4763688f618458161855cc7de07a60f1c31))
+- **overlays**: Fix the scope of the cross compilation - ([3189f56](https://github.com/tiiuae/ghaf/commit/3189f5674cb0beece5c4f4c3f4125055e785bc71))
+- **overlays**: Remove packages merged upstream - ([9dfc9ef](https://github.com/tiiuae/ghaf/commit/9dfc9efd590c6496c7eb04b521e6c57a1b758d4b))
+- **pandas**: Carry upstream patch - ([3755149](https://github.com/tiiuae/ghaf/commit/375514912a96610df4d4431222bfc9e23457ec7a))
+- **pci-binder**: Detect passthrough devices when no ids are configured - ([1cb5e3d](https://github.com/tiiuae/ghaf/commit/1cb5e3deecc42ac5b29eb896cab8ee65023f419f))
+- **power**: Gracefully stop guests during host shutdown - ([a1a3c68](https://github.com/tiiuae/ghaf/commit/a1a3c680a423dccd9c87153a673cf687cbfe65a1))
+- **power**: Detect switch activation by process, not one hardcoded unit - ([d03214e](https://github.com/tiiuae/ghaf/commit/d03214efcddffa204b401952bb36d56ceafc63b8))
+- **power**: Do not let an empty PCI id list disable guest fake-suspend - ([3087322](https://github.com/tiiuae/ghaf/commit/308732239939a506a281c625e57a9e004e45cd86))
+- **power**: Harden Bluetooth recovery after resume - ([cc4d9b0](https://github.com/tiiuae/ghaf/commit/cc4d9b0de4b90b8ecc35c446071dcd0cdb1e0416))
+- **power-perf**: Power should be inheratable - ([94fd85c](https://github.com/tiiuae/ghaf/commit/94fd85cc5817c6ee34fd69e8e3f3bfaa1bb56bd8))
+- **python**: Jetpack-nixos needs older setuptools - ([4cb9d5f](https://github.com/tiiuae/ghaf/commit/4cb9d5fece6c851fc8ca1a01fc2dff76d4470076))
+- **qemu**: Root of the build has changed in nixpkgs - ([77dbc3c](https://github.com/tiiuae/ghaf/commit/77dbc3c0ad91ea7563bba6b8b47815ccf80b5d99))
+- **qemu-bpmp**: Make MGBE0 vfio-platform passthrough reach line rate on gicv3 - ([df16ce2](https://github.com/tiiuae/ghaf/commit/df16ce2437ea2bc65883fda7dc088b2152a2433b))
+- **qemu-bpmp**: Disable additional tests that do not apply - ([559816b](https://github.com/tiiuae/ghaf/commit/559816b8a5ca6c9b980c7a0c2336435b3608c816))
+- **reference**: Gate developer SSH keys on the debug profile - ([ad10593](https://github.com/tiiuae/ghaf/commit/ad10593fb5647cd15d956608e728707230cd6cfc))
+- **rtc**: Improve the seeding anchor logic - ([6c3c172](https://github.com/tiiuae/ghaf/commit/6c3c172e480ad8ac36c188693cc15dc1ec50b942))
+- **ruff**: New ruff settings are more strict - ([40fe8c2](https://github.com/tiiuae/ghaf/commit/40fe8c24adca31779b9401d5a21e49b748cc82fc))
+- **serial**: Include serial in the installer - ([f453573](https://github.com/tiiuae/ghaf/commit/f453573837ab532a38eaf107ef2530766824427c))
+- **serial-skills**: Improve the skills for serial - ([e9ee79c](https://github.com/tiiuae/ghaf/commit/e9ee79cfc91b197332dfd6c3396744d21b8116b1))
+- **skills**: Fix the logging diff matching - ([a024692](https://github.com/tiiuae/ghaf/commit/a024692c80db37fbbcc10163d9dd011b38b8ca09))
+- **skills**: Prefer boot to switch to be sure - ([f5fd8eb](https://github.com/tiiuae/ghaf/commit/f5fd8ebe9cb8c9ac83ac75f66cbcbb6fedbbf039))
+- **spectrum**: Broken revCount - ([0675189](https://github.com/tiiuae/ghaf/commit/067518930fe914288d8d7a2862e799c8bbc80b9c))
+- **spire**: Support offline attestation and post-sync renewal - ([84172d1](https://github.com/tiiuae/ghaf/commit/84172d17809785a087f93560f3312c3c2800e139))
+- **spire**: Handle backward clock jumps and surface post-sync failures - ([551bf06](https://github.com/tiiuae/ghaf/commit/551bf067a556963d6e40b04a53c7f4b593060026))
+- **spire**: Include agent services - ([f604ed0](https://github.com/tiiuae/ghaf/commit/f604ed070cf0caccae124ca39005c790fb069311))
+- **ssh**: Remove dead waypipe-ssh - ([0636936](https://github.com/tiiuae/ghaf/commit/0636936f5444c655211d1ca6c253db07e03a8022))
+- **sssd**: Use the pam login not greetd - ([86c1ebf](https://github.com/tiiuae/ghaf/commit/86c1ebfa6be83acc7973dfa42a17e8d672520ca8))
+- **startup**: Reduce Intel laptop boot latency - ([fadffb1](https://github.com/tiiuae/ghaf/commit/fadffb104d4eca2864ccb4496e777a03667fca32))
+- **svid**: Try and address the time sync issue - ([61c1d8c](https://github.com/tiiuae/ghaf/commit/61c1d8c7b8445f9214360e50b740b212493926ad))
+- **swtpm**: Add build-platform openssl for cross-compilation - ([00a705c](https://github.com/tiiuae/ghaf/commit/00a705c237e862d6b115f59b3665d335eb5bea11))
+- **systemd**: Carry NixOS PR #553061 until it reaches our nixpkgs - ([98609b2](https://github.com/tiiuae/ghaf/commit/98609b2c507f9da63e69d2f780bccc4fe4cdef15))
+- **templates**: These are just plain wrong, delete - ([aae54ba](https://github.com/tiiuae/ghaf/commit/aae54ba4702e4098c7dcf868ceff6dd17c14a265))
+- **time**: Stop waiting for convergence - ([efd075a](https://github.com/tiiuae/ghaf/commit/efd075a0b55bbb4b73fbfaec513d85e53fe821d7))
+- **time**: Avoid RTC contention with Chrony - ([3e83178](https://github.com/tiiuae/ghaf/commit/3e8317870b17fa2fc8de12be88b75fbc2d492537))
+- **tpm2-pytss**: Drop obsolete cross patch - ([0874068](https://github.com/tiiuae/ghaf/commit/08740684478daae3687656ff2e54fe94c8d3039f))
+- **usb**: Suppress repeated device notifications - ([5f18cfd](https://github.com/tiiuae/ghaf/commit/5f18cfd4944acdac23dbcc3ef6f22e576cb0537a))
+- **usb**: Suppress settings inventory log spam - ([40aad26](https://github.com/tiiuae/ghaf/commit/40aad26373d159277ae36b364cd6f42dbf5903c9))
+- **user-provision**: Prompt for Wi-Fi password interactively - ([3846677](https://github.com/tiiuae/ghaf/commit/384667799cfd9447b8b7dcc834c48fab2c852014))
+- **wait-for-unit**: Report the observed state on timeout, on stderr - ([85d151b](https://github.com/tiiuae/ghaf/commit/85d151bab414e475b11b26ac1bc60a0feea79e49))
+- **waypipe**: Pin to ffmpeg_8 until fixed upstream - ([01eeb05](https://github.com/tiiuae/ghaf/commit/01eeb05a876088d763838391bf3bc2d19678af8a))
+- **waypipe**: Drop the ffmpeg_8 pin, merged upstream - ([524b179](https://github.com/tiiuae/ghaf/commit/524b17940693443bd7f099142131348821619834))
+
+### 🚜 Refactor
+
+- **fss**: Source the verify classifier from /etc instead of inlining it - ([2ced642](https://github.com/tiiuae/ghaf/commit/2ced642ae9a991714b0141a717cf2cac28d3c2af))
+- **fss**: Hoist remaining duplicated helpers into the shared classifier - ([7a7c0c2](https://github.com/tiiuae/ghaf/commit/7a7c0c26b42a1f7c2637820c080fa5b2c8c9ef54))
+- **gpu-vm**: Split guest DTS into component dtsi files - ([3422736](https://github.com/tiiuae/ghaf/commit/3422736631d61021491011e8f45f283dce11f183))
+- **gpu-vm**: Make DCB gate mandatory + single-pass hex decode - ([1cd5e71](https://github.com/tiiuae/ghaf/commit/1cd5e71957fab9f01bf5c91e299a43f67ef5ac41))
+- **netvm**: Stop deriving the uplink from the hardware definition - ([cbb695b](https://github.com/tiiuae/ghaf/commit/cbb695b2242c05663a64e7895bcb5aceee43b859))
+- **orin**: Select the display DCB payload per board - ([3b89c28](https://github.com/tiiuae/ghaf/commit/3b89c283aedbae5b7a3a03b7c15c20df37aaf04e))
+- **reference**: Put mvp-user-trial on the downstream path - ([2ae967a](https://github.com/tiiuae/ghaf/commit/2ae967a0eab14b2815440589e25b4eb0b658b352))
+- **spire**: Remove join token attestation - ([5d553e7](https://github.com/tiiuae/ghaf/commit/5d553e70c1c81b7db280daf6b82add5bb87ab979))
+
+### 📚 Documentation
+
+- **acl**: Documentation - ([6239bd3](https://github.com/tiiuae/ghaf/commit/6239bd318f244610082bdfd5a4ca87083e53b919))
+- **fss**: Document local-root receipt-forgery and pre-activation caveats - ([371957f](https://github.com/tiiuae/ghaf/commit/371957fd96ef1afeb3c980d233f1a4b918b9abce))
+- **fss**: Clarify clock-ready barrier deps and recovery receipt cap - ([05fd79b](https://github.com/tiiuae/ghaf/commit/05fd79b9fe945f1d81bedac7d8089999ca632c56))
+- **orin**: Document passthrough memory footprint - ([dc424c9](https://github.com/tiiuae/ghaf/commit/dc424c996c06e8d04dc66604ce26b1cd151d75c2))
+- **ssh**: Add/update ssh documentation - ([d307fe1](https://github.com/tiiuae/ghaf/commit/d307fe1d4bc9bf65dc13f89fbc9f53acb62f14d0))
+- Add 26.07.1 release note - ([432891c](https://github.com/tiiuae/ghaf/commit/432891c50ed963b9b2a495faf8b0e8eae7c24871))
+
+### 🎨 Styling
+
+- **ghaf-logs**: Revert unintended reindentation of collect-logs.sh - ([62c1429](https://github.com/tiiuae/ghaf/commit/62c1429a71d6b56b49868da6c8760de4ab767ec5))
+
+### ⏩ Dependency Updates
+
+- **all**: Get the latest - ([ec16f21](https://github.com/tiiuae/ghaf/commit/ec16f21ca5fe1e5c1f30b1ff901b80181b0bf909))
+- **august**: Bump all 8.8.2026 - ([355260c](https://github.com/tiiuae/ghaf/commit/355260cd854d9697898fe94c5946bdcddc9f0e96))
+- **docs**: Update the doc dependencies - ([2ed510f](https://github.com/tiiuae/ghaf/commit/2ed510f2f610e8429226bc09b3a867ee2c280897))
+- **docs**: Update dependencies - ([bd249ce](https://github.com/tiiuae/ghaf/commit/bd249ce4d68f0ee71b39b6ea5f217b1b53786397))
+- **docs**: Latest and greatest - ([b4469c3](https://github.com/tiiuae/ghaf/commit/b4469c3489bf9a9addd7c817a9c06e1e3089d982))
+- **fixes**: Ghafpkgs and ci-test-automation - ([338fb00](https://github.com/tiiuae/ghaf/commit/338fb00570a875045fead625fce089afd3cb6282))
+- **ghaf-givc**: Integrates fix for event proxy ACL - ([a971a30](https://github.com/tiiuae/ghaf/commit/a971a3085f5607028581b29b78bb64237844a2f6))
+- **ghaf-givc**: Implements `stop service` cli - ([2e4df17](https://github.com/tiiuae/ghaf/commit/2e4df17ea37535b8b1012b7bcb1349fc52abcf27))
+- **givc**: Pin to appvm services PR - ([608f108](https://github.com/tiiuae/ghaf/commit/608f1084b77073ae121764d062318418f2279d30))
+- **givc**: Realign and not carry the pin - ([dbfd8de](https://github.com/tiiuae/ghaf/commit/dbfd8de7ef58a8bdf7bac08b5763ce2488c9a2b0))
+- **givc**: Pin givc until commit merges - ([07cc4c8](https://github.com/tiiuae/ghaf/commit/07cc4c8077baaad9b34a105c6c197ee7862abbb9))
+- **inputs**: 28th july bumping inputs - ([e538c45](https://github.com/tiiuae/ghaf/commit/e538c456ffa84956c66ef944a492fbbcb5f7f3c7))
+- **jetpack-nixos**: Rebase on upstream - ([184dbec](https://github.com/tiiuae/ghaf/commit/184dbec4b54e6dd92e5d64186ee7bf4a3c844eef))
+- **july**: Bump 20th july - ([a1fd998](https://github.com/tiiuae/ghaf/commit/a1fd99867b8100dd607fb1a2760f070fa4a448e4))
+- **nixpkgs**: 9.8.2026 - ([cefe50e](https://github.com/tiiuae/ghaf/commit/cefe50ee9e54cfb0607bda95aa97fbda67a86a30))
+- **pkgs**: Get the latest - ([aecfdf3](https://github.com/tiiuae/ghaf/commit/aecfdf381c5bb144602f075172ffa04a51014dbf))
+- **pkgs-by-name-for-flake-parts**: Unpin and track main - ([ea2eeba](https://github.com/tiiuae/ghaf/commit/ea2eeba6f7d1fa65bd4ac191712872eead4cfaff))
+- **vhotplug**: Pick up the VM socket readiness race fix - ([9b4f4f9](https://github.com/tiiuae/ghaf/commit/9b4f4f971315db0024c94789077110eebc6e876f))
+- Version number - ([04abb7d](https://github.com/tiiuae/ghaf/commit/04abb7dd9391e0e4b79bd93f321a337e55f7812c))
+- Bump all inputs 2026-07-14 - ([5e3158a](https://github.com/tiiuae/ghaf/commit/5e3158ad0fa2c661758c393c79609d383818ac84))
+
+### 🧪 Testing
+
+- **acl**: Access control checks - ([e3e266c](https://github.com/tiiuae/ghaf/commit/e3e266ca52b3ea78226a99380f03434ffb5fbce1))
+- **fss**: Harden receipt diagnostics - ([08fd1cf](https://github.com/tiiuae/ghaf/commit/08fd1cf5891217b9d58671384c78444a85b463bb))
+- **fss**: Exercise ghaf-clock-ready at production defaults - ([d851f93](https://github.com/tiiuae/ghaf/commit/d851f93c6a7f07e9a1216570a6856d1094ce8429))
+- **user-provision**: Enable recovery key in automated user provisioning - ([67eaee7](https://github.com/tiiuae/ghaf/commit/67eaee720acea98bea1a5c714ade6a84cd57e820))
+
+### ⚙️ Miscellaneous Tasks
+
+- **cosmic**: Remove cosmic-player overlay, remove cosmic-monitor - ([068aed8](https://github.com/tiiuae/ghaf/commit/068aed83b71bbbfd0136a9e4ebbb78b3691b3d27))
+- **flake**: Follow ghaf-device-manager mainline - ([ac44085](https://github.com/tiiuae/ghaf/commit/ac440854a6eac7469142f3b9c91deed8b7f384b3))
+- **flake**: Follow ghaf-crosvm mainline - ([77f74cc](https://github.com/tiiuae/ghaf/commit/77f74cc17590a500187a76d6d2a91e4cdc4aa98d))
+- **orin**: Build the accelerated gui-vm target - ([c5af7fc](https://github.com/tiiuae/ghaf/commit/c5af7fcad2c74199760f130ed352f50e2376b327))
+- Ignore local workspace state - ([98bb644](https://github.com/tiiuae/ghaf/commit/98bb6448e40ef866e4676d90cc8ea1926f5964d2))
+
+## New Contributors
+
+* @eyad-tii made their first contribution in [#2127](https://github.com/tiiuae/ghaf/pull/2127)
+* @tkaratapanis made their first contribution
+
+## Bug fixes
+
+Fixed bugs that were present in the previous release
+
+* Layout can be selected only once and not changed afterwards
+* Audio taskbar doesn't work after suspension
+
+## Known Issues and Limitations
+
+| Issue                                                                                                     | Status      | Comments                                                                   |
+| --------------------------------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------- |
+| **x86**                                                                                             |             |                                                                            |
+| Reboot and shutdown takes long time | In Progress | Issue is under investigation |
+| (System76) Laptop suspended again after opening the lid | In Progress | Seen rarely, issue is under monitoring |
+| Redirecting to browser does not work in flatpak-vm, cannot sign in to Zoom, Spotify etc | In Progress | |
+| External USB camera stream has poor quality and camera may stop working | In Progress | |
+| USB storage device mounting in app-vm's doesn't work | In Progress | Fix is under verification |
+
+## Installation Instructions
+
+Released images are available at https://archive.vedenemo.dev/
+
+Download the required image and use the following instructions: [Build and Run](https://ghaf.tii.ae/ghaf/dev/ref/build_and_run)
