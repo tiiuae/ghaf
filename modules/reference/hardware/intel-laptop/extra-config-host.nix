@@ -17,11 +17,14 @@
 
     # Generic Intel laptop targets exercise the complete Crosvm stack. Keep
     # machine-specific targets on their existing VMM selections.
+    #
+    # mkDefault, so a downstream product can select a different VMM without
+    # mkForce.
     virtualization.vmConfig = {
-      defaultSysVmVmm = "crosvm";
-      defaultAppVmVmm = "crosvm";
+      defaultSysVmVmm = lib.mkDefault "crosvm";
+      defaultAppVmVmm = lib.mkDefault "crosvm";
       # vm-tpm wires TPM passthrough for encrypted Crosvm variants.
-      sysvms.adminvm.vmm = "crosvm";
+      sysvms.adminvm.vmm = lib.mkDefault "crosvm";
     };
   };
 
