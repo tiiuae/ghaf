@@ -86,6 +86,8 @@ pkgs.testers.nixosTest {
 
       environment.systemPackages = [
         self.packages.x86_64-linux.ghaf-installer
+        # What an ISO or USB-SSD boots. Here for the wiring subtest, not run.
+        self.packages.x86_64-linux.ghaf-installer-tui
         self.packages.x86_64-linux.hardware-scan
         # For the test's own assertions. ghaf-installer carries its own copy via
         # runtimeInputs, so this does not stand in for that.
@@ -127,7 +129,11 @@ pkgs.testers.nixosTest {
 
     with subtest("the image and its bmap are reachable over HTTP"):
         # If this fails the rest is noise, so check it before the install.
-        machine.succeed("curl -sfI ${imageUrl}/ghaf-image.raw.zst >&2")
+        #
+        # wait_until_succeeds: only the server's readiness is waited on above,
+        # and this node can curl before its own interface is up (curl exit 7,
+        # which reads as the image not being served). Observed once.
+        machine.wait_until_succeeds("curl -sfI ${imageUrl}/ghaf-image.raw.zst >&2", timeout=60)
         # A missing bmap must be fatal rather than degrade to an unverified dd,
         # so its presence is part of the contract, not an optimisation.
         machine.succeed("curl -sfI ${imageUrl}/ghaf-image.bmap >&2")
@@ -176,6 +182,42 @@ pkgs.testers.nixosTest {
         assert "Reusing existing boot entry" in out2, f"entry not reused:\n{out2}"
         after = len([l for l in machine.succeed("efibootmgr").splitlines() if "Ghaf" in l])
         assert after == before, f"boot entries multiplied: {before} -> {after}"
+
+    with subtest("the interactive front-end is wired to the same boot and queue code"):
+        # A wiring check: the TUI is gum on tty1 and cannot be driven from a
+        # test. It no longer has its own copy of this logic, so the subtests
+        # above already exercise the same functions through ghaf-installer.
+        tui = machine.succeed("command -v ghaf-installer-tui").strip()
+
+        # Prepended into the wrapper by the package.
+        for fn in ["set_boot_to_disk", "point_bootnext_at_disk", "wait_for_image_slot"]:
+            machine.succeed(f"grep -q '^{fn}() {{' {tui}")
+
+        # Sourced at run time: the do_* wrappers and the image fetch live here.
+        lib = machine.succeed(
+            f"grep -o '/nix/store/[a-z0-9]*-ghaf-installer-lib.sh' {tui} | head -1"
+        ).strip()
+        assert lib, f"ghaf-installer-tui does not source an installer lib:\n{tui}"
+        for fn in ["do_set_boot_entry", "do_point_bootnext"]:
+            machine.succeed(f"grep -q '^{fn}() {{' {lib}")
+
+        # The do_* wrappers and the shared functions are defined in different
+        # files concatenated into one shell; this is the join that breaks
+        # silently. sed to the closing brace, not -A<n>: a short window passes
+        # by not looking.
+        def body(fn):
+            return machine.succeed(f"sed -n '/^{fn}() {{/,/^}}$/p' {lib}")
+
+        assert "set_boot_to_disk" in body("do_set_boot_entry")
+        assert "point_bootnext_at_disk" in body("do_point_bootnext")
+        assert "wait_for_image_slot" in body("do_install_image")
+
+        # The fetch feeds bmaptool, so a mid-stream --retry corrupts the write.
+        fetch = machine.succeed(f"grep 'curl -fL --no-progress-meter' {lib}")
+        assert "--retry" not in fetch, f"TUI fetch can retry into a live pipe:\n{fetch}"
+
+        # Resolves off the image's system PATH even if the package forgets it.
+        machine.succeed(f"grep -q 'efibootmgr' {tui}")
 
     print("Shutting installer machine down")
     machine.shutdown()

@@ -6,8 +6,11 @@
   coreutils,
   curl,
   e2fsprogs,
+  efibootmgr,
   efitools,
   gawk,
+  gnugrep,
+  gnused,
   gum,
   lib,
   lvm2,
@@ -34,8 +37,13 @@ writeShellApplication {
     coreutils
     curl # fetch the image and its block map when netbooted
     e2fsprogs # chattr in efivar cleanup
+    efibootmgr # the boot entry this installer leaves behind
     efitools # Secure Boot key enrollment
     gawk
+    # installer-boot-lib.sh parses efibootmgr output with these. Masked until
+    # now by the image's system PATH, which writeShellApplication only prepends to.
+    gnugrep
+    gnused
     gum # TUI components
     lvm2 # vgchange, pvremove
     ncurses
@@ -50,6 +58,8 @@ writeShellApplication {
     source ${installerLib}
   ''
   + builtins.readFile ../../../lib/gum-lib.sh
+  # Shared with ghaf-installer; both front-ends must decide the boot disk alike.
+  + builtins.readFile ../../../lib/installer-boot-lib.sh
   + builtins.readFile ./ghaf-installer-tui.sh;
   meta = {
     description = "Interactive TUI installer for the Ghaf project";

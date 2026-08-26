@@ -194,7 +194,11 @@ feed_image() {
   if [[ ${GHAF_REMOTE:-false} == true ]]; then
     # --no-progress-meter: pv already draws the progress bar the TUI shows, and
     # curl's own meter would scribble over it on the same tty.
-    curl -fL --no-progress-meter --connect-timeout 10 --retry 5 --retry-delay 2 --retry-all-errors "$GHAF_RAW_SRC"
+    #
+    # No --retry: this feeds `pv | bmaptool copy - <dev>`, and a retry after the
+    # first bytes restarts the response into the same pipe. Wait before the
+    # transfer instead -- do_install_image calls wait_for_image_slot.
+    curl -fL --no-progress-meter --connect-timeout 10 "$GHAF_RAW_SRC"
   else
     cat "$GHAF_RAW_SRC"
   fi | zstdcat -T0
@@ -209,6 +213,15 @@ do_install_image() {
   local dev="$1"
 
   resolve_image_source || return 1
+
+  # A fleet server answers 503 until this machine's turn. Inside the function,
+  # not hoisted: the bmaptool->dd fallback re-fetches and needs its own slot.
+  if [[ ${GHAF_REMOTE:-false} == true ]]; then
+    wait_for_image_slot "$GHAF_RAW_SRC" || {
+      show_error "Could not get an image download slot from the install server."
+      return 1
+    }
+  fi
 
   local IMGSIZE
   if [[ -s $GHAF_BMAP ]]; then
@@ -337,4 +350,27 @@ do_enroll_secureboot() {
   done
 
   debug "Secure Boot keys enrolled."
+}
+
+# Before the wipe: a machine interrupted mid-download returns to its own disk
+# rather than the installer. A factory-fresh disk has nothing to point at, which
+# is not an error.
+# shellcheck disable=SC2329
+do_point_bootnext() {
+  local dev="$1" esp
+  esp="$(find_esp_device "$dev" 2>/dev/null || true)"
+  point_bootnext_at_disk "$dev" "$esp" || true
+}
+
+# Create or reuse the EFI entry for the ESP just written, first in BootOrder.
+# Without it the machine boots the installer media it is still sitting in.
+# shellcheck disable=SC2329
+do_set_boot_entry() {
+  local dev="$1" esp
+  udevadm settle
+  if ! esp="$(find_esp_device "$dev")"; then
+    show_warning "Could not find the ESP; leaving the boot order untouched."
+    return 0
+  fi
+  set_boot_to_disk "$dev" "$esp" || true
 }
