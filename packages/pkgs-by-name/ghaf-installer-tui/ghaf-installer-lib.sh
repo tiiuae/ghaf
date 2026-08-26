@@ -204,6 +204,38 @@ feed_image() {
   fi | zstdcat -T0
 }
 
+# Decompressed size of the image about to be written, or empty. Used both to
+# refuse an oversized image and to give pv a total.
+# shellcheck disable=SC2329
+image_size_bytes() {
+  if [[ -s ${GHAF_BMAP:-} ]]; then
+    # || true: no match exits 1, which under `set -euo pipefail` would abort the
+    # install over a size estimate.
+    grep -oP '<ImageSize>\s*\K\d+' "$GHAF_BMAP" 2>/dev/null | head -1 || true
+  elif [[ ${GHAF_REMOTE:-false} == false ]]; then
+    # `zstd -l` needs a seekable file, so this is local-only. The remote path
+    # always has a bmap by now, or resolve_image_source bailed.
+    zstd -l "$GHAF_RAW_SRC" -v 2>/dev/null | awk '/Decompressed Size:/ {print $5}' | tr -d '()' || true
+  fi
+}
+
+# Refuse an image too big for the target before the wipe destroys anything.
+# shellcheck disable=SC2329
+do_check_capacity() {
+  local dev="$1" reason
+
+  resolve_image_source || return 1
+
+  show_info "Checking the image fits..." ""
+  GHAF_IMGSIZE="$(image_size_bytes)"
+
+  if ! reason="$(image_fits_device "$GHAF_IMGSIZE" "$dev" 2>&1)"; then
+    show_error "The image does not fit $dev: $reason"
+    return 1
+  fi
+  [[ -z $reason ]] || debug "capacity: $reason"
+}
+
 # Decompress and write the raw image to the target device.
 # Uses bmaptool for a sparse-aware copy when a .bmap file is available,
 # piping directly from the producer so no temp storage is needed.
@@ -224,14 +256,7 @@ do_install_image() {
   fi
 
   local IMGSIZE
-  if [[ -s $GHAF_BMAP ]]; then
-    IMGSIZE="$(grep -oP '<ImageSize>\s*\K\d+' "$GHAF_BMAP")"
-  elif [[ ${GHAF_REMOTE:-false} == false ]]; then
-    # `zstd -l` needs a seekable file, so this estimate is local-only. The
-    # remote path always has a bmap by now, or resolve_image_source bailed.
-    show_info "Estimating image size..." ""
-    IMGSIZE="$(zstd -l "$GHAF_RAW_SRC" -v 2>/dev/null | awk '/Decompressed Size:/ {print $5}' | tr -d '()')"
-  fi
+  IMGSIZE="${GHAF_IMGSIZE:-$(image_size_bytes)}"
 
   local -a PV_CMD
   PV_CMD=(pv --format '%{sgr:white,bold}Writing Ghaf image to disk - %r %40p %e%{sgr:reset}' -N "$GHAF_RAW_SRC")
@@ -239,15 +264,28 @@ do_install_image() {
 
   if command -v bmaptool >/dev/null 2>&1 && [[ -s $GHAF_BMAP ]]; then
     debug "Using bmaptool with block map: $GHAF_BMAP"
-    if feed_image | "${PV_CMD[@]}" | bmaptool copy --bmap "$GHAF_BMAP" - "$dev" >/dev/null 2>&1; then
+    local bmap_err reason
+    bmap_err="$(mktemp)"
+    # stderr to a file, not /dev/null: it cannot go to the screen without
+    # corrupting the TUI, and discarded it leaves "falling back" as the only
+    # symptom -- which cannot tell a missing tool from a checksum mismatch.
+    if feed_image | "${PV_CMD[@]}" | bmaptool copy --bmap "$GHAF_BMAP" - "$dev" >/dev/null 2>"$bmap_err"; then
+      rm -f "$bmap_err"
       return 0
     fi
-    debug "bmaptool failed, falling back to streaming write"
-    # Over the network this fallback re-fetches the whole image, so it is slow
-    # rather than free -- but a second pass beats a half-written disk.
-    show_warning "Fast installation unavailable. Continuing with standard installation."
+    debug "bmaptool failed: $(tr '\n' ' ' <"$bmap_err")"
+    reason="$(grep -v '^[[:space:]]*$' "$bmap_err" | tail -1 | cut -c1-120 || true)"
+    rm -f "$bmap_err"
+    # No dd fallback here. bmaptool ran and the image did not verify, and its
+    # per-range sha256 is the only integrity check an image fetched over plain
+    # HTTP gets -- which is why resolve_image_source already treats a MISSING
+    # bmap as fatal. Rewriting the same bytes unverified defeats both.
+    show_error "Image verification failed${reason:+: $reason}"
+    return 1
   fi
 
+  # Reached only with no bmaptool or no bmap, i.e. verification was never
+  # available. Not the netboot path, where resolve_image_source requires one.
   debug "Writing image: $GHAF_RAW_SRC -> $dev"
   feed_image | "${PV_CMD[@]}" | dd of="$dev" bs=32M conv=fsync oflag=direct iflag=fullblock status=none
 }

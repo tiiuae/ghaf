@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# Boot-entry and download-queue helpers, shared by ghaf-installer and
+# Boot-entry, capacity and download-queue helpers, shared by ghaf-installer and
 # ghaf-installer-tui. Prepended by each package, as lib/gum-lib.sh is.
 #
 # Disk and ESP are arguments: the two front-ends' find_esp_device disagree (the
@@ -11,6 +11,36 @@
 #
 # Every function is non-fatal: under the TUI's run_step a non-zero return would
 # report a successful install as a failure.
+
+# Refuse an image that cannot fit, before anything is written. The streaming dd
+# fallback writes until end-of-device and leaves a disk whose GPT describes a
+# larger one: unbootable, and not obviously wrong afterwards.
+#
+# Unknown sizes are not treated as failures -- an unmeasurable target (a file,
+# a loop device in a test) is not evidence that the image is too big.
+image_fits_device() {
+  local image_size="$1" dev="$2" dev_size
+
+  case "${image_size:-}" in
+  '' | *[!0-9]*)
+    echo "image size unknown; not checking capacity" >&2
+    return 0
+    ;;
+  esac
+
+  dev_size="$(blockdev --getsize64 "$dev" 2>/dev/null || true)"
+  case "${dev_size:-}" in
+  '' | *[!0-9]*)
+    echo "cannot measure $dev; not checking capacity" >&2
+    return 0
+    ;;
+  esac
+
+  if [ "$image_size" -gt "$dev_size" ]; then
+    echo "image needs $image_size bytes, $dev holds $dev_size" >&2
+    return 1
+  fi
+}
 
 # Reports rather than exits: Secure Boot enrollment cannot proceed without
 # efivars, set_boot_to_disk only warns.

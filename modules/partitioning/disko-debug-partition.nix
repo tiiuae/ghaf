@@ -29,7 +29,11 @@ let
   diskName = "disk1";
   espSizeMiB = 500;
   headroomMiB = 4 * 1024; # GPT + LVM metadata
-  volumesMiB = espSizeMiB + cfg.swapSize + cfg.persistSize + 2 * (cfg.rootSize + cfg.veritySize);
+  # One slot, not two. The B slot is cut from free space on first boot by
+  # btrfs-postboot, before persist claims the rest -- it was only ever an empty
+  # reservation here, contributing no data to the image but doubling both the
+  # virtual size and the smallest disk we can install onto.
+  volumesMiB = espSizeMiB + cfg.swapSize + cfg.persistSize + cfg.rootSize + cfg.veritySize;
 in
 {
   _file = ./disko-debug-partition.nix;
@@ -100,7 +104,7 @@ in
     assertions = [
       {
         assertion = cfg.imageSize >= volumesMiB;
-        message = "ghaf.partitioning.disko.imageSize is ${toString cfg.imageSize} MiB but the volumes need ${toString volumesMiB} MiB; both A/B slots must fit.";
+        message = "ghaf.partitioning.disko.imageSize is ${toString cfg.imageSize} MiB but the volumes need ${toString volumesMiB} MiB; the A slot, swap and persist must fit.";
       }
     ];
 
@@ -206,14 +210,6 @@ in
 
               # NOTE: placeholder for A-slot verity
               verity_0 = {
-                size = "${toString cfg.veritySize}M";
-              };
-
-              # NOTE: placeholders for B-slot root and verity
-              root_empty = {
-                size = "${toString cfg.rootSize}M";
-              };
-              verity_empty = {
                 size = "${toString cfg.veritySize}M";
               };
 
