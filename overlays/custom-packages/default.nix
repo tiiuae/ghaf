@@ -27,6 +27,7 @@
   pipewire = import ./pipewire { inherit prev; };
   qt6Packages = import ./qt6Packages { inherit prev; };
   spire4ghaf = import ./spire4ghaf { inherit prev; };
+  udiskie = import ./udiskie { inherit prev; };
   waypipe = import ./waypipe { inherit prev; };
 })
 # keep-sorted end
