@@ -43,7 +43,9 @@ writeShellApplication {
     util-linux
     zstd
   ];
-  text = builtins.readFile ./ghaf-installer.sh;
+  # Prepended, not sourced: definitions must precede every call, or an
+  # undefined ensure_efivars turns the step into a silent no-op.
+  text = builtins.readFile ../../../lib/installer-boot-lib.sh + builtins.readFile ./ghaf-installer.sh;
   meta = {
     description = "Installer script for the Ghaf project";
     platforms = [

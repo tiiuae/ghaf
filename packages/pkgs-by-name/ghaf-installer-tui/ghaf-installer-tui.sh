@@ -307,6 +307,10 @@ screen_running() {
     show_header "Installing Ghaf"
   fi
 
+  # Before the wipe: it matches an entry that exists now, and after the wipe
+  # there is none. Not a run_step -- having no entry yet is normal, not failure.
+  $WIPE_ONLY || do_point_bootnext "$DEVICE_NAME"
+
   # Step: wipe
   run_step "Failed to erase disk." do_wipe "$DEVICE_NAME" || return 0
 
@@ -339,6 +343,11 @@ screen_running() {
     show_success "Secure Boot keys enrolled."
     echo ""
   fi
+
+  # Last: it names the ESP this install just created.
+  show_info "Setting the boot entry..."
+  do_set_boot_entry "$DEVICE_NAME"
+  echo ""
 
   goto_state "COMPLETE"
 }
@@ -381,7 +390,9 @@ screen_complete() {
   case "$next_action" in
   "Reboot (recommended)")
     if prompt_confirm "Reboot the system?" "Yes" "Cancel" "true"; then
-      show_warning "Remove the installer media before the device reboots."
+      # Advice, not a requirement: the new entry is first in BootOrder. Kept
+      # because firmware that reorders entries can still land on the stick.
+      show_info "The device will boot the installed system. You can remove the installer media."
       echo ""
       local delay=10
       trap - TERM
