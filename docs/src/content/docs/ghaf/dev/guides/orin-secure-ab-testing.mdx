@@ -421,38 +421,7 @@ curl --fail --silent --show-error \
 **Procedure in `net-vm`:**
 
 ```sh
-export UPDATE_HTTP_ORIGIN='http://<developer-interface-address>:<port>'
-export GHAF_UPDATE_GENERATION='<candidate-generation>'
-FETCH_PARENT=/persist/sysupdate
-FINAL_DIR="$FETCH_PARENT/http-generation-$GHAF_UPDATE_GENERATION"
-test ! -e "$FINAL_DIR" || exit 1
-FETCH_DIR="$(mktemp -d "$FETCH_PARENT/.http-generation-$GHAF_UPDATE_GENERATION.XXXXXX")"
-chmod 0755 "$FETCH_DIR"
-
-fetch_file() {
-  file="$1"
-  case "$file" in
-    "" | .* | *[!A-Za-z0-9._-]*) return 1 ;;
-  esac
-  curl --fail --show-error --location \
-    --proto '=http' --proto-redir '=http' \
-    --retry 3 --retry-all-errors \
-    --output "$FETCH_DIR/$file.part" \
-    "$UPDATE_HTTP_ORIGIN/$file"
-  mv -- "$FETCH_DIR/$file.part" "$FETCH_DIR/$file"
-}
-
-fetch_file manifest.json
-fetch_file manifest.json.sig
-for kind in root verity kernel; do
-  artifact="$(jq -er --arg kind "$kind" '.[$kind].file' "$FETCH_DIR/manifest.json")"
-  fetch_file "$artifact"
-done
-touch "$FETCH_DIR/fetch.complete"
-sync "$FETCH_DIR"
-mv -T -- "$FETCH_DIR" "$FINAL_DIR"
-sync "$FETCH_PARENT"
-FETCH_DIR="$FINAL_DIR"
+ghaf-fetch-update 'http://<developer-interface-address>:<port>' '<candidate-generation>'
 ```
 
 Record the five filenames, sizes, server request results, and the shared fetch

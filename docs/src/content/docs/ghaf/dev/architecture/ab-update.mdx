@@ -419,50 +419,11 @@ curl --fail --silent --show-error \
 
 Open the debug console or an authenticated administrative session to
 `net-vm`. Set the origin to the developer server and choose a new shared
-destination. The following function rejects path-like manifest names and
-publishes each file only after its download succeeds:
+destination. The `ghaf-fetch-update` script rejects path-like manifest names
+and publishes each file only after its download succeeds:
 
 ```sh
-export UPDATE_HTTP_ORIGIN='http://<developer-interface-address>:<port>'
-export GHAF_UPDATE_GENERATION='<candidate-generation>'
-FETCH_PARENT=/persist/sysupdate
-FINAL_DIR="$FETCH_PARENT/http-generation-$GHAF_UPDATE_GENERATION"
-test ! -e "$FINAL_DIR" || {
-  echo "Refusing to reuse published fetch directory: $FINAL_DIR" >&2
-  exit 1
-}
-FETCH_DIR="$(mktemp -d "$FETCH_PARENT/.http-generation-$GHAF_UPDATE_GENERATION.XXXXXX")"
-chmod 0755 "$FETCH_DIR"
-
-fetch_file() {
-  file="$1"
-  case "$file" in
-    "" | .* | *[!A-Za-z0-9._-]*)
-      echo "Unsafe update file name: $file" >&2
-      return 1
-      ;;
-  esac
-  curl --fail --show-error --location \
-    --proto '=http' --proto-redir '=http' \
-    --retry 3 --retry-all-errors \
-    --output "$FETCH_DIR/$file.part" \
-    "$UPDATE_HTTP_ORIGIN/$file"
-  mv -- "$FETCH_DIR/$file.part" "$FETCH_DIR/$file"
-}
-
-fetch_file manifest.json
-fetch_file manifest.json.sig
-
-for kind in root verity kernel; do
-  artifact="$(jq -er --arg kind "$kind" '.[$kind].file' "$FETCH_DIR/manifest.json")"
-  fetch_file "$artifact"
-done
-
-touch "$FETCH_DIR/fetch.complete"
-sync "$FETCH_DIR"
-mv -T -- "$FETCH_DIR" "$FINAL_DIR"
-sync "$FETCH_PARENT"
-FETCH_DIR="$FINAL_DIR"
+ghaf-fetch-update 'http://<developer-interface-address>:<port>' '<candidate-generation>'
 ```
 
 If a transfer fails, do not create `fetch.complete`. Retain the hidden temporary
