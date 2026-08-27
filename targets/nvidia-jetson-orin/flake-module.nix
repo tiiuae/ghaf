@@ -233,8 +233,6 @@ let
         "arm_dsu_pmu"
         # GUIVM is absent, so its high-IOVA display anchor has no consumer.
         "dce-iso-anchor"
-        # Protected PCI assignment requires a separate reset backend.
-        "rtw88_8822ce"
       ];
 
       # Keep host-IOMMU debug iterations small. GUIVM and FlatpakVM do not
@@ -273,10 +271,17 @@ let
             name = "mgbe0-protected-assignment";
             dtsFile = ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/pkvm/mgbe0-protected-assignment-overlay.dts;
           }
+          {
+            name = "rtw8822ce-protected-assignment";
+            dtsFile = ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/pkvm/rtw8822ce-protected-assignment-overlay.dts;
+          }
         ];
       };
 
-      ghaf.hardware.nvidia.orin.agx.enableNetvmWlanPCIPassthrough = lib.mkForce false;
+      ghaf.hardware.nvidia.orin.agx = {
+        enableNetvmWlanPCIPassthrough = lib.mkForce true;
+        netvmWlanPCICrosvmIommu = lib.mkForce "pkvm-iommu";
+      };
       ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm.crosvmIommu = "pkvm-iommu";
 
       # Preserve the nVHE timer, virtualization, and interrupt-control state

@@ -86,6 +86,11 @@ let
         }
       ];
     }).config;
+  pkvmAgx = orinTargets.nvidia-jetson-orin-agx-accelerated-guivm-pkvm-debug.config;
+  pkvmNetVm = pkvmAgx.microvm.vms."net-vm".evaluatedConfig.config;
+  pkvmWlan = lib.findFirst (
+    device: device.bus == "pci" && device.path == "0001:01:00.0"
+  ) (throw "protected AGX NetVM WLAN device not found") pkvmNetVm.microvm.devices;
 
   assertions = targetAssertions ++ [
     {
@@ -138,6 +143,20 @@ let
         && lib.all (vm: vm.microvm.hypervisor == "qemu") (vmConfigs qemuFallback)
         && qemuFallback.systemd.services ? vhotplug
         && !(qemuFallback.systemd.services ? ghaf-device-manager);
+    }
+    {
+      name = "protected AGX NetVM retains the host IOMMU and uses the pKVM PCI backend";
+      ok =
+        pkvmAgx.ghaf.hardware.nvidia.orin.agx.enableNetvmWlanPCIPassthrough
+        && pkvmAgx.ghaf.hardware.nvidia.orin.agx.netvmWlanPCICrosvmIommu == "pkvm-iommu"
+        && pkvmWlan.crosvm.iommu == "pkvm-iommu"
+        && pkvmWlan.crosvm.guestAddress == "00:1f.0"
+        && lib.any (
+          overlay: overlay.name == "rtw8822ce-protected-assignment"
+        ) pkvmAgx.hardware.deviceTree.overlays
+        && !(lib.any (
+          overlay: overlay.name == "agx-ethernet-pci-passthough-overlay"
+        ) pkvmAgx.hardware.deviceTree.overlays);
     }
   ];
 
