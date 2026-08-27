@@ -41,9 +41,6 @@
       ghaf-mem-manager = prev.ghaf-mem-manager.overrideAttrs (old: {
         patches = (old.patches or [ ]) ++ [ ./patches/ghaf-mem-manager-no-syslog.patch ];
       });
-      ghaf-usb-applet = prev.ghaf-usb-applet.overrideAttrs (old: {
-        patches = (old.patches or [ ]) ++ [ ./patches/ghaf-usb-applet-log-level.patch ];
-      });
     };
 
     # Jetson-only Python fixes for the EDK2/UEFI firmware build. Deliberately

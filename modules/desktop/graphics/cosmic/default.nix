@@ -386,6 +386,7 @@ in
         with pkgs;
         [
           ghaf-wallpapers
+          ghaf-usb-applet
           grim # promptless screenshot for test automation
           (import ../launchers-pkg.nix { inherit pkgs config lib; })
         ]

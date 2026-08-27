@@ -80,7 +80,7 @@
 
     # A set of useful nix packages and utilities for ghaf
     ghafpkgs = {
-      url = "github:tiiuae/ghafpkgs";
+      url = "github:kajusnau/ghafpkgs/usb-applet-cleanup";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
@@ -206,7 +206,7 @@
 
     # Hot-plugging USB and PCI devices into Crosvm virtual machines
     ghaf-device-manager = {
-      url = "github:tiiuae/ghaf-device-manager";
+      url = "github:kajusnau/ghaf-device-manager/usb-labels";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

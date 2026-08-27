@@ -5,4 +5,3 @@
 # diagnosed as whitespace introduced into this repository.
 modules/microvm/sysvms/patches/chromiumos-virtio-tpm.patch -whitespace
 overlays/patches/ghaf-mem-manager-no-syslog.patch -whitespace
-overlays/patches/ghaf-usb-applet-log-level.patch -whitespace

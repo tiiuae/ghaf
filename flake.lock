@@ -391,15 +391,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1787665362,
-        "narHash": "sha256-lQ+UYvLy/Z0M3j75fKEcagLKCKNi//QhFccsHuEUIhM=",
-        "owner": "tiiuae",
+        "lastModified": 1787820505,
+        "narHash": "sha256-MnjEfc7DNhDMDOvqV2IOYU5hgzTVF1ZzHx/ZeY8cSVA=",
+        "owner": "kajusnau",
         "repo": "ghaf-device-manager",
-        "rev": "97835a588f651e915b3812a045164eac64fee1ed",
+        "rev": "869a52436c7e9ce901ea6437a5ddb14409fdf98e",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "kajusnau",
+        "ref": "usb-labels",
         "repo": "ghaf-device-manager",
         "type": "github"
       }
@@ -431,15 +432,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1786479821,
-        "narHash": "sha256-IjlgULYzJHftvGTEap4vfpltBPN56f21aN0IpxeqpK8=",
-        "owner": "tiiuae",
+        "lastModified": 1787831749,
+        "narHash": "sha256-jiPexzwXzdQwCPQj7Xe0GQBKog6SzTC+i4WtcsxsJnY=",
+        "owner": "kajusnau",
         "repo": "ghafpkgs",
-        "rev": "ad9b7f3269b945b40ecb30fa3461fd8b798bce1a",
+        "rev": "e4d1330a08740f69daa0c9dce6c1e06f54853e6d",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "kajusnau",
+        "ref": "usb-applet-cleanup",
         "repo": "ghafpkgs",
         "type": "github"
       }
