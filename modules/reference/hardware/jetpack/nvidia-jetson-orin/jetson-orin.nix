@@ -929,9 +929,15 @@ in
           name = "hid-logitech-unifying";
           patch = null;
           structuredExtraConfig = with lib.kernel; {
-            HID_LOGITECH = yes;
-            HID_LOGITECH_DJ = yes;
-            HID_LOGITECH_HIDPP = yes;
+            # Linux 7.1 makes HID_LOGITECH depend on the modular multicolor LED
+            # class in the upstream defconfig, so the receiver drivers must be
+            # modules too. Earlier Orin kernels keep the proven built-in setup.
+            HID_LOGITECH =
+              if lib.versionAtLeast config.boot.kernelPackages.kernel.version "7.1" then module else yes;
+            HID_LOGITECH_DJ =
+              if lib.versionAtLeast config.boot.kernelPackages.kernel.version "7.1" then module else yes;
+            HID_LOGITECH_HIDPP =
+              if lib.versionAtLeast config.boot.kernelPackages.kernel.version "7.1" then module else yes;
           };
         }
       ]

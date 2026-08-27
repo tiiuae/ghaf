@@ -46,13 +46,14 @@ netvm: dwmac-tegra ──MMIO/DMA──▶ vfio-platform ──▶ MGBE0 @ 0x680
 mainline solution",
 [`docs/about/removed-features.rst`](https://github.com/qemu/qemu/blob/499039798cdad7d86b787fec0eaf1da4151c0f05/docs/about/removed-features.rst#-device-vfio-platform-removed-in-102)).
 MGBE0 has no PCIe front
-end, so the netvm runs a pinned `ghaf-qemu-bpmp` built from **QEMU 10.1.5**, the
-last release that has the device. Every other VM stays on the nixpkgs QEMU.
+end, so the netvm runs a pinned `ghaf-nvidia-qemu-bpmp` built from **QEMU 10.1.5**, the
+last release that has the device. Every other Orin VM uses the unpinned
+`ghaf-nvidia-qemu` based on the nixpkgs QEMU.
 
 The guest device tree is **emitted by QEMU, not hand-written**. `virt` calls
 `exit(1)` for a dynamic sysbus device that has no FDT binding in
 `hw/core/sysbus-fdt.c` — which is why a hand-rolled `-dtb` never worked for
-platform passthrough. `ghaf-qemu-bpmp` therefore carries:
+platform passthrough. `ghaf-nvidia-qemu-bpmp` therefore carries:
 
 - the `nvidia_bpmp_guest` MMIO bridge and the guest `/bpmp` node (with a
   `phandle`), and

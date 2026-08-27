@@ -7,17 +7,16 @@
 #
 # VM Configuration on Jetson:
 # ===========================
-# Enabled VMs:
-# - Net VM (netvmBase exported for composition)
-# - Admin VM (adminvmBase exported for composition)
+# Enabled VMs in the standard target:
+# - Net VM
+# - Admin VM
+# - GUI VM with combined GPU and display passthrough
 #
 # Disabled VMs (architectural reasons):
-# - GUI VM: GPU passthrough not supported, desktop runs natively on host (COSMIC)
 # - Audio VM: Audio hardware directly accessible from host
 # - IDS VM: Resource constraints on embedded platform
-# - App VMs: No GUI VM means no Waypipe, apps run on host or via Docker
 #
-# Both netvmBase and adminvmBase are exported for composition needs.
+# VM bases are exported for target-specific composition.
 #
 {
   config,
@@ -29,6 +28,25 @@
 let
   cfg = config.ghaf.profiles.orin;
   hostGlobalConfig = config.ghaf.global-config;
+  mkGpuDisplayVmBase =
+    vmName: module:
+    lib.nixosSystem {
+      modules = [
+        inputs.self.nixosModules.microvm-nix
+        module
+        {
+          nixpkgs = {
+            hostPlatform.system = "aarch64-linux";
+            inherit (config.nixpkgs) overlays config;
+          };
+        }
+      ];
+      specialArgs = lib.ghaf.vm.mkSpecialArgs {
+        inherit lib inputs;
+        globalConfig = hostGlobalConfig;
+        hostConfig = lib.ghaf.vm.mkHostConfig { inherit config vmName; };
+      };
+    };
   ensureSystemProfile = pkgs.writeShellApplication {
     name = "ghaf-ensure-system-profile";
     runtimeInputs = with pkgs; [
@@ -88,24 +106,16 @@ in
       '';
     };
 
-    # GPU VM base configuration for profiles to extend
     gpuvmBase = lib.mkOption {
       type = lib.types.unspecified;
       readOnly = true;
-      description = ''
-        Orin GPU VM base configuration.
-        Profiles can extend this with extendModules if customization needed.
-      '';
+      description = "Orin GPU VM base configuration.";
     };
 
-    # Disp VM base configuration for profiles to extend
     dispvmBase = lib.mkOption {
       type = lib.types.unspecified;
       readOnly = true;
-      description = ''
-        Orin Disp VM base configuration.
-        Profiles can extend this with extendModules if customization needed.
-      '';
+      description = "Orin display VM base configuration.";
     };
 
     guivmBase = lib.mkOption {
@@ -133,11 +143,12 @@ in
 
       global-config.features.power-manager.enable = false;
 
+      # Orin VMs need Ghaf's microvm-nix wrapper for Crosvm platform support.
       profiles = {
         # Export Net VM base for profiles to extend
         orin.netvmBase = lib.nixosSystem {
           modules = [
-            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.microvm-nix
             inputs.self.nixosModules.netvm-base
             # Import nixpkgs config module to get overlays
             {
@@ -162,7 +173,7 @@ in
         # Export Admin VM base for profiles to extend
         orin.adminvmBase = lib.nixosSystem {
           modules = [
-            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.microvm-nix
             inputs.self.nixosModules.adminvm-base
             # Import nixpkgs config module to get overlays
             {
@@ -183,57 +194,12 @@ in
           };
         };
 
-        # Export GPU VM base for profiles to extend
-        orin.gpuvmBase = lib.nixosSystem {
-          modules = [
-            inputs.microvm.nixosModules.microvm
-            inputs.self.nixosModules.gpuvm-base
-            # Import nixpkgs config module to get overlays
-            {
-              nixpkgs = {
-                hostPlatform.system = "aarch64-linux";
-                inherit (config.nixpkgs) overlays;
-                inherit (config.nixpkgs) config;
-              };
-            }
-          ];
-          specialArgs = lib.ghaf.vm.mkSpecialArgs {
-            inherit lib inputs;
-            globalConfig = hostGlobalConfig;
-            hostConfig = lib.ghaf.vm.mkHostConfig {
-              inherit config;
-              vmName = "gpu-vm";
-            };
-          };
-        };
-
-        # Export Disp VM base for profiles to extend
-        orin.dispvmBase = lib.nixosSystem {
-          modules = [
-            inputs.microvm.nixosModules.microvm
-            inputs.self.nixosModules.dispvm-base
-            # Import nixpkgs config module to get overlays
-            {
-              nixpkgs = {
-                hostPlatform.system = "aarch64-linux";
-                inherit (config.nixpkgs) overlays;
-                inherit (config.nixpkgs) config;
-              };
-            }
-          ];
-          specialArgs = lib.ghaf.vm.mkSpecialArgs {
-            inherit lib inputs;
-            globalConfig = hostGlobalConfig;
-            hostConfig = lib.ghaf.vm.mkHostConfig {
-              inherit config;
-              vmName = "disp-vm";
-            };
-          };
-        };
+        orin.gpuvmBase = mkGpuDisplayVmBase "gpu-vm" inputs.self.nixosModules.gpuvm-base;
+        orin.dispvmBase = mkGpuDisplayVmBase "disp-vm" inputs.self.nixosModules.dispvm-base;
 
         orin.guivmBase = lib.nixosSystem {
           modules = [
-            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.microvm-nix
             inputs.self.nixosModules.guivm-base
             inputs.self.nixosModules.guivm-features
             inputs.self.nixosModules.orin-guivm-specialization
@@ -258,16 +224,12 @@ in
         orin.mkAppVm =
           vmDef:
           let
-            vmCfg = config.ghaf.virtualization.vmConfig.appvms.${vmDef.name} or { };
-            effectiveDef =
-              vmDef
-              // lib.optionalAttrs ((vmCfg.mem or null) != null) { inherit (vmCfg) mem; }
-              // lib.optionalAttrs ((vmCfg.vcpu or null) != null) { inherit (vmCfg) vcpu; }
-              // lib.optionalAttrs ((vmCfg.balloonRatio or null) != null) { inherit (vmCfg) balloonRatio; };
+            resolved = lib.ghaf.vm.resolveAppVmConfig { inherit config vmDef; };
+            inherit (resolved) effectiveDef selectedVmm;
           in
           lib.nixosSystem {
             modules = [
-              inputs.microvm.nixosModules.microvm
+              inputs.self.nixosModules.microvm-nix
               inputs.self.nixosModules.appvm-base
               {
                 nixpkgs = {
@@ -277,7 +239,7 @@ in
                 };
               }
             ]
-            ++ (vmCfg.extraModules or [ ]);
+            ++ resolved.extraModules;
             specialArgs = lib.ghaf.vm.mkSpecialArgs {
               inherit lib inputs;
               globalConfig = hostGlobalConfig;
@@ -288,6 +250,7 @@ in
                 }
                 // {
                   appvm = effectiveDef;
+                  appvmVmm = selectedVmm;
                   sharedVmDirectory =
                     config.ghaf.virtualization.microvm-host.sharedVmDirectory or {
                       enable = false;
@@ -341,7 +304,6 @@ in
       reference.host-demo-apps.demo-apps.enableDemoApplications = true;
 
       hardware.nvidia = {
-        virtualization.enable = true;
         # MGBE0 passthrough is AGX-only, so it's enabled per-SoM in the AGX
         # modules, not in this NX-shared profile: NX has no MGBE0 and would
         # crash net-vm on `-device vfio-platform,host=6800000.ethernet`.
@@ -385,31 +347,17 @@ in
             };
           };
 
-          # GPU VM: enable comes from the gpu-vm passthrough module
-          # (ghaf.hardware.nvidia.passthroughs.gpu_vm), which sets
-          # ghaf.virtualization.microvm.gpuvm.enable = true under its own mkIf.
-          # Here we only provide the evaluatedConfig, extending gpuvmBase with
-          # the hardware.definition.gpuvm.extraModules (DTB, vfio, guest kernel)
-          # via applyVmConfig.
-          gpuvm = {
-            evaluatedConfig = config.ghaf.profiles.orin.gpuvmBase.extendModules {
-              modules = lib.ghaf.vm.applyVmConfig {
-                inherit config;
-                vmName = "gpuvm";
-              };
+          gpuvm.evaluatedConfig = cfg.gpuvmBase.extendModules {
+            modules = lib.ghaf.vm.applyVmConfig {
+              inherit config;
+              vmName = "gpuvm";
             };
           };
 
-          # Disp VM: enable comes from the disp_vm passthrough module (sets
-          # dispvm.enable under its own mkIf). Here we only provide
-          # evaluatedConfig, extending dispvmBase with
-          # hardware.definition.dispvm.extraModules (DTB, vfio, guest kernel).
-          dispvm = {
-            evaluatedConfig = config.ghaf.profiles.orin.dispvmBase.extendModules {
-              modules = lib.ghaf.vm.applyVmConfig {
-                inherit config;
-                vmName = "dispvm";
-              };
+          dispvm.evaluatedConfig = cfg.dispvmBase.extendModules {
+            modules = lib.ghaf.vm.applyVmConfig {
+              inherit config;
+              vmName = "dispvm";
             };
           };
 

@@ -369,16 +369,18 @@
     "ghaf-crosvm": {
       "flake": false,
       "locked": {
-        "lastModified": 1787724426,
-        "narHash": "sha256-7JjNkqwJg4wie3ESosbxCS3iGcV10keqr3WyuZX/CFM=",
-        "ref": "refs/heads/fix/uas-stop-endpoint",
-        "rev": "f2f3d2102da1f69dd151221bae13b9046ed79b15",
-        "revCount": 11726,
+        "lastModified": 1787809422,
+        "narHash": "sha256-AFHAZ611b1oxg6zH3bE6XfF1w3Ao0+KdqG2rP9dDYZQ=",
+        "ref": "refs/heads/fix/pkvm-vfio-early-map",
+        "rev": "aa2478bef0750cc4013f24aa2cda472346db4a93",
+        "revCount": 11728,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
       },
       "original": {
+        "ref": "refs/heads/fix/pkvm-vfio-early-map",
+        "rev": "aa2478bef0750cc4013f24aa2cda472346db4a93",
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
@@ -431,17 +433,18 @@
         ]
       },
       "locked": {
-        "lastModified": 1786479821,
-        "narHash": "sha256-IjlgULYzJHftvGTEap4vfpltBPN56f21aN0IpxeqpK8=",
-        "owner": "tiiuae",
-        "repo": "ghafpkgs",
-        "rev": "ad9b7f3269b945b40ecb30fa3461fd8b798bce1a",
-        "type": "github"
+        "lastModified": 1787670305,
+        "narHash": "sha256-NKiE3XtyT4z24dJEcf3NMlvtrUVaetWOjCuIzrUBaVg=",
+        "ref": "refs/pull/369/head",
+        "rev": "a0bbf5eb2af2503c4c0a7b10cf8f7f2c3845c67f",
+        "revCount": 288,
+        "type": "git",
+        "url": "https://github.com/tiiuae/ghafpkgs"
       },
       "original": {
-        "owner": "tiiuae",
-        "repo": "ghafpkgs",
-        "type": "github"
+        "ref": "refs/pull/369/head",
+        "type": "git",
+        "url": "https://github.com/tiiuae/ghafpkgs"
       }
     },
     "git-hooks-nix": {
@@ -590,17 +593,34 @@
         ]
       },
       "locked": {
-        "lastModified": 1787088172,
-        "narHash": "sha256-P17S0tFbt1BBuCGQFQBaQuUwni+bo9J0a0tEmpcVfXc=",
+        "lastModified": 1787772676,
+        "narHash": "sha256-+DVcpRnkyQWQMKZfKppJqFsIhVdYQWrOXxG1+X1wLJw=",
         "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "beecf2d7122359b17aa551d9f0aee3b73bdb891c",
+        "rev": "9ad43a2697bc3da7e9b4911192607df6541b90e4",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "august-rebase",
+        "ref": "feat/orin-proxy-lifecycle",
         "repo": "jetpack-nixos",
+        "type": "github"
+      }
+    },
+    "linux-pkvm": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1787295153,
+        "narHash": "sha256-m70o3vSxsAohxD+p8CWMgaK+VtJ1SHJGmcYNXKdqsbI=",
+        "owner": "tiiuae",
+        "repo": "linux-pkvm",
+        "rev": "a62ea5215093d4595de020d5ae55e2a74d274491",
+        "type": "github"
+      },
+      "original": {
+        "owner": "tiiuae",
+        "repo": "linux-pkvm",
+        "rev": "a62ea5215093d4595de020d5ae55e2a74d274491",
         "type": "github"
       }
     },
@@ -612,15 +632,16 @@
         "spectrum": "spectrum"
       },
       "locked": {
-        "lastModified": 1786300091,
-        "narHash": "sha256-4UFJOVGpaYtHW5yasSv80MaJxTBYdk2zyf3jhKtt0wA=",
-        "owner": "microvm-nix",
+        "lastModified": 1787771032,
+        "narHash": "sha256-4OdVYhsrPGb5HaHcIA4iFbNryyhgmAziGs7UwIw8Of8=",
+        "owner": "vadika",
         "repo": "microvm.nix",
-        "rev": "71beea0076cd46dafcee97a5a2e7d00cbba5bd2f",
+        "rev": "0299f2d5faf597795ae78aab064eece23154b2b0",
         "type": "github"
       },
       "original": {
-        "owner": "microvm-nix",
+        "owner": "vadika",
+        "ref": "feat/crosvm-platform-upstream",
         "repo": "microvm.nix",
         "type": "github"
       }
@@ -803,6 +824,7 @@
         "gp-gui": "gp-gui",
         "gpu-partition-manager": "gpu-partition-manager",
         "jetpack-nixos": "jetpack-nixos",
+        "linux-pkvm": "linux-pkvm",
         "microvm": "microvm",
         "nix-store-veritysetup-generator": "nix-store-veritysetup-generator",
         "nixd": "nixd",
