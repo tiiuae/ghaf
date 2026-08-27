@@ -12,8 +12,23 @@ in
 {
   _file = ./agx-netvm-wlan-pci-passthrough.nix;
 
-  options.ghaf.hardware.nvidia.orin.agx.enableNetvmWlanPCIPassthrough =
-    lib.mkEnableOption "WLAN or ethernet card PCI passthrough to NetVM";
+  options.ghaf.hardware.nvidia.orin.agx = {
+    enableNetvmWlanPCIPassthrough = lib.mkEnableOption "WLAN or ethernet card PCI passthrough to NetVM";
+    netvmWlanPCICrosvmIommu = lib.mkOption {
+      type = lib.types.enum [
+        "off"
+        "viommu"
+        "coiommu"
+        "pkvm-iommu"
+      ];
+      default = "off";
+      description = ''
+        Crosvm IOMMU backend used for the AGX NetVM WLAN endpoint. Selecting
+        an IOMMU backend retains the PCIe controller's host IOMMU mapping;
+        the legacy off mode keeps the existing passthrough overlay.
+      '';
+    };
+  };
   config = lib.mkIf cfg.agx.enableNetvmWlanPCIPassthrough {
     # Orin AGX WLAN card PCI passthrough
     ghaf.hardware.nvidia.orin.enablePCIPassthroughCommon = true;
@@ -30,9 +45,10 @@ in
             path = "0001:01:00.0";
             crosvm = lib.optionalAttrs (config.microvm.hypervisor == "crosvm") {
               guestAddress = "00:1f.0";
-              # Host VFIO/SMMU isolation remains active; only the broken
-              # guest virtio-IOMMU path is bypassed for this endpoint.
-              iommu = "off";
+              # The legacy off mode retains the existing host-DT bypass
+              # overlay. Protected assignment selects pkvm-iommu and keeps
+              # the physical controller attached to the host SMMU.
+              iommu = cfg.agx.netvmWlanPCICrosvmIommu;
             };
           };
         in
@@ -58,7 +74,7 @@ in
       )
     ];
 
-    hardware.deviceTree.overlays = [
+    hardware.deviceTree.overlays = lib.mkIf (cfg.agx.netvmWlanPCICrosvmIommu == "off") [
       {
         name = "agx-ethernet-pci-passthough-overlay";
         dtsFile =
