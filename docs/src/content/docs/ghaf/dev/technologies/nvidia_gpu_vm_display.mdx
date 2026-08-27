@@ -4,11 +4,11 @@ sidebar:
   label: Orin GPU and Display
 ---
 
-The example compositions for split `gpu-vm`/`disp-vm` and combined `gui-vm`
-GPU and display passthrough are maintained in the
-[Ghaf GPU partitioning examples repository][examples]. Ghaf provides the
-generic VM and device-manager integration, while jetpack-nixos provides the
-Jetson platform mechanisms consumed by those examples.
+Ghaf provides reusable split `gpu-vm`/`disp-vm` and combined `gui-vm`
+compositions plus device-manager integration. Jetpack-nixos provides the
+Jetson platform mechanisms consumed by those compositions. The
+[Ghaf GPU partitioning examples repository][examples] adds container runtime,
+manager, probe, scenario, and workload payloads without redefining the VMs.
 
 See the examples repository's [architecture][architecture] and
 [user guide][user-guide] for topology, build, flash, and runtime details.
