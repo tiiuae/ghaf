@@ -28,6 +28,25 @@
 let
   cfg = config.ghaf.profiles.orin;
   hostGlobalConfig = config.ghaf.global-config;
+  mkGpuDisplayVmBase =
+    vmName: module:
+    lib.nixosSystem {
+      modules = [
+        inputs.self.nixosModules.microvm-nix
+        module
+        {
+          nixpkgs = {
+            hostPlatform.system = "aarch64-linux";
+            inherit (config.nixpkgs) overlays config;
+          };
+        }
+      ];
+      specialArgs = lib.ghaf.vm.mkSpecialArgs {
+        inherit lib inputs;
+        globalConfig = hostGlobalConfig;
+        hostConfig = lib.ghaf.vm.mkHostConfig { inherit config vmName; };
+      };
+    };
   ensureSystemProfile = pkgs.writeShellApplication {
     name = "ghaf-ensure-system-profile";
     runtimeInputs = with pkgs; [
@@ -85,6 +104,18 @@ in
         Orin Admin VM base configuration.
         Profiles can extend this with extendModules if customization needed.
       '';
+    };
+
+    gpuvmBase = lib.mkOption {
+      type = lib.types.unspecified;
+      readOnly = true;
+      description = "Orin GPU VM base configuration.";
+    };
+
+    dispvmBase = lib.mkOption {
+      type = lib.types.unspecified;
+      readOnly = true;
+      description = "Orin display VM base configuration.";
     };
 
     guivmBase = lib.mkOption {
@@ -162,6 +193,9 @@ in
             };
           };
         };
+
+        orin.gpuvmBase = mkGpuDisplayVmBase "gpu-vm" inputs.self.nixosModules.gpuvm-base;
+        orin.dispvmBase = mkGpuDisplayVmBase "disp-vm" inputs.self.nixosModules.dispvm-base;
 
         orin.guivmBase = lib.nixosSystem {
           modules = [
@@ -310,6 +344,20 @@ in
                 inherit config;
                 vmName = "adminvm";
               };
+            };
+          };
+
+          gpuvm.evaluatedConfig = cfg.gpuvmBase.extendModules {
+            modules = lib.ghaf.vm.applyVmConfig {
+              inherit config;
+              vmName = "gpuvm";
+            };
+          };
+
+          dispvm.evaluatedConfig = cfg.dispvmBase.extendModules {
+            modules = lib.ghaf.vm.applyVmConfig {
+              inherit config;
+              vmName = "dispvm";
             };
           };
 
