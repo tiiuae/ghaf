@@ -369,11 +369,11 @@
     "ghaf-crosvm": {
       "flake": false,
       "locked": {
-        "lastModified": 1787724426,
+        "lastModified": 1787809374,
         "narHash": "sha256-7JjNkqwJg4wie3ESosbxCS3iGcV10keqr3WyuZX/CFM=",
-        "ref": "refs/heads/fix/uas-stop-endpoint",
-        "rev": "f2f3d2102da1f69dd151221bae13b9046ed79b15",
-        "revCount": 11726,
+        "ref": "refs/heads/main",
+        "rev": "63e3c3482553212244aec55a3fee5646b37c98bd",
+        "revCount": 11727,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
