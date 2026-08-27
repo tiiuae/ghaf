@@ -62,7 +62,12 @@ pkgs.testers.nixosTest {
     };
 
     machine = _: {
-      virtualisation.emptyDiskImages = [ (1024 * 256) ];
+      # The second disk exists only to carry a boot entry that is then made
+      # dangling, for the stale-entry subtest.
+      virtualisation.emptyDiskImages = [
+        (1024 * 256)
+        64
+      ];
       virtualisation.memorySize = 1024 * 16;
 
       # UEFI, so /sys/firmware/efi/efivars exists and set_boot_to_disk actually
@@ -92,6 +97,8 @@ pkgs.testers.nixosTest {
         # For the test's own assertions. ghaf-installer carries its own copy via
         # runtimeInputs, so this does not stand in for that.
         pkgs.efibootmgr
+        pkgs.gptfdisk
+        pkgs.parted
       ];
     };
   };
@@ -183,6 +190,39 @@ pkgs.testers.nixosTest {
         after = len([l for l in machine.succeed("efibootmgr").splitlines() if "Ghaf" in l])
         assert after == before, f"boot entries multiplied: {before} -> {after}"
 
+    with subtest("an install removes Ghaf entries whose ESP is gone"):
+        # Each install writes a new GPT, so the previous install's entry is left
+        # naming a PARTUUID that no longer exists. A Dell RA13250 carrying two
+        # of them booted into SupportAssist recovery rather than the disk.
+        machine.succeed("sgdisk --zap-all /dev/vdc && sgdisk -n 1:0:0 -t 1:ef00 /dev/vdc && partprobe /dev/vdc")
+        stale_uuid = machine.succeed("lsblk -no PARTUUID /dev/vdc1").strip().lower()
+        machine.succeed(
+            "efibootmgr -c -d /dev/vdc -p 1 -L Ghaf "
+            "-l '\\EFI\\systemd\\systemd-bootx64.efi'"
+        )
+        # Same disk, not labelled Ghaf: pruning must not touch another OS.
+        machine.succeed(
+            "efibootmgr -c -d /dev/vdc -p 1 -L 'Windows Boot Manager' "
+            "-l '\\EFI\\Microsoft\\Boot\\bootmgfw.efi'"
+        )
+        # Destroy the table the two entries point at.
+        machine.succeed("sgdisk --zap-all /dev/vdc && partprobe /dev/vdc")
+
+        machine.succeed('ghaf-installer </dev/null', timeout=900)
+        entries = machine.succeed("efibootmgr -v")
+        # Ghaf lines only: the Windows entry below shares this PARTUUID, and
+        # keeping it is the point of the next assertion.
+        ghaf_lines = "\n".join(l for l in entries.splitlines() if "Ghaf" in l)
+        assert stale_uuid not in ghaf_lines.lower(), (
+            f"stale Ghaf entry {stale_uuid} survived the install:\n{entries}"
+        )
+        assert "Windows Boot Manager" in entries, (
+            f"pruning removed an entry that was not ours:\n{entries}"
+        )
+        assert len([l for l in entries.splitlines() if "Ghaf" in l]) == 1, (
+            f"expected exactly the live Ghaf entry:\n{entries}"
+        )
+
     with subtest("the interactive front-end is wired to the same boot and queue code"):
         # A wiring check: the TUI is gum on tty1 and cannot be driven from a
         # test. It no longer has its own copy of this logic, so the subtests
@@ -190,7 +230,7 @@ pkgs.testers.nixosTest {
         tui = machine.succeed("command -v ghaf-installer-tui").strip()
 
         # Prepended into the wrapper by the package.
-        for fn in ["set_boot_to_disk", "point_bootnext_at_disk", "wait_for_image_slot"]:
+        for fn in ["set_boot_to_disk", "wait_for_image_slot"]:
             machine.succeed(f"grep -q '^{fn}() {{' {tui}")
 
         # Sourced at run time: the do_* wrappers and the image fetch live here.
@@ -198,7 +238,7 @@ pkgs.testers.nixosTest {
             f"grep -o '/nix/store/[a-z0-9]*-ghaf-installer-lib.sh' {tui} | head -1"
         ).strip()
         assert lib, f"ghaf-installer-tui does not source an installer lib:\n{tui}"
-        for fn in ["do_set_boot_entry", "do_point_bootnext"]:
+        for fn in ["do_set_boot_entry"]:
             machine.succeed(f"grep -q '^{fn}() {{' {lib}")
 
         # The do_* wrappers and the shared functions are defined in different
@@ -209,7 +249,6 @@ pkgs.testers.nixosTest {
             return machine.succeed(f"sed -n '/^{fn}() {{/,/^}}$/p' {lib}")
 
         assert "set_boot_to_disk" in body("do_set_boot_entry")
-        assert "point_bootnext_at_disk" in body("do_point_bootnext")
         assert "wait_for_image_slot" in body("do_install_image")
 
         # The fetch feeds bmaptool, so a mid-stream --retry corrupts the write.

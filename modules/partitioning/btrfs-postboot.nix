@@ -25,8 +25,11 @@ let
       vg_free=$(vgs --noheadings --nosuffix --units m -o vg_free pool 2>/dev/null | tr -d ' ' | cut -d. -f1 || true)
       if [ "''${vg_free:-0}" -ge "$b_needed" ]; then
         echo "Creating the B slot ($b_needed MiB) before persist claims the rest..."
-        if lvcreate -y -n root_empty -L "''${b_root}M" pool &&
-          lvcreate -y -n verity_empty -L "''${b_verity}M" pool; then
+        # -Zn -Wn: zeroing opens /dev/pool/<lv>, which udev has not made yet
+        # this early -- "device not cleared", and the create aborts. Empty
+        # placeholders an A/B update overwrites, so nothing needs clearing.
+        if DM_DISABLE_UDEV=1 lvcreate -y -Zn -Wn -n root_empty -L "''${b_root}M" pool &&
+          DM_DISABLE_UDEV=1 lvcreate -y -Zn -Wn -n verity_empty -L "''${b_verity}M" pool; then
           echo "B slot created."
         else
           echo "WARNING: could not create the B slot; A/B updates will be unavailable."

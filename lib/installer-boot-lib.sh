@@ -79,6 +79,40 @@ find_esp_loader() {
   printf '%s\n' "$loader"
 }
 
+# Remove Ghaf entries whose ESP is gone. Reinstalling the same image reuses its
+# entry; an image whose ESP lands a different PARTUUID strands the old one, and
+# they accumulate and never expire. Measured: three on a Dell RA13250 over the
+# B-slot work, on a machine that then booted into recovery.
+#
+# Keyed on "no partition with this PARTUUID exists", not "not the one we just
+# wrote": a Ghaf install on a second disk is still bootable and must survive.
+prune_stale_boot_entries() {
+  local keep="$1" live entries stale bootnum uuid
+
+  command -v efibootmgr >/dev/null 2>&1 || return 0
+
+  live="$(lsblk -no PARTUUID 2>/dev/null | tr -d '[:blank:]' | tr '[:upper:]' '[:lower:]' | grep . || true)"
+  # No readable partition table means every entry looks stale. Do nothing.
+  [ -n "$live" ] || return 0
+
+  entries="$(efibootmgr -v 2>/dev/null || true)"
+  stale="$(
+    printf '%s\n' "$entries" |
+      sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\)\*\{0,1\}[[:blank:]]*Ghaf[[:blank:]].*HD([0-9]*,GPT,\([0-9A-Fa-f-]\{1,\}\),.*/\1 \2/p' || true
+  )"
+
+  while read -r bootnum uuid; do
+    [ -n "$bootnum" ] || continue
+    [ "$bootnum" != "$keep" ] || continue
+    printf '%s\n' "$live" | grep -qxF "$(printf '%s' "$uuid" | tr '[:upper:]' '[:lower:]')" && continue
+    echo "Removing stale boot entry Boot$bootnum ($uuid)"
+    efibootmgr -b "$bootnum" -B >/dev/null 2>&1 ||
+      echo "WARNING: could not remove Boot$bootnum." >&2
+  done <<EOF
+$stale
+EOF
+}
+
 # Point the firmware at the disk just written. Before this, the only thing
 # stopping a netbooted machine reinstalling in a loop was the server shutting
 # down after one transfer, which a fleet server cannot do.
@@ -172,72 +206,12 @@ set_boot_to_disk() {
     echo "WARNING: could not determine the new boot entry number." >&2
   fi
 
+  prune_stale_boot_entries "$bootnum"
+
   # The only evidence anyone gets from an unattended fleet install.
   echo "--- efibootmgr ---"
   efibootmgr 2>/dev/null || true
   echo "------------------"
-}
-
-# Stop this machine netbooting again before the long part starts. A fleet is
-# put into PXE by hand (F12), so nothing can ssh in and arm it -- but our
-# installer is already running on it.
-#
-# The download can sit in a server's queue for hours; a machine power-cycled in
-# that window, with network boot ahead of its disk, returns to the installer.
-# set_boot_to_disk still runs after the write; this only covers the gap.
-#
-# Called before the wipe: afterwards there is no entry left to point at.
-point_bootnext_at_disk() {
-  local device_name="$1" esp="${2:-}"
-  local entries bootnum partuuid serial model
-
-  command -v efibootmgr >/dev/null 2>&1 || return 0
-  ensure_efivars || return 0
-
-  entries="$(efibootmgr -v 2>/dev/null || true)"
-  [ -n "$entries" ] || return 0
-
-  # The ESP that is on the disk right now, if this machine was installed before.
-  # Its PARTUUID appears in the firmware's own entry for it.
-  bootnum=""
-  if [ -n "$esp" ]; then
-    partuuid="$(lsblk -no PARTUUID "$esp" 2>/dev/null | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]' || true)"
-    if [ -n "$partuuid" ]; then
-      bootnum="$(printf '%s\n' "$entries" | grep -i -- "$partuuid" |
-        sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\).*/\1/p' | head -1 || true)"
-    fi
-  fi
-
-  # Otherwise the firmware's auto-created entry, which names the drive: on a
-  # Dell it reads "UEFI BG7 KIOXIA 1024GB 3GGPSDEUZ43B 1". The serial is the
-  # discriminating part, and it is what tells this disk from a second one.
-  if [ -z "$bootnum" ]; then
-    serial="$(lsblk -dno SERIAL "$device_name" 2>/dev/null | tr -d '[:space:]' || true)"
-    if [ -n "$serial" ]; then
-      bootnum="$(printf '%s\n' "$entries" | grep -iF -- "$serial" |
-        sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\).*/\1/p' | head -1 || true)"
-    fi
-  fi
-  if [ -z "$bootnum" ]; then
-    model="$(lsblk -dno MODEL "$device_name" 2>/dev/null | sed 's/[[:space:]]*$//' || true)"
-    if [ -n "$model" ]; then
-      bootnum="$(printf '%s\n' "$entries" | grep -iF -- "$model" |
-        sed -n 's/^Boot\([0-9A-Fa-f]\{4\}\).*/\1/p' | head -1 || true)"
-    fi
-  fi
-
-  if [ -z "$bootnum" ]; then
-    # A disk that has never been bootable has no entry to point at. Nothing is
-    # wrong; set_boot_to_disk creates one once there is an ESP to name.
-    echo "No existing boot entry for $device_name yet; will create one after the write."
-    return 0
-  fi
-
-  if efibootmgr -n "$bootnum" >/dev/null 2>&1; then
-    echo "BootNext set to Boot$bootnum ($device_name) before downloading."
-  else
-    echo "WARNING: could not set BootNext before downloading; continuing." >&2
-  fi
 }
 
 # How long to sit in an install server's queue before giving up, in seconds.

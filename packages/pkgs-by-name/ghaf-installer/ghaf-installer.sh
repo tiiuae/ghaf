@@ -323,12 +323,6 @@ find_esp_device() {
   return 1
 }
 
-if [ "$WIPE_ONLY" != true ]; then
-  # Before the wipe, while find_esp_device still has partitions. Empty is fine:
-  # the lib falls back to the drive's serial.
-  point_bootnext_at_disk "$DEVICE_NAME" "$(find_esp_device 2>/dev/null || true)"
-fi
-
 echo "Wiping device..."
 
 # Deactivate any active LVM volume groups on the device

@@ -316,10 +316,6 @@ screen_running() {
     show_header "Installing Ghaf"
   fi
 
-  # Before the wipe: it matches an entry that exists now, and after the wipe
-  # there is none. Not a run_step -- having no entry yet is normal, not failure.
-  $WIPE_ONLY || do_point_bootnext "$DEVICE_NAME"
-
   # Also before the wipe: an image too big for the disk must not cost the data
   # already on it, and dd would otherwise write to end-of-device and leave a GPT
   # describing a disk that does not exist.

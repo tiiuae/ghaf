@@ -42,6 +42,7 @@ Options:
                            DESTRUCTIVE and requires --mac.
       --encrypt            With --install-target: enable disk encryption
       --secureboot         With --install-target: enroll Secure Boot keys
+      --extra-cmdline S    Append S to the target's kernel command line
   -p, --port <PORT>        HTTP port (default 8080)
   -t, --timeout <MIN>      Exit after this long (default 60, 0 disables).
                            Use 0 for a long-running fleet server.
@@ -98,6 +99,7 @@ TIMEOUT_MIN=60
 INSTALL_TARGET=""
 ENCRYPT=false
 SECUREBOOT=false
+EXTRA_CMDLINE=""
 FORCE_IFACE=false
 OPEN_FIREWALL=false
 DRY_RUN=false
@@ -160,6 +162,10 @@ while [ $# -gt 0 ]; do
   --secureboot)
     SECUREBOOT=true
     shift
+    ;;
+  --extra-cmdline)
+    EXTRA_CMDLINE="$2"
+    shift 2
     ;;
   -p | --port)
     PORT="$2"
@@ -459,6 +465,10 @@ if [ -n "$INSTALL_TARGET" ]; then
   $ENCRYPT && CMDLINE="$CMDLINE ghaf.install_encrypt"
   $SECUREBOOT && CMDLINE="$CMDLINE ghaf.install_secureboot"
 fi
+# Last, so it can override anything above. ghaf.install_noreboot belongs here:
+# it keeps a failed install on screen and reachable over ssh instead of
+# rebooting the evidence away.
+[ -n "$EXTRA_CMDLINE" ] && CMDLINE="$CMDLINE $EXTRA_CMDLINE"
 
 cat >&2 <<EOF
 ghaf-netboot:
