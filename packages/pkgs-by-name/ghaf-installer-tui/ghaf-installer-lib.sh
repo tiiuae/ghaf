@@ -390,16 +390,6 @@ do_enroll_secureboot() {
   debug "Secure Boot keys enrolled."
 }
 
-# Before the wipe: a machine interrupted mid-download returns to its own disk
-# rather than the installer. A factory-fresh disk has nothing to point at, which
-# is not an error.
-# shellcheck disable=SC2329
-do_point_bootnext() {
-  local dev="$1" esp
-  esp="$(find_esp_device "$dev" 2>/dev/null || true)"
-  point_bootnext_at_disk "$dev" "$esp" || true
-}
-
 # Create or reuse the EFI entry for the ESP just written, first in BootOrder.
 # Without it the machine boots the installer media it is still sitting in.
 # shellcheck disable=SC2329
