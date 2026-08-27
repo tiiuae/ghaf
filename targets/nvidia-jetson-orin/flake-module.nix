@@ -258,6 +258,10 @@ let
             ARM_SMMU = no;
             ARM_SMMU_TEGRA_PKVM = yes;
             IOMMU_POOL_PAGES = freeform "0x10000";
+            # Protected PCI discovery must complete before pKVM drops host
+            # privileges during late kernel initialization.
+            PCIE_TEGRA194_HOST = yes;
+            PHY_TEGRA194_P2U = yes;
             PKVM_PVIOMMU = yes;
             VFIO_PKVM_IOMMU = yes;
           };
