@@ -79,6 +79,26 @@ find_esp_loader() {
   printf '%s\n' "$loader"
 }
 
+# efibootmgr's own error text is the whole story when the variable store is
+# full, and every call here used to discard it into /dev/null -- which is why a
+# machine that would not boot looked identical to one that did.
+efibm() {
+  local out rc=0
+  out="$(efibootmgr "$@" 2>&1)" || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    echo "efibootmgr $*: failed (rc=$rc): $out" >&2
+  fi
+  return "$rc"
+}
+
+# Dell firmware and the kernel both refuse variable writes as the store fills,
+# and the failure is silent unless someone prints this.
+nvram_usage() {
+  df -k /sys/firmware/efi/efivars 2>/dev/null |
+    awk 'NR == 2 { printf "%s of %s KiB used (%s)", $3, $2, $5 }' ||
+    echo "unknown"
+}
+
 # Remove Ghaf entries whose ESP is gone. Reinstalling the same image reuses its
 # entry; an image whose ESP lands a different PARTUUID strands the old one, and
 # they accumulate and never expire. Measured: three on a Dell RA13250 over the
@@ -106,8 +126,8 @@ prune_stale_boot_entries() {
     [ "$bootnum" != "$keep" ] || continue
     printf '%s\n' "$live" | grep -qxF "$(printf '%s' "$uuid" | tr '[:upper:]' '[:lower:]')" && continue
     echo "Removing stale boot entry Boot$bootnum ($uuid)"
-    efibootmgr -b "$bootnum" -B >/dev/null 2>&1 ||
-      echo "WARNING: could not remove Boot$bootnum." >&2
+    efibm -b "$bootnum" -B ||
+      echo "WARNING: could not remove Boot$bootnum; the store stays full." >&2
   done <<EOF
 $stale
 EOF
@@ -134,6 +154,8 @@ set_boot_to_disk() {
     return 0
   }
 
+  echo "EFI variable store: $(nvram_usage)"
+
   # lsblk rather than stripping digits off the path: nvme0n1p1 and sda1 do not
   # share a suffix rule, and getting it wrong would aim -p at the wrong slot.
   part_num="$(lsblk -no PARTN "$esp_device" 2>/dev/null | tr -d '[:space:]')"
@@ -151,6 +173,14 @@ set_boot_to_disk() {
   # `|| true` on every pipeline: under `set -euo pipefail` a grep matching
   # nothing aborts the installer, and "no entry yet" is the normal case here.
   partuuid="$(lsblk -no PARTUUID "$esp_device" 2>/dev/null | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]' || true)"
+
+  # BEFORE creating anything, not after. The store is small and a full one makes
+  # efibootmgr fail: on a Dell RA13250 at 64% used the create landed but the
+  # deletes did not, leaving a machine that would not boot AND a stale entry
+  # that made the next install worse. Deleting first is what keeps that from
+  # compounding. The entry for the disk just written has a live PARTUUID, so
+  # this cannot remove what we are about to reuse.
+  prune_stale_boot_entries ""
 
   # Reuse an existing entry rather than adding one per install. NVRAM is small
   # and a reinstalled machine would otherwise accumulate identical entries until
@@ -175,13 +205,14 @@ set_boot_to_disk() {
     order="$(printf '%s\n' "$entries" | sed -n 's/^BootOrder: //p' | tr -d '[:space:]' || true)"
     if [ -n "$order" ] && [ "${order%%,*}" != "$bootnum" ]; then
       order="$bootnum,$(printf '%s' "$order" | tr ',' '\n' | grep -viF "$bootnum" | paste -sd, - || true)"
-      efibootmgr -o "${order%,}" >/dev/null 2>&1 ||
+      efibm -o "${order%,}" ||
         echo "WARNING: could not reorder BootOrder; BootNext below still applies." >&2
     fi
   else
     echo "Creating boot entry for $device_name partition $part_num"
-    efibootmgr -c -d "$device_name" -p "$part_num" -L "Ghaf" -l "$loader" >/dev/null 2>&1 || {
+    efibm -c -d "$device_name" -p "$part_num" -L "Ghaf" -l "$loader" || {
       echo "WARNING: could not create a boot entry; leaving boot order untouched." >&2
+      echo "         EFI variable store: $(nvram_usage)" >&2
       return 0
     }
     entries="$(efibootmgr -v 2>/dev/null || true)"
@@ -199,14 +230,20 @@ set_boot_to_disk() {
   fi
 
   if [ -n "$bootnum" ]; then
-    efibootmgr -n "$bootnum" >/dev/null 2>&1 &&
+    efibm -n "$bootnum" &&
       echo "BootNext set to Boot$bootnum (one-shot)" ||
       echo "WARNING: could not set BootNext." >&2
   else
     echo "WARNING: could not determine the new boot entry number." >&2
   fi
 
-  prune_stale_boot_entries "$bootnum"
+  # Read back rather than trusting the writes: a store that refused one of them
+  # leaves a machine that does not boot, and this is the only place it shows.
+  if ! efibootmgr 2>/dev/null | grep -q "^Boot${bootnum}"; then
+    echo "WARNING: Boot$bootnum is not in the store after writing it." >&2
+  fi
+
+  echo "EFI variable store after: $(nvram_usage)"
 
   # The only evidence anyone gets from an unattended fleet install.
   echo "--- efibootmgr ---"
