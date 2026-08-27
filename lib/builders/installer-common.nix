@@ -104,7 +104,14 @@ in
           # the two front-ends to run.
           if grep -q 'ghaf\.install_target=' /proc/cmdline 2>/dev/null; then
             echo "ghaf.install_target= on the kernel command line: installing unattended." >&2
-            exec ${self.packages.${system}.ghaf-installer}/bin/ghaf-installer
+            # Tee'd rather than exec'd: StandardOutput is the tty, so without
+            # this an unattended install's only record is a screen nobody is
+            # watching -- and its warnings are exactly what you need after a
+            # machine comes back unbootable. tee keeps the console copy.
+            set -o pipefail
+            ${self.packages.${system}.ghaf-installer}/bin/ghaf-installer 2>&1 |
+              ${pkgs.coreutils}/bin/tee >(${pkgs.systemd}/bin/systemd-cat -t ghaf-installer)
+            exit "''${PIPESTATUS[0]}"
           fi
           exec ${self.packages.${system}.ghaf-installer-tui}/bin/ghaf-installer-tui
         '';
