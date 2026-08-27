@@ -20,6 +20,8 @@
     microvm.imports = [
       ./host/microvm-host.nix
       ./sysvms/netvm.nix
+      ./sysvms/gpuvm.nix
+      ./sysvms/dispvm.nix
       ./sysvms/adminvm.nix
       ./appvm.nix
       ./sysvms/guivm.nix
@@ -98,6 +100,11 @@
     # Note: Jetson and other non-laptop platforms continue to use netvm.extraModules
     netvm-base = ./sysvms/netvm-base.nix;
 
+    # Headless GPU and display VM bases. Hardware and workload modules are
+    # layered through hardware.definition.*.extraModules.
+    gpuvm-base = ./sysvms/gpuvm-base.nix;
+    dispvm-base = ./sysvms/dispvm-base.nix;
+
     # App VM base module for layered composition
     # Unlike singleton VMs, App VMs are instantiated multiple times using mkAppVm.
     # Use with extendModules pattern:
@@ -154,6 +161,10 @@
     # Network VM - External network connectivity and routing
     # Requires: Network device passthrough
     netvm = ./sysvms/netvm-base.nix;
+
+    # Headless accelerator VMs; target hardware and workloads are layered on.
+    gpuvm = ./sysvms/gpuvm-base.nix;
+    dispvm = ./sysvms/dispvm-base.nix;
 
     # Audio VM - Sound services and Bluetooth
     # Requires: Audio device passthrough (optional)
