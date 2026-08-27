@@ -104,7 +104,7 @@ in
           # Replace the placeholder with the real roothash in the target .raw file
           verityRoothash=$(cat $out/dm-verity-root-hash)
 
-          # SAFETY: root hash later validated in mk-manifest.py
+          # SAFETY: root hash later validated by the artifact generator.
           test -n "$verityRoothash" || (echo "bad root hash" >&2 && exit 1)
 
           # Create UKI kernel with embedded verityhash
@@ -115,7 +115,7 @@ in
             --output="kernel.efi"
           # ${kernelImage} don't work for some reasons, so move kernel in place
           mv kernel.efi ${kernelImage}
-          # FIXME: move compression into mk-manifest.py and compute unpacked sizes there.
+          # FIXME: move compression into the artifact generator and compute unpacked sizes there.
           rootUnpackedSize=$(stat -c%s ${fsImage})
           verityUnpackedSize=$(stat -c%s ${verityImage})
 
@@ -125,7 +125,9 @@ in
           # Create artifacts and manifest.
           ${pkgs.buildPackages.python3}/bin/python ${./mk-manifest.py} \
             --version ${version} \
+            --system ${config.nixpkgs.hostPlatform.system} \
             --target ${lib.escapeShellArg cfg.target} \
+            --build-system ${pkgs.stdenv.buildPlatform.system} \
             --generation ${toString cfg.generation} \
             --hash-file $out/dm-verity-root-hash \
             --root-image ${fsImage}.zst \
