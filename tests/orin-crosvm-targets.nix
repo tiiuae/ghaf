@@ -61,6 +61,20 @@ let
   nxGuiShutdown =
     (hostConfig baseTargets.nvidia-jetson-orin-nx-debug).systemd.services."ghaf-crosvm-shutdown-gui-vm";
   nxGuiShutdownScript = nxGuiShutdown.serviceConfig.ExecStop;
+  splitAgx =
+    (baseTargets.nvidia-jetson-orin-agx-debug.extendModules {
+      modules = [
+        self.nixosModules.jetpack-orin-gpu-partitioning
+        {
+          ghaf.hardware.nvidia.passthroughs = {
+            gui_vm.enable = lib.mkForce false;
+            gpu_vm.enable = true;
+            disp_vm.enable = true;
+          };
+        }
+      ];
+    }).config;
+  splitVmConfigs = map (vm: vm.evaluatedConfig.config) (builtins.attrValues splitAgx.microvm.vms);
   qemuFallback =
     (baseTargets.nvidia-jetson-orin-agx-release.extendModules {
       modules = [
@@ -99,6 +113,21 @@ let
       ok =
         nxGuiShutdown.serviceConfig.TimeoutStopSec == "95"
         && nxGuiShutdown.serviceConfig.WorkingDirectory == "/var/lib/microvms/gui-vm";
+    }
+    {
+      name = "Ghaf composes the split GPU and display VM target";
+      ok =
+        !splitAgx.ghaf.virtualization.microvm.guivm.enable
+        && splitAgx.ghaf.virtualization.microvm.gpuvm.enable
+        && splitAgx.ghaf.virtualization.microvm.dispvm.enable
+        &&
+          splitAgx.hardware.nvidia-jetpack.virtualization.gpuPassthroughHost.assignments == {
+            gpu-vm.role = "compute";
+            disp-vm.role = "display";
+          }
+        && splitAgx.microvm.vms ? "gpu-vm"
+        && splitAgx.microvm.vms ? "disp-vm"
+        && lib.all (vm: vm.microvm.hypervisor == "crosvm") splitVmConfigs;
     }
     {
       name = "explicit QEMU overrides retain the supported rollback path";

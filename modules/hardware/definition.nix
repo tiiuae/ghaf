@@ -431,5 +431,17 @@ in
         };
       };
 
+      gpuvm.extraModules = mkOption {
+        description = "Hardware and workload modules added to GPU VM.";
+        type = types.listOf types.unspecified;
+        default = [ ];
+      };
+
+      dispvm.extraModules = mkOption {
+        description = "Hardware and workload modules added to display VM.";
+        type = types.listOf types.unspecified;
+        default = [ ];
+      };
+
     };
 }
