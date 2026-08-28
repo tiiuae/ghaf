@@ -248,18 +248,18 @@
     "ghaf-crosvm": {
       "flake": false,
       "locked": {
-        "lastModified": 1787809422,
-        "narHash": "sha256-AFHAZ611b1oxg6zH3bE6XfF1w3Ao0+KdqG2rP9dDYZQ=",
-        "ref": "refs/heads/fix/pkvm-vfio-early-map",
-        "rev": "aa2478bef0750cc4013f24aa2cda472346db4a93",
-        "revCount": 11728,
+        "lastModified": 1787954569,
+        "narHash": "sha256-pe4x30UsXsbFKwM68JRsoOqO1fyy5zuJtzMIIVBw0cg=",
+        "ref": "refs/heads/feat/pkvm-pci-assignment",
+        "rev": "718c58c3606bd6c33069fb48b716bf7297287833",
+        "revCount": 11731,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
       },
       "original": {
-        "ref": "refs/heads/fix/pkvm-vfio-early-map",
-        "rev": "aa2478bef0750cc4013f24aa2cda472346db4a93",
+        "ref": "refs/heads/feat/pkvm-pci-assignment",
+        "rev": "718c58c3606bd6c33069fb48b716bf7297287833",
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
@@ -470,17 +470,17 @@
     "linux-pkvm": {
       "flake": false,
       "locked": {
-        "lastModified": 1787295153,
-        "narHash": "sha256-m70o3vSxsAohxD+p8CWMgaK+VtJ1SHJGmcYNXKdqsbI=",
+        "lastModified": 1787954561,
+        "narHash": "sha256-3/9Q1JQqP3ci6JfiP2GPlMdBBNPg0G6uFohew2cj5Dw=",
         "owner": "tiiuae",
         "repo": "linux-pkvm",
-        "rev": "a62ea5215093d4595de020d5ae55e2a74d274491",
+        "rev": "24e85e20b92b65cfae1b0881c98a391f32c346b0",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
         "repo": "linux-pkvm",
-        "rev": "a62ea5215093d4595de020d5ae55e2a74d274491",
+        "rev": "24e85e20b92b65cfae1b0881c98a391f32c346b0",
         "type": "github"
       }
     },
@@ -492,17 +492,17 @@
         "spectrum": "spectrum"
       },
       "locked": {
-        "lastModified": 1787771032,
-        "narHash": "sha256-4OdVYhsrPGb5HaHcIA4iFbNryyhgmAziGs7UwIw8Of8=",
+        "lastModified": 1787816836,
+        "narHash": "sha256-vUH5qt181X5N+w3CLcKgR9Lxc52tZtJhathutPNYP4o=",
         "owner": "vadika",
         "repo": "microvm.nix",
-        "rev": "0299f2d5faf597795ae78aab064eece23154b2b0",
+        "rev": "254dccf3f126e22e929f3e6d32399a45f55cf977",
         "type": "github"
       },
       "original": {
         "owner": "vadika",
-        "ref": "feat/crosvm-platform-upstream",
         "repo": "microvm.nix",
+        "rev": "254dccf3f126e22e929f3e6d32399a45f55cf977",
         "type": "github"
       }
     },

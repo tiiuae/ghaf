@@ -96,7 +96,7 @@
     # Crosvm with Ghaf's swtpm backend. This is a non-flake source input
     # because nixpkgs supplies the package expression and Rust dependencies.
     ghaf-crosvm = {
-      url = "git+https://github.com/tiiuae/ghaf-crosvm?ref=refs/heads/fix/pkvm-vfio-early-map&rev=aa2478bef0750cc4013f24aa2cda472346db4a93&submodules=1";
+      url = "git+https://github.com/tiiuae/ghaf-crosvm?ref=refs/heads/feat/pkvm-pci-assignment&rev=718c58c3606bd6c33069fb48b716bf7297287833&submodules=1";
       flake = false;
     };
 
@@ -155,14 +155,14 @@
     # Validated Linux 7.1 pKVM source for the AGX host and protected guests.
     # flake.lock pins this non-flake input to an immutable integration commit.
     linux-pkvm = {
-      url = "github:tiiuae/linux-pkvm/a62ea5215093d4595de020d5ae55e2a74d274491";
+      url = "github:tiiuae/linux-pkvm/24e85e20b92b65cfae1b0881c98a391f32c346b0";
       flake = false;
     };
 
     # For building and managing VMs
     microvm = {
       # TODO: restore the upstream input after microvm.nix#586 merges.
-      url = "github:vadika/microvm.nix/feat/crosvm-platform-upstream";
+      url = "github:vadika/microvm.nix/254dccf3f126e22e929f3e6d32399a45f55cf977";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
