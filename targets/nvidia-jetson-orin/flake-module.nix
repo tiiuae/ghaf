@@ -83,6 +83,16 @@ let
       boot.kernelPackages = lib.mkForce pkgs.linuxPackages_7_1;
     };
 
+  linux71GpuGuestModule =
+    { lib, pkgs, ... }:
+    {
+      # Keep the accelerated GUIVM unprotected while bringing the NVIDIA
+      # R36.5 guest closure forward. The provider module owns the final kernel
+      # package extension, so select Linux 7.1 through its public option.
+      hardware.nvidia-jetpack.virtualization.gpuPassthroughGuest.kernelPackages =
+        lib.mkForce pkgs.linuxPackages_7_1;
+    };
+
   linux71ExternalPkvmGuestModule =
     { lib, pkgs, ... }:
     {
@@ -455,6 +465,7 @@ let
       vmConfig = {
         sysvms.adminvm.extraModules = [ linux71PkvmGuestModule ];
         sysvms.netvm.extraModules = [ netvmCrosvmVgicItsModule ];
+        sysvms.guivm.extraModules = [ linux71GpuGuestModule ];
         appvms.chromium.extraModules = [ linux71PkvmGuestModule ];
         appvms.flatpak.extraModules = [ linux71PkvmGuestModule ];
       };
