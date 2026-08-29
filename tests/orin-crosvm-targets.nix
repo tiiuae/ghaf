@@ -176,6 +176,9 @@ let
         && pkvmGuiVm.microvm.crosvm.protection.mode == "protected-without-firmware"
         && pkvmGuiVm.microvm.crosvm.protection.allowDeviceAssignment
         && pkvmGuiVm.microvm.shares == [ ]
+        && lib.any (
+          overlay: overlay.name == "gui-protected-assignment"
+        ) pkvmAgx.hardware.deviceTree.overlays
         && !pkvmAgx.ghaf.virtualization.microvm.appvm.enable
         && !(pkvmAgx.microvm.vms ? "chromium-vm")
         && pkvmAgx.microvm.vms."gui-vm".autostart;
