@@ -35,17 +35,6 @@
           inputs.ghaf-device-manager.packages.${prev.stdenv.hostPlatform.system}.default;
       };
 
-    # Carry the two focused logging fixes from ghafpkgs#362 until it merges,
-    # while retaining the authoritative tiiuae/ghafpkgs input.
-    ghafpkgs-crosvm-fixes = _final: prev: {
-      ghaf-mem-manager = prev.ghaf-mem-manager.overrideAttrs (old: {
-        patches = (old.patches or [ ]) ++ [ ./patches/ghaf-mem-manager-no-syslog.patch ];
-      });
-      ghaf-usb-applet = prev.ghaf-usb-applet.overrideAttrs (old: {
-        patches = (old.patches or [ ]) ++ [ ./patches/ghaf-usb-applet-log-level.patch ];
-      });
-    };
-
     # Jetson-only Python fixes for the EDK2/UEFI firmware build. Deliberately
     # excluded from `default`: it rewrites pythonPackagesExtensions globally.
     # Applied by modules/reference/hardware/jetpack/default.nix.
@@ -65,7 +54,6 @@
       inputs.self.overlays.ghaf-device-manager
       #external overlays that we use
       inputs.ghafpkgs.overlays.default
-      inputs.self.overlays.ghafpkgs-crosvm-fixes
       inputs.ctrl-panel.overlays.default
       inputs.givc.overlays.default
       inputs.gp-gui.overlays.default
