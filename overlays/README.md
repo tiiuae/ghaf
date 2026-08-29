@@ -63,35 +63,6 @@ until it reaches unstable.
 Not every carried change is an overlay. These live in ghaf's own modules and CI, and
 only exist until an upstream fix lands, so they should be reverted rather than maintained.
 
-- `fix(microvm): wait for a stopping guest instead of killing it immediately`
-
-  Appends a waiter to `microvm@`'s `ExecStop` in `modules/microvm/host/microvm-host.nix`,
-  because microvm.nix's own `ExecStop` returns immediately under systemd and the guest is
-  killed before it can shut down.
-
-  Revert that commit when
-  [microvm.nix#578](https://github.com/microvm-nix/microvm.nix/pull/578) is merged and the
-  `microvm` input is bumped past it — find it with
-  `git log --grep 'wait for a stopping guest'`.
-
-- `modules/common/systemd/tmpfiles-portables.nix`
-
-  NixOS's `nixos/modules/system/boot/systemd/tmpfiles.nix` links
-  `${systemd}/example/tmpfiles.d/portables.conf` unconditionally, but systemd installs that
-  file only when portabled is built. Every ghaf systemd comes from `systemdMinimal`
-  (`modules/common/systemd/base.nix`), which leaves portabled off, so
-  `/etc/tmpfiles.d/portables.conf` dangles and each `systemd-tmpfiles` run logs
-  `Failed to chase '/etc/tmpfiles.d/portables.conf'` — three times per boot, on the host and
-  on every VM.
-
-  Drop it when [NixOS#553061](https://github.com/NixOS/nixpkgs/pull/553061) reaches our pin.
-  The upstream fix omits the link entirely, which is tidier than shipping an empty conf; test
-  for it directly rather than by date:
-
-  ```bash
-  git -C <nixpkgs> grep -q withPortabled <our-pin> -- nixos/modules/system/boot/systemd/tmpfiles.nix
-  ```
-
 - `0025-tegra-fbdev-use-core-allocated-fb-info.patch`
 
   In `.../passthrough/gpu-vm/patches/`, applied to `nvidia-oot-modules` from
