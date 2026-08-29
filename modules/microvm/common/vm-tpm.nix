@@ -78,7 +78,7 @@ in
     (mkIf cfg.passthrough.enable {
       assertions = [
         {
-          assertion = pkgs.stdenv.isx86_64;
+          assertion = pkgs.stdenv.hostPlatform.isx86_64;
           message = "TPM passthrough is only supported on x86_64";
         }
       ];
@@ -112,7 +112,7 @@ in
         # tpm-tis is the x86 ISA/MMIO frontend; arm virt machines only have the
         # sysbus variant tpm-tis-device (plain tpm-tis fails "not a valid
         # device model name" and the VM exits at startup).
-        "${if pkgs.stdenv.isx86_64 then "tpm-tis" else "tpm-tis-device"},tpmdev=tpm0"
+        "${if pkgs.stdenv.hostPlatform.isx86_64 then "tpm-tis" else "tpm-tis-device"},tpmdev=tpm0"
       ];
     })
     (mkIf (cfg.emulated.enable && config.microvm.hypervisor == "crosvm") {
