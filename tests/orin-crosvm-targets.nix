@@ -88,6 +88,15 @@ let
     }).config;
   pkvmAgx = orinTargets.nvidia-jetson-orin-agx-accelerated-guivm-pkvm-debug.config;
   pkvmNetVm = pkvmAgx.microvm.vms."net-vm".evaluatedConfig.config;
+  pkvmGuiVm = pkvmAgx.microvm.vms."gui-vm".evaluatedConfig.config;
+  pkvmGuiDevices = lib.filter (device: device.bus == "platform") pkvmGuiVm.microvm.devices;
+  pkvmGuestMemory =
+    lib.foldl' (total: name: total + pkvmAgx.microvm.vms.${name}.evaluatedConfig.config.microvm.mem) 0
+      [
+        "admin-vm"
+        "net-vm"
+        "gui-vm"
+      ];
   pkvmWlan = lib.findFirst (
     device: device.bus == "pci" && device.path == "0001:01:00.0"
   ) (throw "protected AGX NetVM WLAN device not found") pkvmNetVm.microvm.devices;
@@ -157,6 +166,32 @@ let
         && !(lib.any (
           overlay: overlay.name == "agx-ethernet-pci-passthough-overlay"
         ) pkvmAgx.hardware.deviceTree.overlays);
+    }
+    {
+      name = "protected AGX GUIVM uses bounded memory and pKVM assignment for every platform resource";
+      ok =
+        pkvmGuestMemory == 8192
+        && builtins.length pkvmGuiDevices == 11
+        && lib.all (device: device.crosvm.iommu == "pkvm-iommu") pkvmGuiDevices
+        && pkvmGuiVm.microvm.crosvm.protection.mode == "protected-without-firmware"
+        && pkvmGuiVm.microvm.crosvm.protection.allowDeviceAssignment
+        && pkvmGuiVm.microvm.shares == [ ]
+        && !pkvmAgx.ghaf.virtualization.microvm.appvm.enable
+        && !(pkvmAgx.microvm.vms ? "chromium-vm")
+        && pkvmAgx.microvm.vms."gui-vm".autostart;
+    }
+    {
+      name = "protected AGX GUIVM keeps the Logitech receiver host-mediated";
+      ok =
+        lib.any (
+          rule:
+          rule.targetVm == "gui-vm"
+          && (rule.includeUsb or false)
+          && lib.any (allow: (allow.name or "") == "^Logitech K400 Plus$") rule.allow
+        ) pkvmAgx.ghaf.hardware.passthrough.vhotplug.evdevRules
+        && lib.any (
+          device: device.vendorId == "046d" && device.productId == "c52b"
+        ) pkvmAgx.ghaf.hardware.passthrough.usb.guivmDeny;
     }
   ];
 
