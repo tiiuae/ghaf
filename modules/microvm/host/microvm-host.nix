@@ -22,32 +22,6 @@ let
     types
     ;
 
-  # Part of the microvm.nix shutdown workaround; see the ExecStop override below.
-  # Returns as soon as qemu is gone, so a healthy VM costs nothing. Bounded so a
-  # wedged guest cannot hang the host's shutdown.
-  guestShutdownTimeout = 30;
-  waitForGuestShutdown = pkgs.writeShellApplication {
-    name = "microvm-wait-shutdown";
-    runtimeInputs = [ pkgs.coreutils ];
-    text = ''
-      vm="''${1:-unknown}"
-
-      # systemd exports MAINPID to ExecStop. Without it there is nothing to
-      # watch, so do not hold up the shutdown.
-      if [ -z "''${MAINPID:-}" ]; then
-        exit 0
-      fi
-
-      for _ in $(seq 1 ${toString guestShutdownTimeout}); do
-        if ! kill -0 "$MAINPID" 2>/dev/null; then
-          exit 0
-        fi
-        sleep 1
-      done
-
-      echo "microvm@$vm: guest still running after ${toString guestShutdownTimeout}s; systemd will terminate it" >&2
-    '';
-  };
   userConfig =
     if (lib.hasAttr "gui-vm" config.microvm.vms) then
       let
@@ -456,24 +430,6 @@ in
       services.udev.extraRules = ''
         ACTION=="add", SUBSYSTEM=="backlight", ATTR{brightness}="$attr{max_brightness}"
       '';
-    }
-
-    {
-      # WORKAROUND for microvm.nix: its ExecStop "waits for exit" with a bare
-      # `cat`, but systemd gives ExecStop stdin on /dev/null, so it returns at
-      # once and systemd kills qemu while the guest is still running. Nothing
-      # runs its ExecStop and no guest filesystem unmounts cleanly.
-      #
-      # systemd only kills once every ExecStop has returned, so appending a
-      # waiter closes the window without patching microvm.nix. qemu runs with
-      # -no-reboot, so it exits by itself after the Ctrl+Alt+Del.
-      #
-      # Revert once microvm.nix waits properly. mkForce because it sets ExecStop
-      # as a scalar string.
-      systemd.services."microvm@".serviceConfig.ExecStop = lib.mkForce [
-        "${config.microvm.stateDir}/%i/booted/bin/microvm-shutdown"
-        "${waitForGuestShutdown}/bin/microvm-wait-shutdown %i"
-      ];
     }
   ]);
 }

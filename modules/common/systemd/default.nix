@@ -7,6 +7,5 @@
     ./base.nix
     ./boot.nix
     ./harden.nix
-    ./tmpfiles-portables.nix
   ];
 }
