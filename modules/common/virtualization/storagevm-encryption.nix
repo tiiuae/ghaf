@@ -23,7 +23,7 @@ in
   config = mkIf cfg.enable {
     assertions = [
       {
-        assertion = pkgs.stdenv.isx86_64;
+        assertion = pkgs.stdenv.hostPlatform.isx86_64;
         message = "Storage VM encryption is currently only supported for x86 platforms";
       }
     ];

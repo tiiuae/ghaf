@@ -13,9 +13,9 @@
 }:
 let
   ovmfPrefix =
-    if stdenv.isx86_64 then
+    if stdenv.hostPlatform.isx86_64 then
       "OVMF"
-    else if stdenv.isAarch64 then
+    else if stdenv.hostPlatform.isAarch64 then
       "AAVMF"
     else
       throw "Unsupported architecture";
@@ -25,10 +25,10 @@ let
       ISO_FILE=""
       if [ $# -eq 0 ]; then
     ''
-    + lib.optionalString stdenv.isAarch64 ''
+    + lib.optionalString stdenv.hostPlatform.isAarch64 ''
       echo "Usage: windows-launcher ./Windows11_InsiderPreview_Client_ARM64_en-us_25324.VHDX"
     ''
-    + lib.optionalString stdenv.isx86_64 ''
+    + lib.optionalString stdenv.hostPlatform.isx86_64 ''
       echo "Usage: windows-launcher ./Win11_22H2_English_x64v2.iso or ./win11.qcow2"
     ''
     + ''
@@ -52,7 +52,7 @@ let
         chmod 644 $OVMF_VARS
       fi
     ''
-    + lib.optionalString stdenv.isx86_64 ''
+    + lib.optionalString stdenv.hostPlatform.isx86_64 ''
       if [[ $1 == *.iso || $1 == *.ISO ]]; then
         ISO_FILE=$1
         IMG_FILE="$IMG_DIR/win11.qcow2"
@@ -89,13 +89,13 @@ let
       "-device usb-kbd"
       "-device usb-tablet"
     ''
-    + lib.optionalString stdenv.isAarch64 ''
+    + lib.optionalString stdenv.hostPlatform.isAarch64 ''
       "-M virt,highmem=on,gic-version=max"
       "-drive file=$IMG_FILE,format=vhdx,if=none,id=boot"
       "-device usb-storage,drive=boot,serial=boot,bootindex=1"
       )
     ''
-    + lib.optionalString stdenv.isx86_64 ''
+    + lib.optionalString stdenv.hostPlatform.isx86_64 ''
       "-drive file=$IMG_FILE,format=qcow2,if=none,id=boot"
       "-device nvme,drive=boot,serial=boot,bootindex=1"
       )
@@ -125,10 +125,10 @@ let
 
       if [ ! -f "$FILE" ]; then
     ''
-    + lib.optionalString stdenv.isAarch64 ''
+    + lib.optionalString stdenv.hostPlatform.isAarch64 ''
       FILE=`${yad}/bin/yad --file --title="Select Windows VM image (VHDX)"`
     ''
-    + lib.optionalString stdenv.isx86_64 ''
+    + lib.optionalString stdenv.hostPlatform.isx86_64 ''
       FILE=`${yad}/bin/yad --file --title="Select Windows VM image (QCOW2 or ISO)"`
     ''
     + ''
