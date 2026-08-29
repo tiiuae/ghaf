@@ -68,12 +68,23 @@ let
       configuredVmm;
   isCrosvm = selectedVmm == "crosvm";
   bindService = "bind-${roleConfig.vmName}-vfio-platform.service";
+  inherit (cfg) crosvmIommu;
 in
 {
   _file = ./role.nix;
 
-  options.ghaf.hardware.nvidia.passthroughs.${roleConfig.optionName}.enable =
-    lib.mkEnableOption "Orin ${roleConfig.description}";
+  options.ghaf.hardware.nvidia.passthroughs.${roleConfig.optionName} = {
+    enable = lib.mkEnableOption "Orin ${roleConfig.description}";
+    crosvmIommu = lib.mkOption {
+      type = lib.types.enum [
+        "off"
+        "viommu"
+        "pkvm-iommu"
+      ];
+      default = "off";
+      description = "Crosvm IOMMU mode for the Orin ${roleConfig.description} resources";
+    };
+  };
 
   config = lib.mkIf cfg.enable (
     lib.mkMerge [
@@ -85,6 +96,7 @@ in
           (import ./guest.nix {
             inherit
               bpmpHostPath
+              crosvmIommu
               crosvmOverlay
               dtb
               payload

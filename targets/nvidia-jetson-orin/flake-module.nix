@@ -93,6 +93,19 @@ let
         lib.mkForce pkgs.linuxPackages_7_1;
     };
 
+  linux71ExternalPkvmGpuGuestModule =
+    { lib, pkgs, ... }:
+    {
+      imports = [ linux71PkvmGuestSupportModule ];
+
+      # The NVIDIA provider extends this package set with its out-of-tree GPU,
+      # display and media modules. Select the same immutable pKVM source as the
+      # host without bypassing that provider-owned extension.
+      hardware.nvidia-jetpack.virtualization.gpuPassthroughGuest.kernelPackages = lib.mkOverride 40 (
+        linuxPkvmPackages pkgs
+      );
+    };
+
   linux71ExternalPkvmGuestModule =
     { lib, pkgs, ... }:
     {
@@ -218,8 +231,8 @@ let
       # The rollback target keeps pristine Linux stable. Only this derived
       # target consumes the validated pKVM integration source.
       hardware.nvidia-jetpack.virtualization.dceHost = {
-        # Retain the validated host DCE compatibility closure even though this
-        # reduced target has no GUI consumer.
+        # Retain the validated host DCE compatibility closure for the combined
+        # protected GUIVM display path.
         enable = lib.mkForce true;
         kernelPackages = lib.mkOverride 40 (linuxPkvmPackages pkgs);
       };
@@ -241,23 +254,41 @@ let
       boot.blacklistedKernelModules = [
         # The DSU PMU callback accesses a register trapped by protected EL2.
         "arm_dsu_pmu"
-        # GUIVM is absent, so its high-IOVA display anchor has no consumer.
-        "dce-iso-anchor"
       ];
 
-      # Keep host-IOMMU debug iterations small. GUIVM and FlatpakVM do not
-      # participate in this service-plane checkpoint, and carrying their
-      # closures makes every destructive flash substantially larger. ChromiumVM
-      # is the one protected application endpoint included after AdminVM,
-      # NetVM, virtual networking, and GIVC passed together. This remains
-      # confined to the pKVM debug target; the accelerated GUI target is the
-      # full-topology rollback.
-      ghaf.hardware.nvidia.passthroughs.gui_vm.enable = lib.mkForce false;
-      ghaf.virtualization.microvm.guivm.enable = lib.mkForce false;
-      ghaf.virtualization.microvm.appvm.enable = lib.mkForce true;
-      ghaf.reference.appvms.enable = lib.mkForce true;
-      ghaf.reference.appvms.chromium.enable = lib.mkForce true;
+      # This checkpoint runs the protected service plane and combined
+      # accelerated GUIVM. Keep application VMs out so the fixed 1 + 1 + 6 GiB
+      # guest budget remains below the 12 GiB host memory cap.
+      ghaf.hardware.nvidia.passthroughs.gui_vm.enable = lib.mkForce true;
+      ghaf.virtualization.microvm.guivm.enable = lib.mkForce true;
+      ghaf.virtualization.microvm.appvm.enable = lib.mkForce false;
+      ghaf.reference.appvms.enable = lib.mkForce false;
+      ghaf.reference.appvms.chromium.enable = lib.mkForce false;
       ghaf.reference.appvms.flatpak.enable = lib.mkForce false;
+      ghaf.virtualization.vmConfig.sysvms = {
+        adminvm.mem = 1024;
+        netvm.mem = 1024;
+        guivm.mem = 6144;
+      };
+
+      # The Logitech receiver remains owned by the host. Its event stream is
+      # forwarded when Crosvm starts GUIVM, so input is host-mediated and stays
+      # in the host TCB; this is not a trusted-input boundary.
+      ghaf.hardware.passthrough.usb.guivmDeny = [
+        {
+          vendorId = "046d";
+          productId = "c52b";
+          description = "Logitech Unifying Receiver: host-mediated evdev for protected GUIVM";
+        }
+      ];
+      ghaf.hardware.passthrough.evdev.evdevRules = [
+        {
+          description = "Logitech K400 Plus input for protected GUIVM";
+          targetVm = "gui-vm";
+          includeUsb = true;
+          allow = [ { name = "^Logitech K400 Plus$"; } ];
+        }
+      ];
 
       # Kernel code comes from linux-pkvm; Ghaf retains target configuration.
       boot.kernelPatches = [
@@ -297,6 +328,7 @@ let
         netvmWlanPCICrosvmIommu = lib.mkForce "pkvm-iommu";
       };
       ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm.crosvmIommu = "pkvm-iommu";
+      ghaf.hardware.nvidia.passthroughs.gui_vm.crosvmIommu = "pkvm-iommu";
 
       # Preserve the nVHE timer, virtualization, and interrupt-control state
       # across NVIDIA R36.5 TF-A CPU power-down.
@@ -345,21 +377,20 @@ let
           microvm.crosvm.protection.allowDeviceAssignment = true;
         }
       ];
-      ghaf.virtualization.vmConfig.appvms.chromium = {
-        # Keep ChromiumVM's declared 6 GiB as its complete allocation. pKVM
-        # does not support Ghaf's balloon lifecycle yet, and the default ratio
-        # would otherwise reserve 18 GiB.
-        balloonRatio = 0;
-        extraModules = [
-          linux71ExternalPkvmGuestModule
-          protectedVmWithoutFirmwareModule
-          {
-            # XDG item exchange uses virtio-fs. A protected guest must not use
-            # that host-visible vhost-user memory backend.
-            ghaf.xdgitems.enable = lib.mkForce false;
-          }
-        ];
-      };
+      ghaf.virtualization.vmConfig.sysvms.guivm.extraModules = [
+        linux71ExternalPkvmGpuGuestModule
+        linux71PkvmAssignedGuestModule
+        protectedVmWithoutFirmwareModule
+        {
+          microvm.crosvm.protection.allowDeviceAssignment = true;
+
+          # The shared directory is virtio-fs backed. Protected guests use the
+          # block-backed store path and keep host-visible vhost-user mappings
+          # disabled.
+          ghaf.storagevm.shared-directories.enable = lib.mkForce false;
+          ghaf.xdgitems.enable = lib.mkForce false;
+        }
+      ];
       # EL2 must reset MGBE0 before assigning it to a protected guest and
       # again while reclaiming it. Keep the BPMP clock votes alive across the
       # complete assignment lifetime; touching the powered-down MAC from nVHE
@@ -390,10 +421,10 @@ let
           "pkvm-mgbe0-clocks.service"
         ];
       };
-      systemd.services."microvm@chromium-vm" = {
-        # ChromiumVM consumes both the routed network and the GIVC control
-        # plane. Keep these dependencies weak so a failed service-plane VM is
-        # visible as a degraded boot rather than suppressing the app canary.
+      systemd.services."microvm@gui-vm" = {
+        # GUIVM consumes both the routed network and the GIVC control plane.
+        # Keep these dependencies weak so a failed service-plane VM is visible
+        # as a degraded boot rather than suppressing graphics diagnostics.
         wants = [
           "microvm@admin-vm.service"
           "microvm@net-vm.service"
@@ -404,14 +435,13 @@ let
         ];
       };
 
-      # MGBE0 assignment, protected teardown, TAP networking, AF_VSOCK, and
-      # GIVC registration pass together. Autostart the three selected protected
-      # VMs while the broad boot orchestrator stays disabled, so GUIVM and
-      # FlatpakVM remain out of this image.
+      # Autostart the protected service plane and GUIVM while the broad boot
+      # orchestrator stays disabled. ChromiumVM and FlatpakVM remain out of
+      # this bounded hardware checkpoint.
       microvm.vms = {
         "admin-vm".autostart = lib.mkForce true;
         "net-vm".autostart = lib.mkForce true;
-        "chromium-vm".autostart = lib.mkForce true;
+        "gui-vm".autostart = lib.mkForce true;
       };
     };
 

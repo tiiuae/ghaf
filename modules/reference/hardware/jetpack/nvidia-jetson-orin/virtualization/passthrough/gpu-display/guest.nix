@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   bpmpHostPath,
+  crosvmIommu,
   crosvmOverlay,
   dtb,
   payload,
@@ -105,9 +106,9 @@ in
         {
           path,
           dtSymbol,
-          iommu,
           mmioBase ? null,
           mapEarly ? false,
+          ...
         }:
         {
           bus = "platform";
@@ -115,10 +116,10 @@ in
           crosvm = {
             inherit
               dtSymbol
-              iommu
               mmioBase
               mapEarly
               ;
+            iommu = crosvmIommu;
           };
         }
       ) payload.crosvmDevices;
