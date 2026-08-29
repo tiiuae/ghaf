@@ -320,6 +320,10 @@ let
             name = "rtw8822ce-protected-assignment";
             dtsFile = ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/pkvm/rtw8822ce-protected-assignment-overlay.dts;
           }
+          {
+            name = "gui-protected-assignment";
+            dtsFile = ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/pkvm/gui-protected-assignment-overlay.dts;
+          }
         ];
       };
 

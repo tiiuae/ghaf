@@ -1,0 +1,86 @@
+// SPDX-FileCopyrightText: 2026 TII (SSRC) and the Ghaf contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "nvidia,tegra234";
+
+	fragment@0 {
+		target-path = "/vm_hs_p@60000000";
+		pkvm_gui_vm_hs: __overlay__ { };
+	};
+
+	fragment@1 {
+		target-path = "/vm_cma_p@80000000";
+		pkvm_gui_vm_cma: __overlay__ { };
+	};
+
+	fragment@2 {
+		target-path = "/scanout_p@b0000000";
+		pkvm_gui_scanout: __overlay__ { };
+	};
+
+	fragment@3 {
+		target-path = "/disp_caps_pt@13830000";
+		pkvm_gui_disp_caps: __overlay__ { };
+	};
+
+	fragment@4 {
+		target-path = "/disp_chan_pt@13870000";
+		pkvm_gui_disp_chan: __overlay__ { };
+	};
+
+	fragment@5 {
+		target-path = "/disp_cursor_pt@138c8000";
+		pkvm_gui_disp_cursor: __overlay__ { };
+	};
+
+	fragment@6 {
+		target-path = "/bus@0/gpu@17000000";
+		pkvm_gui_gpu: __overlay__ { };
+	};
+
+	fragment@7 {
+		target-path = "/bus@0/host1x_pt@13e00000";
+		pkvm_gui_host1x: __overlay__ { };
+	};
+
+	fragment@8 {
+		target-path = "/bus@0/vic@15340000";
+		pkvm_gui_vic: __overlay__ { };
+	};
+
+	fragment@9 {
+		target-path = "/bus@0/nvdec@15480000";
+		pkvm_gui_nvdec: __overlay__ { };
+	};
+
+	fragment@10 {
+		target-path = "/bus@0/nvjpg@15540000";
+		pkvm_gui_nvjpg: __overlay__ { };
+	};
+
+	fragment@11 {
+		target-path = "/";
+
+		__overlay__ {
+			/* Groups 1 and 2 are reserved for MGBE0 and WLAN. */
+			pkvm-gui-device-assignment {
+				compatible = "pkvm,device-assignment";
+				devices = <&pkvm_gui_vm_hs 3>,
+					  <&pkvm_gui_vm_cma 3>,
+					  <&pkvm_gui_scanout 3>,
+					  <&pkvm_gui_disp_caps 3>,
+					  <&pkvm_gui_disp_chan 3>,
+					  <&pkvm_gui_disp_cursor 3>,
+					  <&pkvm_gui_gpu 3>,
+					  <&pkvm_gui_host1x 3>,
+					  <&pkvm_gui_vic 3>,
+					  <&pkvm_gui_nvdec 3>,
+					  <&pkvm_gui_nvjpg 3>;
+			};
+		};
+	};
+};
