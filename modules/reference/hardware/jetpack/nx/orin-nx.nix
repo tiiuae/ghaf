@@ -37,6 +37,17 @@
           deviceDisk = "nvme0n1";
           deviceDiskEspPartition = "nvme0n1p1";
           deviceDiskRootfsPartition = "nvme0n1p2";
+          # Pin APP so flash.xml stops deriving ESP/APP sizes from the built
+          # sdImage. Without this the flash script depends on the image, which
+          # drags system.build.toplevel and every microvm into its *evaluation*
+          # closure -- ~10.9 GiB of eval for one attribute, enough to get the CI
+          # eval worker OOM-killed. Same 32 GiB the AGX boards and the
+          # nx-accelerated-guivm target already use; NX boots from NVMe, which is
+          # far larger than that, so the reserved slack costs nothing.
+          #
+          # Consequence: every NX flash must supply the image with
+          # `-s <signed-sd-image>`; the script refuses to run without it.
+          appPartitionSizeBytes = 34359738368;
         };
       };
 
