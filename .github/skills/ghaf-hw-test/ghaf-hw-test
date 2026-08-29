@@ -888,10 +888,19 @@ cmd_flash() {
         fi
 
         info "Building flash script..."
-        (cd "$repo_root" && nix build "${NIX_BUILD_OPTS[@]}" ".#$flash_script_target")
+        (cd "$repo_root" && nix build "${NIX_BUILD_OPTS[@]}" ".#$flash_script_target" --out-link result-flash-script)
+
+        # Every Orin board now pins `appPartitionSizeBytes`, so flash.xml carries
+        # static ESP/APP sizes and the flash script embeds no image -- that is
+        # what keeps `system.build.sdImage` out of its *evaluation* closure. The
+        # image therefore has to be supplied at run time with `-s`, which wants
+        # the sdImage directory; for Orin that is the target's own output
+        # (format-module.nix aliases ghafImage to sdImage).
+        info "Building image to supply with -s..."
+        (cd "$repo_root" && nix build "${NIX_BUILD_OPTS[@]}" ".#$ghaf_target" --out-link result-image)
 
         info "Running flash script (device must be in recovery mode)..."
-        (cd "$repo_root" && sudo ./result/bin/flash-ghaf)
+        (cd "$repo_root" && sudo ./result-flash-script/bin/flash-ghaf-host -s ./result-image)
 
         success "Flash complete! The device will reboot automatically."
         ;;

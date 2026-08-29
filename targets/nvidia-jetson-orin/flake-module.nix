@@ -390,6 +390,11 @@ let
         })
         // {
           isVerity = true;
+          # `extraConfig` above sets `hardware.nvidia.orin.secureboot.enable = true`
+          # unconditionally, so `flashTarget`'s `mkForce true` would yield the same
+          # value and a bit-identical derivation -- at the cost of a second full
+          # Jetson fixpoint (several GB of eval). Keep this in sync with that line.
+          secureBootAlwaysOn = true;
         }
       )
       [
@@ -471,40 +476,47 @@ let
   flashTarget =
     t: qspiOnly:
     let
-      innerName = t.hostConfiguration.config.hardware.nvidia-jetpack.name;
-      noSB =
-        (t.hostConfiguration.extendModules {
-          modules = [
-            (
-              {
-                ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly;
-              }
-              // lib.optionalAttrs (lib.strings.hasInfix "nx" t.name && !qspiOnly) {
-                # NX boots from USB or NVMe; the flash script targets NVMe.
-                ghaf.hardware.nvidia.orin.flashScriptOverrides.deviceDisk = lib.mkForce "nvme0n1";
-                ghaf.hardware.nvidia.orin.flashScriptOverrides.deviceDiskEspPartition = lib.mkForce "nvme0n1p1";
-                ghaf.hardware.nvidia.orin.flashScriptOverrides.deviceDiskRootfsPartition = lib.mkForce "nvme0n1p2";
-              }
-            )
-          ];
-        }).pkgs.nvidia-jetpack.signedFlashScript;
+      # Shared by both secureboot variants so the two cannot drift apart.
+      nxDiskOverrides = lib.optionalAttrs (lib.strings.hasInfix "nx" t.name && !qspiOnly) {
+        # NX boots from USB or NVMe; the flash script targets NVMe.
+        ghaf.hardware.nvidia.orin.flashScriptOverrides.deviceDisk = lib.mkForce "nvme0n1";
+        ghaf.hardware.nvidia.orin.flashScriptOverrides.deviceDiskEspPartition = lib.mkForce "nvme0n1p1";
+        ghaf.hardware.nvidia.orin.flashScriptOverrides.deviceDiskRootfsPartition = lib.mkForce "nvme0n1p2";
+      };
+      noSBCfg = t.hostConfiguration.extendModules {
+        modules = [
+          (
+            {
+              ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly;
+            }
+            // nxDiskOverrides
+          )
+        ];
+      };
+      # Read the board name off a fixpoint that is already forced for `noSB`
+      # rather than forcing `t.hostConfiguration` as a third one. The added
+      # modules do not touch `som`/`carrierBoard`, so the string is identical by
+      # construction. Each extra fixpoint is a full re-evaluation -- see
+      # `extendModules` in nixpkgs lib/modules.nix, which shares nothing.
+      innerName = noSBCfg.config.hardware.nvidia-jetpack.name;
+      noSB = noSBCfg.pkgs.nvidia-jetpack.signedFlashScript;
+      # Targets that already enable secureboot unconditionally get the identical
+      # derivation back from `mkForce true`, so skip the second fixpoint entirely.
       withSB =
-        (t.hostConfiguration.extendModules {
-          modules = [
-            (
-              {
-                ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkForce true;
-                ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly;
-              }
-              // lib.optionalAttrs (lib.strings.hasInfix "nx" t.name && !qspiOnly) {
-                # NX boots from USB or NVMe; the flash script targets NVMe.
-                ghaf.hardware.nvidia.orin.flashScriptOverrides.deviceDisk = lib.mkForce "nvme0n1";
-                ghaf.hardware.nvidia.orin.flashScriptOverrides.deviceDiskEspPartition = lib.mkForce "nvme0n1p1";
-                ghaf.hardware.nvidia.orin.flashScriptOverrides.deviceDiskRootfsPartition = lib.mkForce "nvme0n1p2";
-              }
-            )
-          ];
-        }).pkgs.nvidia-jetpack.signedFlashScript;
+        if t.secureBootAlwaysOn or false then
+          noSB
+        else
+          (t.hostConfiguration.extendModules {
+            modules = [
+              (
+                {
+                  ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkForce true;
+                  ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly;
+                }
+                // nxDiskOverrides
+              )
+            ];
+          }).pkgs.nvidia-jetpack.signedFlashScript;
     in
     # Single `*-flash-script` entrypoint that picks between two
     # pre-built QSPI firmware variants at flash time.
@@ -589,7 +601,12 @@ in
             t:
             #Note: secureTarget does not toggle between secureboot on/off!!
             lib.nameValuePair "${t.name}-flash-qspi" (lazyPackage "${t.name}-flash-qspi" (flashTarget t true))
-          ) crossTargets
+            # `onlyQSPI` is read only by partition-template.nix, whose config is
+            # gated on `!verity`; the verity partition template never reads it. A
+            # verity `-flash-qspi` is therefore the same derivation as its
+            # `-flash-script`, so emitting it costs a full Jetson eval for a
+            # duplicate.
+          ) (builtins.filter (t: !(isVerityTarget t)) crossTargets)
         )
         # OTA update artifacts for verity targets
         // builtins.listToAttrs (

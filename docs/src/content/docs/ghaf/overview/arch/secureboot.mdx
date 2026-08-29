@@ -62,17 +62,30 @@ The `-s/--signed-sd-image` flag extracts `BOOTAA64.EFI` and the kernel from the 
 
 The argument to `-s/--signed-sd-image` must be the signed image output directory (for example, the value returned by `nix path-info`), not the `*.img.zst` file itself. The directory is expected to contain `esp.offset`, `esp.size`, `root.offset`, and `root.size`, plus either `sd-image/*.img.zst` or `*.img.zst` at the top level. Passing the image file directly will fail with `Signed image directory not found: ...`.
 
-Running `./result/bin/flash-ghaf-host` without `-s` clears signed-image overrides and flashes the standard unsigned image bundled with the build output.
+Whether `-s` is optional depends on how the board sizes its partitions. Every non-verity Orin board pins
+`ghaf.hardware.nvidia.orin.flashScriptOverrides.appPartitionSizeBytes`, so `flash.xml` carries static ESP/APP sizes and the
+flash script embeds no image at all. For those targets `-s` is **required**, and running without it exits with
+`ERROR: this flash script was built without an embedded sdImage`. This is deliberate: deriving the sizes from the built
+image instead puts `system.build.sdImage` -- and through it every microvm -- into the flash script's *evaluation* closure,
+which costs roughly 10 GiB of RAM to evaluate and exceeds the CI eval worker's memory limit.
+
+The verity targets use a different partition template that always embeds the image, so for those `-s` stays optional and
+omitting it flashes the bundled image.
 
 `ghaf.hardware.nvidia.orin.secureboot.enable` defaults to `true` only when `ghaf.hardware.nvidia.orin.flashScriptOverrides.signedArtifactsPath` is set at Nix evaluation time; otherwise it defaults to `false`. Key enrollment, ESL generation, and the `UefiDefaultSecurityKeys` overlay are therefore skipped for unsigned builds, so a default `flash-ghaf-host` (no `-s`) boots the device with Secure Boot disabled instead of bricking it to the UEFI shell.
 
-To make the `-s` runtime flag automatically pull in QSPI-side enrollment without requiring an evaluation-time `signedArtifactsPath`, the `*-flash-script` output ships **two** pre-built QSPI firmware variants behind a single `flash-ghaf-host` entrypoint: one without enrollment material (used when invoked without `-s`) and one with the `UefiDefaultSecurityKeys` DTBO plus PK/KEK/db ESLs baked in (used whenever `-s/--signed-sd-image` is on the command line). The wrapper dispatches on the flag at flash time, so:
+To make QSPI-side enrollment selectable at flash time without requiring an evaluation-time `signedArtifactsPath`, the `*-flash-script` output ships **two** pre-built QSPI firmware variants behind a single `flash-ghaf-host` entrypoint: one without enrollment material (the default) and one with the `UefiDefaultSecurityKeys` DTBO plus PK/KEK/db ESLs baked in (selected by `--secure-boot`). `-s/--signed-sd-image` is deliberately **not** the selector: with static APP sizing every flash supplies an image with `-s`, signed or not, so keying Secure Boot off it would brick every unsigned flash. The wrapper dispatches on its own `--secure-boot` flag:
 
 ```sh
 nix build .#nvidia-jetson-orin-agx-debug-from-x86_64-flash-script
-sudo ./result/bin/flash-ghaf-host                         # clean unsigned flash, Secure Boot stays disabled
 SIGNED_SD_IMAGE=$(nix path-info .#nvidia-jetson-orin-agx-debug-from-x86_64)
-sudo ./result/bin/flash-ghaf-host -s "$SIGNED_SD_IMAGE"   # signed BOOTAA64.EFI swap + PK/KEK/db enrolled on first boot
+
+# Unsigned QSPI, Secure Boot stays disabled. -s is still required: the script embeds no image.
+sudo ./result/bin/flash-ghaf-host -s "$SIGNED_SD_IMAGE"
+
+# SB-enabled QSPI: signed BOOTAA64.EFI swap + PK/KEK/db enrolled on first boot.
+# Pair --secure-boot with a *signed* image, or the enrolled firmware refuses the unsigned BOOTAA64.EFI.
+sudo ./result/bin/flash-ghaf-host --secure-boot -s "$SIGNED_SD_IMAGE"
 ```
 
 After a successful `-s` flash the device boots into Ghaf with Secure Boot enabled and `efi-readvar` reports the Ghaf UEFI PK → KEK → db certificate chain.
