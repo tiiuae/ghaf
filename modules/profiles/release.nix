@@ -31,5 +31,9 @@ in
       };
 
     };
+
+    # Keep the nixpkgs *source* out of release images.
+    nixpkgs.flake.setNixPath = lib.mkDefault false;
+    nixpkgs.flake.setFlakeRegistry = lib.mkDefault false;
   };
 }
