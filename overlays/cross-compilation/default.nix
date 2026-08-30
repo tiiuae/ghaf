@@ -40,6 +40,15 @@
 
   # tpm2-pytss 3.0.0rc1 already invokes $CC -E when preprocessing headers,
   # so nixpkgs' older cross.patch no longer applies and is no longer needed.
+  #
+  # dbus-python: put g-ir-scanner on PATH so gobject-introspection's own
+  # setup hook cannot abort the build.
+  #
+  # Adding gobject-introspection natively satisfies the hook's own assumption.
+  # Patching the hook instead would mean overriding gobject-introspection, which
+  # glib depends on, that rebuilds essentially the entire package set.
+  #
+  # Drop this if the hook ever tolerates a missing g-ir-scanner (`|| true`).
   pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
     (_pythonFinal: pythonPrev: {
       tpm2-pytss = pythonPrev.tpm2-pytss.overrideAttrs (
@@ -50,6 +59,12 @@
           );
         }
       );
+
+      dbus-python = pythonPrev.dbus-python.overrideAttrs (oldAttrs: {
+        nativeBuildInputs = (oldAttrs.nativeBuildInputs or [ ]) ++ [
+          final.buildPackages.gobject-introspection
+        ];
+      });
     })
   ];
 
