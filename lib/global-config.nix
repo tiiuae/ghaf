@@ -38,14 +38,16 @@ rec {
         [ "development" "ssh" "daemon" "enable" ]
         [ "security" "ssh" "debug" "enable" ]
       )
+      (lib.mkRenamedOptionModule [ "development" "nix-setup" "enable" ] [ "nix" "enable" ])
     ];
     options = {
       debug.enable = mkEnableOption "debug mode globally (host and all VMs)";
 
       development = {
         debug.tools.enable = mkEnableOption "debug tools globally";
-        nix-setup.enable = mkEnableOption "Nix development setup globally";
       };
+
+      nix.enable = mkEnableOption "Nix on the target globally (host and all VMs)";
 
       logging = {
         enable = mkEnableOption "logging globally";
@@ -425,8 +427,9 @@ rec {
 
       development = {
         debug.tools.enable = true;
-        nix-setup.enable = true;
       };
+
+      nix.enable = true;
 
       # Logging enabled with Ghaf's central logging infrastructure
       # Note: listener.address is auto-populated from admin-vm IP by
@@ -533,8 +536,9 @@ rec {
 
       development = {
         debug.tools.enable = false;
-        nix-setup.enable = false;
       };
+
+      nix.enable = false;
 
       logging = {
         enable = true;
@@ -638,8 +642,9 @@ rec {
 
       development = {
         debug.tools.enable = false;
-        nix-setup.enable = false;
       };
+
+      nix.enable = false;
 
       logging.enable = false;
       security.audit.enable = false;

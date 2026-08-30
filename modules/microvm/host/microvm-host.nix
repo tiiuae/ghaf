@@ -139,8 +139,8 @@ in
           # Monitoring of /nix/store for nixos-rebuild copy sessions and flagging interruptions
           storeWatcher.enable = false;
         };
+        nix.automatic-gc.enable = config.ghaf.nix.enable;
         development = {
-          nix-setup.automatic-gc.enable = config.ghaf.development.nix-setup.enable;
           debug.tools.host.enable = config.ghaf.development.debug.tools.enable;
           # Serial console is only meaningful on the host
           usb-serial.enable = config.ghaf.profiles.debug.enable;

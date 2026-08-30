@@ -31,8 +31,9 @@ in
       # Enable development on target
       # TODO: we should import the module that defines the development namespace
       # see the graphics.nix example including the desktop module to get ghaf.graphics
+      nix.enable = true;
+
       development = {
-        nix-setup.enable = true;
         # Enable some basic monitoring and debug tools
         debug.tools.enable = true;
       };

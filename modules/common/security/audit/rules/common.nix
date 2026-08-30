@@ -29,13 +29,17 @@ in
 lib.optionals config.nix.enable [
   ## === Common :: Nix/NixOS-specific ===
   # Enable Nix tools/state auditing only when Nix is enabled in the target system.
-  "-a always,exit -F arch=b64 -S execve -F exe=${pkgs.nix}/bin/nix-daemon -k nix-daemon-exec"
-  "-a always,exit -F arch=b64 -S execve -S execveat -F exe=${pkgs.nix}/bin/nix -F auid>=1000 -F auid!=unset -k nix-tools"
-  "-w ${pkgs.nix}/bin/nix -p x -k nix-exec"
-  "-w ${pkgs.nix}/bin/nix-store -p x -k nix-store"
-  "-w ${pkgs.nix}/bin/nix-shell -p x -k nix-exec"
-  "-w ${pkgs.nix}/bin/nix-collect-garbage -p x -k nix-gc"
-  "-w ${pkgs.nix}/bin/nix-build -p x -k nix-build"
+  #
+  # Watch `config.nix.package`, not `pkgs.nix`. They are not the same derivation
+  # Watching `pkgs.nix` therefore audited a binary the system never executes and dragged a second,
+  # otherwise unused ~160 MB nix closure into the image just to name it.
+  "-a always,exit -F arch=b64 -S execve -F exe=${config.nix.package}/bin/nix-daemon -k nix-daemon-exec"
+  "-a always,exit -F arch=b64 -S execve -S execveat -F exe=${config.nix.package}/bin/nix -F auid>=1000 -F auid!=unset -k nix-tools"
+  "-w ${config.nix.package}/bin/nix -p x -k nix-exec"
+  "-w ${config.nix.package}/bin/nix-store -p x -k nix-store"
+  "-w ${config.nix.package}/bin/nix-shell -p x -k nix-exec"
+  "-w ${config.nix.package}/bin/nix-collect-garbage -p x -k nix-gc"
+  "-w ${config.nix.package}/bin/nix-build -p x -k nix-build"
   # nixos-rebuild is a separate package
   "-w ${pkgs.nixos-rebuild}/bin/nixos-rebuild -p x -k nix-syschange"
   # System-wide config
