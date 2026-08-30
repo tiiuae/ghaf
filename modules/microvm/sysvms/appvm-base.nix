@@ -211,9 +211,9 @@ in
         # Profiles - from globalConfig
         profiles.debug.enable = lib.mkDefault (globalConfig.debug.enable or false);
 
+        nix.enable = lib.mkDefault (globalConfig.nix.enable or false);
         development = {
           debug.tools.enable = lib.mkDefault (globalConfig.development.debug.tools.enable or false);
-          nix-setup.enable = lib.mkDefault (globalConfig.development.nix-setup.enable or false);
         };
 
         theming.enable = lib.mkDefault (globalConfig.theming.enable or false);

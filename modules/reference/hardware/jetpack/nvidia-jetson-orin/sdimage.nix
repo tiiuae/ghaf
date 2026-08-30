@@ -175,7 +175,39 @@ in
                 --device-tree ${fdtPath}
             '';
 
-        populateRootCommands = "";
+        # Register the closure in the image's Nix DB at build time.
+        #
+        # Upstream sd-image only drops the manifest at /nix-path-registration and
+        # leaves `nix-store --load-db` to first boot, which is the sole reason an
+        # Orin device needed `nix` at runtime -- a ~160 MB closure to run one
+        # command once. disko already does it at build time for x86
+        # (disko/lib/make-disk-image.nix: NIX_STATE_DIR=<image>/nix/var
+        # nix-store --load-db); this is the same trick for the sd-image path.
+        #
+        # populateRootCommands runs in the image builder's working directory
+        # before make-ext4-fs.nix creates ./rootImage and copies the closure in.
+        # That ordering is fine: --load-db only writes path metadata and does not
+        # require the store paths to exist yet (disko loads the DB before copying
+        # the store too). mkfs.ext4 -d later runs under fakeroot, so the DB is
+        # owned by root in the image like everything else.
+        populateRootCommands = ''
+          mkdir -p ./rootImage/nix/var/nix
+          NIX_STATE_DIR=$(readlink -f ./rootImage/nix/var/nix) \
+            ${pkgs.buildPackages.nix}/bin/nix-store --load-db \
+              < ${
+                pkgs.buildPackages.closureInfo { rootPaths = [ config.system.build.toplevel ]; }
+              }/registration
+
+          # Drop what load-db leaves behind but the image should not carry: the
+          # 8 MiB `reserved` disk-space file and the lock, both of which nix
+          # recreates on demand, and the SQLite side files. db.sqlite is already
+          # checkpointed at this point, so shipping -wal/-shm would at best waste
+          # space and at worst hand the device a half-written journal.
+          rm -f ./rootImage/nix/var/nix/db/reserved \
+                ./rootImage/nix/var/nix/db/big-lock \
+                ./rootImage/nix/var/nix/db/db.sqlite-wal \
+                ./rootImage/nix/var/nix/db/db.sqlite-shm
+        '';
 
         preBuildCommands = ''
           ${lib.optionalString config.ghaf.hardware.nvidia.orin.diskEncryption.enable ''

@@ -25,11 +25,16 @@ in
     # if not already covered by systemd
     # ghaf.users.admin.enable = true;
     ghaf = {
-      # TODO we should move the nix-setup out of the development namespace
-      development = {
-        nix-setup.enable = true;
-      };
-
+      # No Nix on a release device.
+      #
+      # `ghaf.nix.enable` drives NixOS' `nix.enable` (modules/common/nix.nix), so
+      # turning it off drops the daemon, takes nix out of systemPackages. That is a
+      # ~160 MB closure the image cannot use: release updates go through verity
+      # A/B sysupdate, not nixos-rebuild, and on verity the store is read-only.
+      #
+      # The settings it also carried (`keep-outputs`, `keep-derivations`) only
+      # make sense on a machine that builds; a release device never does.
+      nix.enable = lib.mkDefault false;
     };
 
     # Keep the nixpkgs *source* out of release images.

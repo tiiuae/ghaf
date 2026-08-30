@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 { config, lib, ... }:
 let
-  cfg = config.ghaf.development.nix-setup;
+  cfg = config.ghaf.nix;
   inherit (lib)
     mkEnableOption
     mkOption
@@ -13,12 +13,36 @@ in
 {
   _file = ./nix.nix;
 
-  options.ghaf.development.nix-setup = {
-    enable = mkEnableOption "Target Nix config options";
+  imports = [
+    # Back-compat: these lived under ghaf.development.nix-setup.* until Nix
+    # configuration moved out of the development namespace. It was never a
+    # development-only concern -- the release profile drives it too -- and the
+    # old name made that read as a mistake. Same treatment SSH got when it
+    # became ghaf.security.ssh.
+    (lib.mkRenamedOptionModule [ "ghaf" "development" "nix-setup" "enable" ] [ "ghaf" "nix" "enable" ])
+    (lib.mkRenamedOptionModule
+      [ "ghaf" "development" "nix-setup" "nixpkgs" ]
+      [ "ghaf" "nix" "nixpkgs" ]
+    )
+    (lib.mkRenamedOptionModule
+      [ "ghaf" "development" "nix-setup" "automatic-gc" "enable" ]
+      [ "ghaf" "nix" "automatic-gc" "enable" ]
+    )
+  ];
+
+  options.ghaf.nix = {
+    enable = mkEnableOption "Nix on the target: the daemon, its settings and gc";
     nixpkgs = mkOption {
       type = types.nullOr types.path;
       default = null;
-      description = "Path to the nixpkgs repository";
+      description = ''
+        Path to a nixpkgs source to pin into `nixPath` and the flake registry.
+
+        Leave null unless the target genuinely needs `nix repl`/`nix-shell` to
+        resolve against a pinned tree: the value is the nixpkgs *source*, and
+        pinning it makes the whole thing a runtime dependency of the system --
+        roughly a 200 MB closure inside the image.
+      '';
     };
     automatic-gc.enable = mkEnableOption "automatic garbage collection";
   };

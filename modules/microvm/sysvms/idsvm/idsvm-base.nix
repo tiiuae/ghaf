@@ -58,9 +58,9 @@ in
     # MiTM proxy feature - from globalConfig
     virtualization.microvm.idsvm.mitmproxy.enable = globalConfig.idsvm.mitmproxy.enable or false;
 
+    nix.enable = lib.mkDefault (globalConfig.nix.enable or false);
     development = {
       debug.tools.enable = lib.mkDefault (globalConfig.development.debug.tools.enable or false);
-      nix-setup.enable = lib.mkDefault (globalConfig.development.nix-setup.enable or false);
     };
 
     # Debug SSH (unprotected)

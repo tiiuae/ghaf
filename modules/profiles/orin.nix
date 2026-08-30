@@ -29,15 +29,21 @@
 let
   cfg = config.ghaf.profiles.orin;
   hostGlobalConfig = config.ghaf.global-config;
+  # `/nix-path-registration` is no longer replayed on the device.
+  #
+  # Non-verity images now have their Nix DB populated at image build time (see
+  # sdimage.nix), and on verity `/` is tmpfs with a read-only dm-verity store, so
+  # there is nothing to register and nothing that could GC or rebuild it.
+  #
+  # `ghaf.partitioning.verity` may be absent when the partitioning modules are not
+  # imported, hence attrByPath -- same approach as
+  # modules/common/security/audit/rules/host.nix.
+  storeIsReadOnly = lib.attrByPath [ "ghaf" "partitioning" "verity" "enable" ] false config;
   ensureSystemProfile = pkgs.writeShellApplication {
     name = "ghaf-ensure-system-profile";
-    runtimeInputs = with pkgs; [
-      coreutils
-      nix
-    ];
+    runtimeInputs = [ pkgs.coreutils ];
     text = ''
       profile=/nix/var/nix/profiles/system
-      registration=/nix-path-registration
       current_system=$(readlink -f /run/current-system)
       generation_link=/nix/var/nix/profiles/system-1-link
 
@@ -46,15 +52,17 @@ let
         exit 1
       fi
 
-      if [ ! -f "$registration" ] && [ -L "$profile" ] && [ "$(readlink -f "$profile")" = "$current_system" ]; then
+      if [ -L "$profile" ] && [ "$(readlink -f "$profile")" = "$current_system" ]; then
         exit 0
       fi
+    ''
+    + lib.optionalString (!storeIsReadOnly) ''
 
-      if [ -f "$registration" ]; then
-        nix-store --load-db < "$registration"
-        rm -f "$registration"
-        touch /etc/NIXOS
-      fi
+      # nixos-rebuild expects this tag. Only on a writable store; on verity /etc
+      # is not somewhere we want to start writing tags.
+      touch /etc/NIXOS
+    ''
+    + ''
 
       mkdir -p /nix/var/nix/profiles
       ln -sfn "$current_system" "$generation_link"

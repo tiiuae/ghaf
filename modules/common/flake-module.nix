@@ -16,6 +16,7 @@
       ./identity
       ./logging
       ./networking
+      ./nix.nix
       ./security
       ./services
       ./storage-persistence.nix
@@ -25,6 +26,32 @@
       ./version
       ./virtualization
       # keep-sorted end
+
+      # Pin `nixpkgs` for nixPath/registry on debug builds only.
+      #
+      # The value is the nixpkgs *source*: ~480 MB unpacked, a ~200 MB closure,
+      # and pinning it in nixPath/registry makes it a real runtime dependency, so
+      # it is copied into the image. Useful on a debug image where `nix repl` and
+      # `nix-shell` should resolve against the pinned tree; pure bloat on a
+      # release one.
+      #
+      #
+      # This is the raw nixpkgs input, not ghaf's overlaid package set, and it
+      # cannot be otherwise: nixPath and the registry take a path to a nixpkgs
+      # *source tree*, while overlays are applied at import time and are not part
+      # of any source. So `nix repl`/`nix-shell` on a debug device resolve against
+      # stock nixpkgs, not against what the image was built from -- packages
+      # instantiated that way will not share store paths with the system.
+      #
+      # Making them agree would mean shipping a small flake that imports nixpkgs
+      # with `inputs.self.overlays.default` and pinning *that*, which is a real
+      # design change rather than a one-line fix.
+      (
+        { config, lib, ... }:
+        {
+          ghaf.nix.nixpkgs = lib.mkIf config.ghaf.profiles.debug.enable inputs.nixpkgs;
+        }
+      )
     ];
 
     # Ghaf-patched QEMU package definition (ivshmem, TPM, USB, ACPI patches).
