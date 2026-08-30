@@ -46,7 +46,23 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
 
 ## Backports carried in overlays
 
+- [gobject-introspection: don't abort builds when g-ir-scanner is absent](https://github.com/NixOS/nixpkgs/pull/557920)
 
+  `overlays/cross-compilation/default.nix` adds `gobject-introspection` to
+  `dbus-python`'s `nativeBuildInputs`.
+
+   [nixpkgs#540549](https://github.com/NixOS/nixpkgs/pull/540549)
+  (`dbus-python: Re-enable tests`) is what exposed it, by adding `pygobject3` to
+  `checkInputs`. It reached our pin in the 2026-08-25 bump and broke every Jetson
+  `-from-x86_64` target.
+
+  Drop the overlay entry once #557920 lands. Test for the fix itself rather than
+  by date:
+
+  ```bash
+  grep -q 'type -p g-ir-scanner || true' \
+    <our-pin>/pkgs/development/libraries/gobject-introspection/wrapper.nix
+  ```
 
 ## Inputs pinned to an unmerged PR
 
