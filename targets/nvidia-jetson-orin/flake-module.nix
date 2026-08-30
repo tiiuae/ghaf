@@ -408,6 +408,10 @@ let
     tgt
     // rec {
       name = tgt.name + "-nodemoapps";
+      # Consumed by `flashCrossTargets` below to skip generating flash attributes
+      # for these; marked here rather than matched on the name, matching how
+      # verity targets carry `isVerity`.
+      isNoDemoApps = true;
       hostConfiguration = tgt.hostConfiguration.extendModules {
         modules = [
           { ghaf.reference.host-demo-apps.demo-apps.enableDemoApplications = lib.mkForce false; }
@@ -576,6 +580,21 @@ let
   # package-set evaluation.
   isVerityTarget = t: t.isVerity or false;
   verityCrossTargets = builtins.filter isVerityTarget crossTargets;
+
+  # Targets that get their own flash attributes.
+  #
+  # `nodemoapps` only removes demo applications from the *image*, and no flash
+  # script embeds an image any more: every Orin board pins
+  # `appPartitionSizeBytes`, so flash.xml carries static ESP/APP sizes and the
+  # image is supplied at run time with `-s`. The variant therefore cannot change
+  # the flash script, and a census over all 125 flash attributes confirmed it --
+  # 63 distinct derivations, and all 62 duplicates were exactly an
+  # `X` / `X-nodemoapps` pair.
+  #
+  # Each duplicate cost a full Jetson derivation-graph construction during CI
+  # eval, which is where the eval memory goes. Flash a `nodemoapps` image with the
+  # base target's script and `-s <image>`.
+  flashCrossTargets = builtins.filter (t: !(t.isNoDemoApps or false)) crossTargets;
 in
 {
   flake = {
@@ -594,7 +613,7 @@ in
             lib.nameValuePair "${t.name}-flash-script" (
               lazyPackage "${t.name}-flash-script" (flashTarget t false)
             )
-          ) crossTargets
+          ) flashCrossTargets
         )
         // builtins.listToAttrs (
           map (
@@ -606,7 +625,7 @@ in
             # verity `-flash-qspi` is therefore the same derivation as its
             # `-flash-script`, so emitting it costs a full Jetson eval for a
             # duplicate.
-          ) (builtins.filter (t: !(isVerityTarget t)) crossTargets)
+          ) (builtins.filter (t: !(isVerityTarget t)) flashCrossTargets)
         )
         # OTA update artifacts for verity targets
         // builtins.listToAttrs (
