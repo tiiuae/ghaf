@@ -96,7 +96,7 @@
     # Crosvm with Ghaf's swtpm backend. This is a non-flake source input
     # because nixpkgs supplies the package expression and Rust dependencies.
     ghaf-crosvm = {
-      url = "git+https://github.com/tiiuae/ghaf-crosvm?ref=refs/heads/feat/protected-guivm-r3&rev=06178f3cb57e616310dc1653d4dd98f7fb658286&submodules=1";
+      url = "git+https://github.com/tiiuae/ghaf-crosvm?ref=refs/heads/feat/protected-guivm-r3&rev=20fd30dc0f7819618a0d4fc1d89fc6d66580a6f9&submodules=1";
       flake = false;
     };
 
