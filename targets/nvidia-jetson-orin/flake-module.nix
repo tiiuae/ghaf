@@ -188,12 +188,12 @@ let
         config.microvm.hypervisor == "crosvm"
       ) "protected-without-firmware";
 
-      # A vhost-user backend maps guest memory into a separate host process.
-      # With upstream pKVM, an access outside the guest-shared restricted DMA
-      # pool force-reclaims and poisons the private page. Keep this first
-      # protected guest free of virtio-fs; its Nix store is supplied by the
-      # target's block-backed store image instead.
-      microvm.shares = lib.mkForce [ ];
+      # An external vhost-user backend maps guest memory into a separate host
+      # process. With upstream pKVM, an access outside the guest-shared
+      # restricted DMA pool force-reclaims and poisons the private page. Keep
+      # shares disabled unless a guest explicitly selects Crosvm's native
+      # non-DAX virtio-fs backend. The Nix store remains block-backed.
+      microvm.shares = lib.mkIf (config.microvm.crosvm.virtiofsBackend != "crosvm") (lib.mkForce [ ]);
 
       # Upstream Linux reports protected-VM support by accepting the protected
       # KVM_CREATE_VM type. Crosvm otherwise probes an Android-only capability
@@ -401,10 +401,11 @@ let
         protectedVmWithoutFirmwareModule
         {
           microvm.crosvm.protection.allowDeviceAssignment = true;
+          microvm.crosvm.virtiofsBackend = "crosvm";
 
-          # The shared directory is virtio-fs backed. Protected guests use the
-          # block-backed store path and keep host-visible vhost-user mappings
-          # disabled.
+          # Retain only the existing ghaf-common share for the first native
+          # virtio-fs canary. XDG and user-facing shared directories remain
+          # disabled, and the Nix store stays on its block-backed image.
           ghaf.storagevm.shared-directories.enable = lib.mkForce false;
           ghaf.xdgitems.enable = lib.mkForce false;
         }
