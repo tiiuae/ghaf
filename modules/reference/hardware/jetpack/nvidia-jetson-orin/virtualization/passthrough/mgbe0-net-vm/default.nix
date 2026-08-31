@@ -1,17 +1,5 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-#
-# Pass the AGX Orin's on-SoC ethernet (MGBE0, ethernet@6800000) to net-vm.
-#
-#   data     vfio-platform hands the MAC's MMIO + IRQs to the guest; MGBE0 is
-#            alone in its IOMMU group, so VFIO takes it cleanly.
-#   control  the node's clocks/resets/power-domain are <&bpmp ...> refs and the
-#            guest has no BPMP, so the guest tegra_bpmp is redirected (via the
-#            `virtual-pa` prop on its /bpmp node) to a QEMU bridge that forwards
-#            to /dev/bpmp-host. See bpmp-virt-common.
-#
-# QEMU emits the guest DT (a dynamic sysbus device with no FDT binding aborts
-# `virt`); there is no hand-written -dtb.
 {
   lib,
   pkgs,
@@ -20,194 +8,41 @@
 }:
 let
   cfg = config.ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm;
-  virt = config.ghaf.hardware.nvidia.virtualization;
+  support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
+  mgbe0 = support.passthrough.mgbe0;
 in
 {
   _file = ./default.nix;
 
   options.ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm.enable =
-    lib.mkEnableOption "MGBE0 (ethernet@6800000) passthrough to the Net-VM on NVIDIA Orin";
+    lib.mkEnableOption "MGBE0 passthrough to Net VM on NVIDIA Orin";
 
   config = lib.mkIf cfg.enable {
-    # The guest can only bring MGBE0 up through the BPMP host proxy.
-    ghaf.hardware.nvidia.virtualization.host.bpmp.enable = true;
-
-    ghaf.hardware.nvidia.virtualization.host.bpmp.allow = {
-      # MGBE0 (ethernet@6800000) clocks, resets, power domain -- raw BPMP ids
-      # read from the device's live DT (not TEGRA234_CLK_* macros; NVIDIA's DT
-      # has drifted from mainline). "clock not allowed" denials at guest boot are
-      # the boundary working, not a bug -- see bpmp-host-proxy.c.
-      clocks = [
-        357
-        361
-        369
-        373
-        374
-        375
-        376
-        377
-        378
-        379
-        380
-        381
-        248
-        # MGBE0's "tx" (374) is fed by a PLL chain that clk_prepare() walks in
-        # full, so every link needs allowing or the child fails: the guest logs
-        # "Failed to prepare clk 'tx': -5" and tegra-mgbe probes at -5, while the
-        # host logs "bpmp-host: Warning, clock not allowed for: <id>, command: 7".
-        # Allowing only part of the chain just moves the denial to the next link
-        # (seen going 319 -> 367). All of these are gigabit-ethernet dedicated,
-        # so the boundary stays ethernet-scoped: host-critical display/memory
-        # PLLs stay denied, and the MGBE1/2/3 instances are deliberately not
-        # listed since only MGBE0 is passed through.
-        319 # PLLGBE
-        320 # PLLGBE_HPS
-        366 # MGBES_APP
-        367 # UPHY_GBE_PLL2_TX_REF
-        368 # UPHY_GBE_PLL2_XDIG
-        # mgbe0_app (380) does not hang off the GBE PLLs at all: it is clocked
-        # at 480 MHz from the USB/UTMI tree, so clk_prepare walks
-        # mgbe0_app -> utmipll_clkout480 -> utmip_pll -> osc/clk_m. Every one of
-        # these is shared with host USB, so bpmp-host-proxy.c also lists them in
-        # protected_clk_roots: net-vm may enable and read them, but
-        # disable/set_rate/set_parent stay denied, so a guest cannot pull the
-        # clock out from under the host's USB (keyboard, net-vm's own NIC).
-        103 # UTMIP_PLL
-        292 # UTMIPLL_CLKOUT480
-        91 # OSC
-        14 # CLK_M
-        # ptp-ref (381) hangs off the PLLREFE tree rather than the USB one, so
-        # it needs its own two ancestors. PLLREFE is a shared reference PLL
-        # (PCIe/UPHY use it too), hence protected_clk_roots as well.
-        288 # PLLREFE_VCOOUT
-        327 # PLLREFE_VCOOUT_GATED
-      ];
-      resets = [
-        45
-        46
-        47
-      ];
-      powerDomains = [ 18 ];
+    hardware.nvidia-jetpack.virtualization = {
+      bpmpHost.consumers.net-vm = support.bpmpPolicies.mgbe0.proxy;
+      mgbe0Host.enable = true;
     };
 
-    services.udev.extraRules = ''
-      # QEMU opens /dev/bpmp-host in instance_init, and microvm.nix runs it as
-      # user microvm, group kvm. The char device is otherwise 0600 root:root.
-      KERNEL=="bpmp-host", GROUP="kvm", MODE="0660"
-
-      # vfio group nodes for the passed-through platform device.
-      SUBSYSTEM=="vfio", GROUP="kvm"
-    '';
-
-    # Stop the host binding MGBE0 by blacklisting its drivers, NOT by dummying
-    # the DT compatible: QEMU's vfio-platform reads of_node/compatible to pick
-    # the FDT emitter, so "nvidia,dummy" makes the nvidia,tegra234-mgbe binding
-    # miss and QEMU exits ("can not be dynamically instantiated"). Leaving the
-    # node pristine also dodges the nvethernet .remove that poisons a rebind.
-    boot.blacklistedKernelModules = [
-      "nvethernet"
-      "dwmac-tegra"
-    ];
-
-    # Bind MGBE0 to vfio-platform before net-vm starts.
-    systemd.services.bindMgbe0 = {
-      description = "Bind MGBE0 (6800000.ethernet) to the vfio-platform driver";
-      wantedBy = [ "multi-user.target" ];
-      before = [ "microvm@net-vm.service" ];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = "yes";
-        ExecStartPre = "${pkgs.bash}/bin/bash -c \"echo vfio-platform > /sys/bus/platform/devices/6800000.ethernet/driver_override\"";
-        ExecStart = "${pkgs.bash}/bin/bash -c \"echo 6800000.ethernet > /sys/bus/platform/drivers/vfio-platform/bind\"";
-      };
+    systemd.services."microvm@net-vm" = {
+      requires = [ "bindMgbe0.service" ];
+      after = [ "bindMgbe0.service" ];
+      environment.GHAF_BPMP_HOST = "/dev/bpmp-host-net-vm";
     };
-    systemd.services."microvm@net-vm".after = [ "bindMgbe0.service" ];
 
     ghaf.hardware.definition.netvm.extraModules = [
       (
-        { config, pkgs, ... }:
-        let
-          guestKernelVersion = config.boot.kernelPackages.kernel.version;
-        in
         {
-          # v6.12 hardcodes MGBE0's SMMU stream id (0x6); v6.13+ reads it from an
-          # iommu_fwspec the QEMU virt guest lacks (probe -EINVALs). v6.12 also
-          # carries the Oct-2024 serdes bring-up fix (1cff6ff30) that v6.6 lacks.
-          boot.kernelPackages = lib.mkForce pkgs.linuxPackages_6_12;
-
-          # MANDATORY, independent of the host proxy's allow-list. At
-          # late_initcall the guest runs clk_disable_unused() /
-          # genpd_power_off_unused(); through the guest proxy those reach the REAL
-          # BPMP and switch off clocks the host needs (e.g. its eMMC), wedging it.
-          # These params stop the guest ever issuing the disables. See
-          # bpmp-host-proxy.c.
-          boot.kernelParams = [
-            "clk_ignore_unused"
-            "pd_ignore_unused"
-          ];
-
-          boot.kernelPatches = [
-            {
-              # 6.12.95 backported commit 426046e2d, so dwmac-tegra reads MGBE0's
-              # SMMU stream id from DT and -EINVALs when a passthrough guest has
-              # no IOMMU. Fall back to the fixed stream id 6.
-              name = "dwmac-tegra fixed stream id";
-              patch = ./0001-dwmac-tegra-fixed-stream-id.patch;
-            }
-            {
-              name = "bpmp-virt proxy drivers";
-              patch = virt.sourcesPatch;
-            }
-            {
-              name = "bpmp-virt core hooks";
-              patch =
-                if lib.versionAtLeast guestKernelVersion "6.12" then
-                  "${pkgs.nvidia-jetpack.orinVirtualizationSupport}/patches/linux/bpmp/0001-bpmp-virt-hooks-6.12.patch"
-                else
-                  "${pkgs.nvidia-jetpack.orinVirtualizationSupport}/patches/linux/bpmp/0001-bpmp-virt-hooks.patch";
-            }
-            {
-              name = "bpmp guest proxy kernel configuration";
-              patch = null;
-              structuredExtraConfig = with lib.kernel; {
-                # tegra_bpmp_match[] only registers "nvidia,tegra186-bpmp" when one
-                # of the 186/194/234 SoCs is enabled, and TEGRA_BPMP itself depends
-                # on TEGRA_HSP_MBOX and TEGRA_IVC.
-                ARCH_TEGRA = yes;
-                ARCH_TEGRA_234_SOC = yes;
-                TEGRA_HSP_MBOX = yes;
-                TEGRA_IVC = yes;
-                TEGRA_BPMP = yes;
-                TEGRA_BPMP_GUEST_PROXY = yes;
-                TEGRA_BPMP_HOST_PROXY = no;
-                # BPMP clock/reset/power-domain providers the MGBE0 node refers to.
-                CLK_TEGRA_BPMP = yes;
-                RESET_TEGRA_BPMP = yes;
-                PM_GENERIC_DOMAINS = yes;
-                # The ethernet driver and the AGX devkit's PHY (Aquantia AQR113C,
-                # identified on the host in Task 1).
-                STMMAC_ETH = yes;
-                STMMAC_PLATFORM = yes;
-                DWMAC_TEGRA = yes;
-                AQUANTIA_PHY = yes;
-              };
-            }
-          ];
-
-          # Only this VM gets the QEMU that has the BPMP bridge and, crucially,
-          # still has -device vfio-platform (removed upstream in 10.2). That QEMU
-          # also carries the FDT binding that emits MGBE0's guest node.
+          inputs,
+          pkgs,
+          ...
+        }:
+        {
+          imports = [ inputs.jetpack-nixos.nixosModules.orin-virtualization ];
+          hardware.nvidia-jetpack.virtualization.mgbe0Guest.enable = true;
           ghaf.virtualization.qemu.package = lib.mkForce pkgs.ghaf-nvidia-qemu-bpmp;
-
-          # Hand MGBE0 to the guest. QEMU emits the ethernet DT node itself (from
-          # the nvidia,tegra234-mgbe binding in sysbus-fdt.c); there is no -dtb.
           microvm.qemu.extraArgs = [
             "-device"
-            # startup-rearm recovers MGBE0's level IRQ if it asserts during the
-            # ~17s bring-up gap before the guest stmmac driver claims the SPI.
-            # Default-off in QEMU; enabled here only, bounded to 30s (see
-            # ghaf-nvidia-qemu-bpmp patch 0006).
-            "vfio-platform,host=6800000.ethernet,startup-rearm=on"
+            "vfio-platform,host=${mgbe0.sysfsName},startup-rearm=on"
           ];
         }
       )
