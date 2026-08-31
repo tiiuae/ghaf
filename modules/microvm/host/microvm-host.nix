@@ -245,7 +245,7 @@ in
           ) xdgDirs;
         in
         [
-          "d /persist/common 0755 root root -"
+          "d /persist/common 0775 root kvm -"
           "d /persist/sysupdate 0755 root root -"
           "d /persist/storagevm 0755 root root -"
           "d /persist/storagevm/img 0700 microvm kvm -"
