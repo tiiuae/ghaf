@@ -8,11 +8,14 @@
 }:
 let
   cfg = config.ghaf.hardware.nvidia.virtualization;
+  providerHostEnabled = config.hardware.nvidia-jetpack.virtualization.bpmpHost.consumers != { };
   kernelVersion = config.boot.kernelPackages.kernel.version;
-  orinVirtualizationSupport = pkgs.nvidia-jetpack.orinVirtualizationSupport.override {
+  support = pkgs.nvidia-jetpack.orinVirtualizationSupport.override {
     inherit (cfg) bpmpAllowAllDomains;
   };
-  supportPath = "${orinVirtualizationSupport}";
+  sourcesPatch = pkgs.runCommand "bpmp-virt-sources.patch" { } ''
+    cp ${support}/patches/linux/bpmp-sources.patch "$out"
+  '';
 in
 {
   _file = ./default.nix;
@@ -22,65 +25,45 @@ in
       type = lib.types.bool;
       default = false;
       description = ''
-        Enable virtualization support for NVIDIA Orin
+        Enable virtualization support for NVIDIA Orin.
 
-        This option is an implementation level detail and is toggled automatically
-        by modules that need it. Manually enabling this option is not recommended in
-        release builds.
+        This compatibility option is toggled automatically by the existing
+        Ghaf passthrough modules while their guest policy moves to
+        jetpack-nixos.
       '';
     };
 
     sourcesPatch = lib.mkOption {
-      type = lib.types.path;
+      type = lib.types.package;
       readOnly = true;
       internal = true;
-      default = "${supportPath}/patches/linux/bpmp-sources.patch";
-      defaultText = lib.literalExpression "<orinVirtualizationSupport>/patches/linux/bpmp-sources.patch";
-      description = ''
-        Generated patch that adds the bpmp-virt proxy drivers to a kernel tree.
-
-        Exposed so a guest VM's kernel can be given the same drivers: the host
-        needs the host proxy, the guest needs the guest proxy, and both live in
-        the same source directory.
-      '';
+      default = sourcesPatch;
+      defaultText = lib.literalExpression "<jetpack-nixos BPMP sources patch>";
+      description = "BPMP proxy sources supplied by jetpack-nixos.";
     };
 
     bpmpAllowAllDomains = lib.mkOption {
       type = lib.types.bool;
       default = false;
       description = ''
-        Let the BPMP host proxy service every clock, reset and power domain a
-        guest asks for, instead of consulting the `allowed-clocks` /
-        `allowed-resets` properties on the `bpmp_host_proxy` device-tree node.
+        Allow every BPMP clock, reset and power-domain request.
 
-        DANGEROUS. A guest kernel's clk_disable_unused() / genpd_power_off_unused()
-        run BPMP requests to turn off every clock and power domain the guest does
-        not claim. With no allow-list those reach the real BPMP and can switch off
-        hardware the HOST is using -- e.g. its eMMC controller, which wedges the
-        host. The guest must ALSO boot with `clk_ignore_unused pd_ignore_unused`;
-        the passthrough modules add those. Default off. Only ever set true briefly,
-        on a guest carrying those kernel params, to discover what the guest
-        actually requests so the allow-list can be written.
+        This is dangerous and intended only for temporary policy discovery.
       '';
     };
   };
 
-  config = lib.mkIf cfg.enable {
+  config = lib.mkIf (cfg.enable && !providerHostEnabled) {
     assertions = [
       {
         assertion = lib.versionAtLeast kernelVersion "6.6";
-        message = ''
-          ghaf.hardware.nvidia.virtualization needs kernel >= 6.6; got ${kernelVersion}.
-          The bpmp-virt drivers provided by orinVirtualizationSupport are written against
-          the 6.6 drivers/firmware/tegra layout. Set
-          ghaf.hardware.nvidia.orin.kernelVersion = "upstream-6".
-        '';
+        message = "NVIDIA Orin virtualization requires kernel 6.6 or newer; got ${kernelVersion}.";
       }
     ];
 
     boot.kernelPatches = [
       {
-        name = "Added Configurations to Support Vda";
+        name = "Orin virtualization kernel configuration";
         patch = null;
         structuredExtraConfig = with lib.kernel; {
           PCI_STUB = lib.mkDefault yes;
@@ -99,25 +82,21 @@ in
         };
       }
       {
-        name = "Vfio_platform Reset Required False";
-        patch = "${supportPath}/patches/linux/bpmp/0002-vfio_platform-reset-required-false.patch";
+        name = "vfio-platform optional reset";
+        patch = "${support}/patches/linux/bpmp/0002-vfio_platform-reset-required-false.patch";
       }
       {
-        name = "bpmp-virt proxy drivers";
+        name = "BPMP virtualization proxy drivers";
         patch = cfg.sourcesPatch;
       }
       {
-        name = "bpmp-virt core hooks";
-        patch = "${supportPath}/patches/linux/bpmp/0001-bpmp-virt-hooks.patch";
+        name = "BPMP virtualization core hooks";
+        patch = "${support}/patches/linux/bpmp/0001-bpmp-virt-hooks.patch";
       }
     ];
 
     boot.kernelParams = [
-      # The passed-through platform device raises level-triggered IRQs the host
-      # GIC can't remap 1:1 to the guest; allow VFIO to forward them anyway.
       "vfio_iommu_type1.allow_unsafe_interrupts=1"
-      # Let SMMU stream IDs without a matching context fall through to bypass so
-      # the guest-driven MGBE0 DMAs before its SMMU context is programmed.
       "arm-smmu.disable_bypass=0"
     ];
   };
