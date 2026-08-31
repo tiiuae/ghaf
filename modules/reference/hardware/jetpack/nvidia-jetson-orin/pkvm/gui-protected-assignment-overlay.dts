@@ -9,17 +9,23 @@
 
 	fragment@0 {
 		target-path = "/vm_hs_p@60000000";
-		pkvm_gui_vm_hs: __overlay__ { };
+		pkvm_gui_vm_hs: __overlay__ {
+			pkvm,shared-resource;
+		};
 	};
 
 	fragment@1 {
 		target-path = "/vm_cma_p@80000000";
-		pkvm_gui_vm_cma: __overlay__ { };
+		pkvm_gui_vm_cma: __overlay__ {
+			pkvm,shared-resource;
+		};
 	};
 
 	fragment@2 {
 		target-path = "/scanout_p@b0000000";
-		pkvm_gui_scanout: __overlay__ { };
+		pkvm_gui_scanout: __overlay__ {
+			pkvm,shared-resource;
+		};
 	};
 
 	fragment@3 {
@@ -63,6 +69,23 @@
 	};
 
 	fragment@11 {
+		target-path = "/";
+
+		__overlay__ {
+			/* This merges with the NVIDIA display node in the -nv DTB. The
+			 * alternate DTB has no display node, where the resulting property-
+			 * only node is inert and keeps this overlay variant-safe. */
+			display@13800000 {
+				/* The ISO anchor shares SID 1's IOMMU group with nvdisplay.
+				 * Select the translated domain before the runtime anchor joins
+				 * the group, and retain DCE aliases above 4 GiB. */
+				pkvm,paging-domain;
+				pkvm,iova-address-bits = <40>;
+			};
+		};
+	};
+
+	fragment@12 {
 		target-path = "/";
 
 		__overlay__ {
