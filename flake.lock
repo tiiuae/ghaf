@@ -369,18 +369,18 @@
     "ghaf-crosvm": {
       "flake": false,
       "locked": {
-        "lastModified": 1787954569,
-        "narHash": "sha256-pe4x30UsXsbFKwM68JRsoOqO1fyy5zuJtzMIIVBw0cg=",
-        "ref": "refs/heads/feat/pkvm-pci-assignment",
-        "rev": "718c58c3606bd6c33069fb48b716bf7297287833",
-        "revCount": 11731,
+        "lastModified": 1788137602,
+        "narHash": "sha256-FhHvjZmBKIdv1wSPilkcO+iZyABWOobchYOFBjIRNjE=",
+        "ref": "refs/heads/feat/protected-guivm-r3",
+        "rev": "06178f3cb57e616310dc1653d4dd98f7fb658286",
+        "revCount": 11733,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
       },
       "original": {
-        "ref": "refs/heads/feat/pkvm-pci-assignment",
-        "rev": "718c58c3606bd6c33069fb48b716bf7297287833",
+        "ref": "refs/heads/feat/protected-guivm-r3",
+        "rev": "06178f3cb57e616310dc1653d4dd98f7fb658286",
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
@@ -593,34 +593,34 @@
         ]
       },
       "locked": {
-        "lastModified": 1787772676,
-        "narHash": "sha256-+DVcpRnkyQWQMKZfKppJqFsIhVdYQWrOXxG1+X1wLJw=",
+        "lastModified": 1788137636,
+        "narHash": "sha256-B3jClnmtlwj+/NT3nzEv4y31QL4ng+iB8utFaxWN6ts=",
         "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "9ad43a2697bc3da7e9b4911192607df6541b90e4",
+        "rev": "278ebc4004ca89bbeb6d217db137026cb31fc63d",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "feat/orin-proxy-lifecycle",
         "repo": "jetpack-nixos",
+        "rev": "278ebc4004ca89bbeb6d217db137026cb31fc63d",
         "type": "github"
       }
     },
     "linux-pkvm": {
       "flake": false,
       "locked": {
-        "lastModified": 1787954561,
-        "narHash": "sha256-3/9Q1JQqP3ci6JfiP2GPlMdBBNPg0G6uFohew2cj5Dw=",
+        "lastModified": 1788137556,
+        "narHash": "sha256-BVYBZG5MzfSS5kCTlK9Ok3dWXooQCCu6nsXVn8x3sH8=",
         "owner": "tiiuae",
         "repo": "linux-pkvm",
-        "rev": "24e85e20b92b65cfae1b0881c98a391f32c346b0",
+        "rev": "7a290b85d63207794ed5c469527bbcc75f074590",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
         "repo": "linux-pkvm",
-        "rev": "24e85e20b92b65cfae1b0881c98a391f32c346b0",
+        "rev": "7a290b85d63207794ed5c469527bbcc75f074590",
         "type": "github"
       }
     },

@@ -96,7 +96,7 @@
     # Crosvm with Ghaf's swtpm backend. This is a non-flake source input
     # because nixpkgs supplies the package expression and Rust dependencies.
     ghaf-crosvm = {
-      url = "git+https://github.com/tiiuae/ghaf-crosvm?ref=refs/heads/feat/pkvm-pci-assignment&rev=718c58c3606bd6c33069fb48b716bf7297287833&submodules=1";
+      url = "git+https://github.com/tiiuae/ghaf-crosvm?ref=refs/heads/feat/protected-guivm-r3&rev=06178f3cb57e616310dc1653d4dd98f7fb658286&submodules=1";
       flake = false;
     };
 
@@ -148,14 +148,14 @@
     jetpack-nixos = {
       #url = "github:anduril/jetpack-nixos";
       # TODO: restore august-rebase after jetpack-nixos#22 merges.
-      url = "github:tiiuae/jetpack-nixos/feat/orin-proxy-lifecycle";
+      url = "github:tiiuae/jetpack-nixos/278ebc4004ca89bbeb6d217db137026cb31fc63d";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # Validated Linux 7.1 pKVM source for the AGX host and protected guests.
     # flake.lock pins this non-flake input to an immutable integration commit.
     linux-pkvm = {
-      url = "github:tiiuae/linux-pkvm/24e85e20b92b65cfae1b0881c98a391f32c346b0";
+      url = "github:tiiuae/linux-pkvm/7a290b85d63207794ed5c469527bbcc75f074590";
       flake = false;
     };
 
