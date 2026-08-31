@@ -104,6 +104,20 @@ let
       hardware.nvidia-jetpack.virtualization.gpuPassthroughGuest.kernelPackages = lib.mkOverride 40 (
         linuxPkvmPackages pkgs
       );
+
+      # NVIDIA EGL waits for host1x syncpoints through the staging Tegra DRM
+      # UAPI. Without these options, DRM_IOCTL_TEGRA_SYNCPOINT_WAIT is left
+      # unregistered and fence creation fails with EINVAL.
+      boot.kernelPatches = [
+        {
+          name = "Enable the Tegra HOST1X userspace interface";
+          patch = null;
+          structuredExtraConfig = with lib.kernel; {
+            STAGING = yes;
+            DRM_TEGRA_STAGING = yes;
+          };
+        }
+      ];
     };
 
   linux71ExternalPkvmGuestModule =
