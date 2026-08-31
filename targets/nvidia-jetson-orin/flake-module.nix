@@ -392,7 +392,25 @@ let
         linux71PkvmAssignedGuestModule
         protectedVmWithoutFirmwareModule
         {
-          microvm.crosvm.protection.allowDeviceAssignment = true;
+          microvm = {
+            crosvm = {
+              protection.allowDeviceAssignment = true;
+              virtiofsBackend = "crosvm";
+            };
+
+            # NetVM's dynamic-hostname setter reads the hardware-derived name
+            # from this share. Keep the native protected-guest surface limited
+            # to ghaf-common: sysupdate, hwinfo, and the Nix store stay outside
+            # this step.
+            shares = lib.mkForce [
+              {
+                tag = "ghaf-common";
+                source = "/persist/common";
+                mountPoint = "/etc/common";
+                proto = "virtiofs";
+              }
+            ];
+          };
         }
       ];
       ghaf.virtualization.vmConfig.sysvms.guivm.extraModules = [
