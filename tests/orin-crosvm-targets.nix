@@ -194,7 +194,9 @@ let
         ) pkvmAgx.ghaf.hardware.passthrough.vhotplug.evdevRules
         && lib.any (
           device: device.vendorId == "046d" && device.productId == "c52b"
-        ) pkvmAgx.ghaf.hardware.passthrough.usb.guivmDeny;
+        ) pkvmAgx.ghaf.hardware.passthrough.usb.guivmDeny
+        && lib.hasInfix "vmm args --vm gui-vm" pkvmGuiVm.microvm.extraArgsScript
+        && !lib.hasInfix "--require-pci" pkvmGuiVm.microvm.extraArgsScript;
     }
   ];
 

@@ -921,12 +921,19 @@ rec {
         # that convention instead of maintaining another per-VM lookup table.
         vhotplugVmName = "${lib.removeSuffix "vm" vmName}-vm";
         pciRules = config.ghaf.hardware.passthrough.vhotplug.pciRules or [ ];
+        evdevRules = config.ghaf.hardware.passthrough.vhotplug.evdevRules or [ ];
+        acpiRules = config.ghaf.hardware.passthrough.vhotplug.acpiRules or [ ];
         # Crosvm implements PCI hotplug only on x86_64. AArch64 system VMs must
         # retain their statically declared PCI devices.
         usesPciVhotplug =
           selectedVmm == "crosvm"
           && config.nixpkgs.hostPlatform.isx86_64
           && lib.any (rule: (rule.targetVm or null) == vhotplugVmName) pciRules;
+        usesEvdevPassthrough =
+          selectedVmm == "crosvm" && lib.any (rule: (rule.targetVm or null) == vhotplugVmName) evdevRules;
+        usesAcpiPassthrough =
+          selectedVmm == "crosvm" && lib.any (rule: (rule.targetVm or null) == vhotplugVmName) acpiRules;
+        usesVhotplugArgs = usesPciVhotplug || usesEvdevPassthrough || usesAcpiPassthrough;
         vhotplugEnabled = config.ghaf.hardware.passthrough.vhotplug.enable or false;
         pciBusPrefix = config.ghaf.hardware.passthrough.pciPorts.pcieBusPrefix;
         deviceManagerPackage = config.ghaf.hardware.passthrough.deviceManager.package;
@@ -941,9 +948,9 @@ rec {
             "1"
             "--timeout"
             "30"
-            "--require-pci"
           ]
-          ++ lib.optionals (pciBusPrefix != null) [
+          ++ lib.optionals usesPciVhotplug [ "--require-pci" ]
+          ++ lib.optionals (usesPciVhotplug && pciBusPrefix != null) [
             "--qemu-bus-prefix"
             pciBusPrefix
           ]
@@ -973,14 +980,16 @@ rec {
             }
             // lib.optionalAttrs usesPciVhotplug {
               devices = lib.mkForce [ ];
+            }
+            // lib.optionalAttrs usesVhotplugArgs {
               extraArgsScript = lib.mkForce vhotplugArgs;
             };
 
             assertions =
-              lib.optionals usesPciVhotplug [
+              lib.optionals usesVhotplugArgs [
                 {
                   assertion = vhotplugEnabled && config.microvm.socket != null;
-                  message = "Crosvm PCI passthrough for ${vhotplugVmName} requires a device manager and a control socket";
+                  message = "Crosvm startup passthrough for ${vhotplugVmName} requires a device manager and a control socket";
                 }
               ]
               ++ lib.optionals (selectedVmm == "crosvm") [
