@@ -369,18 +369,18 @@
     "ghaf-crosvm": {
       "flake": false,
       "locked": {
-        "lastModified": 1788190797,
-        "narHash": "sha256-q9eZIZhq7fGYSjOkEuKSBF3X3hkrLvUse8O5bgdc/X4=",
+        "lastModified": 1788197538,
+        "narHash": "sha256-ul6CMIPp3HJ/Ie6fyAygQcm4UG7MH74HOKkWh1nTxBs=",
         "ref": "refs/heads/feat/protected-guivm-r3",
-        "rev": "2cbd7e38a1c6af13ce24fbd5c292afad8ccd71a3",
-        "revCount": 11735,
+        "rev": "8a01aeb570283b2122e50bf6c3ee45ca02f3d5e7",
+        "revCount": 11736,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
       },
       "original": {
         "ref": "refs/heads/feat/protected-guivm-r3",
-        "rev": "2cbd7e38a1c6af13ce24fbd5c292afad8ccd71a3",
+        "rev": "8a01aeb570283b2122e50bf6c3ee45ca02f3d5e7",
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
