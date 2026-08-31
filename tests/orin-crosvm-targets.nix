@@ -160,6 +160,14 @@ let
         && pkvmAgx.ghaf.hardware.nvidia.orin.agx.netvmWlanPCICrosvmIommu == "pkvm-iommu"
         && pkvmWlan.crosvm.iommu == "pkvm-iommu"
         && pkvmWlan.crosvm.guestAddress == "00:1f.0"
+        && pkvmNetVm.ghaf.identity.vmHostNameSetter.enable
+        && pkvmNetVm.microvm.crosvm.virtiofsBackend == "crosvm"
+        && builtins.length pkvmNetVm.microvm.shares == 1
+        && (builtins.head pkvmNetVm.microvm.shares).tag == "ghaf-common"
+        && (builtins.head pkvmNetVm.microvm.shares).source == "/persist/common"
+        && (builtins.head pkvmNetVm.microvm.shares).mountPoint == "/etc/common"
+        && (builtins.head pkvmNetVm.microvm.shares).proto == "virtiofs"
+        && !(pkvmNetVm.microvm.binScripts ? virtiofsd-run)
         && lib.any (
           overlay: overlay.name == "rtw8822ce-protected-assignment"
         ) pkvmAgx.hardware.deviceTree.overlays
