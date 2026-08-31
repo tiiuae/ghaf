@@ -175,7 +175,11 @@ let
         && lib.all (device: device.crosvm.iommu == "pkvm-iommu") pkvmGuiDevices
         && pkvmGuiVm.microvm.crosvm.protection.mode == "protected-without-firmware"
         && pkvmGuiVm.microvm.crosvm.protection.allowDeviceAssignment
-        && pkvmGuiVm.microvm.shares == [ ]
+        && pkvmGuiVm.microvm.crosvm.virtiofsBackend == "crosvm"
+        && builtins.length pkvmGuiVm.microvm.shares == 1
+        && (builtins.head pkvmGuiVm.microvm.shares).tag == "ghaf-common"
+        && (builtins.head pkvmGuiVm.microvm.shares).proto == "virtiofs"
+        && !(pkvmGuiVm.microvm.binScripts ? virtiofsd-run)
         && lib.any (
           overlay: overlay.name == "gui-protected-assignment"
         ) pkvmAgx.hardware.deviceTree.overlays
