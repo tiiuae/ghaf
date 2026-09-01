@@ -29,5 +29,6 @@
   spire4ghaf = import ./spire4ghaf { inherit prev; };
   udiskie = import ./udiskie { inherit prev; };
   waypipe = import ./waypipe { inherit prev; };
+  yad = import ./yad { inherit prev; };
 })
 # keep-sorted end
