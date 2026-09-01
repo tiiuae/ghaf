@@ -209,41 +209,6 @@ let
     '';
   };
 
-  loadFtpmModuleApp = pkgs.writeShellApplication {
-    name = "ghaf-load-ftpm-module";
-    runtimeInputs = [
-      pkgs.coreutils
-      pkgs.kmod
-      pkgs.systemd
-    ];
-    text = ''
-      set -euo pipefail
-
-      if [ -e /dev/tpmrm0 ]; then
-        echo "fTPM device already present, skipping"
-        exit 0
-      fi
-
-      if ! systemctl is-active --quiet tee-supplicant.service; then
-        echo "tee-supplicant is not active" >&2
-        exit 1
-      fi
-
-      if ! timeout 20s modprobe tpm_ftpm_tee; then
-        echo "Failed to load tpm_ftpm_tee" >&2
-        exit 1
-      fi
-
-      udevadm settle --timeout=5 || true
-      if [ ! -e /dev/tpmrm0 ]; then
-        echo "tpm_ftpm_tee loaded but /dev/tpmrm0 is missing" >&2
-        exit 1
-      fi
-
-      echo "Loaded tpm_ftpm_tee"
-    '';
-  };
-
   firmwareEkbImage =
     pkgs.buildPackages.runCommand "ghaf-eks-t234"
       {
@@ -843,6 +808,12 @@ in
       cfg.flashScriptOverrides.signedArtifactsPath != null
     );
     hardware.nvidia-jetpack.firmware.eksFile = "${firmwareEkbImage}/eks_t234.img";
+    hardware.nvidia-jetpack.firmware.optee.ftpm = {
+      enable = true;
+      # Non-secure development boards do not have a fuse-derived EPS. Keep
+      # the explicitly insecure injection path out of secure-boot images.
+      unsecureInjectEPS.enable = !cfg.secureboot.enable;
+    };
     hardware.nvidia-jetpack.kernel.version = "${cfg.kernelVersion}";
     # jetpack-nixos hardcodes the trailing rootfs device as mmcblk0p1; replay
     # the same default here but route it through cfg.flashScriptOverrides.deviceDiskRootfsPartition
@@ -887,10 +858,6 @@ in
 
       modprobeConfig.enable = true;
 
-      # Prevent early autoload; load in stage-2 after local filesystems
-      # and tee-supplicant are up.
-      blacklistedKernelModules = [ "tpm_ftpm_tee" ];
-
       kernelPatches = [
         {
           name = "vsock-config";
@@ -914,11 +881,10 @@ in
           };
         }
         {
-          name = "ftpm-config";
+          name = "disable-ftpm-hwrng";
           patch = null;
           structuredExtraConfig = with lib.kernel; {
             EXPERT = yes;
-            TCG_FTPM_TEE = module;
             # Disable TPM hwrng to prevent constant fTPM polling pressure
             # that can saturate the OP-TEE single-lane fTPM TA under load.
             HW_RANDOM_TPM = no;
@@ -933,6 +899,17 @@ in
             HID_LOGITECH_DJ = yes;
             HID_LOGITECH_HIDPP = yes;
           };
+        }
+      ]
+      ++ lib.optionals (cfg.kernelVersion == "upstream-6-6") [
+        {
+          # NVIDIA's r36 OP-TEE uses the legacy wait-queue RPC contract:
+          # normal world must periodically return from a notification wait so
+          # secure world can recheck the condition. The vendor 5.15 driver
+          # does this every 100 ms, while upstream 6.6 waits indefinitely and
+          # deadlocks the fTPM self-test during tpm_chip_register().
+          name = "optee-notification-wait-timeout";
+          patch = ./optee-notification-wait-timeout.patch;
         }
       ]
       ++ lib.optionals (cfg.diskEncryption.enable && cfg.kernelVersion == "upstream-6-6") [
@@ -1156,40 +1133,15 @@ in
       };
     };
 
-    systemd.services.ghaf-load-ftpm-module = {
-      description = "Load fTPM module after stage-2 OP-TEE readiness";
-      wantedBy = [ "multi-user.target" ];
-      wants = [
-        "local-fs.target"
-        "tee-supplicant.service"
-      ];
-      after = [
-        "local-fs.target"
-        "systemd-modules-load.service"
-        "tee-supplicant.service"
-      ];
-      before = [
-        "ghaf-provision-ek-certs.service"
-        "ghaf-export-ek-endorsement-bundle.service"
-      ];
-      unitConfig.ConditionPathExists = "!/dev/tpmrm0";
-
-      serviceConfig = {
-        Type = "oneshot";
-        TimeoutStartSec = "80s";
-        ExecStart = lib.getExe loadFtpmModuleApp;
-      };
-    };
-
     systemd.services.ghaf-provision-ek-certs = mkIf cfg.runtimeEkProvision.enable {
       description = "Provision fTPM EK certificates into standard NV indices";
       wantedBy = [ "multi-user.target" ];
-      wants = [ "tee-supplicant.service" ];
+      requires = [ "ftpm-driver.service" ];
       after = [
         "local-fs.target"
         "systemd-modules-load.service"
         "tee-supplicant.service"
-        "ghaf-load-ftpm-module.service"
+        "ftpm-driver.service"
       ];
       unitConfig.ConditionPathExists = "/dev/tpmrm0";
       unitConfig.OnSuccess = [ "ghaf-export-ek-endorsement-bundle.service" ];
@@ -1206,12 +1158,12 @@ in
     systemd.services.ghaf-export-ek-endorsement-bundle = {
       description = "Export EK certs and build endorsement CA bundle";
       wantedBy = [ "multi-user.target" ];
-      wants = [ "tee-supplicant.service" ];
+      requires = [ "ftpm-driver.service" ];
       after = [
         "local-fs.target"
         "systemd-modules-load.service"
         "tee-supplicant.service"
-        "ghaf-load-ftpm-module.service"
+        "ftpm-driver.service"
       ]
       ++ lib.optionals cfg.runtimeEkProvision.enable [
         "ghaf-provision-ek-certs.service"
