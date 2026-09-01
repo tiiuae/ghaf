@@ -81,7 +81,7 @@
 NVIDIA’s guest KMS stack while the DCE R5 and physical display hardware remain
 host-owned. This builds on
 <a href="/ghaf/dev/technologies/nvidia_gpu_vm/">GPU Passthrough to gpu-vm</a> and shares
-its BPMP-virtualisation and <code dir="auto">ghaf-qemu-bpmp</code> infrastructure.</p>
+its BPMP-virtualisation and <code dir="auto">ghaf-nvidia-qemu-bpmp</code> infrastructure.</p>
 <aside aria-label="Note" class="starlight-aside starlight-aside--note"><p class="starlight-aside__title" aria-hidden="true"><svg aria-hidden="true" class="starlight-aside__icon astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M12 11a1 1 0 0 0-1 1v4a1 1 0 0 0 2 0v-4a1 1 0 0 0-1-1Zm.38-3.92a1 1 0 0 0-.76 0 1 1 0 0 0-.33.21 1.15 1.15 0 0 0-.21.33 1 1 0 0 0 .21 1.09c.097.088.209.16.33.21A1 1 0 0 0 13 8a1.05 1.05 0 0 0-.29-.71 1 1 0 0 0-.33-.21ZM12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 18a8 8 0 1 1 0-16.001A8 8 0 0 1 12 20Z"/></svg>Note</p><div class="starlight-aside__content"><p>Verified on the NVIDIA Jetson AGX Orin devkit with DisplayPort and passive
 DP-&gt;HDMI output. In split mode, <code dir="auto">disp-vm</code> starts a persistent <code dir="auto">kmscube</code> KMS
 owner. In accelerated mode, <code dir="auto">gui-vm</code> reaches the COSMIC login and desktop,
@@ -150,7 +150,7 @@ publishes a reverse-window event; the handler injects asynchronous events
 back into <code dir="auto">tegra-dce</code>’s client callbacks via
 <code dir="auto">tegra_dce_client_ipc_inject</code> — identical to native IVC delivery from the
 driver’s point of view.</li>
-<li><strong>QEMU DCE bridge</strong> (<code dir="auto">nvidia_dce_guest</code> device in <code dir="auto">ghaf-qemu-bpmp</code>) exposes
+<li><strong>QEMU DCE bridge</strong> (<code dir="auto">nvidia_dce_guest</code> device in <code dir="auto">ghaf-nvidia-qemu-bpmp</code>) exposes
 the existing trapped MMIO window, with a RAM overlay for only the 4 KiB
 reverse-event payload. Bridge creation is opt-in through <code dir="auto">GHAF_DCE_GUEST=1</code>;
 only the VM that owns the display path may set it and open <code dir="auto">/dev/dce-host</code>.

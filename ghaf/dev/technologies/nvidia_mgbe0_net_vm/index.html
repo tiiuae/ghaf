@@ -101,12 +101,12 @@ host, where the BPMP host proxy gates it against an allow-list.</li>
 mainline solution”,
 <a href="https://github.com/qemu/qemu/blob/499039798cdad7d86b787fec0eaf1da4151c0f05/docs/about/removed-features.rst#-device-vfio-platform-removed-in-102"><code dir="auto">docs/about/removed-features.rst</code></a>).
 MGBE0 has no PCIe front
-end, so the netvm runs a pinned <code dir="auto">ghaf-qemu-bpmp</code> built from <strong>QEMU 10.1.5</strong>, the
+end, so the netvm runs a pinned <code dir="auto">ghaf-nvidia-qemu-bpmp</code> built from <strong>QEMU 10.1.5</strong>, the
 last release that has the device. Every other VM stays on the nixpkgs QEMU.</p>
 <p>The guest device tree is <strong>emitted by QEMU, not hand-written</strong>. <code dir="auto">virt</code> calls
 <code dir="auto">exit(1)</code> for a dynamic sysbus device that has no FDT binding in
 <code dir="auto">hw/core/sysbus-fdt.c</code> — which is why a hand-rolled <code dir="auto">-dtb</code> never worked for
-platform passthrough. <code dir="auto">ghaf-qemu-bpmp</code> therefore carries:</p>
+platform passthrough. <code dir="auto">ghaf-nvidia-qemu-bpmp</code> therefore carries:</p>
 <ul>
 <li>the <code dir="auto">nvidia_bpmp_guest</code> MMIO bridge and the guest <code dir="auto">/bpmp</code> node (with a
 <code dir="auto">phandle</code>), and</li>
