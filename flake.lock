@@ -382,17 +382,18 @@
         ]
       },
       "locked": {
-        "lastModified": 1788015051,
-        "narHash": "sha256-xy/wfKCR+bVYXzl4iKJnxmhtSuzeyARmzI6auYcgUXg=",
-        "owner": "tiiuae",
-        "repo": "ghafpkgs",
-        "rev": "c6c2a9f36642cb29c9db1f0c361620f3777eff16",
-        "type": "github"
+        "lastModified": 1787670305,
+        "narHash": "sha256-NKiE3XtyT4z24dJEcf3NMlvtrUVaetWOjCuIzrUBaVg=",
+        "ref": "refs/pull/369/head",
+        "rev": "a0bbf5eb2af2503c4c0a7b10cf8f7f2c3845c67f",
+        "revCount": 288,
+        "type": "git",
+        "url": "https://github.com/tiiuae/ghafpkgs"
       },
       "original": {
-        "owner": "tiiuae",
-        "repo": "ghafpkgs",
-        "type": "github"
+        "ref": "refs/pull/369/head",
+        "type": "git",
+        "url": "https://github.com/tiiuae/ghafpkgs"
       }
     },
     "git-hooks-nix": {
@@ -546,16 +547,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1787661902,
-        "narHash": "sha256-mJmAXcM7JUbt8sdF8CpKcQzuBIQA0fld8HGWADc3eTs=",
+        "lastModified": 1787678004,
+        "narHash": "sha256-ZCQkDKifePRpnnVtrjQXevLydHVVhpkUBc+8Xoyd6v4=",
         "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "5a30003720b195428fbceb01c117a157605c249c",
+        "rev": "883bdd9c8f8306ffd811f1e2c0f1ef7381226eb9",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "august-rebase",
+        "ref": "feat/orin-proxy-lifecycle",
         "repo": "jetpack-nixos",
         "type": "github"
       }
@@ -568,15 +569,16 @@
         "spectrum": "spectrum"
       },
       "locked": {
-        "lastModified": 1787834973,
-        "narHash": "sha256-bY2y5jQ17MQxt1N/jc8luDB98Pyf+FRY2igGWeXnS28=",
-        "owner": "microvm-nix",
+        "lastModified": 1787686269,
+        "narHash": "sha256-Se2jFOq9MG8MkKEfe9t4onf8n3ZOidzVkJFQB6Iz8XI=",
+        "owner": "vadika",
         "repo": "microvm.nix",
-        "rev": "ea57aebfb6016d9f091af7576a97dcf1aaa71fa1",
+        "rev": "88d9bce92524bae0fe5ab6173e05ee96e0b36fcb",
         "type": "github"
       },
       "original": {
-        "owner": "microvm-nix",
+        "owner": "vadika",
+        "ref": "feat/crosvm-platform-upstream",
         "repo": "microvm.nix",
         "type": "github"
       }

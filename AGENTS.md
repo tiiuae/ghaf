@@ -93,7 +93,7 @@ asking or guessing; if a field is null in both, ask once and offer to write it t
 - **JetPack-only packages cannot use `packages/pkgs-by-name/`.** That directory and
   `packages/own-pkgs-overlay.nix` expose packages for every system, while the JetPack overlay
   is applied only inside Jetson configurations. Use a relative-path `callPackage` from a
-  JetPack-configured module, as `gpu-vm-load` does, to avoid breaking x86_64 evaluation.
+  JetPack-configured module to avoid breaking x86_64 evaluation.
 - **The image you flash is always `result/ghaf-image.raw.zst`** (plus `ghaf-image.bmap`,
   used automatically). No target emits `result/<target>.img` any more.
 - **The test suite names the physical machine, not the image**: `robot-test -d` takes

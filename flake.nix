@@ -86,7 +86,8 @@
 
     # A set of useful nix packages and utilities for ghaf
     ghafpkgs = {
-      url = "github:tiiuae/ghafpkgs";
+      # TODO: restore the normal GitHub input after ghafpkgs#369 merges.
+      url = "git+https://github.com/tiiuae/ghafpkgs?ref=refs/pull/369/head";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
@@ -155,13 +156,15 @@
     # Nvidia Orin support for NixOS
     jetpack-nixos = {
       #url = "github:anduril/jetpack-nixos";
-      url = "github:tiiuae/jetpack-nixos/august-rebase";
+      # TODO: restore august-rebase after jetpack-nixos#22 merges.
+      url = "github:tiiuae/jetpack-nixos/feat/orin-proxy-lifecycle";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # For building and managing VMs
     microvm = {
-      url = "github:microvm-nix/microvm.nix";
+      # TODO: restore the upstream input after microvm.nix#586 merges.
+      url = "github:vadika/microvm.nix/feat/crosvm-platform-upstream";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

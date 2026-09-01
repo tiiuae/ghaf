@@ -159,6 +159,10 @@ in
               cp -v ${config.system.build.uki}/${config.system.boot.loader.ukiFile} \
                     firmware/EFI/Linux/${config.system.boot.loader.ukiFile}
 
+              # Jetson UEFI falls back to its shell when freshly erased
+              # variables contain no boot entry. Launch the removable loader.
+              printf '%s\r\n' '\EFI\BOOT\BOOT${lib.toUpper efiArch}.EFI' > firmware/startup.nsh
+
               # Minimal loader configuration
               cat > firmware/loader/loader.conf << EOF
               timeout 0

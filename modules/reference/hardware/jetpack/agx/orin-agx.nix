@@ -3,24 +3,15 @@
 #
 # Reference hardware modules
 #
-{ config, pkgs, ... }:
+{
+  config,
+  pkgs,
+  ...
+}:
 {
   _file = ./orin-agx.nix;
 
-  imports = [
-    ../../../../common/services/hwinfo
-    # Host keeps the real DCE R5 and loads dce-host-proxy so the guest drives
-    # the panel through it. Shared by AGX and NX.
-    ../nvidia-jetson-orin/virtualization/common/dce-virt-common/dce-probe-host.nix
-  ];
-
   ghaf = {
-    # Enable hardware info generation on host
-    services.hwinfo = {
-      enable = true;
-      outputDir = "/var/lib/ghaf-hwinfo";
-    };
-
     hardware = {
       nvidia.orin = {
         enable = true;
@@ -42,10 +33,6 @@
 
       # Reserve space for the desktop closure on 64 GiB eMMC.
       nvidia.orin.flashScriptOverrides.appPartitionSizeBytes = 34359738368;
-      # Split topology: compute gpu-vm plus display-only disp-vm.
-      nvidia.passthroughs.gpu_vm.enable = true;
-      nvidia.passthroughs.disp_vm.enable = true;
-
       # Net VM hardware-specific modules - use hardware.definition for composition model
       definition.netvm.extraModules = [
         {
@@ -65,25 +52,6 @@
             wirelessRegulatoryDatabase = true;
           };
 
-        }
-        # Hardware info guest support
-        {
-          imports = [ ../../../../common/services/hwinfo ];
-          ghaf.services.hwinfo-guest.enable = true;
-        }
-        # Ensure hardware info is generated before net-vm starts
-        {
-          systemd.services."microvm@net-vm" = {
-            wants = [ "ghaf-hwinfo-generate.service" ];
-            after = [ "ghaf-hwinfo-generate.service" ];
-          };
-        }
-        # QEMU arguments to pass hardware info via fw_cfg
-        {
-          microvm.qemu.extraArgs = [
-            "-fw_cfg"
-            "name=opt/com.ghaf.hwinfo,file=/var/lib/ghaf-hwinfo/hwinfo.json"
-          ];
         }
         ../../../personalize
         # Developer SSH access is a DEBUG-build affordance: this option defaults to

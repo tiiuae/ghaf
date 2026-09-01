@@ -10,11 +10,12 @@
   _file = ./flake-module.nix;
 
   flake.nixosModules = {
-    # Overlay temporary upstream fixes without pinning Ghaf to a fork.
-    microvm-nix.imports = [
-      inputs.microvm.nixosModules.microvm
-      ./common/microvm-nix-crosvm-store-disk-overlay.nix
-    ];
+    microvm-nix = {
+      imports = [
+        inputs.microvm.nixosModules.microvm
+        ./common/microvm-nix-crosvm-store-disk-overlay.nix
+      ];
+    };
 
     microvm.imports = [
       ./host/microvm-host.nix
@@ -99,17 +100,9 @@
     # Note: Jetson and other non-laptop platforms continue to use netvm.extraModules
     netvm-base = ./sysvms/netvm-base.nix;
 
-    # GPU VM base module for layered composition (Orin AGX GPU passthrough).
-    # Use with extendModules pattern:
-    #   lib.nixosSystem { modules = [ inputs.self.nixosModules.gpuvm-base ]; ... }
-    #     .extendModules { modules = [ ... ]; }
+    # Headless GPU and display VM bases. Hardware and workload modules are
+    # layered through hardware.definition.*.extraModules.
     gpuvm-base = ./sysvms/gpuvm-base.nix;
-
-    # Disp VM base module for layered composition (Orin AGX display
-    # passthrough, experiment/orin-two-vm-host1x concurrent build).
-    # Use with extendModules pattern:
-    #   lib.nixosSystem { modules = [ inputs.self.nixosModules.dispvm-base ]; ... }
-    #     .extendModules { modules = [ ... ]; }
     dispvm-base = ./sysvms/dispvm-base.nix;
 
     # App VM base module for layered composition
@@ -168,6 +161,10 @@
     # Network VM - External network connectivity and routing
     # Requires: Network device passthrough
     netvm = ./sysvms/netvm-base.nix;
+
+    # Headless accelerator VMs; target hardware and workloads are layered on.
+    gpuvm = ./sysvms/gpuvm-base.nix;
+    dispvm = ./sysvms/dispvm-base.nix;
 
     # Audio VM - Sound services and Bluetooth
     # Requires: Audio device passthrough (optional)
