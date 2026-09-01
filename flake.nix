@@ -213,7 +213,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Hot-plugging USB and PCI devices into Crosvm virtual machines
     ghaf-device-manager = {
       url = "github:tiiuae/ghaf-device-manager";
       inputs.nixpkgs.follows = "nixpkgs";
