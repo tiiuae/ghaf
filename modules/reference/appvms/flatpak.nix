@@ -275,7 +275,7 @@ let
               --text="<b>No browser installed through App Store was found in this VM.</b>\n\nFor optimal security and functionality, please install a browser:\n  • Firefox\n  • Chrome\n  • Brave\n  • Chromium\n\nInstall from the App Store and try again.\n\n<i>Alternatively, continue with the standard browser (may malfunction).</i>" \
               --button="Exit:0" \
               --button="Continue:1" \
-              --button-layout=spread \
+              --buttons-layout=spread \
               --center;
           then # user chose to exit
             exit 1
