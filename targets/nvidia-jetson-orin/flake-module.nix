@@ -13,6 +13,14 @@ let
   inherit (inputs) jetpack-nixos nixpkgs;
   system = "aarch64-linux";
   pkgsX86 = nixpkgs.legacyPackages.x86_64-linux;
+  updateHealthFailureText = builtins.getEnv "GHAF_AB_TEST_UNHEALTHY";
+  updateHealthFailure =
+    if updateHealthFailureText == "" then
+      false
+    else if updateHealthFailureText == "1" then
+      true
+    else
+      throw "GHAF_AB_TEST_UNHEALTHY must be unset or 1";
   lazyPackage =
     name: drv:
     (lib.lazyDerivation {
@@ -103,8 +111,7 @@ let
     self.nixosModules.profiles
     ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/verity-image.nix
     ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/partition-template-verity.nix
-    inputs.nix-store-veritysetup-generator.nixosModules.ghaf-store-veritysetup-generator
-    ../../modules/partitioning/verity-volume.nix
+    self.nixosModules.secure-ab-core
     ../../modules/partitioning/firstboot-persist.nix
     # Enable dm-verity and erofs in the kernel (not in the BSP default config)
     {
@@ -123,6 +130,112 @@ let
       ];
     }
   ];
+
+  mkOrinSecureUpdateModule =
+    target:
+    {
+      config,
+      ...
+    }:
+    {
+      ghaf = {
+        secureUpdate = {
+          enable = true;
+          inherit target;
+        };
+        hardware.nvidia.orin.secureboot = {
+          inherit (config.ghaf.secureUpdate)
+            externalPublicTrustConfigured
+            publicTrustDigests
+            ;
+          certificateContents = config.ghaf.secureUpdate.uefiCertificateContents;
+        };
+      };
+    };
+
+  orinLocalBootFirstModule =
+    { pkgs, ... }:
+    {
+      # NVIDIA's development firmware can put HTTP/PXE entries before the
+      # internal storage entry. That turns every watchdog reset into a
+      # multi-minute network-boot timeout and, more importantly, delays A/B
+      # attempt consumption. Promote only the storage entry that successfully
+      # booted this system; never promote a shell, setup, or network entry.
+      systemd.services.ghaf-promote-local-uefi-boot = {
+        description = "Promote the booted internal storage UEFI entry";
+        after = [
+          "boot.mount"
+          "setup-jetson-efi-variables.service"
+        ];
+        requires = [ "boot.mount" ];
+        wantedBy = [ "multi-user.target" ];
+        path = with pkgs; [
+          coreutils
+          efibootmgr
+          gnugrep
+          gnused
+        ];
+        script = ''
+          state="$(efibootmgr)"
+          current="$(printf '%s\n' "$state" | sed -n 's/^BootCurrent:[[:space:]]*//p')"
+          order="$(printf '%s\n' "$state" | sed -n 's/^BootOrder:[[:space:]]*//p')"
+
+          if ! printf '%s\n' "$current" | grep -Eq '^[0-9A-Fa-f]{4}$'; then
+            echo "Cannot identify current UEFI boot entry: $current" >&2
+            exit 1
+          fi
+
+          label="$(
+            printf '%s\n' "$state" \
+              | sed -n "s/^Boot''${current}\\*\{0,1\}[[:space:]]*//p" \
+              | head -n1
+          )"
+          case "$label" in
+          "UEFI HTTP"* | "UEFI PXE"* | "UEFI Shell"* | "Enter Setup"* | "BootManagerMenuApp"* | "")
+            echo "Refusing to promote non-storage UEFI entry Boot$current: $label" >&2
+            exit 1
+            ;;
+          "UEFI "*) ;;
+          *)
+            echo "Refusing to promote unrecognized UEFI entry Boot$current: $label" >&2
+            exit 1
+            ;;
+          esac
+
+          first="''${order%%,*}"
+          if [ "$first" = "$current" ]; then
+            echo "Boot$current ($label) is already first in BootOrder"
+            exit 0
+          fi
+
+          newOrder="$current"
+          oldIFS="$IFS"
+          IFS=,
+          for entry in $order; do
+            if [ "$entry" != "$current" ]; then
+              newOrder="$newOrder,$entry"
+            fi
+          done
+          IFS="$oldIFS"
+
+          efibootmgr --bootorder "$newOrder"
+          echo "Promoted Boot$current ($label) ahead of network boot entries"
+        '';
+        serviceConfig.Type = "oneshot";
+      };
+    };
+
+  # Static HTTP is a deliberately manual development transport. Keep its
+  # download/parsing tools in the secure canary net-vm, which owns external
+  # networking, rather than giving the Ghaf host direct network access.
+  orinUpdateHttpFetchModule =
+    { pkgs, ... }:
+    {
+      environment.systemPackages = with pkgs; [
+        curl
+        jq
+      ];
+    };
 
   # Shared by the AGX and NX accelerated-guivm variants.
   acceleratedGuivmUsbRules = [
@@ -362,30 +475,68 @@ let
 
   ];
 
-  # A/B Verity Boot Configurations (AGX only)
+  # Secure A/B verity+LUKS canaries. The AGX canary leaves the firmware TPM
+  # disabled: its OP-TEE fTPM probe can remain uninterruptibly blocked and
+  # prevent reboot. This does not disable the separate OP-TEE DUK path used to
+  # unlock APP.
   verity-target-configs =
     map
       (
-        variant:
+        board:
         (ghaf-configuration {
-          name = "nvidia-jetson-orin-agx-verity";
+          name = "${board.name}-verity-luks";
           inherit system;
           profile = "orin";
-          hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx;
-          inherit variant;
-          extraModules = orinVerityModules;
+          inherit (board) hardwareModule;
+          variant = "debug";
+          extraModules = orinVerityModules ++ [
+            (mkOrinSecureUpdateModule "${board.name}-verity-luks-debug")
+            orinLocalBootFirstModule
+            {
+              # The Tegra186 watchdog used by Orin accepts timeouts up to
+              # 255s. Arm it in both initrd and stage 2 so verity panics,
+              # early boot hangs, and shutdown hangs can consume a
+              # boot-counting attempt. systemd's 10 minute reboot-watchdog
+              # default is rejected by this device, so keep all configured
+              # timeouts within its range.
+              # NixOS' initrd panic-on-fail service triggers a SysRq crash
+              # when emergency.target is reached. Together with panic=10,
+              # this makes an unmountable or corrupted trial consume its
+              # systemd-boot attempt instead of waiting in an emergency
+              # shell while PID 1 continues to feed the watchdog.
+              boot.kernelParams = [
+                "boot.panic_on_fail"
+                "panic=10"
+              ];
+              boot.initrd.systemd.settings.Manager = {
+                WatchdogDevice = "/dev/watchdog0";
+                RuntimeWatchdogSec = "30s";
+                RebootWatchdogSec = "2min";
+              };
+              systemd.settings.Manager = {
+                WatchdogDevice = "/dev/watchdog0";
+                RuntimeWatchdogSec = "30s";
+                RebootWatchdogSec = "2min";
+              };
+            }
+          ];
           extraConfig = {
             reference.profiles.mvp-orinuser-trial.enable = true;
             partitioning.verity.enable = true;
-            partitioning.verity.uki-signing-key-dir = lib.mkIf (
-              variant == "debug"
-            ) ../../modules/secureboot/dev-keys;
+            # Linux 6.6 on Orin supports LZ4HC EROFS images but not the zstd
+            # format emitted by the current erofs-utils.
+            partitioning.verity.erofsCompression = "lz4hc";
             hardware.nvidia.orin.secureboot.enable = true;
-            # Debug builds enroll the dev certs so they match the dev signing
-            # keys; release builds keep the production certs from keysSource.
-            hardware.nvidia.orin.secureboot.keysSource = lib.mkIf (
-              variant == "debug"
-            ) ../../modules/secureboot/dev-keys;
+            hardware.nvidia.orin.diskEncryption.enable = true;
+            hardware.nvidia.orin.diskEncryption.deviceUniqueKey.enable = true;
+            hardware.nvidia.orin.ftpm.enable = board.enableFtpm;
+            hardware.nvidia.orin.runtimeEkProvision.enable = board.enableFtpm;
+            virtualization.vmConfig.sysvms.netvm.extraModules = [ orinUpdateHttpFetchModule ];
+            boot-health = {
+              enable = true;
+              luksMapper = "cryptroot";
+              debugUnhealthyMicrovm = if updateHealthFailure then "ab-health-failure-injection" else null;
+            };
           };
         })
         // {
@@ -398,8 +549,16 @@ let
         }
       )
       [
-        "debug"
-        "release"
+        {
+          name = "nvidia-jetson-orin-nx";
+          hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-nx;
+          enableFtpm = true;
+        }
+        {
+          name = "nvidia-jetson-orin-agx";
+          hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx;
+          enableFtpm = false;
+        }
       ];
   all-target-configs = target-configs ++ verity-target-configs;
 
@@ -469,8 +628,8 @@ let
       package = hostConfiguration.config.system.build.ghafImage;
     };
 
-  # LUKS and dm-verity are mutually exclusive root strategies (see the assertion
-  # in jetson-orin.nix), so the verity targets get no -luks variant.
+  # Secure verity canaries already contain the outer LUKS cryptpool, so do not
+  # generate duplicate synthetic -luks or -luks-uki variants for them.
   luksable-target-configs = builtins.filter (t: !isVerityTarget t) all-target-configs;
 
   # Add nodemoapps targets
@@ -482,6 +641,16 @@ let
     ++ (map (t: generate-luks (generate-nodemoapps t)) luksable-target-configs)
     ++ (map (t: generate-luks-uki (generate-nodemoapps t)) luksable-target-configs);
   crossTargets = map generate-cross-from-x86_64 targets;
+
+  genericUnsignedTarget =
+    t:
+    let
+      fallbackName = lib.replaceStrings [ "-verity-luks" ] [ "" ] t.name;
+    in
+    lib.findFirst (candidate: candidate.name == fallbackName)
+      (throw "No generic unsigned fallback target `${fallbackName}` for secure A/B target `${t.name}`")
+      crossTargets;
+
   flashTarget =
     t: qspiOnly:
     let
@@ -581,6 +750,55 @@ let
       '';
     };
 
+  exportedFlashTarget =
+    t:
+    if
+      isVerityTarget t
+      && !t.hostConfiguration.config.ghaf.hardware.nvidia.orin.secureboot.externalPublicTrustConfigured
+    then
+      let
+        fallback = genericUnsignedTarget t;
+        fallbackFlash = flashTarget fallback false;
+      in
+      pkgsX86.writeShellApplication {
+        name = "flash-ghaf-host";
+        text = ''
+          echo "WARNING: secure A/B development trust was unavailable at evaluation; flashing the generic unsigned target instead." >&2
+          echo "  Requested: ${t.name}" >&2
+          echo "  Fallback:  ${fallback.name}" >&2
+          echo "  Rebuild with --impure and GHAF_DEV_KEY_DIR from ghaf-dev-keygen to flash the secure A/B canary." >&2
+
+          args=()
+          while (($#)); do
+            case "$1" in
+              --secure-boot)
+                echo "WARNING: ignoring --secure-boot because the CI-only fallback is explicitly unsigned." >&2
+                shift
+                ;;
+              -u|--uki)
+                echo "WARNING: ignoring $1 because the generic fallback does not use a UKI image." >&2
+                shift
+                ;;
+              -s|--signed-sd-image)
+                if (($# < 2)); then
+                  echo "ERROR: $1 requires an image directory argument." >&2
+                  exit 2
+                fi
+                echo "WARNING: ignoring $1 and its argument because the fallback uses its built-in generic unsigned image." >&2
+                shift 2
+                ;;
+              *)
+                args+=("$1")
+                shift
+                ;;
+            esac
+          done
+          exec ${fallbackFlash}/bin/flash-ghaf-host "''${args[@]}"
+        '';
+      }
+    else
+      flashTarget t false;
+
   # Filter verity targets without forcing every hostConfiguration.config during
   # package-set evaluation.
   isVerityTarget = t: t.isVerity or false;
@@ -616,7 +834,7 @@ in
             t:
             #Note: secureTarget does not toggle between secureboot on/off!!
             lib.nameValuePair "${t.name}-flash-script" (
-              lazyPackage "${t.name}-flash-script" (flashTarget t false)
+              lazyPackage "${t.name}-flash-script" (exportedFlashTarget t)
             )
           ) flashCrossTargets
         )
