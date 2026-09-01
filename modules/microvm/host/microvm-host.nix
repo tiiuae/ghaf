@@ -80,8 +80,15 @@ in
 
   config = mkIf cfg.enable (mkMerge [
     {
-      microvm.host.enable = true;
-      # microvm.host.useNotifySockets = true;
+      microvm.host = {
+        enable = true;
+        # The `microvm` management CLI shells out to nix, so installing it makes
+        # the Nix binary a runtime dependency of the host closure. Ghaf drives
+        # guests through the generated microvm@.service units and never invokes
+        # the CLI, so follow ghaf.nix.enable: no Nix on the target, no CLI.
+        installCommand = config.ghaf.nix.enable;
+        # useNotifySockets = true;
+      };
 
       ghaf = {
         type = "host";
