@@ -89,6 +89,11 @@ let
   pkvmAgx = orinTargets.nvidia-jetson-orin-agx-accelerated-guivm-pkvm-debug.config;
   pkvmNetVm = pkvmAgx.microvm.vms."net-vm".evaluatedConfig.config;
   pkvmGuiVm = pkvmAgx.microvm.vms."gui-vm".evaluatedConfig.config;
+  pkvmAppVmNames = [
+    "chromium-vm"
+    "flatpak-vm"
+  ];
+  pkvmAppVms = map (name: pkvmAgx.microvm.vms.${name}.evaluatedConfig.config) pkvmAppVmNames;
   pkvmGuiDevices = lib.filter (device: device.bus == "platform") pkvmGuiVm.microvm.devices;
   pkvmGuestMemory =
     lib.foldl' (total: name: total + pkvmAgx.microvm.vms.${name}.evaluatedConfig.config.microvm.mem) 0
@@ -176,7 +181,7 @@ let
         ) pkvmAgx.hardware.deviceTree.overlays);
     }
     {
-      name = "protected AGX GUIVM uses bounded memory and pKVM assignment for every platform resource";
+      name = "protected AGX system VMs use bounded memory and pKVM assignment for every GUI platform resource";
       ok =
         pkvmGuestMemory == 8192
         && builtins.length pkvmGuiDevices == 11
@@ -191,9 +196,48 @@ let
         && lib.any (
           overlay: overlay.name == "gui-protected-assignment"
         ) pkvmAgx.hardware.deviceTree.overlays
-        && !pkvmAgx.ghaf.virtualization.microvm.appvm.enable
-        && !(pkvmAgx.microvm.vms ? "chromium-vm")
         && pkvmAgx.microvm.vms."gui-vm".autostart;
+    }
+    {
+      name = "protected AGX AppVMs are on-demand Crosvm guests with native virtio-fs";
+      ok =
+        pkvmAgx.ghaf.virtualization.microvm.appvm.enable
+        && pkvmAgx.ghaf.reference.appvms.chromium.enable
+        && pkvmAgx.ghaf.reference.appvms.flatpak.enable
+        && lib.all (name: builtins.hasAttr name pkvmAgx.microvm.vms) pkvmAppVmNames
+        && lib.all (name: !pkvmAgx.microvm.vms.${name}.autostart) pkvmAppVmNames
+        && lib.elem "microvm@flatpak-vm.service" pkvmAgx.systemd.services."microvm@chromium-vm".conflicts
+        && lib.elem "microvm@chromium-vm.service" pkvmAgx.systemd.services."microvm@flatpak-vm".conflicts
+        && lib.all (
+          vm:
+          vm.microvm.hypervisor == "crosvm"
+          && vm.microvm.mem == 2048
+          && vm.microvm.vcpu == 2
+          && !vm.microvm.balloon
+          && vm.microvm.crosvm.protection.mode == "protected-without-firmware"
+          && vm.microvm.crosvm.virtiofsBackend == "crosvm"
+          && vm.ghaf.virtualization.microvm.tpm.emulated.enable
+          && vm.ghaf.waypipe.enable
+          && builtins.length vm.microvm.shares == 4
+          && lib.any (
+            share: share.tag == "ghaf-common" && share.mountPoint == "/etc/common"
+          ) vm.microvm.shares
+          &&
+            lib.all
+              (
+                kind:
+                lib.any (share: share.tag == "xdgshare-${kind}-${vm.ghaf.appvm.vmDef.name}-vm") vm.microvm.shares
+              )
+              [
+                "pdf"
+                "image"
+                "video"
+              ]
+          && !(lib.any (share: share.tag == "ro-store") vm.microvm.shares)
+          && !(vm.microvm.binScripts ? virtiofsd-run)
+          && lib.elem "--swtpm" vm.microvm.crosvm.extraArgs
+          && vm.boot.kernelPackages.kernel.src.outPath == pkvmAgx.boot.kernelPackages.kernel.src.outPath
+        ) pkvmAppVms;
     }
     {
       name = "protected AGX GUIVM keeps the Logitech receiver host-mediated";
