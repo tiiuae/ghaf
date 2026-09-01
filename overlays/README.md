@@ -39,10 +39,9 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
 
 - [qemu: Battery, AC adapter, lid](https://github.com/blochl/qemu/pull/3)
 
-  Four ACPI patches, applied on x86_64 only, in
-  `packages/pkgs-by-name/ghaf-qemu/patches/0001..0004`. They used to be a global qemu
-  overlay; they now live in the standalone `ghaf-qemu` package. Drop them when the series
-  is merged upstream and reaches the qemu in our nixpkgs.
+  Four ACPI patches, applied on x86_64 only, in the standalone
+  `ghaf-x86-qemu` package from ghafpkgs. Drop them when the series is merged
+  upstream and reaches the qemu in our nixpkgs.
 
 ## Backports carried in overlays
 

@@ -8,7 +8,7 @@ The Orin AGX or NX integrated GPU (`ga10b`, `gpu@17000000`) and its host1x
 multimedia engines are passed through to a dedicated `gpu-vm` microVM, so CUDA
 compute runs in an isolated guest instead of on the host. It coexists with the
 MGBE0 ethernet passthrough (`net-vm`), sharing the same BPMP-virtualisation and
-`ghaf-qemu-bpmp` infrastructure.
+`ghaf-nvidia-qemu-bpmp` infrastructure.
 
 import { Aside } from "@astrojs/starlight/components";
 
@@ -41,7 +41,7 @@ and for CUDA to initialise.
   |    vfio-platform                      |   |        | MMIO       | clocks/resets/power       |
   |        | MMIO regions                 |   |   (ranges-xlated)   | (MRQ over BPMP)           |
   |        v                              |   |        |            v                           |
-  |   QEMU (ghaf-qemu-bpmp-gpu) ----------+---+--> guest DTB (-dtb tegra234-gpuvm.dtb)          |
+  |   QEMU (ghaf-nvidia-qemu-bpmp-gpu) ----+---+--> guest DTB (-dtb tegra234-gpuvm.dtb)          |
   |        |  -device vfio-platform       |   |        |                                        |
   |        |  BPMP bridge @0x090d0000     |<--+-- bpmp-guest-proxy  (virtual-pa = 0x090d0000)   |
   |        v                              |   |                                                |

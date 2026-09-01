@@ -318,11 +318,11 @@
     "ghaf-crosvm": {
       "flake": false,
       "locked": {
-        "lastModified": 1787809374,
-        "narHash": "sha256-7JjNkqwJg4wie3ESosbxCS3iGcV10keqr3WyuZX/CFM=",
+        "lastModified": 1788280008,
+        "narHash": "sha256-+1WP7iAexfmT9nviC39aXeqLVrBAVisNilnCLFA9r8I=",
         "ref": "refs/heads/main",
-        "rev": "63e3c3482553212244aec55a3fee5646b37c98bd",
-        "revCount": 11727,
+        "rev": "2a98c208e586a43a092d122dce2a35a235b33389",
+        "revCount": 11729,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
@@ -382,11 +382,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1788261228,
-        "narHash": "sha256-ejA8CHlwB69TcHGGJchSgRPDtCiMI4KDFsAE6Y6ESD4=",
+        "lastModified": 1788273916,
+        "narHash": "sha256-ySBsKxayHECBnDTLZlo0VDKUkw8XOEbY2K0n7CYxxeU=",
         "owner": "tiiuae",
         "repo": "ghafpkgs",
-        "rev": "3aa6097952ca126b2f8fe7d6a03d86a518479b63",
+        "rev": "9d02632238ca297d6a0e7d46aed36a263b5b87bf",
         "type": "github"
       },
       "original": {
@@ -405,11 +405,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1787424939,
-        "narHash": "sha256-O2tBn84NNuHrnqNVxx/XqsXwfYvS1YwBh+7CBnbCYsk=",
+        "lastModified": 1788267358,
+        "narHash": "sha256-nt+lUqYVpc9Y6JeMd2WmXzCDojasdadKo0mWcluvY2Y=",
         "owner": "cachix",
         "repo": "git-hooks.nix",
-        "rev": "809414f0cdadf82cf11b06c2b29ba9b3168b3297",
+        "rev": "27555e2624241fb116b49095df4caaee85a25691",
         "type": "github"
       },
       "original": {
