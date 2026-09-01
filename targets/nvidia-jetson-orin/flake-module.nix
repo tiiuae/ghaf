@@ -205,6 +205,17 @@ let
       );
     };
 
+  protectedAppVmModules = [
+    linux71ExternalPkvmGuestModule
+    protectedVmWithoutFirmwareModule
+    {
+      # Keep AppVM file exchange in-process so the protected guest does not
+      # expose private memory to an external vhost-user virtio-fs daemon. The
+      # Nix store remains block-backed through storeOnDisk below.
+      microvm.crosvm.virtiofsBackend = lib.mkForce "crosvm";
+    }
+  ];
+
   linux71PkvmHostModule =
     { lib, pkgs, ... }:
     {
@@ -270,19 +281,37 @@ let
         "arm_dsu_pmu"
       ];
 
-      # This checkpoint runs the protected service plane and combined
-      # accelerated GUIVM. Keep application VMs out so the fixed 1 + 1 + 6 GiB
-      # guest budget remains below the 12 GiB host memory cap.
+      # Keep the validated 1 + 1 + 6 GiB boot topology below the 12 GiB host
+      # memory cap. ChromiumVM and FlatpakVM are available on demand, use a
+      # fixed 2 GiB allocation, and do not join the boot-time memory budget.
       ghaf.hardware.nvidia.passthroughs.gui_vm.enable = lib.mkForce true;
       ghaf.virtualization.microvm.guivm.enable = lib.mkForce true;
-      ghaf.virtualization.microvm.appvm.enable = lib.mkForce false;
-      ghaf.reference.appvms.enable = lib.mkForce false;
-      ghaf.reference.appvms.chromium.enable = lib.mkForce false;
-      ghaf.reference.appvms.flatpak.enable = lib.mkForce false;
+      ghaf.virtualization.microvm.appvm.enable = lib.mkForce true;
+      ghaf.reference.appvms.enable = lib.mkForce true;
+      ghaf.reference.appvms.chromium.enable = lib.mkForce true;
+      ghaf.reference.appvms.flatpak.enable = lib.mkForce true;
       ghaf.virtualization.vmConfig.sysvms = {
         adminvm.mem = 1024;
         netvm.mem = 1024;
         guivm.mem = 6144;
+      };
+      ghaf.virtualization.vmConfig.appvms = {
+        chromium = {
+          vmm = "crosvm";
+          mem = 2048;
+          vcpu = 2;
+          # pKVM does not support Ghaf's AppVM balloon lifecycle yet. Without
+          # this override the declared 2 GiB minimum reserves 6 GiB.
+          balloonRatio = 0;
+          extraModules = protectedAppVmModules;
+        };
+        flatpak = {
+          vmm = "crosvm";
+          mem = 2048;
+          vcpu = 2;
+          balloonRatio = 0;
+          extraModules = protectedAppVmModules;
+        };
       };
 
       # The Logitech receiver remains owned by the host. Its event stream is
@@ -472,13 +501,47 @@ let
         ];
       };
 
+      systemd.services."microvm@chromium-vm" = {
+        # ChromiumVM needs the routed network, GIVC control plane, and the
+        # persistent Waypipe endpoint in GUIVM. Keep these dependencies weak
+        # so a failed prerequisite remains diagnosable from the guest unit.
+        # The fixed protected-VM allocations cannot safely fit concurrently
+        # under the current 12 GiB host memory cap.
+        conflicts = [ "microvm@flatpak-vm.service" ];
+        wants = [
+          "microvm@admin-vm.service"
+          "microvm@net-vm.service"
+          "microvm@gui-vm.service"
+        ];
+        after = [
+          "microvm@admin-vm.service"
+          "microvm@net-vm.service"
+          "microvm@gui-vm.service"
+        ];
+      };
+      systemd.services."microvm@flatpak-vm" = {
+        conflicts = [ "microvm@chromium-vm.service" ];
+        wants = [
+          "microvm@admin-vm.service"
+          "microvm@net-vm.service"
+          "microvm@gui-vm.service"
+        ];
+        after = [
+          "microvm@admin-vm.service"
+          "microvm@net-vm.service"
+          "microvm@gui-vm.service"
+        ];
+      };
+
       # Autostart the protected service plane and GUIVM while the broad boot
-      # orchestrator stays disabled. ChromiumVM and FlatpakVM remain out of
-      # this bounded hardware checkpoint.
+      # orchestrator stays disabled. AppVMs remain explicitly on-demand so
+      # their memory is allocated only when an application is launched.
       microvm.vms = {
         "admin-vm".autostart = lib.mkForce true;
         "net-vm".autostart = lib.mkForce true;
         "gui-vm".autostart = lib.mkForce true;
+        "chromium-vm".autostart = lib.mkForce false;
+        "flatpak-vm".autostart = lib.mkForce false;
       };
     };
 
