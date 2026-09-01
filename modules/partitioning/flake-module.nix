@@ -20,6 +20,10 @@ in
       ./btrfs-postboot.nix
     ];
     secure-ab-core.imports = secureAbCoreModules;
+    secure-ab-x86.imports = [
+      ./initial-verity-disk-x86.nix
+      ./secure-ab-x86.nix
+    ];
     verity-release-partition.imports = secureAbCoreModules ++ [
       ./btrfs-postboot.nix
     ];

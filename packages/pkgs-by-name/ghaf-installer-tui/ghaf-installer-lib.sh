@@ -342,13 +342,22 @@ system_in_setup_mode() {
   fi
 }
 
-# Enroll Secure Boot keys from /etc/ghaf/secureboot/keys
+# Verify the written image, then enroll its matching Secure Boot keys.
 # shellcheck disable=SC2329
 do_enroll_secureboot() {
-  local keys_dir="/etc/ghaf/secureboot/keys"
+  local dev="$1"
+  local keys_dir="${GHAF_SECUREBOOT_KEY_DIR:-/etc/ghaf/secureboot/keys}"
   local pk_auth="$keys_dir/PK.auth"
   local kek_auth="$keys_dir/KEK.auth"
   local db_auth="$keys_dir/db.auth"
+  local esp_dev
+
+  run_spin -q "Settling block devices..." udevadm settle
+  esp_dev="$(find_esp_device "$dev")" || {
+    show_error "Could not find ESP partition for Secure Boot verification."
+    return 1
+  }
+  verify_secureboot_esp "$esp_dev" "$keys_dir" || return 1
 
   # Verify the firmware is in Setup Mode before enrolling
   system_in_setup_mode || return 1

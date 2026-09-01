@@ -1,0 +1,96 @@
+---
+title: x86 Secure A/B Testing
+---
+{/*
+SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+*/}
+
+# x86 secure A/B testing
+
+This guide covers the Intel laptop secure A/B development canary. It does not
+replace the normal `intel-laptop-*` targets. The secure family is additive:
+
+| Artifact | Flake target |
+| --- | --- |
+| Initial encrypted, verity-backed disk | `intel-laptop-debug-secure-ab` |
+| A/B update payload | `intel-laptop-debug-secure-ab-sysupdate` |
+
+The initial target contains a Type-2-only ESP, one active root/verity pair, one
+empty pair, Btrfs persist, swap, and a LUKS2 container. EFI executables remain
+unsigned in the Nix result so private keys never enter the store.
+
+## Build and sign the initial disk
+
+Generate one external development trust directory and keep it outside Git:
+
+```sh
+nix run .#ghaf-dev-keygen -- --output /secure/local/ghaf-dev-keys
+export GHAF_DEV_KEY_DIR=/secure/local/ghaf-dev-keys
+export GHAF_UPDATE_GENERATION=1
+
+timeout 2h nix build --impure \
+  .#intel-laptop-debug-secure-ab \
+  -o result-x86-initial
+```
+
+Sign the ESP into a new output directory. The signer refuses CI-only images,
+checks that all four public trust files match the evaluation inventory, signs
+both systemd-boot paths and every UKI, and regenerates the bmap:
+
+```sh
+sudo nix run .#ghaf-sign-x86-image -- \
+  --key-dir "$GHAF_DEV_KEY_DIR" \
+  --input result-x86-initial \
+  --output /var/tmp/ghaf-x86-signed
+```
+
+## Install and enroll
+
+Boot a Ghaf installer in UEFI Setup Mode. Make the signed directory and its
+enrollment files available locally, then run:
+
+```sh
+sudo env \
+  IMG_PATH=/var/tmp/ghaf-x86-signed \
+  GHAF_SECUREBOOT_KEY_DIR=/var/tmp/ghaf-x86-signed \
+  ghaf-installer -s -d /dev/nvme0n1
+```
+
+Do not add `-e`: the secure A/B image already contains LUKS. Before changing
+firmware variables, the installer mounts the written ESP read-only, rejects
+Type-1 entries, and verifies every loader and UKI against `db.crt`.
+
+The initial LUKS password slot is the existing development bootstrap empty
+passphrase. On first boot, Ghaf enrolls TPM2 or FIDO2 plus a recovery key and
+removes that password slot. This is a development provisioning boundary, not a
+production manufacturing credential flow.
+
+## Build and sign an update
+
+Increment the generation for every candidate:
+
+```sh
+export GHAF_UPDATE_GENERATION=2
+timeout 2h nix build --impure \
+  .#intel-laptop-debug-secure-ab-sysupdate \
+  -o result-x86-update
+
+nix run .#ghaf-sign-update -- \
+  --key-dir "$GHAF_DEV_KEY_DIR" \
+  --input result-x86-update/ghaf_<version>_<hash>.manifest \
+  --output signed-x86-update
+```
+
+Install with `ota-update image install`. The target string must be exactly
+`intel-laptop-debug-secure-ab`. Validation, inactive-slot writes, the
+boot-counted trial, health gate, and rollback are shared with NVIDIA.
+
+## Acceptance boundary
+
+A successful Nix build proves artifact construction only. Hardware acceptance
+still requires Secure Boot enabled, the empty bootstrap slot removed, signed
+A→B→A updates, wrong-target and downgrade rejection, corrupt-root rollback,
+power interruption at each transaction phase, and verification that the
+machine resets after an early boot failure. A kernel `panic=10` fallback is
+configured; a platform watchdog is not claimed until it is tested per laptop.

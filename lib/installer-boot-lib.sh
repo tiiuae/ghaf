@@ -79,6 +79,82 @@ find_esp_loader() {
   printf '%s\n' "$loader"
 }
 
+# Verify the entire executable x86/AArch64 UEFI boot chain against the db
+# certificate that will be enrolled. This must run before enrollment: enrolling
+# keys for an unsigned, differently signed, or Type-1 image can turn a successful
+# install into an immediately unbootable machine once Secure Boot is enabled.
+#
+# Type-1 entries are deliberately rejected. They authenticate the kernel at
+# best, while the initrd and editable command line remain separate unsigned
+# inputs. Secure Ghaf images use Type-2 UKIs under EFI/Linux instead.
+verify_secureboot_esp() {
+  local esp_device="$1" keys_dir="$2" mnt loader uki
+  local -a loaders=() ukis=()
+
+  [ -s "$keys_dir/db.crt" ] || {
+    echo "Missing Secure Boot verification certificate: $keys_dir/db.crt" >&2
+    return 1
+  }
+  command -v sbverify >/dev/null 2>&1 || {
+    echo "sbsigntool is not available in the installer environment." >&2
+    return 1
+  }
+
+  mnt="$(mktemp -d)"
+  if ! mount -t vfat -o ro "$esp_device" "$mnt" 2>/dev/null; then
+    echo "Could not mount ESP $esp_device for Secure Boot verification." >&2
+    rmdir "$mnt"
+    return 1
+  fi
+
+  for loader in \
+    "$mnt/EFI/systemd/systemd-bootx64.efi" \
+    "$mnt/EFI/systemd/systemd-bootaa64.efi" \
+    "$mnt/EFI/BOOT/BOOTX64.EFI" \
+    "$mnt/EFI/BOOT/BOOTAA64.EFI"; do
+    [ ! -f "$loader" ] || loaders+=("$loader")
+  done
+  if [ "${#loaders[@]}" -eq 0 ]; then
+    echo "No supported EFI loader found on $esp_device." >&2
+    umount "$mnt" 2>/dev/null || true
+    rmdir "$mnt" 2>/dev/null || true
+    return 1
+  fi
+
+  while IFS= read -r -d '' uki; do
+    ukis+=("$uki")
+  done < <(find "$mnt/EFI/Linux" -maxdepth 1 -type f -iname '*.efi' -print0 2>/dev/null)
+  if [ "${#ukis[@]}" -eq 0 ]; then
+    echo "No Type-2 UKI found under EFI/Linux on $esp_device." >&2
+    umount "$mnt" 2>/dev/null || true
+    rmdir "$mnt" 2>/dev/null || true
+    return 1
+  fi
+
+  if find "$mnt/loader/entries" -maxdepth 1 -type f -name '*.conf' -print -quit 2>/dev/null | grep -q .; then
+    echo "Type-1 boot entries remain on $esp_device; refusing Secure Boot enrollment." >&2
+    umount "$mnt" 2>/dev/null || true
+    rmdir "$mnt" 2>/dev/null || true
+    return 1
+  fi
+
+  for loader in "${loaders[@]}" "${ukis[@]}"; do
+    if ! sbverify --cert "$keys_dir/db.crt" "$loader" >/dev/null 2>&1; then
+      echo "EFI executable is not signed by $keys_dir/db.crt: ${loader#"$mnt/"}" >&2
+      umount "$mnt" 2>/dev/null || true
+      rmdir "$mnt" 2>/dev/null || true
+      return 1
+    fi
+  done
+
+  umount "$mnt" 2>/dev/null || {
+    echo "Could not unmount ESP after Secure Boot verification." >&2
+    return 1
+  }
+  rmdir "$mnt" 2>/dev/null || true
+  echo "Verified Secure Boot loader and ${#ukis[@]} UKI(s) against $keys_dir/db.crt."
+}
+
 # efibootmgr's own error text is the whole story when the variable store is
 # full, and every call here used to discard it into /dev/null -- which is why a
 # machine that would not boot looked identical to one that did.
