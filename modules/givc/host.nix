@@ -3,6 +3,7 @@
 {
   config,
   lib,
+  options,
   ...
 }:
 let
@@ -48,6 +49,14 @@ in
     givc.host = {
       enable = true;
       inherit (config.ghaf.givc) debug;
+
+      # Closure updates (`ota-update cachix`) shell out to `nix build`, so they
+      # put the Nix binary in the agent's PATH. The verity scheme replaces whole
+      # root images A/B instead and its store is read-only, so that mode cannot
+      # be used there. shipping Nix on it would only add a package manager
+      # with store-write capability to an appliance that cannot run it.
+      closureUpdates =
+        !((options ? ghaf.partitioning.verity.enable) && config.ghaf.partitioning.verity.enable);
 
       network = {
         agent.transport = {
