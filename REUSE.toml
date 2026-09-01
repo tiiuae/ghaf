@@ -41,7 +41,8 @@ path = [
   "packages/pkgs-by-name/fingwit/0001-check-all-pam-services-for-fprintd.patch",
   "overlays/custom-packages/spire4ghaf/0001-spire-with-basic-plugins.patch",
   "modules/common/theming/*.yaml",
-  "modules/common/theming/*.ron"
+  "modules/common/theming/*.ron",
+  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/pkvm/0002-rtk_btusb-Fix-for-kernel-6.16.patch"
 ]
 
 [[annotations]]
@@ -186,3 +187,10 @@ SPDX-FileCopyrightText = [
   "2022-2026 TII (SSRC) and the Ghaf contributors"
 ]
 path = "overlays/jetpack-nvdisplay/*.patch"
+
+[[annotations]]
+SPDX-License-Identifier = "MIT"
+SPDX-FileCopyrightText = "Copyright 2022-2024 Anduril Industries"
+path = [
+  "packages/pkgs-by-name/linux-pkvm-jetson/*.patch"
+]
