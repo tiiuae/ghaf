@@ -392,9 +392,9 @@
         "type": "github"
       },
       "original": {
-        "ref": "refs/pull/369/head",
-        "type": "git",
-        "url": "https://github.com/tiiuae/ghafpkgs"
+        "owner": "tiiuae",
+        "repo": "ghafpkgs",
+        "type": "github"
       }
     },
     "git-hooks-nix": {
@@ -446,11 +446,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1788276562,
-        "narHash": "sha256-rRtEZj3I2h4txVPKQ2fq0+fMej8jiK8mKc3LlHxhvYk=",
+        "lastModified": 1788872713,
+        "narHash": "sha256-UBGjwkyBPZG9F9Te5Mr0M12PG54X36LjPx24OdE0Wv4=",
         "owner": "tiiuae",
         "repo": "ghaf-givc",
-        "rev": "a409a69492a8e5a56153c541785506a2d1b9b29b",
+        "rev": "9d8f2d5abbfca459ebff78fdd5a24e09c37c8262",
         "type": "github"
       },
       "original": {
