@@ -14,6 +14,7 @@
   lvm2,
   ncurses,
   parted,
+  sbsigntool,
   systemd,
   util-linux,
   writeShellApplication,
@@ -39,6 +40,7 @@ writeShellApplication {
     lvm2 # Needed for vgchange, pvremove
     ncurses # Needed for `clear` command
     parted # Needed for partprobe
+    sbsigntool # verify loaders and UKIs before enrolling matching keys
     systemd # Needed for udevadm settle
     util-linux
     zstd
