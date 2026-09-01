@@ -531,6 +531,8 @@ let
       # construction. Each extra fixpoint is a full re-evaluation -- see
       # `extendModules` in nixpkgs lib/modules.nix, which shares nothing.
       innerName = noSBCfg.config.hardware.nvidia-jetpack.name;
+      flashScriptBin =
+        if t.useLegacyFlash or false then "flash-${innerName}" else "flash-signed-${innerName}";
       noSB = noSBCfg.pkgs.nvidia-jetpack.${flashScriptAttr};
       # Targets that already enable secureboot unconditionally get the identical
       # derivation back from `mkForce true`, so skip the second fixpoint entirely.
@@ -597,9 +599,9 @@ let
           esac
         done
         if [ "$sb" = 1 ]; then
-          exec ${withSB}/bin/flash-signed-${innerName} "''${args[@]}"
+          exec ${lib.getExe' withSB flashScriptBin} "''${args[@]}"
         else
-          exec ${noSB}/bin/flash-signed-${innerName} "''${args[@]}"
+          exec ${lib.getExe' noSB flashScriptBin} "''${args[@]}"
         fi
       '';
     };
