@@ -197,7 +197,7 @@ in
           # Only this VM gets the QEMU that has the BPMP bridge and, crucially,
           # still has -device vfio-platform (removed upstream in 10.2). That QEMU
           # also carries the FDT binding that emits MGBE0's guest node.
-          ghaf.virtualization.qemu.package = lib.mkForce pkgs.ghaf-qemu-bpmp;
+          ghaf.virtualization.qemu.package = lib.mkForce pkgs.ghaf-nvidia-qemu-bpmp;
 
           # Hand MGBE0 to the guest. QEMU emits the ethernet DT node itself (from
           # the nvidia,tegra234-mgbe binding in sysbus-fdt.c); there is no -dtb.
@@ -206,7 +206,7 @@ in
             # startup-rearm recovers MGBE0's level IRQ if it asserts during the
             # ~17s bring-up gap before the guest stmmac driver claims the SPI.
             # Default-off in QEMU; enabled here only, bounded to 30s (see
-            # ghaf-qemu-bpmp patch 0006).
+            # ghaf-nvidia-qemu-bpmp patch 0006).
             "vfio-platform,host=6800000.ethernet,startup-rearm=on"
           ];
         }

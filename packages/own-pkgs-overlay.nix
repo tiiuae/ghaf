@@ -20,9 +20,6 @@
     ghaf-intro = final.callPackage ./pkgs-by-name/ghaf-intro/package.nix { };
     ghaf-open = final.callPackage ./pkgs-by-name/ghaf-open/package.nix { };
     ghaf-powercontrol = final.callPackage ./ghaf-powercontrol/package.nix { };
-    ghaf-qemu = final.callPackage ./pkgs-by-name/ghaf-qemu/package.nix { };
-    ghaf-qemu-bpmp = final.callPackage ./pkgs-by-name/ghaf-qemu-bpmp/package.nix { };
-    ghaf-qemu-bpmp-gpu = final.callPackage ./pkgs-by-name/ghaf-qemu-bpmp-gpu/package.nix { };
     ghaf-vms = final.callPackage ./pkgs-by-name/ghaf-vms/package.nix { };
     gpu-vm-partition-manager-sdk = inputs.gpu-partition-manager.lib.mkSdk { pkgs = final; };
     hardware-scan = final.callPackage ./pkgs-by-name/hardware-scan/package.nix { };

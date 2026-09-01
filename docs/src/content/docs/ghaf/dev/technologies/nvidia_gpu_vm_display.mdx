@@ -9,7 +9,7 @@ How the Jetson AGX Orin GPU and display path are assigned to either a split
 NVIDIA's guest KMS stack while the DCE R5 and physical display hardware remain
 host-owned. This builds on
 [GPU Passthrough to gpu-vm](/ghaf/dev/technologies/nvidia_gpu_vm/) and shares
-its BPMP-virtualisation and `ghaf-qemu-bpmp` infrastructure.
+its BPMP-virtualisation and `ghaf-nvidia-qemu-bpmp` infrastructure.
 
 import { Aside } from "@astrojs/starlight/components";
 
@@ -98,7 +98,7 @@ Four cooperating pieces:
    back into `tegra-dce`'s client callbacks via
    `tegra_dce_client_ipc_inject` — identical to native IVC delivery from the
    driver's point of view.
-2. **QEMU DCE bridge** (`nvidia_dce_guest` device in `ghaf-qemu-bpmp`) exposes
+2. **QEMU DCE bridge** (`nvidia_dce_guest` device in `ghaf-nvidia-qemu-bpmp`) exposes
    the existing trapped MMIO window, with a RAM overlay for only the 4 KiB
    reverse-event payload. Bridge creation is opt-in through `GHAF_DCE_GUEST=1`;
    only the VM that owns the display path may set it and open `/dev/dce-host`.

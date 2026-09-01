@@ -209,7 +209,7 @@ in
     }
   ];
 
-  ghaf.virtualization.qemu.package = lib.mkForce pkgs.ghaf-qemu-bpmp-gpu;
+  ghaf.virtualization.qemu.package = lib.mkForce pkgs.ghaf-nvidia-qemu-bpmp-gpu;
 
   microvm.qemu.extraArgs = [
     "-dtb"
