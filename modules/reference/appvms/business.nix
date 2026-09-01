@@ -138,15 +138,6 @@ in
 
       enable = lib.mkDefault true;
 
-      usbPassthrough = [
-        {
-          description = "Internal Webcams for BusinessVM";
-          targetVm = "business-vm";
-          tag = "cam";
-          allow = config.ghaf.reference.passthrough.usb.internalWebcams;
-        }
-      ];
-
       evaluatedConfig = config.ghaf.profiles.laptop-x86.mkAppVm {
         name = "business";
         packages = optionals config.ghaf.profiles.debug.enable [ pkgs.tcpdump ];
