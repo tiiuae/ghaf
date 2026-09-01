@@ -226,6 +226,11 @@ let
           reference.profiles.mvp-orinuser-trial.enable = true;
 
           host.kernel.hardening.hypervisor.enable = true;
+          guest.hardening.protected.enable = true;
+        };
+        vmConfig = {
+          sysvms.netvm.mem = 4096;
+          sysvms.adminvm.mem = 4096;
         };
       })
       // {
