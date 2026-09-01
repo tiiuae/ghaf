@@ -26,6 +26,7 @@
     ghaf-vms = final.callPackage ./pkgs-by-name/ghaf-vms/package.nix { };
     gpu-vm-partition-manager-sdk = inputs.gpu-partition-manager.lib.mkSdk { pkgs = final; };
     hardware-scan = final.callPackage ./pkgs-by-name/hardware-scan/package.nix { };
+    linux_6_18_jetson_pkvm = final.callPackage ./pkgs-by-name/linux-pkvm-jetson/package.nix { };
     make-checks = final.callPackage ./pkgs-by-name/make-checks/package.nix { };
     memsocket = final.callPackage ./pkgs-by-name/memsocket/package.nix { };
     pci-binder = final.callPackage ./pkgs-by-name/pci-binder/package.nix { };
