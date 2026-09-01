@@ -29,7 +29,13 @@
     ci-test-automation = {
       url = "github:tiiuae/ci-test-automation";
       inputs = {
-        #nixpkgs.follows = "nixpkgs";
+        # Deliberately NOT following our nixpkgs, and not an oversight to tidy
+        # away: the Robot suite pulls python3-jsons, whose dependency typish is
+        # marked unsupported on the python3.14 our nixpkgs carries, so the
+        # follow fails eval with "typish-1.9.3 not supported for interpreter
+        # python3.14". Disabled in 58e68c793 for exactly this reason; it costs a
+        # second nixpkgs in the lock and that is the cheaper of the two.
+        # nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
       };
     };
@@ -84,6 +90,7 @@
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
+        flake-root.follows = "flake-root";
         treefmt-nix.follows = "treefmt-nix";
         git-hooks-nix.follows = "git-hooks-nix";
         flake-compat.follows = "flake-compat";
@@ -134,6 +141,8 @@
         flake-root.follows = "flake-root";
         git-hooks-nix.follows = "git-hooks-nix";
         devshell.follows = "devshell";
+        crane.follows = "givc/crane";
+        rust-overlay.follows = "rust-overlay";
       };
     };
 
@@ -227,19 +236,35 @@
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
         crane.follows = "givc/crane";
+        rust-overlay.follows = "rust-overlay";
       };
     };
 
     # Grants rootless Xwayland integration to wayland compositor
     xwayland-satellite = {
       url = "github:Supreeeme/xwayland-satellite";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        rust-overlay.follows = "rust-overlay";
+      };
+    };
+
+    # Rust toolchains. A root input purely so the three consumers below
+    # (gp-gui, wireguard-gui, xwayland-satellite) share one instead of each
+    # locking its own.
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # UI Styling using Nix
     stylix = {
       url = "github:nix-community/stylix";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-parts.follows = "flake-parts";
+        systems.follows = "systems";
+      };
     };
   };
 
