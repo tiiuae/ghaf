@@ -144,6 +144,27 @@ in
             }
           ];
         };
+
+        # postpendUsbRules runs after business.nix's own rule, so its silent auto-attach wins first.
+        vhotplug.postpendUsbRules = [
+          {
+            description = "Webcams";
+            tag = "cam";
+            allowedVms = [
+              "business-vm"
+              "chrome-vm"
+              "comms-vm"
+              "flatpak-vm"
+            ];
+            allow = [
+              {
+                interfaceClass = 14;
+                description = "Video (USB Webcams)";
+              }
+            ]
+            ++ config.ghaf.reference.passthrough.usb.internalWebcams;
+          }
+        ];
       };
 
       reference = {
