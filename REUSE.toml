@@ -42,7 +42,8 @@ path = [
   "overlays/custom-packages/spire4ghaf/0001-spire-with-basic-plugins.patch",
   "modules/common/theming/*.yaml",
   "modules/common/theming/*.ron",
-  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/pkvm/0002-rtk_btusb-Fix-for-kernel-6.16.patch"
+  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/pkvm/0002-rtk_btusb-Fix-for-kernel-6.16.patch",
+  "overlays/custom-packages/crosvm/0001-vhost-user-handle-ACCESS_PLATFORM-for-protected-guest.patch"
 ]
 
 [[annotations]]

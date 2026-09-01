@@ -18,6 +18,7 @@
   cosmic-reader = import ./cosmic/cosmic-reader { inherit prev; };
   cosmic-settings = import ./cosmic/cosmic-settings { inherit prev; };
   cosmic-settings-daemon = import ./cosmic/cosmic-settings-daemon { inherit prev; };
+  crosvm = import ./crosvm { inherit prev; };
   element-desktop = import ./element-desktop { inherit prev; };
   grafana-alloy = import ./grafana-alloy { inherit prev; };
   intel-gpu-tools = import ./intel-gpu-tools { inherit prev; };
