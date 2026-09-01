@@ -485,6 +485,10 @@ let
   flashTarget =
     t: qspiOnly:
     let
+      # TEMP: Used by pkvm target
+      # legacyFlashScript keeps the old flash behavior
+      flashScriptAttr = if t.useLegacyFlash or false then "legacyFlashScript" else "signedFlashScript";
+
       # Shared by both secureboot variants so the two cannot drift apart.
       nxDiskOverrides = lib.optionalAttrs (lib.strings.hasInfix "nx" t.name && !qspiOnly) {
         # NX boots from USB or NVMe; the flash script targets NVMe.
@@ -508,7 +512,7 @@ let
       # construction. Each extra fixpoint is a full re-evaluation -- see
       # `extendModules` in nixpkgs lib/modules.nix, which shares nothing.
       innerName = noSBCfg.config.hardware.nvidia-jetpack.name;
-      noSB = noSBCfg.pkgs.nvidia-jetpack.signedFlashScript;
+      noSB = noSBCfg.pkgs.nvidia-jetpack.${flashScriptAttr};
       # Targets that already enable secureboot unconditionally get the identical
       # derivation back from `mkForce true`, so skip the second fixpoint entirely.
       withSB =
@@ -525,7 +529,7 @@ let
                 // nxDiskOverrides
               )
             ];
-          }).pkgs.nvidia-jetpack.signedFlashScript;
+          }).pkgs.nvidia-jetpack.${flashScriptAttr};
     in
     # Single `*-flash-script` entrypoint that picks between two
     # pre-built QSPI firmware variants at flash time.
