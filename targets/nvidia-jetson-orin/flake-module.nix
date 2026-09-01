@@ -214,6 +214,25 @@ let
       };
     })
 
+    (
+      (ghaf-configuration {
+        name = "nvidia-jetson-orin-agx64-pvm";
+        inherit system;
+        profile = "orin";
+        hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx64;
+        variant = "debug";
+        extraModules = commonModules;
+        extraConfig = {
+          reference.profiles.mvp-orinuser-trial.enable = true;
+
+          host.kernel.hardening.hypervisor.enable = true;
+        };
+      })
+      // {
+        useLegacyFlash = true;
+      }
+    )
+
     (ghaf-configuration {
       name = "nvidia-jetson-orin-agx-industrial";
       inherit system;
