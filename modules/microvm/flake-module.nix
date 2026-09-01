@@ -41,6 +41,7 @@
       ./common/storagevm.nix
       ./common/vm-crosvm.nix
       ./common/vm-networking.nix
+      ./common/vm-protected.nix
       ./common/vm-qemu.nix
       ./common/vm-swap.nix
       ./common/vm-tpm.nix
