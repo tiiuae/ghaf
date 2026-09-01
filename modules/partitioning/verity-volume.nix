@@ -19,10 +19,35 @@ in
       type = lib.types.nullOr lib.types.path;
       default = null;
       description = ''
-        Directory containing db.key and db.crt for signing the UKI in
-        the OTA update image. When set, the UKI is signed at build time
-        so devices with Secure Boot enabled can boot from OTA-installed
-        slots. In production, the OTA server signs images instead.
+        Legacy debug-only directory containing db.key and db.crt for signing
+        the UKI during the Nix build. New secure A/B adapters must sign outside
+        the Nix store with ghaf-sign-update.
+      '';
+    };
+
+    target = lib.mkOption {
+      type = lib.types.str;
+      default = config.networking.hostName;
+      description = ''
+        Exact target identifier embedded in signed update manifests.
+      '';
+    };
+
+    generation = lib.mkOption {
+      type = lib.types.ints.positive;
+      default = 1;
+      description = "Monotonic update generation embedded in the manifest and UKI.";
+    };
+
+    erofsCompression = lib.mkOption {
+      type = lib.types.enum [
+        "zstd"
+        "lz4hc"
+      ];
+      default = "zstd";
+      description = ''
+        EROFS compression algorithm. Targets with older EROFS kernels can
+        select lz4hc explicitly.
       '';
     };
   };
@@ -36,10 +61,11 @@ in
     assertions = [
       {
         assertion = cfg.uki-signing-key-dir == null || debugEnable;
-        message = "uki-signing-key-dir puts private keys in the Nix store and must only be used in debug builds. In production, the OTA server signs images before distribution.";
+        message = "uki-signing-key-dir puts private keys in the Nix store and must only be used in debug builds. New secure A/B adapters must sign outside the Nix store.";
       }
     ];
-    system.build.ghafImage =
+
+    system.build.ghafUpdateImage =
       let
         inherit (config.ghaf) version;
         id = "ghaf";
@@ -84,7 +110,7 @@ in
           fi
 
           time ${erofs-utils-nix}/bin/mkfs.erofs \
-            -zzstd -T 1 --all-root \
+            -z${cfg.erofsCompression} -T 1 --all-root \
             --workers="$mkfsWorkers" \
             -L nix-store \
             ${fsImage} \
@@ -108,7 +134,7 @@ in
           test -n "$verityRoothash" || (echo "bad root hash" >&2 && exit 1)
 
           # Create UKI kernel with embedded verityhash
-          sed -E "s/^(Cmdline=.*)/\1 ghaf.storehash=$verityRoothash/" \
+          sed -E "s/^(Cmdline=.*)/\1 ghaf.storehash=$verityRoothash ghaf.generation=${toString cfg.generation}/" \
             ${config.boot.uki.configFile} >ukify-verity.conf
           ${pkgs.buildPackages.systemdUkify}/lib/systemd/ukify build \
             --config=ukify-verity.conf \
@@ -116,7 +142,7 @@ in
           # ${kernelImage} don't work for some reasons, so move kernel in place
           mv kernel.efi ${kernelImage}
           ${lib.optionalString (cfg.uki-signing-key-dir != null) ''
-            echo "Signing UKI with Secure Boot key..."
+            echo "Signing UKI with legacy debug Secure Boot key..."
             ${pkgs.buildPackages.sbsigntool}/bin/sbsign \
               --key ${cfg.uki-signing-key-dir}/db.key \
               --cert ${cfg.uki-signing-key-dir}/db.crt \
@@ -132,8 +158,11 @@ in
 
           # Create artifacts and manifest.
           ${pkgs.buildPackages.python3}/bin/python ${./mk-manifest.py} \
+            generate \
             --version ${version} \
             --system ${config.nixpkgs.hostPlatform.system} \
+            --target ${lib.escapeShellArg cfg.target} \
+            --generation ${toString cfg.generation} \
             --hash-file $out/dm-verity-root-hash \
             --root-image ${fsImage}.zst \
             --verity-image ${verityImage}.zst \
@@ -145,6 +174,11 @@ in
           # Clean-up
           rm -f $out/dm-verity-root-hash
         '';
+
+    # Platform adapters may wrap the update payload into a flashable initial
+    # disk image. Without such an adapter the historical package contract is
+    # unchanged: ghafImage is the sysupdate payload directory.
+    system.build.ghafImage = lib.mkDefault config.system.build.ghafUpdateImage;
 
     # Show pretty name in bootloader
     system.nixos.extraOSReleaseArgs = {
