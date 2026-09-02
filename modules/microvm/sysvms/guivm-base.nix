@@ -94,6 +94,7 @@ in
         bootLabel = lib.mkDefault "Starting desktop...";
       };
     };
+    locales.enable = lib.mkDefault true;
 
     # Profiles - from globalConfig
     profiles = {

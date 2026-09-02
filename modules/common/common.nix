@@ -195,6 +195,13 @@ in
         themselves.
       '';
     };
+    locales.enable = lib.mkEnableOption ''
+      the full glibc locale archive (~220 MiB, `i18n.extraLocales = "all"`).
+
+      Only needed on VMs that can render UI text in a locale other than
+      `i18n.defaultLocale`. Left disabled on headless VMs (net-vm, audio-vm,
+      admin-vm, ...), which have no UI to localise.
+    '';
   };
   config = {
 
@@ -307,7 +314,7 @@ in
     i18n = {
       defaultLocale = "en_US.UTF-8";
       imperativeLocale = true;
-      extraLocales = "all";
+      extraLocales = lib.mkIf config.ghaf.locales.enable "all";
     };
   };
 }
