@@ -115,6 +115,8 @@ in
 
         theming = {
           enable = lib.mkDefault config.ghaf.global-config.theming.enable;
+          stylix.enable = false; # Host has no use for UI theming other than plymouth
+          gtkQtTheme.enable = false;
           plymouth = {
             enable = lib.mkDefault true;
             bootLabel = lib.mkDefault "Starting Ghaf...";
@@ -191,6 +193,14 @@ in
           logLevel = if config.ghaf.global-config.spire.debug then "DEBUG" else "INFO";
           trustBundlePath = "/persist/common/spire/bundle.pem";
         };
+      };
+
+      # nixpkgs defaults all three to true for every NixOS system, desktop or
+      # not. They are pure XDG desktop plumbing.
+      xdg = {
+        icons.enable = lib.mkForce false;
+        mime.enable = lib.mkForce false;
+        autostart.enable = lib.mkForce false;
       };
 
       # Create required host directories
