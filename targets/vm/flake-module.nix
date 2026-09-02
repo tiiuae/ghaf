@@ -99,7 +99,7 @@ let
             in
             {
               environment.systemPackages = lib.optionals withGraphics [
-                pkgs.gnome-calculator
+                pkgs.cosmic-ext-calculator
               ];
 
               ghaf = {
