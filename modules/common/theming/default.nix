@@ -306,8 +306,11 @@ in
           # the logo's opacity ("breathe") rather than spinning it.
           targets.plymouth.enable = false;
 
+          # Also gated on gtkQtTheme: with it off the option promises the Qt
+          # style is "left untouched", but stylix's qt target still installs
+          # qt5ct/qt6ct and pulls the Qt runtime in behind them.
           # qt5ct/qt6ct fail to cross-compile
-          targets.qt.enable = !isCross;
+          targets.qt.enable = cfg.gtkQtTheme.enable && !isCross;
         };
 
         # Remove all unused fonts

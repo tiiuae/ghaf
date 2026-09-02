@@ -95,6 +95,17 @@ in
         microvm-boot = {
           inherit (config.ghaf.virtualization.microvm.guivm) enable;
         };
+
+        # The host runs no desktop. compositor, greeter and every application
+        # live in gui-vm. It still imports the theming module for the console
+        # font and the Plymouth boot splash, but the GTK/Qt half has nothing to
+        # style here and is not free:
+        #
+        # Console font, fonts and Plymouth are separate options and unaffected.
+        theming = {
+          gtkQtTheme.enable = false;
+          iconTheme.package = null;
+        };
         systemd = {
           withName = "host-systemd";
           enable = true;
@@ -189,6 +200,14 @@ in
           logLevel = if config.ghaf.global-config.spire.debug then "DEBUG" else "INFO";
           trustBundlePath = "/persist/common/spire/bundle.pem";
         };
+      };
+
+      # nixpkgs defaults all three to true for every NixOS system, desktop or
+      # not. They are pure XDG desktop plumbing.
+      xdg = {
+        icons.enable = false;
+        mime.enable = false;
+        autostart.enable = false;
       };
 
       # Create required host directories
