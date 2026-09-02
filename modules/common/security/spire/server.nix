@@ -116,11 +116,11 @@ let
       spire-package
     ];
     text = ''
-      # Only meaningful once the clock is actually trusted. With
-      # ghaf.time.requireSync = false the barrier releases on a timeout and
-      # writes "released" instead, and rotating onto a CA minted against a clock
-      # we already know is wrong would buy nothing. Say so rather than exiting
-      # quietly, so "no refresh happened" is never mistaken for "refreshed".
+      # Only meaningful once the clock is actually trusted. With requireSync
+      # false (the x86 default) the barrier can release on a timeout, writing
+      # "released"; rotating onto a CA minted against a known-wrong clock buys
+      # nothing. Say so rather than exiting quietly, so "no refresh happened" is
+      # never mistaken for "refreshed".
       sync_state="$(cat /run/ghaf-clock-synced 2>/dev/null || echo missing)"
       if [ "$sync_state" != "synchronised" ]; then
         echo "spire-refresh-identity: clock barrier reports '$sync_state', not 'synchronised';" \
