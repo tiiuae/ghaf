@@ -219,6 +219,7 @@ in
 
         # Profiles - from globalConfig
         profiles.debug.enable = lib.mkDefault (globalConfig.debug.enable or false);
+        profiles.release.enable = lib.mkDefault (globalConfig.release.enable or false);
 
         nix.enable = lib.mkDefault (globalConfig.nix.enable or false);
         development = {

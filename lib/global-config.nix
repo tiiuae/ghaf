@@ -42,6 +42,9 @@ rec {
     ];
     options = {
       debug.enable = mkEnableOption "debug mode globally (host and all VMs)";
+      # The other half of the variant. Carried explicitly rather than derived
+      # as `!debug.enable`, because `minimal` is neither.
+      release.enable = mkEnableOption "release mode globally (host and all VMs)";
 
       development = {
         debug.tools.enable = mkEnableOption "debug tools globally";
@@ -424,6 +427,7 @@ rec {
     # Debug profile - full development/debugging capabilities
     debug = {
       debug.enable = true;
+      release.enable = false;
 
       development = {
         debug.tools.enable = true;
@@ -533,6 +537,7 @@ rec {
     # Release profile - production settings
     release = {
       debug.enable = false;
+      release.enable = true;
 
       development = {
         debug.tools.enable = false;
@@ -639,6 +644,7 @@ rec {
     # Minimal profile - bare minimum
     minimal = {
       debug.enable = false;
+      release.enable = false;
 
       development = {
         debug.tools.enable = false;

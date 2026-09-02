@@ -54,6 +54,7 @@ in
     };
 
     profiles.debug.enable = lib.mkDefault (globalConfig.debug.enable or false);
+    profiles.release.enable = lib.mkDefault (globalConfig.release.enable or false);
 
     # MiTM proxy feature - from globalConfig
     virtualization.microvm.idsvm.mitmproxy.enable = globalConfig.idsvm.mitmproxy.enable or false;
