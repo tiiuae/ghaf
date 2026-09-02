@@ -193,9 +193,9 @@ let
       pkgs.systemd
     ];
     text = ''
-      # Same gate as the server-side refresh: with ghaf.time.requireSync = false
-      # the barrier releases on a timeout without the clock ever being trusted,
-      # and restarting the agents then just re-mints the same bad identities.
+      # Same gate as the server-side refresh: with requireSync false (the x86
+      # default) the barrier can release on a timeout with the clock still
+      # untrusted, and restarting the agents then just re-mints bad identities.
       sync_state="$(cat /run/ghaf-clock-synced 2>/dev/null || echo missing)"
       if [ "$sync_state" != "synchronised" ]; then
         echo "spire-reattest-agents: clock barrier reports '$sync_state', not 'synchronised';" \

@@ -38,19 +38,23 @@ in
 
     requireSync = mkOption {
       type = types.bool;
-      default = true;
+      default = pkgs.stdenv.hostPlatform.isAarch64;
+      defaultText = lib.literalExpression "pkgs.stdenv.hostPlatform.isAarch64";
       description = ''
-        Whether the clock barrier blocks indefinitely until the system clock is
-        actually synchronised.
+        Whether the clock barrier blocks indefinitely, or releases after
+        `syncWaitSeconds` even while the clock is still unsynchronised.
 
-        With no RTC backup cell the clock is wrong -- not merely imprecise -- for
-        the first seconds of every boot, and a plausibility range cannot detect
-        that: the fallback epoch reads as an ordinary recent date. Only
-        `NTPSynchronized` distinguishes the two.
+        On a board with no RTC backup cell the boot clock is wrong, not just
+        imprecise, and only `NTPSynchronized` can tell -- so the barrier must
+        hold, or consumers gated on `ghaf-clock-synced.target` (SPIRE among them)
+        mint credentials that are already expired once the clock is corrected.
+        A board with a battery-backed RTC boots at roughly the right time, so an
+        unbounded wait there only stalls those consumers when offline, for no gain.
 
-        Leave this on. Turn it off only for a device with no reachable time
-        source at all, accepting that consumers gated on
-        `ghaf-clock-synced.target` may then run against an untrusted clock.
+        The default uses architecture as a proxy for "has a battery-backed RTC":
+        aarch64 is Jetson/Orin, which has none; x86 keeps its RTC across a cold
+        boot. A board that breaks this assumption sets `requireSync` explicitly
+        in its hardware module.
       '';
     };
 
