@@ -1761,57 +1761,26 @@
 
         <h3>Camera Isolation</h3>
         <p>
-          Cameras are carefully controlled with different policies for internal
-          and external devices:
+          Both your laptop's built-in webcam and any USB webcam you plug in can
+          only be given to the same fixed set of VMs. No other VM can ever
+          access it:
         </p>
 
-        <div class="two-column">
-          <div class="info-box">
-            <h4>Internal Webcam</h4>
-            <p>
-              Your laptop's built-in camera is passed exclusively to
-              <strong>Business-VM</strong>. This is your trusted environment for
-              corporate video calls. The internal camera is:
-            </p>
-            <ul
-              style="
-                margin-top: 0.75rem;
-                margin-left: 1.5rem;
-                color: var(--text-secondary);
-              "
-            >
-              <li>Identified by physical USB bus/port location</li>
-              <li>Explicitly blocked from Chrome-VM and other VMs</li>
-              <li>Never accessible to untrusted browsing sessions</li>
-            </ul>
-          </div>
-
-          <div class="info-box">
-            <h4>External Webcams</h4>
-            <p>
-              USB webcams you plug in can be shared between
-              <strong>Business-VM</strong> and <strong>Chrome-VM</strong>
-              for flexibility. External cameras are:
-            </p>
-            <ul
-              style="
-                margin-top: 0.75rem;
-                margin-left: 1.5rem;
-                color: var(--text-secondary);
-              "
-            >
-              <li>Detected by USB device class (Video)</li>
-              <li>Dynamically assignable via hot-plug</li>
-              <li>Still isolated from other application VMs</li>
-            </ul>
-          </div>
-        </div>
-
-        <p>
-          This separation means a compromised website in Chrome-VM cannot access
-          your internal webcam to spy on you during a business call — the device
-          literally doesn't exist from Chrome-VM's perspective.
-        </p>
+        <ul
+          style="
+            margin-top: 0.75rem;
+            margin-left: 1.5rem;
+            color: var(--text-secondary);
+          "
+        >
+          <li>
+            Assignable to <strong>Business-VM</strong>,
+            <strong>Chrome-VM</strong>, <strong>Comms-VM</strong>, or
+            <strong>Flatpak-VM</strong> via the USB applet in the taskbar
+          </li>
+          <li>Attached to only one of those VMs at a time</li>
+          <li>Never accessible to any other VM</li>
+        </ul>
 
         <h3>Audio Isolation</h3>
         <p>
