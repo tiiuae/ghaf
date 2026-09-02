@@ -41,7 +41,13 @@ python3Packages.buildPythonApplication (finalAttrs: {
 
   buildInputs = [
     gtk3
-    xapp
+    # Only libxapp's core is needed here; app-lib-only drops the panel
+    # applets/scripts/sn-watcher that pull in mate-panel, gtk4, gstreamer...
+    # shrinking xapp's closure from ~1.3 GiB to ~290 MiB.
+    (xapp.overrideAttrs (old: {
+      mesonFlags = (old.mesonFlags or [ ]) ++ [ "-Dapp-lib-only=true" ];
+      preFixup = ""; # upstream wraps xapp-sn-watcher here, which app-lib-only no longer builds
+    }))
     glib
     pam
   ];
