@@ -121,6 +121,10 @@ in
   options.ghaf.theming = {
     enable = lib.mkEnableOption "shared system theming (stylix)";
 
+    stylix.enable = lib.mkEnableOption "stylix module globally" // {
+      default = true;
+    };
+
     polarity = lib.mkOption {
       type = lib.types.enum [
         "light"
@@ -281,7 +285,7 @@ in
     lib.mkMerge [
       {
         stylix = {
-          enable = true;
+          enable = cfg.stylix.enable;
 
           # Currently unused
           targets.nixos-icons.enable = lib.mkDefault false;
