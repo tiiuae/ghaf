@@ -151,11 +151,7 @@ in
     iconTheme = {
       package = lib.mkOption {
         type = lib.types.nullOr lib.types.package;
-        default = pkgs.papirus-icon-theme.override {
-          color = "grey";
-          # The following fixes a cross-compilation issue
-          inherit (pkgs.buildPackages) papirus-folders;
-        };
+        default = pkgs.papirus-icon-theme;
         description = "Icon theme package. If null, stylix icon theming will not be used";
       };
       light = lib.mkOption {
