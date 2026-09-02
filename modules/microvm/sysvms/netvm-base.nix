@@ -209,6 +209,9 @@ in
     # Common namespace - from hostConfig
     common = hostConfig.common or { };
 
+    # Enable for now but could possibly be removed
+    locales.enable = lib.mkDefault true;
+
     # Note: reference.services is NOT set here - it should come via extraModules
     # from hardware.definition.netvm.extraModules if needed
   };

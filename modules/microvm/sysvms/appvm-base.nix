@@ -226,6 +226,7 @@ in
         };
 
         theming.enable = lib.mkDefault (globalConfig.theming.enable or false);
+        locales.enable = lib.mkDefault true;
 
         # System
         type = "app-vm";

@@ -69,6 +69,7 @@ in
     };
 
     ghaf.theming.enable = true;
+    ghaf.locales.enable = true;
 
     ghaf.graphics.boot = {
       enable = true;

@@ -122,6 +122,8 @@ in
           };
         };
 
+        locales.enable = lib.mkDefault false;
+
         graphics.boot.enable = lib.mkDefault config.ghaf.global-config.graphics.boot.enable;
 
         services = {
