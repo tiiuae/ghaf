@@ -24,7 +24,7 @@ in
       {
         # Default desktop files are always preferred
         environment.systemPackages = with pkgs; [
-          gnome-calculator
+          cosmic-ext-calculator
           sticky-notes
         ];
       }
