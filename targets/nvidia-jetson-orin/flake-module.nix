@@ -39,6 +39,7 @@ let
   orinCrosvmModule = {
     ghaf.hardware.nvidia.orin.crosvm.enable = true;
     ghaf.hardware.nvidia.passthroughs.gui_vm.enable = true;
+    ghaf.hardware.nvidia.passthroughs.mttcan_net_vm.enable = true;
   };
 
   # Common modules shared across all Orin configurations
