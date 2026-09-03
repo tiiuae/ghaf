@@ -13,14 +13,6 @@ let
   inherit (inputs) jetpack-nixos nixpkgs;
   system = "aarch64-linux";
   pkgsX86 = nixpkgs.legacyPackages.x86_64-linux;
-  updateHealthFailureText = builtins.getEnv "GHAF_AB_TEST_UNHEALTHY";
-  updateHealthFailure =
-    if updateHealthFailureText == "" then
-      false
-    else if updateHealthFailureText == "1" then
-      true
-    else
-      throw "GHAF_AB_TEST_UNHEALTHY must be unset or 1";
   lazyPackage =
     name: drv:
     (lib.lazyDerivation {
@@ -154,6 +146,8 @@ let
           enable = true;
           inherit target;
         };
+        boot-health.debugUnhealthyMicrovm =
+          if config.ghaf.secureUpdate.injectBootHealthFailure then "ab-health-failure-injection" else null;
         hardware.nvidia.orin.secureboot = {
           inherit (config.ghaf.secureUpdate)
             externalPublicTrustConfigured
@@ -546,7 +540,6 @@ let
             boot-health = {
               enable = true;
               luksMapper = "cryptroot";
-              debugUnhealthyMicrovm = if updateHealthFailure then "ab-health-failure-injection" else null;
             };
           };
         })
@@ -771,7 +764,7 @@ let
           echo "WARNING: secure A/B development trust was unavailable at evaluation; flashing the generic unsigned target instead." >&2
           echo "  Requested: ${t.name}" >&2
           echo "  Fallback:  ${fallback.name}" >&2
-          echo "  Rebuild with --impure and GHAF_DEV_KEY_DIR from ghaf-dev-keygen to flash the secure A/B canary." >&2
+          echo "  Rebuild with an external secure-ab-build-config input to flash the secure A/B canary." >&2
 
           args=()
           while (($#)); do
