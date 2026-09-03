@@ -29,6 +29,8 @@ in
   config = mkIf (cfg.enable && config.ghaf.givc.enable) {
     environment.systemPackages = [
       pkgs.ota-update
+    ]
+    ++ optionals config.ghaf.profiles.debug.enable [
       pkgs.ghaf-fetch-update
     ];
 

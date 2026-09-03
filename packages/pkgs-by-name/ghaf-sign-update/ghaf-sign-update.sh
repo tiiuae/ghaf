@@ -65,6 +65,15 @@ mkdir -p "$output"
 manifest="$output/$(basename "$input")"
 cp "$input" "$manifest"
 
+# Artifact names must be distinct from each other and from the manifest, or a
+# later copy could clobber release material before it is signed.
+if ! jq -e --arg manifest "$(basename "$input")" \
+  '[.root.file, .verity.file, .kernel.file, $manifest] | length == (unique | length)' \
+  "$manifest" >/dev/null; then
+  echo "Artifact file names must be distinct and must not collide with the manifest" >&2
+  exit 1
+fi
+
 for kind in root verity; do
   file=$(jq -er ".$kind.file" "$manifest")
   [[ $file == "$(basename -- "$file")" ]] || {

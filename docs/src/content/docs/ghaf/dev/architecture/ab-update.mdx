@@ -15,6 +15,12 @@ provisioning, and health-gated rollback. Platform-specific build, deployment,
 and acceptance procedures are carried by the NVIDIA Jetson Orin and x86
 adapter changes.
 
+:::note[Stack boundary]
+PR #2199 provides the shared mechanisms. NVIDIA behavior described here is
+implemented by follow-up PR #2200, and x86 behavior by follow-up PR #2201;
+neither adapter is present in the shared-core diff alone.
+:::
+
 :::caution[Development canaries]
 The UEFI and update keys described here are development keys. They do not
 represent NVIDIA fused BootROM trust or a production HSM-backed signing system.
@@ -111,22 +117,43 @@ nix run .#ghaf-dev-keygen -- --output /secure/local/ghaf-dev-keys
 Private keys must remain on the signing/flash host. The target receives only
 `db.crt` and `update.pub`.
 
-Record a non-secret public-trust inventory when the directory is created and
-before every candidate build:
+Export a public-only, generation-specific flake input before every candidate
+build:
 
 ```sh
-(
-  cd "$GHAF_DEV_KEY_DIR"
-  sha256sum PK.crt KEK.crt db.crt update.pub
-  openssl x509 -in db.crt -noout -fingerprint -sha256 -dates -subject
-)
+export GHAF_DEV_KEY_DIR=/secure/local/ghaf-dev-keys
+export SECURE_AB_GENERATION=8
+export SECURE_AB_BUILD_CONFIG="$PWD/secure-ab-generation-$SECURE_AB_GENERATION"
+
+nix run .#ghaf-secure-ab-config -- \
+  --key-dir "$GHAF_DEV_KEY_DIR" \
+  --generation "$SECURE_AB_GENERATION" \
+  --output "$SECURE_AB_BUILD_CONFIG"
 ```
 
-Store the inventory with release evidence, not the private keys. The flash
-script embeds the four file digests seen during impure evaluation. Before it
-prepares any image, it requires the runtime `GHAF_DEV_KEY_DIR` to contain the
-same public files and verifies that `db.key` matches `db.crt` and `update.key`
-matches `update.pub`. A public-trust mismatch fails exactly with:
+The exported directory contains only `config.json`, `PK.crt`, `KEK.crt`,
+`db.crt`, and `update.pub`. It is safe to import into the Nix store; never point
+the flake input at `GHAF_DEV_KEY_DIR` itself. The image records the generation
+and all four SHA-256 digests in `/etc/ghaf/update/trust-digests.json`.
+
+Pass the directory as a pure non-flake input to every image and flash-script
+build:
+
+```sh
+nix build \
+  --override-input secure-ab-build-config "path:$SECURE_AB_BUILD_CONFIG" \
+  .#<target>
+```
+
+For repeatable CI or release builds, make a wrapper flake pin the public build
+configuration and set `inputs.ghaf.inputs.secure-ab-build-config.follows` to
+that locked input. The same Ghaf revision and lock then resolve to the same
+generation and trust root.
+
+Before preparing any image, the platform flash adapter requires the runtime
+`GHAF_DEV_KEY_DIR` to contain the same public files and verifies that `db.key`
+matches `db.crt` and `update.key` matches `update.pub`. A public-trust mismatch
+fails exactly with:
 
 ```text
 ERROR: GHAF_DEV_KEY_DIR public trust does not match the trust embedded at image evaluation: <file>
@@ -137,27 +164,25 @@ A private/public mismatch identifies either `db.key/db.crt` or
 `update.key/update.pub`. Never work around either error by mixing files from
 two directories: rebuild with the intended complete directory.
 
-Pure evaluation and CI builds do not require external settings. When
-`GHAF_DEV_KEY_DIR` is unset, the canary uses repository development UEFI
-certificates and the public RFC 8032 test-vector key. The corresponding update
-private key is public knowledge, so this mode is for evaluation/build coverage
-only. Evaluation prints exactly:
+The repository default `secure-ab-build-config` explicitly selects CI trust and
+generation 1. It uses repository development UEFI certificates and the public
+RFC 8032 test-vector key. The corresponding private keys are public knowledge,
+so the module permits this input only on debug images and adapters must refuse
+to deploy it. Evaluation prints exactly:
 
 ```text
-<target>: GHAF_DEV_KEY_DIR is unset; using repository development public trust for evaluation/build only. Secure A/B deployment and update signing require GHAF_DEV_KEY_DIR from ghaf-dev-keygen.
+<target>: using repository CI-only trust from secure-ab-build-config; this image is restricted to debug build coverage and must not be deployed.
 ```
 
-When `--impure` exposes a complete external public trust set, evaluation uses
-it and prints exactly:
+An external pure build configuration prints exactly:
 
 ```text
-<target>: using external public trust from GHAF_DEV_KEY_DIR; private signing keys remain outside the Nix store.
+<target>: using pure external public trust from secure-ab-build-config; private signing keys remain outside the Nix store.
 ```
 
-If `GHAF_DEV_KEY_DIR` is set but a required public file is missing, evaluation
-fails and lists the missing file names. Secure A/B flashing and update signing
-always require the external private keys and fail before mutation if the
-variable or any required file is absent.
+An invalid schema, non-positive generation, or missing public file fails pure
+evaluation. Secure A/B flashing and update signing additionally require the
+external private keys at runtime and fail before mutation if they are absent.
 
 The CI-only A/B image remains available for build coverage, but it must never
 be deployed: its update verification key is public knowledge. To keep the
@@ -170,7 +195,7 @@ implementation. It prints exactly:
 WARNING: secure A/B development trust was unavailable at evaluation; flashing the generic unsigned target instead.
   Requested: <secure-A/B-target>
   Fallback:  <generic-target>
-  Rebuild with --impure and GHAF_DEV_KEY_DIR from ghaf-dev-keygen to flash the secure A/B canary.
+  Rebuild with an external secure-ab-build-config input to flash the secure A/B canary.
 ```
 
 The fallback is a different image and partitioning configuration; it does not
@@ -178,7 +203,9 @@ silently turn the CI-only A/B image into a deployable image. The wrapper strips
 secure-image-only `--secure-boot`, `-u`/`--uki`, and
 `-s`/`--signed-sd-image` arguments with explicit warnings so they cannot alter
 the generic fallback. The internal secure A/B flash implementation retains its
-original fail-closed check as defense in depth when invoked directly.
+original fail-closed check as defense in depth when invoked directly. This
+flash behavior is implemented by the NVIDIA adapter PR, not by the shared-core
+PR alone.
 
 ### Independent authentication layers
 
@@ -362,7 +389,7 @@ Create a new directory containing only the five public payload files. Do not
 serve the build tree, trust directory, recovery passphrases, or private keys:
 
 ```sh
-SIGNED_DIR="signed-nx-generation-$GHAF_UPDATE_GENERATION"
+SIGNED_DIR="signed-nx-generation-$SECURE_AB_GENERATION"
 SIGNED_MANIFEST="$(find "$SIGNED_DIR" -maxdepth 1 -name '*.manifest' -print -quit)"
 test -s "$SIGNED_MANIFEST"
 test -s "$SIGNED_MANIFEST.sig"
@@ -430,8 +457,8 @@ only after every download succeeds:
 
 ```sh
 export UPDATE_HTTP_ORIGIN='http://<developer-interface-address>:<port>'
-export GHAF_UPDATE_GENERATION='<candidate-generation>'
-ghaf-fetch-update "$UPDATE_HTTP_ORIGIN" "$GHAF_UPDATE_GENERATION"
+export SECURE_AB_GENERATION='<candidate-generation>'
+ghaf-fetch-update "$UPDATE_HTTP_ORIGIN" "$SECURE_AB_GENERATION"
 ```
 
 If a transfer fails, do not create `fetch.complete`. Retain the hidden temporary
@@ -512,7 +539,7 @@ source tree:
 ```sh
 export REGISTRY_ENDPOINT='<registry-dns-name>'
 export UPDATE_REPOSITORY_PATH='<namespace>/ghaf-orin-nx'
-export UPDATE_TAG="generation-$GHAF_UPDATE_GENERATION"
+export UPDATE_TAG="generation-$SECURE_AB_GENERATION"
 export UPDATE_REF="${REGISTRY_ENDPOINT}/${UPDATE_REPOSITORY_PATH}:${UPDATE_TAG}"
 read -rsp 'Registry token: ' REGISTRY_TOKEN
 export REGISTRY_TOKEN
@@ -622,7 +649,7 @@ After building and signing the candidate, locate the signed manifest and push
 the complete bundle:
 
 ```sh
-SIGNED_DIR="signed-nx-generation-$GHAF_UPDATE_GENERATION"
+SIGNED_DIR="signed-nx-generation-$SECURE_AB_GENERATION"
 SIGNED_MANIFEST="$(find "$SIGNED_DIR" -maxdepth 1 -name '*.manifest' -print -quit)"
 test -n "$SIGNED_MANIFEST"
 test -s "$SIGNED_MANIFEST.sig"
@@ -931,13 +958,16 @@ sequentially and use a wall-clock timeout:
 
 ```sh
 export GHAF_DEV_KEY_DIR=/secure/local/ghaf-dev-keys
-export GHAF_UPDATE_GENERATION=8
+export SECURE_AB_GENERATION=8
+export SECURE_AB_BUILD_CONFIG="$PWD/secure-ab-generation-$SECURE_AB_GENERATION"
 
-timeout 2h nix build --impure \
+timeout 2h nix build \
+  --override-input secure-ab-build-config "path:$SECURE_AB_BUILD_CONFIG" \
   .#nvidia-jetson-orin-nx-verity-luks-debug-from-x86_64-ghafImage \
   -o result-nx-update
 
-timeout 2h nix build --impure \
+timeout 2h nix build \
+  --override-input secure-ab-build-config "path:$SECURE_AB_BUILD_CONFIG" \
   .#nvidia-jetson-orin-agx-verity-luks-debug-from-x86_64-ghafImage \
   -o result-agx-update
 ```
@@ -945,7 +975,8 @@ timeout 2h nix build --impure \
 Build the NX flash entry point separately:
 
 ```sh
-timeout 2h nix build --impure \
+timeout 2h nix build \
+  --override-input secure-ab-build-config "path:$SECURE_AB_BUILD_CONFIG" \
   .#nvidia-jetson-orin-nx-verity-luks-debug-from-x86_64-flash-script \
   -o result-nx-flash
 ```
@@ -953,8 +984,12 @@ timeout 2h nix build --impure \
 The x86 adapter publishes initial disk and update-payload targets separately:
 
 ```sh
-timeout 2h nix build --impure .#intel-laptop-debug-secure-ab -o result-x86-initial
-timeout 2h nix build --impure .#intel-laptop-debug-secure-ab-sysupdate -o result-x86-update
+timeout 2h nix build \
+  --override-input secure-ab-build-config "path:$SECURE_AB_BUILD_CONFIG" \
+  .#intel-laptop-debug-secure-ab -o result-x86-initial
+timeout 2h nix build \
+  --override-input secure-ab-build-config "path:$SECURE_AB_BUILD_CONFIG" \
+  .#intel-laptop-debug-secure-ab-sysupdate -o result-x86-update
 ```
 
 The initial artifact already contains an encrypted LVM A/B layout, dm-verity

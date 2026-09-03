@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   config,
+  inputs,
   lib,
   pkgs,
   ...
@@ -9,45 +10,47 @@
 let
   cfg = config.ghaf.secureUpdate;
   verityCfg = config.ghaf.partitioning.verity;
-  keyDir = builtins.getEnv "GHAF_DEV_KEY_DIR";
-  generationText = builtins.getEnv "GHAF_UPDATE_GENERATION";
-  generation =
-    if generationText == "" then
-      1
-    else if builtins.match "[1-9][0-9]*" generationText != null then
-      lib.toInt generationText
-    else
-      throw "GHAF_UPDATE_GENERATION must be a positive decimal integer";
-
   requiredPublic = [
     "PK.crt"
     "KEK.crt"
     "db.crt"
     "update.pub"
   ];
-  missingPublic = lib.filter (name: !builtins.pathExists "${keyDir}/${name}") requiredPublic;
-  haveExternalPublic = keyDir != "" && missingPublic == [ ];
-  externalPublicFile =
-    name:
-    builtins.path {
-      path = builtins.toPath "${keyDir}/${name}";
-      name = "ghaf-dev-${name}";
-    };
+
+  buildConfigDir = inputs.secure-ab-build-config;
+  buildConfigPath = buildConfigDir + "/config.json";
+  buildConfig =
+    if builtins.pathExists buildConfigPath then
+      builtins.fromJSON (builtins.readFile buildConfigPath)
+    else
+      throw "secure-ab-build-config is missing config.json";
+  buildConfigSchema = buildConfig.schema_version or null;
+  buildConfigTrust = buildConfig.trust or null;
+  buildConfigGeneration = buildConfig.generation or null;
+  validBuildConfigGeneration = builtins.isInt buildConfigGeneration && buildConfigGeneration > 0;
+  generation = if validBuildConfigGeneration then buildConfigGeneration else 1;
+
+  missingExternalPublic = lib.filter (
+    name: !builtins.pathExists (buildConfigDir + "/${name}")
+  ) requiredPublic;
+  haveExternalPublic = buildConfigTrust == "external" && missingExternalPublic == [ ];
   fallbackUefiCertDir = ../secureboot/dev-keys;
   # RFC 8032 test-vector public key 1. Its private seed is public, so this key
   # is deliberately suitable only for pure evaluation and CI builds.
-  fallbackUpdatePub = pkgs.runCommand "ghaf-ci-only-update.pub" { } ''
-    printf '%s' '11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=' \
-      | ${pkgs.buildPackages.coreutils}/bin/base64 --decode > "$out"
-    test "$(${pkgs.buildPackages.coreutils}/bin/wc -c < "$out")" -eq 32
-  '';
+  fallbackUpdatePub = ../../config/secure-ab-ci/update.pub;
   publicFile =
-    name: if haveExternalPublic then externalPublicFile name else fallbackUefiCertDir + "/${name}";
+    name:
+    if haveExternalPublic then
+      buildConfigDir + "/${name}"
+    else if name == "update.pub" then
+      fallbackUpdatePub
+    else
+      fallbackUefiCertDir + "/${name}";
   trustWarning =
     if haveExternalPublic then
-      "${cfg.target}: using external public trust from GHAF_DEV_KEY_DIR; private signing keys remain outside the Nix store."
+      "${cfg.target}: using pure external public trust from secure-ab-build-config; private signing keys remain outside the Nix store."
     else
-      "${cfg.target}: GHAF_DEV_KEY_DIR is unset; using repository development public trust for evaluation/build only. Secure A/B deployment and update signing require GHAF_DEV_KEY_DIR from ghaf-dev-keygen.";
+      "${cfg.target}: using repository CI-only trust from secure-ab-build-config; this image is restricted to debug build coverage and must not be deployed.";
   updaterEnvironment = {
     GHAF_UPDATE_TRUSTED_KEY = "/etc/ghaf/update/update.pub";
     GHAF_UKI_TRUSTED_CERT = "/etc/ghaf/update/db.crt";
@@ -68,7 +71,7 @@ in
       type = lib.types.ints.positive;
       default = generation;
       defaultText = lib.literalExpression ''
-        GHAF_UPDATE_GENERATION, or 1 when it is unset
+        generation from the pure secure-ab-build-config flake input
       '';
       description = "Monotonic update generation embedded in the manifest and UKI.";
     };
@@ -89,14 +92,12 @@ in
 
     publicTrustDigests = lib.mkOption {
       type = lib.types.attrsOf lib.types.str;
-      default =
-        if haveExternalPublic then
-          lib.genAttrs requiredPublic (name: builtins.hashFile "sha256" "${keyDir}/${name}")
-        else
-          { };
+      default = lib.genAttrs requiredPublic (
+        name: builtins.hashFile "sha256" cfg.publicTrustFiles.${name}
+      );
       readOnly = true;
       internal = true;
-      description = "SHA-256 digests of external public trust imported during evaluation.";
+      description = "SHA-256 digests of the public trust imported during pure evaluation.";
     };
 
     publicTrustFiles = lib.mkOption {
@@ -105,7 +106,7 @@ in
         "PK.crt" = publicFile "PK.crt";
         "KEK.crt" = publicFile "KEK.crt";
         "db.crt" = publicFile "db.crt";
-        "update.pub" = if haveExternalPublic then externalPublicFile "update.pub" else fallbackUpdatePub;
+        "update.pub" = publicFile "update.pub";
       };
       readOnly = true;
       internal = true;
@@ -121,9 +122,9 @@ in
         };
       };
       default = {
-        PK = builtins.readFile (publicFile "PK.crt");
-        KEK = builtins.readFile (publicFile "KEK.crt");
-        db = builtins.readFile (publicFile "db.crt");
+        PK = builtins.readFile cfg.publicTrustFiles."PK.crt";
+        KEK = builtins.readFile cfg.publicTrustFiles."KEK.crt";
+        db = builtins.readFile cfg.publicTrustFiles."db.crt";
       };
       readOnly = true;
       internal = true;
@@ -134,14 +135,33 @@ in
   config = lib.mkIf cfg.enable {
     assertions = [
       {
+        assertion = buildConfigSchema == 1;
+        message = "${cfg.target}: secure-ab-build-config schema_version must be 1.";
+      }
+      {
+        assertion = builtins.elem buildConfigTrust [
+          "ci"
+          "external"
+        ];
+        message = "${cfg.target}: secure-ab-build-config trust must be either `ci` or `external`.";
+      }
+      {
+        assertion = validBuildConfigGeneration;
+        message = "${cfg.target}: secure-ab-build-config generation must be a positive integer.";
+      }
+      {
+        assertion = buildConfigTrust != "external" || haveExternalPublic;
+        message = "${cfg.target}: external secure-ab-build-config is missing required public trust files: ${lib.concatStringsSep ", " missingExternalPublic}.";
+      }
+      {
+        assertion = buildConfigTrust != "ci" || config.ghaf.profiles.debug.enable;
+        message = "${cfg.target}: repository CI-only secure A/B trust is restricted to debug images; supply a pure external secure-ab-build-config input.";
+      }
+      {
         assertion = verityCfg.rootSlotSizeMiB != null && verityCfg.veritySlotSizeMiB != null;
         message = "${cfg.target}: secure A/B requires explicit rootSlotSizeMiB and veritySlotSizeMiB capacities.";
       }
-    ]
-    ++ lib.optional (keyDir != "") {
-      assertion = haveExternalPublic;
-      message = "${cfg.target}: GHAF_DEV_KEY_DIR is set but missing required public trust files: ${lib.concatStringsSep ", " missingPublic}.";
-    };
+    ];
     warnings = [ trustWarning ];
 
     ghaf = {
@@ -155,6 +175,12 @@ in
     environment.etc = {
       "ghaf/update/update.pub".source = cfg.publicTrustFiles."update.pub";
       "ghaf/update/db.crt".source = cfg.publicTrustFiles."db.crt";
+      "ghaf/update/trust-digests.json".text = builtins.toJSON {
+        schema_version = 1;
+        trust = buildConfigTrust;
+        inherit (cfg) generation;
+        sha256 = cfg.publicTrustDigests;
+      };
       # Make otherwise bit-identical canary generations distinct in the closure,
       # and provide a simple runtime inventory value.
       "ghaf/update/generation".text = toString cfg.generation;

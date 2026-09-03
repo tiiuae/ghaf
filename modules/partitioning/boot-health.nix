@@ -92,44 +92,69 @@ let
       accepted=${lib.escapeShellArg cfg.acceptedGenerationFile}
       accepted_generation=0
       if [[ -e "$accepted" ]]; then
-        read -r accepted_generation < "$accepted"
+        if ! accepted_generation=$(< "$accepted"); then
+          fail "accepted generation state is unreadable"
+        fi
         [[ "$accepted_generation" =~ ^[1-9][0-9]*$ ]] \
           || fail "accepted generation state is invalid"
       fi
+
+      promote_current_entry() {
+        current_entry="$current_stub"
+        if [[ "$current_entry" =~ ^(.+)\+[0-9]+(-[0-9]+)?\.efi$ ]]; then
+          current_entry="''${BASH_REMATCH[1]}.efi"
+        fi
+        [[ "$current_entry" == *.efi ]] \
+          || fail "cannot identify the healthy boot entry"
+        "$bootctl" set-default "$current_entry" \
+          || fail "could not promote the healthy boot entry"
+      }
+
+      persist_accepted_generation() {
+        install -d -m 0700 "$(dirname "$accepted")" \
+          || fail "could not create accepted generation state directory"
+        printf '%s\n' "$generation" > "$accepted.tmp" \
+          || fail "could not write accepted generation state"
+        chmod 0600 "$accepted.tmp" \
+          || fail "could not protect accepted generation state"
+        sync -f "$accepted.tmp" \
+          || fail "could not sync accepted generation state"
+        mv "$accepted.tmp" "$accepted" \
+          || fail "could not publish accepted generation state"
+        sync -f "$(dirname "$accepted")" \
+          || fail "could not sync accepted generation state directory"
+      }
+
+      bless_trial_last() {
+        if $trial_boot; then
+          "$bless_boot" good \
+            || fail "systemd could not bless the trial boot"
+        fi
+      }
 
       if (( generation < accepted_generation )); then
         echo "ghaf-boot-health: healthy fallback generation $generation; accepted generation remains $accepted_generation"
         exit 0
       fi
       if (( generation == accepted_generation )); then
+        # A previous health run may have persisted acceptance and then failed
+        # before blessing. Re-run the recoverable promotion and finish the
+        # still-counted trial instead of exhausting its remaining attempts.
+        if $trial_boot; then
+          promote_current_entry
+          bless_trial_last
+          echo "ghaf-boot-health: generation $generation acceptance finalized"
+          exit 0
+        fi
         echo "ghaf-boot-health: generation $generation remains healthy"
         exit 0
       fi
 
-      if $trial_boot; then
-        "$bless_boot" good \
-          || fail "systemd could not bless the trial boot"
-      fi
-
-      current_entry="$current_stub"
-      if [[ "$current_entry" =~ ^(.+)\+[0-9]+(-[0-9]+)?\.efi$ ]]; then
-        current_entry="''${BASH_REMATCH[1]}.efi"
-      fi
-      [[ "$current_entry" == *.efi ]] || {
-        echo "ghaf-boot-health: cannot identify the healthy boot entry" >&2
-        exit 1
-      }
-      "$bootctl" set-default "$current_entry" || {
-        echo "ghaf-boot-health: could not promote the healthy boot entry" >&2
-        exit 1
-      }
-
-      install -d -m 0700 "$(dirname "$accepted")"
-      printf '%s\n' "$generation" > "$accepted.tmp"
-      chmod 0600 "$accepted.tmp"
-      sync -f "$accepted.tmp"
-      mv "$accepted.tmp" "$accepted"
-      sync -f "$(dirname "$accepted")"
+      promote_current_entry
+      persist_accepted_generation
+      # Bless last: this disarms automatic boot-counting rollback. If it fails,
+      # the equality path above safely retries finalization on the next boot.
+      bless_trial_last
       echo "ghaf-boot-health: generation $generation accepted"
     '';
   };
