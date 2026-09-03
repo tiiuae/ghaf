@@ -13,6 +13,7 @@ let
   cfg = config.ghaf.partitioning.verity;
   updateImage = config.system.build.ghafUpdateImage;
   buildPkgs = pkgs.pkgsBuildBuild;
+  fixedSlotSizes = cfg.rootSlotSizeMiB != null && cfg.veritySlotSizeMiB != null;
 
   lvmConf = buildPkgs.writeText "lvm.conf" ''
     devices {
@@ -70,8 +71,29 @@ in
           test "$root_bytes" -gt 0
           test "$verity_bytes" -gt 0
 
-          root_mib=$(( (root_bytes + 1048575) / 1048576 + 512 ))
-          verity_mib=$(( (verity_bytes + 1048575) / 1048576 + 16 ))
+          required_root_mib=$(( (root_bytes + 1048575) / 1048576 ))
+          required_verity_mib=$(( (verity_bytes + 1048575) / 1048576 ))
+          ${
+            if fixedSlotSizes then
+              ''
+                root_mib=${toString cfg.rootSlotSizeMiB}
+                verity_mib=${toString cfg.veritySlotSizeMiB}
+                if [ "$required_root_mib" -gt "$root_mib" ]; then
+                  echo "root artifact needs $required_root_mib MiB but root slot capacity is $root_mib MiB" >&2
+                  exit 1
+                fi
+                if [ "$required_verity_mib" -gt "$verity_mib" ]; then
+                  echo "verity artifact needs $required_verity_mib MiB but verity slot capacity is $verity_mib MiB" >&2
+                  exit 1
+                fi
+              ''
+            else
+              ''
+                # Compatibility layout for legacy non-secure verity targets.
+                root_mib=$(( required_root_mib + 512 ))
+                verity_mib=$(( required_verity_mib + 16 ))
+              ''
+          }
           lvm_mib=$(( root_mib + verity_mib + 64 ))
           ${buildPkgs.qemu}/bin/qemu-img create -f raw "$out/system.img" "''${lvm_mib}M"
 

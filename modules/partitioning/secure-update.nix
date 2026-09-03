@@ -8,6 +8,7 @@
 }:
 let
   cfg = config.ghaf.secureUpdate;
+  verityCfg = config.ghaf.partitioning.verity;
   keyDir = builtins.getEnv "GHAF_DEV_KEY_DIR";
   generationText = builtins.getEnv "GHAF_UPDATE_GENERATION";
   generation =
@@ -131,7 +132,13 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    assertions = lib.optional (keyDir != "") {
+    assertions = [
+      {
+        assertion = verityCfg.rootSlotSizeMiB != null && verityCfg.veritySlotSizeMiB != null;
+        message = "${cfg.target}: secure A/B requires explicit rootSlotSizeMiB and veritySlotSizeMiB capacities.";
+      }
+    ]
+    ++ lib.optional (keyDir != "") {
       assertion = haveExternalPublic;
       message = "${cfg.target}: GHAF_DEV_KEY_DIR is set but missing required public trust files: ${lib.concatStringsSep ", " missingPublic}.";
     };
