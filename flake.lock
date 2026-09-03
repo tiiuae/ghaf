@@ -444,17 +444,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1788416637,
-        "narHash": "sha256-3HNQl+B2uRbnsLpnlNsgu+YgCcnsd7djUEAdAhK+ihk=",
+        "lastModified": 1788450836,
+        "narHash": "sha256-SyMNQr11zgPWCXgUA8tFONkD8H5KKWX0yIfNETkUUsI=",
         "owner": "tiiuae",
         "repo": "ghaf-givc",
-        "rev": "8a16c158d93d84bc3959e0d2b1e2034c3176709f",
+        "rev": "9d3d25a10f226a1e39287fb3ef5ca1726bbba1a5",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
         "repo": "ghaf-givc",
-        "rev": "8a16c158d93d84bc3959e0d2b1e2034c3176709f",
+        "rev": "9d3d25a10f226a1e39287fb3ef5ca1726bbba1a5",
         "type": "github"
       }
     },
@@ -768,6 +768,7 @@
         "pkgs-by-name-for-flake-parts": "pkgs-by-name-for-flake-parts",
         "preservation": "preservation",
         "rust-overlay": "rust-overlay",
+        "secure-ab-build-config": "secure-ab-build-config",
         "srvos": "srvos",
         "stylix": "stylix",
         "systems": "systems",
@@ -796,6 +797,18 @@
         "repo": "rust-overlay",
         "type": "github"
       }
+    },
+    "secure-ab-build-config": {
+      "flake": false,
+      "locked": {
+        "path": "./config/secure-ab-ci",
+        "type": "path"
+      },
+      "original": {
+        "path": "./config/secure-ab-ci",
+        "type": "path"
+      },
+      "parent": []
     },
     "spectrum": {
       "flake": false,

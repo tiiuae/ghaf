@@ -106,6 +106,14 @@
       flake = false;
     };
 
+    # Public-only secure A/B build configuration. Development and release
+    # flakes can replace this input while retaining pure evaluation. Never
+    # put signing keys or recovery material in this input.
+    secure-ab-build-config = {
+      url = "path:./config/secure-ab-ci";
+      flake = false;
+    };
+
     # To ensure that checks are run locally to enforce cleanliness
     git-hooks-nix = {
       url = "github:cachix/git-hooks.nix";
@@ -119,7 +127,7 @@
     #
     # TEMPORARILY pinned to a commit rather than the branch head
     givc = {
-      url = "github:tiiuae/ghaf-givc/8a16c158d93d84bc3959e0d2b1e2034c3176709f";
+      url = "github:tiiuae/ghaf-givc/9d3d25a10f226a1e39287fb3ef5ca1726bbba1a5";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
