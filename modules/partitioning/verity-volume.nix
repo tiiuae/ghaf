@@ -50,6 +50,26 @@ in
         select lz4hc explicitly.
       '';
     };
+
+    rootSlotSizeMiB = lib.mkOption {
+      type = lib.types.nullOr lib.types.ints.positive;
+      default = null;
+      description = ''
+        Fixed capacity of each secure A/B root logical volume in MiB. Secure
+        update targets must set this explicitly; null retains the legacy
+        payload-derived image layout.
+      '';
+    };
+
+    veritySlotSizeMiB = lib.mkOption {
+      type = lib.types.nullOr lib.types.ints.positive;
+      default = null;
+      description = ''
+        Fixed capacity of each secure A/B verity logical volume in MiB. Secure
+        update targets must set this explicitly; null retains the legacy
+        payload-derived image layout.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -62,6 +82,10 @@ in
       {
         assertion = cfg.uki-signing-key-dir == null || debugEnable;
         message = "uki-signing-key-dir puts private keys in the Nix store and must only be used in debug builds. New secure A/B adapters must sign outside the Nix store.";
+      }
+      {
+        assertion = (cfg.rootSlotSizeMiB == null) == (cfg.veritySlotSizeMiB == null);
+        message = "rootSlotSizeMiB and veritySlotSizeMiB must either both be set or both be null.";
       }
     ];
 

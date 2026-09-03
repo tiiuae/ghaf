@@ -277,6 +277,11 @@ positive integer. `system` records the Nix target platform, while
 builder. These fields are inventory metadata; the target must exactly equal the
 authorization target configured on the device.
 
+Secure A/B targets also declare fixed root and verity slot capacities. The
+initial image build fails when an unpacked artifact exceeds its declared
+capacity. Slot capacity is therefore a platform policy and does not change with
+the size of the release used to install a device.
+
 Sign an unsigned build output without modifying its source directory:
 
 ```sh
@@ -752,10 +757,11 @@ sudo lvs --units b --nosuffix -o lv_name,lv_size pool
 jq '{generation, root: .root.unpacked_size, verity: .verity.unpacked_size, kernel: .kernel.packed_size}' "$PULLED_MANIFEST"
 ```
 
-Run the dry-run plan before mutation. A candidate larger than the inactive LVs
-requires sufficient VG free space for their resize; insufficient space fails
-before writes and never permits shrinking or overwriting the active pair. Keep
-room on the ESP for the temporary UKI plus the two managed entries. Prune OCI
+Run the dry-run plan before mutation. A candidate whose unpacked root or verity
+artifact exceeds the platform's fixed slot capacity is incompatible and must
+fail before writes; do not depend on unreserved VG space to grow it. The active
+pair is never shrunk or overwritten. Keep room on the ESP for the temporary UKI
+plus the two managed entries. Prune OCI
 downloads with `ota-update registry prune --destination /persist/sysupdate`;
 inspect and remove only explicitly identified hidden HTTP temporary directories.
 Never delete the active UKI, active LVs, accepted-generation file, or an
@@ -881,10 +887,9 @@ idempotent and performs these operations in dependency order:
 4. Expand the physical APP partition to the available storage boundary.
 5. Resize the open LUKS mapping while the key remains in the initrd keyring.
 6. Resize the LVM PV.
-7. Create the randomly encrypted 4096 MiB swap LV.
-8. Create and format the Btrfs persist LV.
-9. Leave 1.5 times the initial root-plus-verity size, plus 64 MiB, free for the
-   second system pair.
+7. Create the empty root and verity LVs at the platform's fixed slot capacities.
+8. Create the randomly encrypted 4096 MiB swap LV.
+9. Allocate the remaining space to the Btrfs persist LV and format it.
 
 The first-boot services may be rerun after interruption. Existing swap and
 persist LVs are detected and retained. More precisely:
@@ -976,7 +981,7 @@ evaluation or build in `timeout 2h`.
 | Flash ESP, LUKS, recovery key | `modules/reference/hardware/jetpack/nvidia-jetson-orin/partition-template-verity.nix` |
 | NVIDIA ESP and flash-image adapter | `modules/reference/hardware/jetpack/nvidia-jetson-orin/verity-image.nix` |
 | DUK, APP and LUKS resize | `modules/reference/hardware/jetpack/nvidia-jetson-orin/jetson-orin.nix` |
-| Persist, swap, B-slot reservation | `modules/partitioning/firstboot-persist.nix` |
+| Persist, swap, empty-slot provisioning | `modules/partitioning/firstboot-persist.nix` |
 | Health gate and blessing | `modules/partitioning/boot-health.nix` |
 | Development key generator | `packages/pkgs-by-name/ghaf-dev-keygen/` |
 | Update signer | `packages/pkgs-by-name/ghaf-sign-update/` |
