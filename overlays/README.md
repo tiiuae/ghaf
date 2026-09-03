@@ -35,6 +35,7 @@ from staging and main into a tiiuae maintained version of nixpkgs
 
 The status of the integration in nixpkgs can be tracked using the [Pull Request Tracker](https://nixpk.gs/pr-tracker.html)
 
+
 ## Carried patches in ghaf packages
 
 - [qemu: Battery, AC adapter, lid](https://github.com/blochl/qemu/pull/3)
@@ -62,6 +63,12 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
   grep -q 'type -p g-ir-scanner || true' \
     <our-pin>/pkgs/development/libraries/gobject-introspection/wrapper.nix
   ```
+- [execline: prepend target triple to pkg-config calls when cross](https://github.com/NixOS/nixpkgs/pull/560025)
+
+  `overlays/cross-compilation/default.nix` adds `buildPackages.pkg-config` to
+  `execline` and `s6`'s `nativeBuildInputs`.
+  This is caused by missing `${stdenv.cc.targetPrefix}` in `build-skaware-package.nix` of nixpkgs. execline also misses `targetPrefix` in `postInstall` function its `pkg-config` wrapper.
+  The fix solves both issues.
 
 ## Inputs pinned to an unmerged PR
 
