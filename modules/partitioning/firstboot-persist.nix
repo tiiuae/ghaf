@@ -8,8 +8,8 @@
 # boot this service:
 #
 #   1. Expands the LVM PV after initrd has grown APP and the open LUKS mapping
-#   2. Creates swap and persist LVs from the free space, reserving
-#      enough room for a future B-slot root+verity pair (OTA updates)
+#   2. Creates the fixed-capacity empty B-slot root and verity LVs
+#   3. Creates swap and persist LVs from the remaining free space
 #
 # Every step is idempotent — the service can be interrupted and re-run
 # safely (e.g. after a power loss during first boot).
@@ -55,15 +55,28 @@ let
       echo "Resizing PV..."
       pvresize "$PV_PATH"
 
-      # --- Compute B-slot reservation ---
+      # --- Provision the fixed-capacity B slot before persist takes the rest ---
 
-      A_ROOT_MIB=$(lvs --noheadings -o lv_size --nosuffix --units m -S "vg_name=pool && lv_name=~^root_" | head -1 | tr -d '[:space:]')
-      A_VERITY_MIB=$(lvs --noheadings -o lv_size --nosuffix --units m -S "vg_name=pool && lv_name=~^verity_" | head -1 | tr -d '[:space:]')
-      # Reserve 50% headroom on top of the current A-slot sizes so the
-      # B-slot can accommodate a significantly larger image after OTA
-      # updates that add packages or data.
-      RESERVE_MIB=$(awk "BEGIN { printf \"%d\", (''${A_ROOT_MIB:-0} + ''${A_VERITY_MIB:-0}) * 1.5 + 64 }")
-      echo "B-slot reservation: $RESERVE_MIB MiB (1.5 * (root=$A_ROOT_MIB + verity=$A_VERITY_MIB) + 64)"
+      ensure_empty_lv() {
+        name="$1"
+        expected_mib="$2"
+        if lvs "pool/$name" >/dev/null 2>&1; then
+          actual_mib=$(lvs --noheadings -o lv_size --nosuffix --units m "pool/$name" \
+            | awk '{ sub(/^</, "", $1); printf "%d", $1 }')
+          if [ "$actual_mib" -ne "$expected_mib" ]; then
+            echo "ERROR: pool/$name is $actual_mib MiB, expected $expected_mib MiB" >&2
+            exit 1
+          fi
+          echo "pool/$name already has the required $expected_mib MiB capacity."
+        else
+          echo "Creating pool/$name ($expected_mib MiB)..."
+          DM_DISABLE_UDEV=1 lvcreate -y -Zn -Wn -n "$name" -L "''${expected_mib}M" pool
+        fi
+      }
+
+      ensure_empty_lv root_empty ${toString cfg.rootSlotSizeMiB}
+      ensure_empty_lv verity_empty ${toString cfg.veritySlotSizeMiB}
+      vgmknodes pool
 
       # --- Create swap LV (skip if already exists) ---
 
@@ -77,16 +90,16 @@ let
       # --- Create persist LV and finish an interrupted format if needed ---
 
       if [ ! -e /dev/pool/persist ]; then
-        VG_FREE_MIB=$(vgs --noheadings -o vg_free --nosuffix --units m pool | tr -d '[:space:]')
-        VG_FREE_INT=$(awk "BEGIN { printf \"%d\", $VG_FREE_MIB }")
-        PERSIST_MIB=$(( VG_FREE_INT - RESERVE_MIB ))
+        VG_FREE_INT=$(vgs --noheadings -o vg_free --nosuffix --units m pool \
+          | awk '{ sub(/^</, "", $1); printf "%d", $1 }')
+        PERSIST_MIB=$VG_FREE_INT
 
         if [ "$PERSIST_MIB" -le 0 ]; then
-          echo "ERROR: not enough free space (free=$VG_FREE_INT, reserve=$RESERVE_MIB)"
+          echo "ERROR: no free space remains for persist after fixed slots and swap"
           exit 1
         fi
 
-        echo "Creating persist LV: $PERSIST_MIB MiB (leaving $RESERVE_MIB MiB for B-slot)"
+        echo "Creating persist LV from the remaining $PERSIST_MIB MiB..."
         lvcreate -L "''${PERSIST_MIB}M" -n persist pool
 
       else
@@ -119,7 +132,7 @@ in
 
     # --- First-boot service ---
     systemd.services.firstboot-persist = {
-      description = "Create swap and persist LVs on first boot";
+      description = "Create inactive system slot, swap, and persist LVs on first boot";
       wantedBy = [ "local-fs-pre.target" ];
       before = [ "local-fs-pre.target" ];
       after = [

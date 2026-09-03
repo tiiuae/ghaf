@@ -139,6 +139,13 @@ let
     }:
     {
       ghaf = {
+        partitioning.verity = {
+          # Both Orin variants have room for two 12 GiB roots on the 64 GB AGX
+          # eMMC while retaining roughly 30 GiB for persist. Current signed
+          # canaries use less than 5 GiB of root data and 40 MiB of verity data.
+          rootSlotSizeMiB = 12 * 1024;
+          veritySlotSizeMiB = 256;
+        };
         secureUpdate = {
           enable = true;
           inherit target;
