@@ -656,7 +656,7 @@ SIGNED_MANIFEST="$(find "$SIGNED_DIR" -maxdepth 1 -name '*.manifest' -print -qui
 test -n "$SIGNED_MANIFEST"
 test -s "$SIGNED_MANIFEST.sig"
 
-nix run 'path:../ghaf-givc#ota-update' -- \
+nix run .#ghaf-ota-update -- \
   registry --token "$REGISTRY_TOKEN" push \
   --manifest "$SIGNED_MANIFEST" \
   "$UPDATE_REF"
@@ -671,7 +671,7 @@ Pull into a temporary directory before offering the update to hardware:
 
 ```sh
 PULL_ROOT="$(mktemp -d)"
-nix run 'path:../ghaf-givc#ota-update' -- \
+nix run .#ghaf-ota-update -- \
   registry --token "$REGISTRY_TOKEN" pull --validate \
   --destination "$PULL_ROOT" \
   "$UPDATE_REF"
@@ -688,7 +688,7 @@ and hashes. It does not replace the signed image-policy validation. Authenticate
 the round-tripped bundle separately:
 
 ```sh
-nix run 'path:../ghaf-givc#ota-update' -- image validate \
+nix run .#ghaf-ota-update -- image validate \
   --manifest "$PULLED_MANIFEST" \
   --trusted-key "$GHAF_DEV_KEY_DIR/update.pub" \
   --uki-trusted-cert "$GHAF_DEV_KEY_DIR/db.crt" \
