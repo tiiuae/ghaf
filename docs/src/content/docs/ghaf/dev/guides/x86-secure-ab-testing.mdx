@@ -20,6 +20,12 @@ The initial target contains a Type-2-only ESP, one active root/verity pair, one
 empty pair, Btrfs persist, swap, and a LUKS2 container. EFI executables remain
 unsigned in the Nix result so private keys never enter the store.
 
+Both system pairs use the established x86 capacities: 50 GiB for each root LV
+and 1 GiB for each verity LV. With the default 12 GiB swap and 2 GiB initial
+persist volume, the initial image and destination disk require approximately
+121 GiB. The build rejects a smaller configured image instead of silently
+producing a system without a usable inactive slot.
+
 ## Build and sign the initial disk
 
 Generate one external development trust directory and keep it outside Git:
