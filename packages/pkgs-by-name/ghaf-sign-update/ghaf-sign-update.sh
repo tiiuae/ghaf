@@ -54,6 +54,7 @@ fi
 [[ $(jq -er '
   .manifest_version == 2
   and (.system | type == "string" and length > 0)
+  and ((has("build-system") | not) or (."build-system" | type == "string" and length > 0))
   and (.target | type == "string" and length > 0)
   and (.generation | type == "number" and floor == . and . > 0)
   and (.root_verity_hash | type == "string" and test("^[0-9a-fA-F]{64}$"))

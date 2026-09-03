@@ -16,7 +16,12 @@ def add_generate_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--system",
         required=True,
-        help="Nix system identifier (for example aarch64-linux).",
+        help="Nix target system identifier (for example aarch64-linux).",
+    )
+    parser.add_argument(
+        "--build-system",
+        required=True,
+        help="Nix build system identifier that produced the artifacts.",
     )
     parser.add_argument(
         "--target", required=True, help="Exact hardware/update target identifier."
@@ -104,6 +109,11 @@ def validate_metadata(manifest: dict) -> None:
     for field in ("system", "target", "version"):
         if not isinstance(manifest.get(field), str) or not manifest[field].strip():
             raise ValueError(f"manifest {field} must be a non-empty string")
+    build_system = manifest.get("build-system")
+    if build_system is not None and (
+        not isinstance(build_system, str) or not build_system.strip()
+    ):
+        raise ValueError("manifest build-system must be a non-empty string")
     generation = manifest.get("generation")
     if (
         isinstance(generation, bool)
@@ -178,6 +188,7 @@ def generate(args: argparse.Namespace) -> None:
     manifest = {
         "manifest_version": 2,
         "system": args.system,
+        "build-system": args.build_system,
         "target": args.target,
         "generation": args.generation,
         "meta": {},
