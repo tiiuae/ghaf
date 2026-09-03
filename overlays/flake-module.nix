@@ -2,11 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Flake module for exporting overlays
-{
-  inputs,
-  ...
-}:
-{
+{ inputs, ... }: {
   flake.overlays = {
     cross-compilation = import ./cross-compilation;
     custom-packages = import ./custom-packages;
