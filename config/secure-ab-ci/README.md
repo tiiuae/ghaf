@@ -9,6 +9,7 @@ This input is intentionally limited to pure evaluation and build coverage.
 It selects generation 1, the repository development UEFI certificates, and
 the RFC 8032 test-vector Ed25519 public key in `update.pub`. The corresponding
 private keys are public knowledge, so adapters must not deploy this trust set.
+Boot-health failure injection is disabled.
 
 Development and release builds override `secure-ab-build-config` with a source
 containing `config.json`, `PK.crt`, `KEK.crt`, `db.crt`, and `update.pub`.

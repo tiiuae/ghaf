@@ -27,7 +27,9 @@ let
   buildConfigSchema = buildConfig.schema_version or null;
   buildConfigTrust = buildConfig.trust or null;
   buildConfigGeneration = buildConfig.generation or null;
+  buildConfigInjectBootHealthFailure = buildConfig.inject_boot_health_failure or false;
   validBuildConfigGeneration = builtins.isInt buildConfigGeneration && buildConfigGeneration > 0;
+  validBuildConfigInjectBootHealthFailure = builtins.isBool buildConfigInjectBootHealthFailure;
   generation = if validBuildConfigGeneration then buildConfigGeneration else 1;
 
   missingExternalPublic = lib.filter (
@@ -80,6 +82,15 @@ in
       type = lib.types.str;
       default = "/persist/common/ota/accepted-generation";
       description = "Persistent state advanced only after a generation passes the boot-health gate.";
+    };
+
+    injectBootHealthFailure = lib.mkOption {
+      type = lib.types.bool;
+      default =
+        if validBuildConfigInjectBootHealthFailure then buildConfigInjectBootHealthFailure else false;
+      readOnly = true;
+      internal = true;
+      description = "Whether the pure build input requests debug boot-health failure injection.";
     };
 
     externalPublicTrustConfigured = lib.mkOption {
@@ -148,6 +159,14 @@ in
       {
         assertion = validBuildConfigGeneration;
         message = "${cfg.target}: secure-ab-build-config generation must be a positive integer.";
+      }
+      {
+        assertion = validBuildConfigInjectBootHealthFailure;
+        message = "${cfg.target}: secure-ab-build-config inject_boot_health_failure must be a boolean.";
+      }
+      {
+        assertion = !cfg.injectBootHealthFailure || config.ghaf.profiles.debug.enable;
+        message = "${cfg.target}: boot-health failure injection is restricted to debug images.";
       }
       {
         assertion = buildConfigTrust != "external" || haveExternalPublic;

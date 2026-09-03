@@ -4,11 +4,11 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: ghaf-secure-ab-config --key-dir DIR --generation N --output DIR" >&2
+  echo "Usage: ghaf-secure-ab-config --key-dir DIR --generation N --output DIR [--inject-boot-health-failure]" >&2
   exit 2
 }
 
-key_dir="" generation="" output=""
+key_dir="" generation="" output="" inject_boot_health_failure=false
 while (($#)); do
   case "$1" in
   --key-dir)
@@ -22,6 +22,10 @@ while (($#)); do
   --output)
     output="${2:-}"
     shift 2
+    ;;
+  --inject-boot-health-failure)
+    inject_boot_health_failure=true
+    shift
     ;;
   *) usage ;;
   esac
@@ -52,7 +56,13 @@ for file in PK.crt KEK.crt db.crt update.pub; do
   cp -- "$key_dir/$file" "$staging/$file"
 done
 jq -n --argjson generation "$generation" \
-  '{schema_version: 1, trust: "external", generation: $generation}' \
+  --argjson inject_boot_health_failure "$inject_boot_health_failure" \
+  '{
+    schema_version: 1,
+    trust: "external",
+    generation: $generation,
+    inject_boot_health_failure: $inject_boot_health_failure
+  }' \
   >"$staging/config.json"
 chmod 0444 "$staging"/*
 mv -- "$staging" "$output"
