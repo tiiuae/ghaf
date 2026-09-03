@@ -12,6 +12,7 @@ SPDX-FileCopyrightText = "2022-2026 TII (SSRC) and the Ghaf contributors"
 precedence = "closest"
 path = [
   ".github/dependabot.yml",
+  ".github/flakevuln/manual_analysis.csv",
   ".github/copilot-instructions.md",
   # Claude Code skills and agents: the YAML frontmatter has to be the first thing in the
   # file for the loader to parse it, so these cannot carry an SPDX comment header.
