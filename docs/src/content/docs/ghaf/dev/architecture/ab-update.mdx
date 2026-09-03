@@ -136,6 +136,10 @@ The exported directory contains only `config.json`, `PK.crt`, `KEK.crt`,
 the flake input at `GHAF_DEV_KEY_DIR` itself. The image records the generation
 and all four SHA-256 digests in `/etc/ghaf/update/trust-digests.json`.
 
+Rollback tests may add `--inject-boot-health-failure` when exporting a dedicated
+debug build configuration. The shared module rejects that switch on non-debug
+images; do not reuse a fault-injection configuration for a normal candidate.
+
 Pass the directory as a pure non-flake input to every image and flash-script
 build:
 
