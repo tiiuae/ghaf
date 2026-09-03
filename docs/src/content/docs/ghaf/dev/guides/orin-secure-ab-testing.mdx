@@ -75,21 +75,21 @@ For every test case record:
 
 ### Pure CI build mode
 
-External trust settings are optional for evaluation and build discovery. With
-`GHAF_DEV_KEY_DIR` unset, evaluate both canaries without `--impure`:
+The repository's default pure flake input is sufficient for evaluation and
+build discovery. Evaluate both debug canaries directly:
 
 ```sh
-env -u GHAF_DEV_KEY_DIR timeout 2h nix eval \
+timeout 2h nix eval \
   '.#nixosConfigurations."nvidia-jetson-orin-nx-verity-luks-debug-from-x86_64".config.system.build.ghafImage.drvPath'
 
-env -u GHAF_DEV_KEY_DIR timeout 2h nix eval \
+timeout 2h nix eval \
   '.#nixosConfigurations."nvidia-jetson-orin-agx-verity-luks-debug-from-x86_64".config.system.build.ghafImage.drvPath'
 ```
 
 Each evaluation must succeed and emit the target-specific message ending in:
 
 ```text
-GHAF_DEV_KEY_DIR is unset; using repository development public trust for evaluation/build only. Secure A/B deployment and update signing require GHAF_DEV_KEY_DIR from ghaf-dev-keygen.
+using repository CI-only trust from secure-ab-build-config; this image is restricted to debug build coverage and must not be deployed.
 ```
 
 This public fallback is deliberately unsafe for deployment. It exists only so
@@ -102,7 +102,7 @@ and contains the exact warning:
 WARNING: secure A/B development trust was unavailable at evaluation; flashing the generic unsigned target instead.
   Requested: <secure-A/B-target>
   Fallback:  <generic-target>
-  Rebuild with --impure and GHAF_DEV_KEY_DIR from ghaf-dev-keygen to flash the secure A/B canary.
+  Rebuild with an external secure-ab-build-config input to flash the secure A/B canary.
 ```
 
 The wrapper does not deploy the CI-only A/B image. It delegates to the existing
@@ -133,24 +133,38 @@ umask 077
 nix run .#ghaf-dev-keygen -- --output "$GHAF_DEV_KEY_DIR"
 ```
 
-Evaluate with the external public trust exposed:
+Choose the candidate generation and export a public-only flake input. This
+directory contains no private keys:
 
 ```sh
-timeout 2h nix eval --impure \
+export SECURE_AB_GENERATION=10
+export SECURE_AB_BUILD_CONFIG="$PWD/secure-ab-generation-$SECURE_AB_GENERATION"
+nix run .#ghaf-secure-ab-config -- \
+  --key-dir "$GHAF_DEV_KEY_DIR" \
+  --generation "$SECURE_AB_GENERATION" \
+  --output "$SECURE_AB_BUILD_CONFIG"
+```
+
+Evaluate with the external public trust and generation pinned by that input:
+
+```sh
+timeout 2h nix eval \
+  --override-input secure-ab-build-config "path:$SECURE_AB_BUILD_CONFIG" \
   '.#nixosConfigurations."nvidia-jetson-orin-nx-verity-luks-debug-from-x86_64".config.system.build.ghafImage.drvPath'
 ```
 
 It must succeed and emit the target-specific message ending in:
 
 ```text
-using external public trust from GHAF_DEV_KEY_DIR; private signing keys remain outside the Nix store.
+using pure external public trust from secure-ab-build-config; private signing keys remain outside the Nix store.
 ```
 
-Pointing `GHAF_DEV_KEY_DIR` at an incomplete directory must fail evaluation
-with `GHAF_DEV_KEY_DIR is set but missing required public trust files:` followed
-by the exact missing file names. Running a flash script with the variable unset
-must fail with `ERROR: GHAF_DEV_KEY_DIR is required for secure A/B canary
-flashes.`; missing flash/sign files are reported by their exact paths.
+Overriding `secure-ab-build-config` with an incomplete external directory must
+fail pure evaluation with `external secure-ab-build-config is missing required
+public trust files:` followed by the exact missing file names. Running a flash
+script with the runtime key variable unset must fail with `ERROR:
+GHAF_DEV_KEY_DIR is required for secure A/B canary flashes.`; missing flash or
+signing files are reported by their exact paths.
 
 Record `sha256sum PK.crt KEK.crt db.crt update.pub` with the non-secret build
 evidence. Build a flash script with trust directory A, then, with no recovery
@@ -174,23 +188,24 @@ launch the NX and AGX image builds concurrently.
 
 ### Candidate build
 
-Choose a positive generation greater than the target's accepted generation:
+Confirm that `SECURE_AB_GENERATION` is greater than the target's accepted
+generation. If it changes, export a new public build configuration with
+`ghaf-secure-ab-config`; never edit or reuse a published configuration:
 
 ```sh
-export GHAF_UPDATE_GENERATION=10
-
-timeout 2h nix build --impure \
+timeout 2h nix build \
+  --override-input secure-ab-build-config "path:$SECURE_AB_BUILD_CONFIG" \
   .#nvidia-jetson-orin-nx-verity-luks-debug-from-x86_64-ghafImage \
-  -o result-nx-generation-$GHAF_UPDATE_GENERATION
+  -o result-nx-generation-$SECURE_AB_GENERATION
 ```
 
 Create the signed transport directory:
 
 ```sh
-IMAGE_DIR="result-nx-generation-$GHAF_UPDATE_GENERATION"
+IMAGE_DIR="result-nx-generation-$SECURE_AB_GENERATION"
 MANIFEST="$(find -L "$IMAGE_DIR" -maxdepth 1 -name '*.manifest' -print -quit)"
 test -n "$MANIFEST"
-jq -e --argjson generation "$GHAF_UPDATE_GENERATION" '
+jq -e --argjson generation "$SECURE_AB_GENERATION" '
   .system == "aarch64-linux"
   and .target == "nvidia-jetson-orin-nx-verity-luks-debug"
   and .generation == $generation
@@ -199,7 +214,7 @@ jq -e --argjson generation "$GHAF_UPDATE_GENERATION" '
 nix run .#ghaf-sign-update -- \
   --key-dir "$GHAF_DEV_KEY_DIR" \
   --input "$MANIFEST" \
-  --output "signed-nx-generation-$GHAF_UPDATE_GENERATION"
+  --output "signed-nx-generation-$SECURE_AB_GENERATION"
 ```
 
 Verify that the signed output contains one manifest, its detached signature,
@@ -214,7 +229,7 @@ credentials in Git:
 ```sh
 export REGISTRY_ENDPOINT='<registry-dns-name>'
 export UPDATE_REPOSITORY_PATH='<namespace>/ghaf-orin-nx'
-export UPDATE_TAG="generation-$GHAF_UPDATE_GENERATION"
+export UPDATE_TAG="generation-$SECURE_AB_GENERATION"
 export UPDATE_REF="${REGISTRY_ENDPOINT}/${UPDATE_REPOSITORY_PATH}:${UPDATE_TAG}"
 read -rsp 'Registry token: ' REGISTRY_TOKEN
 export REGISTRY_TOKEN
@@ -284,7 +299,7 @@ and that registry transport preserves the exact authenticated manifest bytes.
 **Procedure:**
 
 ```sh
-SIGNED_DIR="signed-nx-generation-$GHAF_UPDATE_GENERATION"
+SIGNED_DIR="signed-nx-generation-$SECURE_AB_GENERATION"
 SIGNED_MANIFEST="$(find "$SIGNED_DIR" -maxdepth 1 -name '*.manifest' -print -quit)"
 test -s "$SIGNED_MANIFEST"
 test -s "$SIGNED_MANIFEST.sig"
@@ -389,7 +404,7 @@ operator can access both `net-vm` and the Ghaf host.
 **Procedure on the developer machine:**
 
 ```sh
-SIGNED_DIR="signed-nx-generation-$GHAF_UPDATE_GENERATION"
+SIGNED_DIR="signed-nx-generation-$SECURE_AB_GENERATION"
 SIGNED_MANIFEST="$(find "$SIGNED_DIR" -maxdepth 1 -name '*.manifest' -print -quit)"
 test -s "$SIGNED_MANIFEST"
 test -s "$SIGNED_MANIFEST.sig"
@@ -427,36 +442,10 @@ curl --fail --silent --show-error \
 
 ```sh
 export UPDATE_HTTP_ORIGIN='http://<developer-interface-address>:<port>'
-export GHAF_UPDATE_GENERATION='<candidate-generation>'
 FETCH_PARENT=/persist/sysupdate
-FINAL_DIR="$FETCH_PARENT/http-generation-$GHAF_UPDATE_GENERATION"
+FINAL_DIR="$FETCH_PARENT/http-generation-$SECURE_AB_GENERATION"
 test ! -e "$FINAL_DIR" || exit 1
-FETCH_DIR="$(mktemp -d "$FETCH_PARENT/.http-generation-$GHAF_UPDATE_GENERATION.XXXXXX")"
-chmod 0755 "$FETCH_DIR"
-
-fetch_file() {
-  file="$1"
-  case "$file" in
-    "" | .* | *[!A-Za-z0-9._-]*) return 1 ;;
-  esac
-  curl --fail --show-error --location \
-    --proto '=http' --proto-redir '=http' \
-    --retry 3 --retry-all-errors \
-    --output "$FETCH_DIR/$file.part" \
-    "$UPDATE_HTTP_ORIGIN/$file"
-  mv -- "$FETCH_DIR/$file.part" "$FETCH_DIR/$file"
-}
-
-fetch_file manifest.json
-fetch_file manifest.json.sig
-for kind in root verity kernel; do
-  artifact="$(jq -er --arg kind "$kind" '.[$kind].file' "$FETCH_DIR/manifest.json")"
-  fetch_file "$artifact"
-done
-touch "$FETCH_DIR/fetch.complete"
-sync "$FETCH_DIR"
-mv -T -- "$FETCH_DIR" "$FINAL_DIR"
-sync "$FETCH_PARENT"
+ghaf-fetch-update "$UPDATE_HTTP_ORIGIN" "$SECURE_AB_GENERATION" "$FETCH_PARENT"
 FETCH_DIR="$FINAL_DIR"
 ```
 
@@ -613,12 +602,17 @@ the inactive fallback and the persist sentinel remains unchanged.
 Build the candidate with the debug-only health failure:
 
 ```sh
-export GHAF_AB_TEST_UNHEALTHY=1
-export GHAF_UPDATE_GENERATION=<newer-generation>
-timeout 2h nix build --impure \
+export SECURE_AB_GENERATION=<newer-generation>
+export SECURE_AB_BUILD_CONFIG="$PWD/secure-ab-unhealthy-generation-$SECURE_AB_GENERATION"
+nix run .#ghaf-secure-ab-config -- \
+  --key-dir "$GHAF_DEV_KEY_DIR" \
+  --generation "$SECURE_AB_GENERATION" \
+  --output "$SECURE_AB_BUILD_CONFIG" \
+  --inject-boot-health-failure
+timeout 2h nix build \
+  --override-input secure-ab-build-config "path:$SECURE_AB_BUILD_CONFIG" \
   .#nvidia-jetson-orin-nx-verity-luks-debug-from-x86_64-ghafImage \
   -o result-unhealthy
-unset GHAF_AB_TEST_UNHEALTHY
 ```
 
 Sign, validate, and install normally. Reboot without manually selecting entries.
@@ -733,7 +727,8 @@ Keep this terminal running through first boot and rollback tests.
 Build the flash script, sequentially and with the key directory available:
 
 ```sh
-timeout 2h nix build --impure \
+timeout 2h nix build \
+  --override-input secure-ab-build-config "path:$SECURE_AB_BUILD_CONFIG" \
   .#nvidia-jetson-orin-nx-verity-luks-debug-from-x86_64-flash-script \
   -o result-nx-flash
 ```
@@ -908,12 +903,19 @@ from panic or service-failure tests.
 ### AGX-001: eMMC canary build
 
 ```sh
-export GHAF_UPDATE_GENERATION=<candidate-generation>
-timeout 2h nix build --impure \
+export SECURE_AB_GENERATION=<candidate-generation>
+export SECURE_AB_BUILD_CONFIG="$PWD/secure-ab-agx-generation-$SECURE_AB_GENERATION"
+nix run .#ghaf-secure-ab-config -- \
+  --key-dir "$GHAF_DEV_KEY_DIR" \
+  --generation "$SECURE_AB_GENERATION" \
+  --output "$SECURE_AB_BUILD_CONFIG"
+timeout 2h nix build \
+  --override-input secure-ab-build-config "path:$SECURE_AB_BUILD_CONFIG" \
   .#nvidia-jetson-orin-agx-verity-luks-debug-from-x86_64-ghafImage \
   -o result-agx-update
 
-timeout 2h nix build --impure \
+timeout 2h nix build \
+  --override-input secure-ab-build-config "path:$SECURE_AB_BUILD_CONFIG" \
   .#nvidia-jetson-orin-agx-verity-luks-debug-from-x86_64-flash-script \
   -o result-agx-flash
 ```
@@ -926,9 +928,9 @@ Sign and validate the update bundle before connecting it to target storage:
 ```sh
 IMAGE_DIR=result-agx-update
 MANIFEST="$(find -L "$IMAGE_DIR" -maxdepth 1 -name '*.manifest' -print -quit)"
-SIGNED_DIR="signed-agx-generation-$GHAF_UPDATE_GENERATION"
+SIGNED_DIR="signed-agx-generation-$SECURE_AB_GENERATION"
 
-jq -e --argjson generation "$GHAF_UPDATE_GENERATION" '
+jq -e --argjson generation "$SECURE_AB_GENERATION" '
   .system == "aarch64-linux"
   and .target == "nvidia-jetson-orin-agx-verity-luks-debug"
   and .generation == $generation

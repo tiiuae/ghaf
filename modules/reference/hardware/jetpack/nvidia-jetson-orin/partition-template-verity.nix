@@ -154,7 +154,7 @@ let
     }
     if [ "$_external_public_trust" != 1 ]; then
       echo "ERROR: this flash script was built with CI-only public trust and cannot flash a secure A/B canary." >&2
-      echo "  Rebuild with --impure and GHAF_DEV_KEY_DIR from ghaf-dev-keygen." >&2
+      echo "  Rebuild with an external secure-ab-build-config input." >&2
       exit 1
     fi
 
