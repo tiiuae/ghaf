@@ -14,6 +14,7 @@
     {
       pkgs,
       lib,
+      system,
       ...
     }:
     let
@@ -23,6 +24,9 @@
       #use the pkgs-by-name-for-flake-parts to get the packages
       # exposed to downstream projects
       pkgsDirectory = ./pkgs-by-name;
+
+      # Re-export the updater from the exact GIVC revision pinned by this flake.
+      apps.ghaf-ota-update = inputs.givc.apps.${system}.ota-update;
 
       # Generate comprehensive documentation with enhanced module coverage
       packages.doc =
