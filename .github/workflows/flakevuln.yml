@@ -38,6 +38,7 @@ jobs:
         with:
           targets: |
             packages.x86_64-linux.intel-laptop-debug
+          whitelist: .github/flakevuln/manual_analysis.csv
           unstable-ref: github:NixOS/nixpkgs/nixos-unstable
           nixprs: true
           nixprs-exclude-packages: linux
