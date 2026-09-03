@@ -33,9 +33,15 @@ Generate one external development trust directory and keep it outside Git:
 ```sh
 nix run .#ghaf-dev-keygen -- --output /secure/local/ghaf-dev-keys
 export GHAF_DEV_KEY_DIR=/secure/local/ghaf-dev-keys
-export GHAF_UPDATE_GENERATION=1
+export SECURE_AB_GENERATION=1
+export SECURE_AB_BUILD_CONFIG="$PWD/secure-ab-x86-generation-$SECURE_AB_GENERATION"
+nix run .#ghaf-secure-ab-config -- \
+  --key-dir "$GHAF_DEV_KEY_DIR" \
+  --generation "$SECURE_AB_GENERATION" \
+  --output "$SECURE_AB_BUILD_CONFIG"
 
-timeout 2h nix build --impure \
+timeout 2h nix build \
+  --override-input secure-ab-build-config "path:$SECURE_AB_BUILD_CONFIG" \
   .#intel-laptop-debug-secure-ab \
   -o result-x86-initial
 ```
@@ -74,11 +80,18 @@ production manufacturing credential flow.
 
 ## Build and sign an update
 
-Increment the generation for every candidate:
+Increment the generation and export a new public-only build configuration for
+every candidate. Never edit or reuse a configuration that produced an image:
 
 ```sh
-export GHAF_UPDATE_GENERATION=2
-timeout 2h nix build --impure \
+export SECURE_AB_GENERATION=2
+export SECURE_AB_BUILD_CONFIG="$PWD/secure-ab-x86-generation-$SECURE_AB_GENERATION"
+nix run .#ghaf-secure-ab-config -- \
+  --key-dir "$GHAF_DEV_KEY_DIR" \
+  --generation "$SECURE_AB_GENERATION" \
+  --output "$SECURE_AB_BUILD_CONFIG"
+timeout 2h nix build \
+  --override-input secure-ab-build-config "path:$SECURE_AB_BUILD_CONFIG" \
   .#intel-laptop-debug-secure-ab-sysupdate \
   -o result-x86-update
 

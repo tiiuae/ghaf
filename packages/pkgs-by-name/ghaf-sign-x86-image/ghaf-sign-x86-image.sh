@@ -42,7 +42,7 @@ done
   exit 1
 }
 [[ $(jq -er '.external == true' "$input/public-trust.json") == true ]] || {
-  echo "Refusing to sign an x86 image evaluated with CI-only public trust; rebuild --impure with GHAF_DEV_KEY_DIR" >&2
+  echo "Refusing to sign an x86 image evaluated with CI-only public trust; rebuild with an external secure-ab-build-config input" >&2
   exit 1
 }
 for public_file in PK.crt KEK.crt db.crt update.pub; do
@@ -50,7 +50,7 @@ for public_file in PK.crt KEK.crt db.crt update.pub; do
   actual=$(sha256sum "$key_dir/$public_file")
   actual=${actual%% *}
   [[ $actual == "$expected" ]] || {
-    echo "Public trust mismatch for $public_file; rebuild the image with this exact GHAF_DEV_KEY_DIR" >&2
+    echo "Public trust mismatch for $public_file; rebuild with a secure-ab-build-config exported from this exact key directory" >&2
     exit 1
   }
 done
