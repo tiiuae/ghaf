@@ -161,6 +161,7 @@ in
             generate \
             --version ${version} \
             --system ${config.nixpkgs.hostPlatform.system} \
+            --build-system ${pkgs.stdenv.buildPlatform.system} \
             --target ${lib.escapeShellArg cfg.target} \
             --generation ${toString cfg.generation} \
             --hash-file $out/dm-verity-root-hash \

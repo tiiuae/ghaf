@@ -242,6 +242,7 @@ The manifest schema is:
 {
   "manifest_version": 2,
   "system": "aarch64-linux",
+  "build-system": "x86_64-linux",
   "target": "nvidia-jetson-orin-nx-verity-luks-debug",
   "generation": 8,
   "meta": {},
@@ -271,8 +272,10 @@ The manifest schema is:
 Artifact names must be basenames, not paths. All artifacts are resolved relative
 to the manifest. `packed_size` describes the transferred file;
 `unpacked_size` sizes and bounds the destination LV. Generation must be a
-positive integer. `system` records the Nix target platform for compatible
-tooling. The target must exactly equal the target configured on the device.
+positive integer. `system` records the Nix target platform, while
+`build-system` records whether the artifacts were built natively or by a cross
+builder. These fields are inventory metadata; the target must exactly equal the
+authorization target configured on the device.
 
 Sign an unsigned build output without modifying its source directory:
 
