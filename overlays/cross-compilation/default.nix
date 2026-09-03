@@ -14,6 +14,12 @@
       ) [ final.buildPackages.pkg-config ];
   });
 
+  execline = prev.execline.overrideAttrs (oldAttrs: {
+    nativeBuildInputs = (oldAttrs.nativeBuildInputs or [ ]) ++ [
+      final.buildPackages.buildPackages.pkg-config
+    ];
+  });
+
   # Remove gfortran from FFTW to avoid cross-compiling the entire Fortran
   # toolchain. FFTW is pulled in by PipeWire for audio processing. The Fortran
   # wrapper generation is only needed when building docs (--disable-doc already
@@ -53,7 +59,7 @@
     (_pythonFinal: pythonPrev: {
       tpm2-pytss = pythonPrev.tpm2-pytss.overrideAttrs (
         oldAttrs:
-        final.lib.optionalAttrs (oldAttrs.version == "3.0.0rc1") {
+        final.lib.optionalAttrs (oldAttrs.version == "3.0.0") {
           patches = builtins.filter (patch: !(final.lib.hasSuffix "cross.patch" (toString patch))) (
             oldAttrs.patches or [ ]
           );
@@ -67,6 +73,12 @@
       });
     })
   ];
+
+  s6 = (prev.s6.override { inherit (final) execline; }).overrideAttrs (oldAttrs: {
+    nativeBuildInputs = (oldAttrs.nativeBuildInputs or [ ]) ++ [
+      final.buildPackages.buildPackages.pkg-config
+    ];
+  });
 
   # Fix swtpm cross-compilation.
   # swtpm 0.10.1-unstable-2026-05-21 switched its local CA from gnutls certtool
