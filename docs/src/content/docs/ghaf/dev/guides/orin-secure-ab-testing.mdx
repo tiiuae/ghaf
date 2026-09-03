@@ -1091,7 +1091,7 @@ keys or recovery-passphrase contents.
 | Candidate UKI exists but default selection failed | Rerun the exact signed candidate | Updater completes only candidate-specific default selection |
 | Orphan `<candidate>.efi.tmp` | Preserve evidence, then rerun the exact candidate | Atomic install replaces the temporary path; the old default remains |
 | ESP lacks space | Remove only a proven stale `.tmp` or non-active managed UKI, then rerun | Never remove the current or only blessed fallback |
-| VG lacks space for inactive-slot resize | Use a smaller candidate or reflash with a larger layout | Never shrink or delete the active pair manually |
+| Candidate exceeds the fixed root or verity slot capacity | Reflash with an intentionally larger platform layout | Never shrink persist or delete the active pair manually |
 | Hidden incomplete HTTP fetch directory | Retain for evidence or delete that exact directory; retry into a new temporary directory | Never add a marker or reuse old contents |
 | Existing blank persist LV | Restart `firstboot-persist.service` | It formats the blank LV once |
 | Existing Btrfs persist LV | Restart first boot normally | Contents must be retained |
