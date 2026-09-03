@@ -1,0 +1,44 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: flakevuln
+on:
+  workflow_dispatch:
+  schedule:
+    # 02:19 UTC every day
+    - cron: "19 2 * * *"
+
+concurrency:
+  group: ${{ github.workflow }}.${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  scan-intel-laptop:
+    name: Scan intel-laptop-debug vulnerabilities
+    if: github.event_name != 'schedule' || github.event.repository.fork != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Scan intel-laptop-debug
+        uses: tiiuae/flakevuln@05c7746d37e90a4ae5ba76f2bbb9a711ad2a43c0
+        with:
+          targets: |
+            packages.x86_64-linux.intel-laptop-debug
+          unstable-ref: github:NixOS/nixpkgs/nixos-unstable
+          nixprs: true
+          nixprs-exclude-packages: linux
+          nixtracker: true
