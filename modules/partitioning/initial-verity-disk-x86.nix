@@ -11,7 +11,17 @@
 }:
 let
   cfg = config.ghaf.partitioning.verity.initialDisk;
+  verityCfg = config.ghaf.partitioning.verity;
   diskoCfg = config.ghaf.partitioning.disko;
+  # ESP plus two fixed root/verity pairs, swap, persist, and conservative
+  # headroom for GPT, LUKS, and LVM metadata.
+  minimumImageSizeMiB =
+    500
+    + 2 * verityCfg.rootSlotSizeMiB
+    + 2 * verityCfg.veritySlotSizeMiB
+    + diskoCfg.swapSize
+    + diskoCfg.persistSize
+    + 4 * 1024;
   updateImage = config.system.build.ghafUpdateImage;
   verityLvmImage = config.system.build.verityLvmImage;
   trustInventory = pkgs.writeText "ghaf-secure-ab-public-trust.json" (
@@ -145,7 +155,13 @@ in
         assertion = config.ghaf.storage.encryption.enable && !config.ghaf.storage.encryption.deferred;
         message = "ghaf.partitioning.verity.initialDisk requires immediate LUKS configuration";
       }
+      {
+        assertion = diskoCfg.imageSize >= minimumImageSizeMiB;
+        message = "secure A/B imageSize is ${toString diskoCfg.imageSize} MiB but two fixed system slots and persistent volumes require at least ${toString minimumImageSizeMiB} MiB";
+      }
     ];
+
+    ghaf.partitioning.disko.imageSize = lib.mkDefault minimumImageSizeMiB;
 
     fileSystems."/boot" = lib.mkForce {
       device = "/dev/disk/by-label/ESP";
