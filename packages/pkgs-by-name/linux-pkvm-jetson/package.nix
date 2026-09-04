@@ -20,8 +20,8 @@ buildLinux (
     src = fetchFromGitHub {
       owner = "tiiuae";
       repo = "linux-pkvm-jetson";
-      rev = "37b706a21b55b3183faef75eb594dd249913826a"; # pkvm-v6.18-dev (29-06-2026)
-      hash = "sha256-BWfA7B9piYX6Gq+92f1PPqPjc9onS5DI+3qDVqfHDWs=";
+      rev = "808068952e219d88b64fcaa1670c22cd5a4fad42"; # pkvm-v6.18-dev (03-09-2026)
+      hash = "sha256-K/jrWpnIVSY6v+9l/ubUijtB6LLszdfLUBTp0InFUjI=";
     };
     autoModules = false;
     ignoreConfigErrors = true;
