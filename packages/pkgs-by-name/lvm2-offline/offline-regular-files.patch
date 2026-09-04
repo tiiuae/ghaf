@@ -1,0 +1,332 @@
+# SPDX-FileCopyrightText: 2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: LGPL-2.1-or-later
+
+diff --git a/lib/commands/toolcontext.c b/lib/commands/toolcontext.c
+index 62e829a..41f2d7c 100644
+--- a/lib/commands/toolcontext.c
++++ b/lib/commands/toolcontext.c
+@@ -1196,6 +1196,20 @@ static int _init_dev_cache(struct cmd_context *cmd)
+ 		}
+ 	}
+ 
++	if ((cn = find_config_tree_array(cmd, devices_loopfiles_CFG, NULL))) {
++		for (cv = cn->v; cv; cv = cv->next) {
++			if (cv->type != DM_CFG_STRING) {
++				log_error("Invalid string in config file: devices/loopfiles");
++				return 0;
++			}
++
++			if (!dev_cache_add_loopfile(cv->v.str)) {
++				log_error("Failed to add loopfile %s to internal device cache", cv->v.str);
++				return 0;
++			}
++		}
++	}
++
+ 	return 1;
+ }
+ 
+diff --git a/lib/config/config.c b/lib/config/config.c
+index 4cb04c2..9a923f0 100644
+--- a/lib/config/config.c
++++ b/lib/config/config.c
+@@ -508,8 +508,8 @@ static int _config_file_read_fd(struct dm_config_tree *cft, struct device *dev,
+ 		return 0;
+ 	}
+ 
+-	/* Only use plain read with regular files */
+-	if (!(dev->flags & DEV_REGULAR) || size2)
++	/* Config files use dev->fd; offline PV files are opened through bcache. */
++	if (!(dev->flags & DEV_REGULAR) || dev_fd(dev) < 0 || size2)
+ 		use_plain_read = 0;
+ 
+ 	if (size + size2 < size) {
+diff --git a/lib/config/config_settings.h b/lib/config/config_settings.h
+index 7414b4e..1296c07 100644
+--- a/lib/config/config_settings.h
++++ b/lib/config/config_settings.h
+@@ -239,7 +239,9 @@ cfg_array(devices_scan_CFG, "scan", devices_CFG_SECTION, CFG_DEFAULT_COMMENTED
+ 	"Directories containing device nodes to use with LVM.\n")
+ 
+-cfg_array(devices_loopfiles_CFG, "loopfiles", devices_CFG_SECTION, CFG_DEFAULT_UNDEFINED | CFG_UNSUPPORTED, CFG_TYPE_STRING, NULL, vsn(1, 2, 0), NULL, vsn(2, 3, 0), NULL, NULL)
++cfg_array(devices_loopfiles_CFG, "loopfiles", devices_CFG_SECTION, CFG_DEFAULT_UNDEFINED | CFG_ADVANCED, CFG_TYPE_STRING, NULL, vsn(1, 2, 0), NULL, 0, NULL,
++	"Regular files to use as offline LVM physical volumes.\n"
++	"This is intended for image construction with device-mapper disabled.\n")
+ 
+ cfg(devices_obtain_device_list_from_udev_CFG, "obtain_device_list_from_udev", devices_CFG_SECTION, CFG_DEFAULT_COMMENTED, CFG_TYPE_BOOL, DEFAULT_OBTAIN_DEVICE_LIST_FROM_UDEV, vsn(2, 2, 85), NULL, 0, NULL,
+	"Obtain the list of available devices from udev.\n"
+ 
+diff --git a/lib/device/dev-cache.c b/lib/device/dev-cache.c
+index c50a75f..f974abb 100644
+--- a/lib/device/dev-cache.c
++++ b/lib/device/dev-cache.c
+@@ -717,6 +717,16 @@ static int _insert_dev(const char *path, dev_t d)
+ 	struct device *dev;
+ 	struct device *dev_by_devt;
+ 	struct device *dev_by_path;
++	static dev_t loopfile_count = 0;
++	int loopfile = 0;
++
++	/* Use synthetic device numbers for explicitly configured regular files. */
++	if (!d) {
++		if (dev_cache_get_dev_by_name(path))
++			return 1;
++		d = ++loopfile_count;
++		loopfile = 1;
++	}
+ 
+ 	dev_by_devt = _dev_cache_get_dev_by_devno(_cache.devices, d);
+ 	dev_by_path = dev_cache_get_dev_by_name(path);
+@@ -740,6 +750,8 @@ static int _insert_dev(const char *path, dev_t d)
+ 			/* create new device */
+ 			if (!(dev = _dev_create(d)))
+ 				return_0;
++		if (loopfile)
++			dev->flags |= DEV_REGULAR;
+ 
+ 		if (!(_dev_cache_insert_devno(_cache.devices, d, dev))) {
+ 			log_error("Couldn't insert device into binary tree.");
+@@ -1199,6 +1211,9 @@ static int _insert_dirs(struct dm_list *dirs)
+ 
+ void dev_cache_scan(struct cmd_context *cmd)
+ {
++	struct dir_list *dl;
++	struct stat info;
++
+ 	log_debug_devs("Creating list of system devices.");
+ 
+ 	_cache.has_scanned = 1;
+@@ -1207,6 +1222,11 @@ void dev_cache_scan(struct cmd_context *cmd)
+ 	_insert_dirs(&_cache.dirs);
+ 	setlocale(LC_COLLATE, "");
+ 
++	dm_list_iterate_items(dl, &_cache.files) {
++		if (!stat(dl->dir, &info) && S_ISREG(info.st_mode))
++			(void) _insert_dev(dl->dir, 0);
++	}
++
+ 	if (cmd->check_devs_used)
+ 		(void) _dev_cache_index_devs(cmd);
+ }
+@@ -1435,6 +1455,7 @@ int dev_cache_init(struct cmd_context *cmd)
+ 
+ 	_cache.dev_dir_len = strlen(_cache.dev_dir);
+ 	dm_list_init(&_cache.dirs);
++	dm_list_init(&_cache.files);
+ 
+ 	if (!_init_preferred_names(cmd))
+ 		goto_bad;
+@@ -1562,6 +1583,33 @@ int dev_cache_add_dir(const char *path)
+ 	return 1;
+ }
+ 
++int dev_cache_add_loopfile(const char *path)
++{
++	struct dir_list *dl;
++	struct stat st;
++	size_t len;
++
++	if (stat(path, &st)) {
++		log_warn("Ignoring %s: %s.", path, strerror(errno));
++		return 1;
++	}
++
++	if (!S_ISREG(st.st_mode)) {
++		log_warn("Ignoring %s: Not a regular file.", path);
++		return 1;
++	}
++
++	len = strlen(path);
++	if (!(dl = _zalloc(sizeof(*dl) + len + 1))) {
++		log_error("dir_list allocation failed for file");
++		return 0;
++	}
++
++	memcpy(dl->dir, path, len + 1);
++	dm_list_add(&_cache.files, &dl->list);
++	return 1;
++}
++
+ struct device *dev_cache_get_dev_by_name(const char *name)
+ {
+ 	return radix_tree_lookup_ptr(_cache.names, name, strlen(name));
+diff --git a/lib/device/dev-cache.h b/lib/device/dev-cache.h
+index 91a4752..58de145 100644
+--- a/lib/device/dev-cache.h
++++ b/lib/device/dev-cache.h
+@@ -73,6 +73,7 @@ void dev_cache_scan(struct cmd_context *cmd);
+ int dev_cache_has_scanned(void);
+ 
+ int dev_cache_add_dir(const char *path);
++int dev_cache_add_loopfile(const char *path);
+ struct device *dev_cache_get(struct cmd_context *cmd, const char *name, struct dev_filter *f);
+ struct device *dev_cache_get_existing(struct cmd_context *cmd, const char *name, struct dev_filter *f);
+ struct device *dev_cache_get_by_devt(struct cmd_context *cmd, dev_t devt);
+diff --git a/lib/device/dev-dasd.c b/lib/device/dev-dasd.c
+index 8cdfb72..b4d044a 100644
+--- a/lib/device/dev-dasd.c
++++ b/lib/device/dev-dasd.c
+@@ -82,6 +82,9 @@ int dasd_is_cdl_formatted(struct device *dev)
+ 	int ret = 0;
+ 	dasd_information2_t dasd_info2 = { 0 };
+ 
++	if (dev->flags & DEV_REGULAR)
++		return 0;
++
+ 	if (!dev_open_readonly(dev))
+ 		return_0;
+ 
+diff --git a/lib/filters/filter-type.c b/lib/filters/filter-type.c
+index 02c9164..625555c 100644
+--- a/lib/filters/filter-type.c
++++ b/lib/filters/filter-type.c
+@@ -24,6 +24,9 @@ static int _passes_type_device_filter(struct cmd_context *cmd, struct dev_filter
+ 
+ 	dev->filtered_flags &= ~DEV_FILTERED_DEVTYPE;
+ 
++	if (dev->flags & DEV_REGULAR)
++		return 1;
++
+ 	/* Is this a recognised device type? */
+ 	if (!dt->dev_type_array[MAJOR(dev->dev)].max_partitions) {
+ 		log_debug_devs("%s: Skipping: Unrecognised LVM device type %"
+diff --git a/lib/label/label.c b/lib/label/label.c
+index 3af46a0..3436d10 100644
+--- a/lib/label/label.c
++++ b/lib/label/label.c
+@@ -501,8 +501,10 @@ static int _scan_dev_open(struct device *dev)
+ 	name_sl = dm_list_item(name_list, struct dm_str_list);
+ 	name = name_sl->str;
+ 
+-	flags |= O_DIRECT;
+-	flags |= O_NOATIME;
++	if (!(dev->flags & DEV_REGULAR)) {
++		flags |= O_DIRECT;
++		flags |= O_NOATIME;
++	}
+ 
+ 	/*
+ 	 * FIXME: udev is a train wreck when we open RDWR and close, so we
+@@ -544,7 +546,8 @@ static int _scan_dev_open(struct device *dev)
+ 	}
+ 
+ 	/* Verify that major:minor from the path still match dev. */
+-	if ((fstat(fd, &sbuf) < 0) || (sbuf.st_rdev != dev->dev)) {
++	if ((fstat(fd, &sbuf) < 0) ||
++	    (!(dev->flags & DEV_REGULAR) && (sbuf.st_rdev != dev->dev))) {
+ 		log_warn("Invalid path %s for device %u:%u, trying different path.",
+ 			 name, MAJOR(dev->dev), MINOR(dev->dev));
+		(void)close(fd);
+diff --git a/lib/id/id.c b/lib/id/id.c
+--- a/lib/id/id.c
++++ b/lib/id/id.c
+@@ -35,10 +35,25 @@ static char _inverse_c[256];
+ 
+ int id_create(struct id *id)
+ {
++	const char *seed = getenv("LVM_OFFLINE_UUID_SEED");
++	uint64_t state = UINT64_C(14695981039346656037);
+ 	unsigned i;
+ 	size_t len = sizeof(id->uuid);
+ 
+ 	memset(id->uuid, 0, len);
++	if (seed && *seed) {
++		for (; *seed; seed++) {
++			state ^= (unsigned char) *seed;
++			state *= UINT64_C(1099511628211);
++		}
++		for (i = 0; i < len; i++) {
++			state ^= i;
++			state *= UINT64_C(1099511628211);
++			id->uuid[i] = _c[state % (sizeof(_c) - 3)];
++		}
++		return 1;
++	}
++
+ 	if (!read_urandom(&id->uuid, len)) {
+ 		return 0;
+ 	}
+diff --git a/lib/format_text/export.c b/lib/format_text/export.c
+--- a/lib/format_text/export.c
++++ b/lib/format_text/export.c
+@@ -338,10 +338,15 @@ int out_config_node(struct formatter *f, const struct dm_config_node *cn)
+ static int _print_header(struct cmd_context *cmd, struct formatter *f,
+ 			 const char *desc)
+ {
++	const char *fixed_desc = getenv("LVM_OFFLINE_DESCRIPTION");
++	const char *fixed_epoch = getenv("SOURCE_DATE_EPOCH");
++	const char *fixed_host = getenv("LVM_OFFLINE_HOST");
+ 	char *buf;
+ 	time_t t;
+ 
+-	t = time(NULL);
++	t = (fixed_epoch && *fixed_epoch) ? (time_t) strtoull(fixed_epoch, NULL, 10) : time(NULL);
++	if (fixed_desc && *fixed_desc)
++		desc = fixed_desc;
+ 
+ 	outf(f, "# Generated by LVM2 version %s: %s", LVM_VERSION, ctime(&t));
+ 	outf(f, CONTENTS_FIELD " = \"" CONTENTS_VALUE "\"");
+@@ -351,9 +356,12 @@ static int _print_header(struct cmd_context *cmd, struct formatter *f,
+ 	buf = alloca(dm_escaped_len(desc));
+ 	outf(f, "description = \"%s\"", dm_escape_double_quotes(buf, desc));
+ 	outnl(f);
+-	outf(f, "creation_host = \"%s\"\t# %s %s %s %s %s", _utsname.nodename,
+-	     _utsname.sysname, _utsname.nodename, _utsname.release,
+-	     _utsname.version, _utsname.machine);
++	if (fixed_host && *fixed_host)
++		outf(f, "creation_host = \"%s\"", fixed_host);
++	else
++		outf(f, "creation_host = \"%s\"\t# %s %s %s %s %s", _utsname.nodename,
++		     _utsname.sysname, _utsname.nodename, _utsname.release,
++		     _utsname.version, _utsname.machine);
+ 	if (cmd->system_id && *cmd->system_id)
+ 		outf(f, "creation_host_system_id = \"%s\"", cmd->system_id);
+ 	outf(f, "creation_time = " FMTu64 "\t# %s", (uint64_t)t, ctime(&t));
+diff --git a/lib/metadata/lv.c b/lib/metadata/lv.c
+--- a/lib/metadata/lv.c
++++ b/lib/metadata/lv.c
+@@ -1692,6 +1692,14 @@ const char *lv_attr_dup_with_info_and_seg_status(struct dm_pool *mem, const stru
+ int lv_set_creation(struct logical_volume *lv,
+ 		    const char *hostname, uint64_t timestamp)
+ {
++	const char *fixed_epoch = getenv("SOURCE_DATE_EPOCH");
++	const char *fixed_host = getenv("LVM_OFFLINE_HOST");
++
++	if (!hostname && fixed_host && *fixed_host)
++		hostname = fixed_host;
++	if (!timestamp && fixed_epoch && *fixed_epoch)
++		timestamp = strtoull(fixed_epoch, NULL, 10);
++
+ 	if (!hostname) {
+ 		if (!_utsinit) {
+			if (uname(&_utsname)) {
+diff --git a/lib/format_text/export.c b/lib/format_text/export.c
+--- a/lib/format_text/export.c
++++ b/lib/format_text/export.c
+@@ -536,6 +536,7 @@ static int _print_pvs(struct formatter *f, struct volume_group *vg)
+ 	struct physical_volume *pv;
+ 	char buffer[PATH_MAX * 2];
+ 	int idx;
++	const char *device_hint;
+ 	const char *idtype, *idname;
+ 
+ 	outf(f, "physical_volumes {");
+@@ -556,13 +557,16 @@ static int _print_pvs(struct formatter *f, struct volume_group *vg)
+ 
+ 		outf(f, "id = \"%s\"", buffer);
+ 
+-		if (strlen(pv_dev_name(pv)) >= PATH_MAX) {
++		device_hint = getenv("LVM_OFFLINE_DEVICE_HINT");
++		if (!device_hint || !*device_hint)
++			device_hint = pv_dev_name(pv);
++		if (strlen(device_hint) >= PATH_MAX) {
+ 			log_error("pv device name size is out of bounds.");
+ 			return 0;
+ 		}
+ 
+ 		outhint(f, "device = \"%s\"",
+-			dm_escape_double_quotes(buffer, pv_dev_name(pv)));
++			dm_escape_double_quotes(buffer, device_hint));
+ 		outnl(f);
+ 
+ 		idtype = dev_idtype_for_metadata(vg->cmd, pv->dev);

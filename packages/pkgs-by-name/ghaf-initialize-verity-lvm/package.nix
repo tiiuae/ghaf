@@ -6,6 +6,7 @@
   findutils,
   jq,
   lvm2,
+  lvm2-offline,
   runCommand,
   util-linux,
   writeShellApplication,
@@ -23,9 +24,12 @@ let
       util-linux
       zstd
     ];
-    text = builtins.readFile ./ghaf-initialize-verity-lvm.sh;
+    text = builtins.replaceStrings
+      [ "@LVM_OFFLINE@" ]
+      [ "${lvm2-offline.bin}/bin/lvm" ]
+      (builtins.readFile ./ghaf-initialize-verity-lvm.sh);
     meta = {
-      description = "Initialize a Ghaf A/B verity LVM layout on a block device";
+      description = "Initialize a Ghaf A/B verity LVM layout on a block device or image";
       mainProgram = "ghaf-initialize-verity-lvm";
     };
   };
@@ -38,6 +42,7 @@ ghaf-initialize-verity-lvm.overrideAttrs (old: {
           nativeBuildInputs = [
             ghaf-initialize-verity-lvm
             jq
+            lvm2
             zstd
           ];
         }
@@ -65,6 +70,25 @@ ghaf-initialize-verity-lvm.overrideAttrs (old: {
           ! ghaf-initialize-verity-lvm \
             --update-dir payload --root-size-mib 1 --verity-size-mib 1 \
             --device /dev/null
+
+          truncate -s 96M first.img
+          truncate -s 96M second.img
+          for image in first.img second.img; do
+            ghaf-initialize-verity-lvm \
+              --update-dir payload --root-size-mib 1 --verity-size-mib 1 \
+              --vg-name ghaf_test --image "$image"
+          done
+          mkdir -p stock-lvm/archive stock-lvm/backup
+          export LVM_SYSTEM_DIR=$PWD/stock-lvm
+          pvck --driverloaded n --nolocking --config 'global { locking_type = 0 }' \
+            --dump metadata first.img > first-metadata.txt
+          pvck --driverloaded n --nolocking --config 'global { locking_type = 0 }' \
+            --dump metadata second.img > second-metadata.txt
+          cmp first-metadata.txt second-metadata.txt
+          cmp first.img second.img
+          grep 'ghaf_test {' first-metadata.txt
+          grep 'root_1_deadbeef {' first-metadata.txt
+          grep 'verity_1_deadbeef {' first-metadata.txt
           touch "$out"
         '';
   };
