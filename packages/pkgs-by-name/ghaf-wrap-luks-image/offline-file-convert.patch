@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: 2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+diff --git a/lib/luks2/luks2_luks1_convert.c b/lib/luks2/luks2_luks1_convert.c
+index 79a1420..172676f 100644
+--- a/lib/luks2/luks2_luks1_convert.c
++++ b/lib/luks2/luks2_luks1_convert.c
+@@ -7,6 +7,8 @@
+  * Copyright (C) 2015-2026 Milan Broz
+  */
+ 
++#include <sys/stat.h>
++
+ #include "luks2_internal.h"
+ #include "../luks1/luks.h"
+ #include "../luks1/af.h"
+@@ -492,8 +494,18 @@ out:
+ static int luks_header_in_use(struct crypt_device *cd)
+ {
+ 	int r;
++	struct stat st;
++	const char *path;
+ 
+ 	r = lookup_dm_dev_by_uuid(cd, crypt_get_uuid(cd), crypt_get_type(cd));
++	/* A regular-file image cannot be active through device-mapper in this
++	 * process. Permit header-only conversion when device-mapper is unavailable,
++	 * while retaining the fail-closed status check for block devices. */
++	if (r < 0) {
++		path = device_path(crypt_metadata_device(cd));
++		if (path && !stat(path, &st) && S_ISREG(st.st_mode))
++			return 0;
++	}
+ 	if (r < 0)
+ 		log_err(cd, _("Cannot check status of device with uuid: %s."), crypt_get_uuid(cd));
+ 

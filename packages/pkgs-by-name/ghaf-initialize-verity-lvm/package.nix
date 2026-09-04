@@ -24,10 +24,9 @@ let
       util-linux
       zstd
     ];
-    text = builtins.replaceStrings
-      [ "@LVM_OFFLINE@" ]
-      [ "${lvm2-offline.bin}/bin/lvm" ]
-      (builtins.readFile ./ghaf-initialize-verity-lvm.sh);
+    text = builtins.replaceStrings [ "@LVM_OFFLINE@" ] [ "${lvm2-offline.bin}/bin/lvm" ] (
+      builtins.readFile ./ghaf-initialize-verity-lvm.sh
+    );
     meta = {
       description = "Initialize a Ghaf A/B verity LVM layout on a block device or image";
       mainProgram = "ghaf-initialize-verity-lvm";

@@ -27,6 +27,7 @@
     ghaf-secure-ab-config = final.callPackage ./pkgs-by-name/ghaf-secure-ab-config/package.nix { };
     ghaf-update-manifest = final.callPackage ./pkgs-by-name/ghaf-update-manifest/package.nix { };
     ghaf-vms = final.callPackage ./pkgs-by-name/ghaf-vms/package.nix { };
+    ghaf-wrap-luks-image = final.callPackage ./pkgs-by-name/ghaf-wrap-luks-image/package.nix { };
     gpu-vm-partition-manager-sdk = inputs.gpu-partition-manager.lib.mkSdk { pkgs = final; };
     hardware-scan = final.callPackage ./pkgs-by-name/hardware-scan/package.nix { };
     lvm2-offline = final.callPackage ./pkgs-by-name/lvm2-offline/package.nix { };
