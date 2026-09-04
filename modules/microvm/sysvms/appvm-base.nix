@@ -434,6 +434,21 @@ in
         ./idsvm/mitmproxy/mitmproxy-ca/mitmproxy-ca-cert.pem
       ];
 
+      # PoC: serve /nix/store via crosvm's built-in DAX fs device instead of the "ro-store" virtiofsd share.
+      # "ro-store" stays wired as a placeholder so upstream mounts.nix's builtins.head lookup doesn't crash.
+      fileSystems."/nix/.ro-store" = lib.mkIf (vmm == "crosvm") (
+        lib.mkForce {
+          device = "ro-store-dax";
+          fsType = "virtiofs";
+          # dax=always forces DAX for every file; otherwise the kernel defers to the server, which crosvm doesn't implement.
+          options = [
+            "x-systemd.after=systemd-modules-load.service"
+            "dax=always"
+          ];
+          neededForBoot = true;
+        }
+      );
+
       microvm = {
         optimize.enable = false;
         # Sensible defaults based on vm definition - can be further overridden via vmConfig
@@ -445,7 +460,13 @@ in
         vsock.cid = hostConfig.networking.thisVm.cid or 100;
         # Compose this required runner argument with device-specific arguments
         # such as the swtpm socket from vm-tpm.nix.
-        crosvm.extraArgs = lib.mkBefore (lib.optionals (vmm == "crosvm") [ "--disable-sandbox" ]);
+        crosvm.extraArgs = lib.mkBefore (
+          lib.optionals (vmm == "crosvm") [
+            "--disable-sandbox"
+            "--shared-dir"
+            "/nix/store:ro-store-dax:type=fs:dax=true:cache=always:posix_acl=false"
+          ]
+        );
 
         shares = [
           {

@@ -25,7 +25,7 @@ in
         "never"
       ]
     );
-    default = "always";
+    default = "never";
     description = ''
       virtiofs cache mode for the read-only /nix/store share mounted when
       storeOnDisk is disabled. Set to null to omit the cache setting
@@ -42,11 +42,19 @@ in
             source = "/nix/store";
             mountPoint = "/nix/.ro-store";
             proto = "virtiofs";
+            # Nix store paths never carry POSIX ACLs, so --posix-acl only adds a
+            # getxattr lookup per access with nothing to show for it.
+            posixAcl = false;
           }
           // lib.optionalAttrs (cfg.roStoreCache != null) { cache = cfg.roStoreCache; }
         )
       ];
       writableStoreOverlay = "/nix/.rw-store";
+
+      # virtiofsd threads mostly block on host I/O, so more than the core count keeps more lookups in flight.
+      virtiofsd.threadPoolSize = lib.mkDefault 64;
+      # Skip the file-handle exchange and use O_PATH fds directly; /nix/store is an ordinary host filesystem.
+      virtiofsd.inodeFileHandles = lib.mkDefault "never";
     };
   };
 }

@@ -16,6 +16,7 @@
 #   base.extendModules { modules = [ ... ]; }
 #
 {
+  config,
   lib,
   inputs,
   globalConfig,
@@ -25,6 +26,7 @@
 let
   vmName = "admin-vm";
   timezoneEnabled = lib.ghaf.features.isEnabledFor globalConfig "timezone" vmName;
+  isCrosvm = config.microvm.hypervisor == "crosvm";
 in
 {
   _file = ./adminvm-base.nix;
@@ -221,6 +223,21 @@ in
     hostPlatform.system = globalConfig.platform.hostSystem or "x86_64-linux";
   };
 
+  # PoC: serve /nix/store via crosvm's built-in DAX fs device instead of the "ro-store" virtiofsd share.
+  # "ro-store" stays wired as a placeholder so upstream mounts.nix's builtins.head lookup doesn't crash.
+  fileSystems."/nix/.ro-store" = lib.mkIf isCrosvm (
+    lib.mkForce {
+      device = "ro-store-dax";
+      fsType = "virtiofs";
+      # dax=always forces DAX for every file; otherwise the kernel defers to the server, which crosvm doesn't implement.
+      options = [
+        "x-systemd.after=systemd-modules-load.service"
+        "dax=always"
+      ];
+      neededForBoot = true;
+    }
+  );
+
   microvm = {
     optimize.enable = false;
     # Sensible defaults - can be overridden via vmConfig
@@ -235,6 +252,11 @@ in
         mountPoint = "/etc/common";
         proto = "virtiofs";
       }
+    ];
+
+    crosvm.extraArgs = lib.optionals isCrosvm [
+      "--shared-dir"
+      "/nix/store:ro-store-dax:type=fs:dax=true:cache=always:posix_acl=false"
     ];
   };
 }
