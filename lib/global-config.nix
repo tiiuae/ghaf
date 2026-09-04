@@ -161,7 +161,7 @@ rec {
             };
             level = lib.mkOption {
               type = types.nullOr types.int;
-              default = null;
+              default = 4;
               description = ''
                 The compression level to use.
                 If set to `null` will use the default for each algorithm.

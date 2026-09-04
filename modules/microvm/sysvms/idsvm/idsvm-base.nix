@@ -113,47 +113,5 @@ in
     # Sensible defaults - can be overridden via vmConfig
     vcpu = lib.mkDefault 2;
     mem = lib.mkDefault 512;
-
-    # Shared store (when not using storeOnDisk)
-    shares = lib.optionals (!(globalConfig.storage.storeOnDisk.enable or false)) [
-      {
-        tag = "ro-store";
-        source = "/nix/store";
-        mountPoint = "/nix/.ro-store";
-        proto = "virtiofs";
-      }
-    ];
-
-    writableStoreOverlay = lib.mkIf (
-      !(globalConfig.storage.storeOnDisk.enable or false)
-    ) "/nix/.rw-store";
-  }
-  // lib.optionalAttrs (globalConfig.storage.storeOnDisk.enable or false) (
-    let
-      compLevelSuffix = lib.optionalString (
-        globalConfig.storage.storeOnDisk.compression.level != null
-      ) ",${toString globalConfig.storage.storeOnDisk.compression.level}";
-    in
-    {
-      storeOnDisk = true;
-      storeDiskType = "erofs";
-      # Defaults: -zlz4hc (all kernels), -Eztailpacking (5.16+), -Efragments (6.1+)
-      # -zzstd requires Linux 6.15+ due to -E48bit (extended addressing, needed for zstd)
-      # Setting storeDiskErofsFlags overrides the entire list; include defaults explicitly if needed.
-      storeDiskErofsFlags = [
-        "-Eztailpacking"
-        "-Efragments"
-        # no need to hammer all available cores
-        "--workers=$(( (NIX_BUILD_CORES < 1 || NIX_BUILD_CORES > 4) ? 4 : NIX_BUILD_CORES ))"
-      ]
-      ++ {
-        lz4hc = [ "-zlz4hc${compLevelSuffix}" ];
-        zstd = [
-          "-zzstd${compLevelSuffix}"
-          "-E48bit"
-        ];
-      }
-      .${globalConfig.storage.storeOnDisk.compression.algorithm};
-    }
-  );
+  };
 }

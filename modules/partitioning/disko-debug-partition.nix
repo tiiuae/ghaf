@@ -124,7 +124,7 @@ in
         if [ "$cores" -gt 8 ]; then
           cores=8
         fi
-        ${lib.getExe pkgs.zstd} -T''${cores} --compress "$out/${diskName}.raw" -o "$out/ghaf-image.raw.zst" --rm
+        ${lib.getExe pkgs.zstd} -T''${cores} -4 --long --compress "$out/${diskName}.raw" -o "$out/ghaf-image.raw.zst" --rm
       '';
       devices = {
         disk."${diskName}" = {

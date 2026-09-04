@@ -38,6 +38,8 @@
     vm-modules.imports = [
       ./common/microvm-store-mode.nix
       ./common/shared-directory.nix
+      ./common/store-disk-erofs.nix
+      ./common/store-shared-virtiofs.nix
       ./common/storagevm.nix
       ./common/vm-crosvm.nix
       ./common/vm-networking.nix
