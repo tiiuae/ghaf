@@ -161,7 +161,8 @@
 
     # For building and managing VMs
     microvm = {
-      url = "github:microvm-nix/microvm.nix";
+      # url = "github:microvm-nix/microvm.nix";
+      url = "github:hros-tii/microvm.nix/feat/crosvm-vfio-opts";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

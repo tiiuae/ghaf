@@ -568,15 +568,16 @@
         "spectrum": "spectrum"
       },
       "locked": {
-        "lastModified": 1787834973,
-        "narHash": "sha256-bY2y5jQ17MQxt1N/jc8luDB98Pyf+FRY2igGWeXnS28=",
-        "owner": "microvm-nix",
+        "lastModified": 1788516866,
+        "narHash": "sha256-zSBgU73tUhydYkdEoIyie89FmZUw5JCaHQ99fw1ymis=",
+        "owner": "hros-tii",
         "repo": "microvm.nix",
-        "rev": "ea57aebfb6016d9f091af7576a97dcf1aaa71fa1",
+        "rev": "f8eb8d3814fb812ed061e3eee20d890e49fc7e40",
         "type": "github"
       },
       "original": {
-        "owner": "microvm-nix",
+        "owner": "hros-tii",
+        "ref": "feat/crosvm-vfio-opts",
         "repo": "microvm.nix",
         "type": "github"
       }
