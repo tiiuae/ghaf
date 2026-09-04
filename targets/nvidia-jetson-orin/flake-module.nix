@@ -142,8 +142,6 @@ let
           enable = true;
           inherit target;
         };
-        boot-health.debugUnhealthyMicrovm =
-          if config.ghaf.secureUpdate.injectBootHealthFailure then "ab-health-failure-injection" else null;
         hardware.nvidia.orin.secureboot = {
           inherit (config.ghaf.secureUpdate)
             externalPublicTrustConfigured
@@ -526,7 +524,7 @@ let
             partitioning.verity.enable = true;
             # Linux 6.6 on Orin supports LZ4HC EROFS images but not the zstd
             # format emitted by the current erofs-utils.
-            partitioning.verity.erofsCompression = "lz4hc";
+            partitioning.verity.erofsCompression.algorithm = "lz4hc";
             hardware.nvidia.orin.secureboot.enable = true;
             hardware.nvidia.orin.diskEncryption.enable = true;
             hardware.nvidia.orin.diskEncryption.deviceUniqueKey.enable = true;
