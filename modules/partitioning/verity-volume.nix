@@ -39,16 +39,26 @@ in
       description = "Monotonic update generation embedded in the manifest and UKI.";
     };
 
-    erofsCompression = lib.mkOption {
-      type = lib.types.enum [
-        "zstd"
-        "lz4hc"
-      ];
-      default = "zstd";
-      description = ''
-        EROFS compression algorithm. Targets with older EROFS kernels can
-        select lz4hc explicitly.
-      '';
+    erofsCompression = {
+      algorithm = lib.mkOption {
+        type = lib.types.enum [
+          "zstd"
+          "lz4hc"
+        ];
+        default = "zstd";
+        description = ''
+          EROFS compression algorithm. Targets with older EROFS kernels can
+          select lz4hc explicitly.
+        '';
+      };
+
+      level = lib.mkOption {
+        type = lib.types.nullOr lib.types.int;
+        default = 4;
+        description = ''
+          EROFS compression level. If null, use the mkfs.erofs default.
+        '';
+      };
     };
 
     rootSlotSizeMiB = lib.mkOption {
@@ -96,6 +106,9 @@ in
         fsImage = "$out/${id}_root_@v_@u.raw";
         verityImage = "$out/${id}_verity_@v_@u.raw";
         kernelImage = "$out/${id}_kernel_@v_@u.efi";
+        erofsCompression =
+          cfg.erofsCompression.algorithm
+          + lib.optionalString (cfg.erofsCompression.level != null) ",${toString cfg.erofsCompression.level}";
         # Experimental high-performance patch for `mkfs.erofs`
         # FIXME: Question for review -- move to overlays, vendor patch
         erofs-utils-nix = pkgs.buildPackages.erofs-utils.overrideAttrs (_: {
@@ -134,7 +147,7 @@ in
           fi
 
           time ${erofs-utils-nix}/bin/mkfs.erofs \
-            -z${cfg.erofsCompression} -T 1 --all-root \
+            -z${erofsCompression} -T 1 --all-root \
             --workers="$mkfsWorkers" \
             -L nix-store \
             ${fsImage} \

@@ -18,7 +18,9 @@ adapter changes.
 :::note[Stack boundary]
 PR #2199 provides the shared mechanisms. NVIDIA behavior described here is
 implemented by follow-up PR #2200, and x86 behavior by follow-up PR #2201;
-neither adapter is present in the shared-core diff alone.
+neither adapter is present in the shared-core diff alone. Until those
+follow-ups merge, every flash and initial-install section below documents the
+adapter contract, not behavior available from #2199 or `main`.
 :::
 
 :::caution[Development canaries]
@@ -154,10 +156,10 @@ configuration and set `inputs.ghaf.inputs.secure-ab-build-config.follows` to
 that locked input. The same Ghaf revision and lock then resolve to the same
 generation and trust root.
 
-Before preparing any image, the platform flash adapter requires the runtime
-`GHAF_DEV_KEY_DIR` to contain the same public files and verifies that `db.key`
-matches `db.crt` and `update.key` matches `update.pub`. A public-trust mismatch
-fails exactly with:
+When the corresponding follow-up adapter is applied, its flash path requires
+the runtime `GHAF_DEV_KEY_DIR` to contain the same public files and verifies
+that `db.key` matches `db.crt` and `update.key` matches `update.pub`. A
+public-trust mismatch fails exactly with:
 
 ```text
 ERROR: GHAF_DEV_KEY_DIR public trust does not match the trust embedded at image evaluation: <file>

@@ -188,7 +188,10 @@ in
         inherit (cfg) target;
         inherit (cfg) generation;
       };
-      boot-health.acceptedGenerationFile = cfg.acceptedGenerationFile;
+      boot-health = {
+        inherit (cfg) acceptedGenerationFile;
+        debugUnhealthyMicrovm = lib.mkIf cfg.injectBootHealthFailure "ghaf-boot-health-injection-probe";
+      };
     };
 
     environment.etc = {
