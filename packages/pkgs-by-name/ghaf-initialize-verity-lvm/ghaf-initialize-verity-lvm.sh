@@ -263,17 +263,17 @@ initialize_image() {
 
   LVM_OFFLINE_UUID_SEED="$vg_name:pv" \
     "$offline_lvm" pvcreate "${common_args[@]}" --yes --force --force \
-      --zero y --metadatasize 4M --dataalignment 1M "$image"
+    --zero y --metadatasize 4M --dataalignment 1M "$image"
   LVM_OFFLINE_UUID_SEED="$vg_name:vg" \
     "$offline_lvm" vgcreate "${common_args[@]}" --yes \
-      --physicalextentsize 4M "$vg_name" "$image"
+    --physicalextentsize 4M "$vg_name" "$image"
 
   create_image_lv() {
     local name=$1 size_mib=$2
     LVM_OFFLINE_UUID_SEED="$vg_name:lv:$name" \
       "$offline_lvm" lvcreate "${common_args[@]}" --yes --activate n \
-        --zero n --wipesignatures n --size "${size_mib}M" \
-        --name "$name" "$vg_name"
+      --zero n --wipesignatures n --size "${size_mib}M" \
+      --name "$name" "$vg_name"
   }
 
   lv_offset_bytes() {
