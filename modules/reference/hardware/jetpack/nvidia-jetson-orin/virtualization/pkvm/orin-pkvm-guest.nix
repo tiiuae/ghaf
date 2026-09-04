@@ -18,7 +18,7 @@ let
 
     boot.kernelPatches = [
       {
-        name = "Additional virt guest config";
+        name = "Guest virtio device support";
         patch = null;
         structuredExtraConfig = with lib.kernel; {
           VSOCKETS = yes;
@@ -27,6 +27,18 @@ let
           VIRTIO_BALLOON = module;
           VIRTIO_FS = module;
           SCSI_VIRTIO = module;
+        };
+      }
+      {
+        name = "Guest FS support";
+        patch = null;
+        structuredExtraConfig = with lib.kernel; {
+          BLK_DEV_LOOP = module;
+          EROFS_FS = module;
+          EROFS_FS_ZIP_DEFLATE = yes;
+          EROFS_FS_ZIP_ZSTD = yes;
+          OVERLAY_FS = module;
+          FUSE_FS = yes;
         };
       }
     ];

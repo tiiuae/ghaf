@@ -7,7 +7,7 @@
   ...
 }:
 {
-  _file = ./pkvm-guest.nix;
+  _file = ./vm-protected.nix;
 
   options.ghaf.virtualization.microvm.protected-vm = {
     enable = lib.mkEnableOption "this guest to be run as a protected VM under the pKVM hypervisor.";
@@ -26,6 +26,13 @@
       "--unmap-guest-memory-on-fork"
       "--disable-sandbox"
       "--smccc-trng"
+      "--swiotlb"
+      "128"
+    ];
+
+    microvm.kernelParams = [
+      "sysctl.fs.fuse.max_pages_limit=64"
+      "swiotlb=65536,4"
     ];
   };
 }
