@@ -20,7 +20,6 @@ let
       coreutils
       findutils
       jq
-      lvm2
       util-linux
       zstd
     ];
@@ -28,7 +27,7 @@ let
       builtins.readFile ./ghaf-initialize-verity-lvm.sh
     );
     meta = {
-      description = "Initialize a Ghaf A/B verity LVM layout on a block device or image";
+      description = "Initialize a Ghaf A/B verity LVM layout in a regular file";
       mainProgram = "ghaf-initialize-verity-lvm";
     };
   };
@@ -68,7 +67,8 @@ ghaf-initialize-verity-lvm.overrideAttrs (old: {
           test "$(jq -r .minimum_pv_size_mib plan.json)" = 73
           ! ghaf-initialize-verity-lvm \
             --update-dir payload --root-size-mib 1 --verity-size-mib 1 \
-            --device /dev/null
+            --device /dev/null 2> device.err
+          grep -q '^Usage:' device.err
 
           truncate -s 96M first.img
           truncate -s 96M second.img
@@ -88,6 +88,16 @@ ghaf-initialize-verity-lvm.overrideAttrs (old: {
           grep 'ghaf_test {' first-metadata.txt
           grep 'root_1_deadbeef {' first-metadata.txt
           grep 'verity_1_deadbeef {' first-metadata.txt
+
+          truncate -s $((1024 * 1024 + 1)) overlong-root.raw
+          zstd --force overlong-root.raw -o payload/ghaf_root_1_deadbeef.raw.zst
+          truncate -s 96M overlong.img
+          ! ghaf-initialize-verity-lvm \
+            --update-dir payload --root-size-mib 1 --verity-size-mib 1 \
+            --vg-name ghaf_test --image overlong.img 2> overlong.err
+          grep -q 'Payload for root_1_deadbeef exceeds its 1 MiB logical volume' \
+            overlong.err
+          test "$(stat -c%s overlong.img)" -eq $((96 * 1024 * 1024))
           touch "$out"
         '';
   };
