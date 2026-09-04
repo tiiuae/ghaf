@@ -167,7 +167,7 @@ in
           # Replace the placeholder with the real roothash in the target .raw file
           verityRoothash=$(cat $out/dm-verity-root-hash)
 
-          # SAFETY: root hash later validated in mk-manifest.py
+          # SAFETY: root hash later validated by ghaf-update-manifest.
           test -n "$verityRoothash" || (echo "bad root hash" >&2 && exit 1)
 
           # Create UKI kernel with embedded verityhash
@@ -186,7 +186,7 @@ in
               --output ${kernelImage} ${kernelImage}
           ''}
 
-          # FIXME: move compression into mk-manifest.py and compute unpacked sizes there.
+          # FIXME: move compression into ghaf-update-manifest and compute unpacked sizes there.
           rootUnpackedSize=$(stat -c%s ${fsImage})
           verityUnpackedSize=$(stat -c%s ${verityImage})
 
@@ -194,7 +194,7 @@ in
           ${lib.getExe pkgs.buildPackages.zstd} -T''${mkfsWorkers} --compress $out/*raw --rm
 
           # Create artifacts and manifest.
-          ${pkgs.buildPackages.python3}/bin/python ${./mk-manifest.py} \
+          ${lib.getExe pkgs.buildPackages.ghaf-update-manifest} \
             generate \
             --version ${version} \
             --system ${config.nixpkgs.hostPlatform.system} \

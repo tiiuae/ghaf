@@ -2,26 +2,22 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   coreutils,
+  ghaf-update-manifest,
   jq,
   openssl,
-  python3,
   runCommand,
   sbsigntool,
   writeShellApplication,
-  writeShellScriptBin,
 }:
 let
-  manifestTool = writeShellScriptBin "ghaf-update-manifest" ''
-    exec ${python3}/bin/python ${../../../modules/partitioning/mk-manifest.py} "$@"
-  '';
   ghaf-sign-update = writeShellApplication {
     name = "ghaf-sign-update";
     runtimeInputs = [
       coreutils
+      ghaf-update-manifest
       jq
       openssl
       sbsigntool
-      manifestTool
     ];
     text = builtins.readFile ./ghaf-sign-update.sh;
     meta.description = "Sign a Ghaf update UKI and detached manifest outside the Nix store";
