@@ -28,7 +28,6 @@ Use this skill when the user wants to:
 | System76 Darter Pro | x86_64 | intel-laptop-debug | darter-pro |
 | Lenovo ThinkPad X1 | x86_64 | intel-laptop-debug | lenovo-x1 |
 | Dell Latitude 7330 | x86_64 | intel-laptop-debug | dell-7330 |
-| Intel NUC | x86_64 | generic-x86_64-debug | NUC |
 | NVIDIA Jetson AGX Orin | aarch64 | nvidia-jetson-orin-agx-debug-from-x86_64 | orin-agx |
 | NVIDIA Jetson Orin NX | aarch64 | nvidia-jetson-orin-nx-debug-from-x86_64 | orin-nx |
 

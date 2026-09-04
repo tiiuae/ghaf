@@ -1,4 +1,5 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+
 # SPDX-License-Identifier: Apache-2.0
 
 # Ghaf Hardware Test Automation Skill
@@ -32,19 +33,18 @@ deliberately different names (see [SKILL.md](SKILL.md)).
 - `darter-pro` - System76 Darter Pro (x86_64, `intel-laptop-debug`)
 - `Lenovo-X1` - Lenovo ThinkPad X1 (x86_64, `intel-laptop-debug`)
 - `dell-7330` - Dell Latitude 7330 (x86_64, `intel-laptop-debug`)
-- `NUC` - Intel NUC (x86_64, `generic-x86_64-debug`)
 - `Orin-AGX` - NVIDIA Jetson AGX Orin (aarch64, cross-built from x86_64)
 - `Orin-NX` - NVIDIA Jetson Orin NX (aarch64, cross-built from x86_64)
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `status` | Check device connectivity |
-| `test` | Run Robot Framework tests |
-| `flash` | Flash Ghaf image to device |
+| Command   | Description                  |
+| --------- | ---------------------------- |
+| `status`  | Check device connectivity    |
+| `test`    | Run Robot Framework tests    |
+| `flash`   | Flash Ghaf image to device   |
 | `analyze` | Parse results, propose fixes |
-| `run` | Full test-fix loop |
+| `run`     | Full test-fix loop           |
 
 ## Copilot CLI Integration
 

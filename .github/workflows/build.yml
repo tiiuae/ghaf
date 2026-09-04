@@ -43,7 +43,6 @@ jobs:
         include:
           - target: checks.x86_64-linux.pre-commit
           - target: devShells.x86_64-linux.default
-          - target: packages.x86_64-linux.generic-x86_64-debug
           - target: packages.x86_64-linux.intel-laptop-debug
           - target: packages.x86_64-linux.intel-laptop-debug-installer
           - target: packages.x86_64-linux.intel-laptop-debug-netboot-installer
