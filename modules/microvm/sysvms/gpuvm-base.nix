@@ -257,20 +257,7 @@ in
         mountPoint = "/etc/common";
         proto = "virtiofs";
       }
-    ]
-    # Shared store (when not using storeOnDisk)
-    ++ lib.optionals (!(globalConfig.storage.storeOnDisk.enable or false)) [
-      {
-        tag = "ro-store";
-        source = "/nix/store";
-        mountPoint = "/nix/.ro-store";
-        proto = "virtiofs";
-      }
     ];
-
-    writableStoreOverlay = lib.mkIf (
-      !(globalConfig.storage.storeOnDisk.enable or false)
-    ) "/nix/.rw-store";
 
     qemu = {
       machine =
@@ -280,29 +267,5 @@ in
         }
         .${globalConfig.platform.hostSystem or "aarch64-linux"};
     };
-  }
-  // lib.optionalAttrs (globalConfig.storage.storeOnDisk.enable or false) (
-    let
-      compLevelSuffix = lib.optionalString (
-        globalConfig.storage.storeOnDisk.compression.level != null
-      ) ",${toString globalConfig.storage.storeOnDisk.compression.level}";
-    in
-    {
-      storeOnDisk = true;
-      storeDiskType = "erofs";
-      storeDiskErofsFlags = [
-        "-Eztailpacking"
-        "-Efragments"
-        "--workers=$(( (NIX_BUILD_CORES < 1 || NIX_BUILD_CORES > 4) ? 4 : NIX_BUILD_CORES ))"
-      ]
-      ++ {
-        lz4hc = [ "-zlz4hc${compLevelSuffix}" ];
-        zstd = [
-          "-zzstd${compLevelSuffix}"
-          "-E48bit"
-        ];
-      }
-      .${globalConfig.storage.storeOnDisk.compression.algorithm};
-    }
-  );
+  };
 }
