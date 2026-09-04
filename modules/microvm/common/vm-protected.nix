@@ -26,6 +26,13 @@
       "--unmap-guest-memory-on-fork"
       "--disable-sandbox"
       "--smccc-trng"
+      "--swiotlb"
+      "128"
+    ];
+
+    microvm.kernelParams = [
+      "sysctl.fs.fuse.max_pages_limit=64"
+      "swiotlb=131072,4"
     ];
   };
 }
