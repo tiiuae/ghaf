@@ -7,19 +7,18 @@ usage() {
   cat >&2 <<'EOF'
 Usage: ghaf-initialize-verity-lvm --update-dir DIR \
   --root-size-mib MIB --verity-size-mib MIB \
-  (--device BLOCK_DEVICE | --image REGULAR_FILE) \
+  --image REGULAR_FILE \
   [--vg-name NAME] [--create-inactive-slots] \
   [--swap-size-mib MIB] [--persist-size-mib MIB] [--print-plan]
 
-Creates a Ghaf A/B LVM layout. Block devices use normal kernel LVM; regular
-files use the offline image backend without loop devices or device-mapper.
+Creates a Ghaf A/B LVM layout in an existing regular file using the offline
+image backend without privileges, loop devices, or device-mapper.
 Without --create-inactive-slots, only the populated A-slot is created.
 --print-plan validates the payload and prints JSON without modifying a target.
 EOF
   exit 2
 }
 
-device=""
 image=""
 update_dir=""
 root_size_mib=""
@@ -33,10 +32,6 @@ image_work_dir=""
 
 while (($#)); do
   case "$1" in
-  --device)
-    device="${2:-}"
-    shift 2
-    ;;
   --image)
     image="${2:-}"
     shift 2
@@ -157,68 +152,9 @@ if $print_plan; then
   exit 0
 fi
 
-if [[ -n $device && -n $image ]] || [[ -z $device && -z $image ]]; then
-  echo "Specify exactly one of --device and --image" >&2
+[[ -n $image ]] || {
+  echo "--image is required unless --print-plan is used" >&2
   exit 1
-fi
-
-initialize_block_device() {
-  [[ -b $device ]] || {
-    echo "--device must identify an already-open block device" >&2
-    exit 1
-  }
-  if findmnt --noheadings --source "$device" >/dev/null; then
-    echo "Refusing to initialize mounted device $device" >&2
-    exit 1
-  fi
-
-  local lvm_config='devices { use_devicesfile=0 } activation { udev_sync=0 udev_rules=0 }'
-  local lvm_args=(--devices "$device" --config "$lvm_config")
-  local build_vg="ghaf_init_$$_$RANDOM"
-  local vg_active=false
-  cleanup_block_device() {
-    if $vg_active; then
-      vgchange "${lvm_args[@]}" --activate n "$build_vg" >/dev/null 2>&1 || true
-    fi
-  }
-  trap cleanup_block_device EXIT
-
-  pvcreate "${lvm_args[@]}" "$device"
-  vgcreate "${lvm_args[@]}" "$build_vg" "$device"
-  vg_active=true
-
-  create_block_lv() {
-    local name=$1 size_mib=$2
-    lvcreate "${lvm_args[@]}" --yes --zero n --wipesignatures n \
-      --size "${size_mib}M" --name "$name" "$build_vg"
-  }
-
-  create_block_lv "root_$lv_suffix" "$root_size_mib"
-  create_block_lv "verity_$lv_suffix" "$verity_size_mib"
-  zstd --decompress "$update_dir/$root_file" --stdout |
-    dd of="/dev/$build_vg/root_$lv_suffix" bs=4M conv=notrunc status=progress
-  zstd --decompress "$update_dir/$verity_file" --stdout |
-    dd of="/dev/$build_vg/verity_$lv_suffix" bs=4M conv=notrunc status=progress
-
-  if $create_inactive_slots; then
-    create_block_lv root_empty "$root_size_mib"
-    create_block_lv verity_empty "$verity_size_mib"
-  fi
-  if ((swap_size_mib > 0)); then
-    create_block_lv swap "$swap_size_mib"
-    mkswap --label swap "/dev/$build_vg/swap"
-  fi
-  if ((persist_size_mib > 0)); then
-    create_block_lv persist "$persist_size_mib"
-    mkfs.btrfs --force --label persist "/dev/$build_vg/persist"
-  fi
-
-  sync
-  vgchange "${lvm_args[@]}" --activate n "$build_vg"
-  vg_active=false
-  vgrename "${lvm_args[@]}" "$build_vg" "$vg_name"
-  trap - EXIT
-  echo "Initialized Ghaf verity LVM volume group $vg_name on $device"
 }
 
 initialize_image() {
@@ -297,10 +233,17 @@ initialize_image() {
   }
 
   write_stream_to_image_lv() {
-    local name=$1 offset
+    local name=$1 size_mib=$2 offset leftover
     offset=$(lv_offset_bytes "$name")
-    dd of="$image" bs=4M seek="$offset" oflag=seek_bytes \
-      conv=notrunc status=none
+    # Unlike a block device, a regular file has no LV boundary. Bound the
+    # stream to the declared slot capacity, then prove that stdin was exhausted.
+    dd of="$image" bs=1M count="$size_mib" seek="$offset" \
+      iflag=fullblock oflag=seek_bytes conv=notrunc status=none
+    leftover=$(dd bs=1 count=1 status=none | wc -c)
+    if ((leftover > 0)); then
+      echo "Payload for $name exceeds its $size_mib MiB logical volume" >&2
+      exit 1
+    fi
   }
 
   write_file_to_image_lv() {
@@ -313,9 +256,9 @@ initialize_image() {
   create_image_lv "root_$lv_suffix" "$root_size_mib"
   create_image_lv "verity_$lv_suffix" "$verity_size_mib"
   zstd --decompress "$update_dir/$root_file" --stdout |
-    write_stream_to_image_lv "root_$lv_suffix"
+    write_stream_to_image_lv "root_$lv_suffix" "$root_size_mib"
   zstd --decompress "$update_dir/$verity_file" --stdout |
-    write_stream_to_image_lv "verity_$lv_suffix"
+    write_stream_to_image_lv "verity_$lv_suffix" "$verity_size_mib"
 
   if $create_inactive_slots; then
     create_image_lv root_empty "$root_size_mib"
@@ -340,8 +283,4 @@ initialize_image() {
   echo "Initialized Ghaf verity LVM volume group $vg_name in $image"
 }
 
-if [[ -n $image ]]; then
-  initialize_image
-else
-  initialize_block_device
-fi
+initialize_image
