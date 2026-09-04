@@ -41,6 +41,16 @@ let
           FUSE_FS = yes;
         };
       }
+      {
+        name = "Realtek Wifi Drivers";
+        patch = null;
+        structuredExtraConfig = with lib.kernel; {
+          RTW88 = module;
+          RTW88_8822CE = module;
+          RTW88_DEBUG = yes;
+          RTW88_DEBUGFS = yes;
+        };
+      }
     ];
 
     hardware.enableAllHardware = false;
@@ -56,9 +66,8 @@ let
       "vsock"
     ];
 
-    microvm.hypervisor = lib.mkForce "crosvm";
-    ghaf.virtualization.crosvm.features = [ "bpmp" ];
     ghaf.virtualization.microvm.protected-vm.enable = true;
+    ghaf.virtualization.crosvm.features = [ "bpmp" ];
   };
 in
 {
