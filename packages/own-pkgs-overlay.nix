@@ -17,11 +17,15 @@
     gala = final.callPackage ./pkgs-by-name/gala/package.nix { };
     ghaf-build-helper = final.callPackage ./pkgs-by-name/ghaf-build-helper/package.nix { };
     ghaf-fetch-update = final.callPackage ./pkgs-by-name/ghaf-fetch-update/package.nix { };
+    ghaf-initialize-verity-lvm =
+      final.callPackage ./pkgs-by-name/ghaf-initialize-verity-lvm/package.nix
+        { };
     ghaf-installer = final.callPackage ./pkgs-by-name/ghaf-installer/package.nix { };
     ghaf-intro = final.callPackage ./pkgs-by-name/ghaf-intro/package.nix { };
     ghaf-open = final.callPackage ./pkgs-by-name/ghaf-open/package.nix { };
     ghaf-powercontrol = final.callPackage ./ghaf-powercontrol/package.nix { };
     ghaf-secure-ab-config = final.callPackage ./pkgs-by-name/ghaf-secure-ab-config/package.nix { };
+    ghaf-update-manifest = final.callPackage ./pkgs-by-name/ghaf-update-manifest/package.nix { };
     ghaf-vms = final.callPackage ./pkgs-by-name/ghaf-vms/package.nix { };
     gpu-vm-partition-manager-sdk = inputs.gpu-partition-manager.lib.mkSdk { pkgs = final; };
     hardware-scan = final.callPackage ./pkgs-by-name/hardware-scan/package.nix { };
