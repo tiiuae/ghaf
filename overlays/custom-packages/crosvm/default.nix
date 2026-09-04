@@ -4,15 +4,15 @@
 # tiiuae fork of crosvm to bring pKVM patches
 { prev }:
 let
-  version = "0-develop-2026-07-23";
+  version = "0-develop-2026-09-04";
   src = prev.fetchFromGitHub {
     owner = "tiiuae";
     repo = "crosvm";
-    rev = "0b294d1c87ba3bcd7127df4706c6caf092c516ab"; # develop - Jun 30 2026
+    rev = "5a799e16db59b3882422203433e0d9a85e22ec7a"; # develop - Aug 20 2026
     fetchSubmodules = true;
-    hash = "sha256-+aM0ifaxwWLtIk9YbCETixZWh/4fFWCcoCtA7XOpE9Y=";
+    hash = "sha256-IrKOANP4dy4TmmqboGeCMxBEehdhXecte2WbeqWyPac=";
   };
-  cargoHash = "sha256-NEmMsCuiEOkanGwT/Oib9yhP+UeT+bCwGI9I3DCWyWU=";
+  cargoHash = "sha256-Ald9ftlj7vK2sK3he9U2mhOVL5/uYtaNpvp7JiBkqBk=";
 in
 prev.crosvm.overrideAttrs (old: {
   inherit version src cargoHash;
