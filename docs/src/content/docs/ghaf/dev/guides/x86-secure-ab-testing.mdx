@@ -13,12 +13,14 @@ replace the normal `intel-laptop-*` targets. The secure family is additive:
 
 | Artifact | Flake target |
 | --- | --- |
-| Initial encrypted, verity-backed disk | `intel-laptop-debug-secure-ab` |
+| Initial disk image | `intel-laptop-debug-secure-ab` |
 | A/B update payload | `intel-laptop-debug-secure-ab-sysupdate` |
 
-The initial target contains a Type-2-only ESP, one active root/verity pair, one
-empty pair, Btrfs persist, swap, and a LUKS2 container. EFI executables remain
-unsigned in the Nix result so private keys never enter the store.
+The initial target builds the complete unsigned disk image in the Nix sandbox.
+Regular-file tools create its GPT, Type-2-only ESP, one active root/verity pair,
+one empty pair, Btrfs persist, swap, and LUKS2 container. The build uses no VM,
+loop device, device-mapper mapping, mount, or privilege. EFI executables remain
+unsigned so private keys never enter the store.
 
 Both system pairs use the established x86 capacities: 50 GiB for each root LV
 and 1 GiB for each verity LV. With the default 12 GiB swap and 2 GiB initial
@@ -26,7 +28,7 @@ persist volume, the initial image and destination disk require approximately
 121 GiB. The build rejects a smaller configured image instead of silently
 producing a system without a usable inactive slot.
 
-## Build and sign the initial disk
+## Build, prepare, and sign the initial disk
 
 Generate one external development trust directory and keep it outside Git:
 
@@ -43,17 +45,18 @@ nix run .#ghaf-secure-ab-config -- \
 timeout 2h nix build \
   --override-input secure-ab-build-config "path:$SECURE_AB_BUILD_CONFIG" \
   .#intel-laptop-debug-secure-ab \
-  -o result-x86-initial
+  -o result-x86-unsigned
 ```
 
-Sign the ESP into a new output directory. The signer refuses CI-only images,
-checks that all four public trust files match the evaluation inventory, signs
-both systemd-boot paths and every UKI, and regenerates the bmap:
+The result is the unsigned disk image. Sign its ESP into another new output directory.
+The signer refuses CI-only images, checks that all four public trust files match
+the evaluation inventory, signs both systemd-boot paths and every UKI, and
+regenerates the bmap:
 
 ```sh
 sudo nix run .#ghaf-sign-x86-image -- \
   --key-dir "$GHAF_DEV_KEY_DIR" \
-  --input result-x86-initial \
+  --input result-x86-unsigned \
   --output /var/tmp/ghaf-x86-signed
 ```
 
@@ -107,9 +110,10 @@ boot-counted trial, health gate, and rollback are shared with NVIDIA.
 
 ## Acceptance boundary
 
-A successful Nix build proves artifact construction only. Hardware acceptance
-still requires Secure Boot enabled, the empty bootstrap slot removed, signed
-A→B→A updates, wrong-target and downgrade rejection, corrupt-root rollback,
-power interruption at each transaction phase, and verification that the
-machine resets after an early boot failure. A kernel `panic=10` fallback is
-configured; a platform watchdog is not claimed until it is tested per laptop.
+A successful Nix build proves payload and disk construction, but not hardware
+acceptance. Hardware acceptance still requires Secure Boot enabled, the empty
+bootstrap slot removed, signed A→B→A updates, wrong-target and downgrade
+rejection, corrupt-root rollback, power interruption at each transaction phase,
+and verification that the machine resets after an early boot failure. A kernel
+`panic=10` fallback is configured; a platform watchdog is not claimed until it
+is tested per laptop.
