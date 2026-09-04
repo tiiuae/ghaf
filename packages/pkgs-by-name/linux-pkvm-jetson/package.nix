@@ -20,13 +20,14 @@ buildLinux (
     src = fetchFromGitHub {
       owner = "tiiuae";
       repo = "linux-pkvm-jetson";
-      rev = "37b706a21b55b3183faef75eb594dd249913826a"; # pkvm-v6.18-dev (29-06-2026)
-      hash = "sha256-BWfA7B9piYX6Gq+92f1PPqPjc9onS5DI+3qDVqfHDWs=";
+      rev = "28eb48f591dd2c318ef2d26bede8298a0aff7221"; # pkvm-v6.18-dev (04-09-2026)
+      hash = "sha256-lbC8FtApOIRLN001ElyC9l91TQQn0SYia4CwpZ7v6w0=";
     };
     autoModules = false;
     ignoreConfigErrors = true;
 
-    # TODO try without common config
+    # TODO - try without common config
+    # tegra_defconfig and jetpack-nixos should already include all the needed settings
     enableCommonConfig = true;
 
     features = { };
@@ -43,6 +44,7 @@ buildLinux (
     ]
     ++ args.kernelPatches or [ ];
 
+    # Pulled from jetpack-nixos/pkgs/kernels/r39/default.nix
     structuredExtraConfig =
       with lib.kernel;
       {
