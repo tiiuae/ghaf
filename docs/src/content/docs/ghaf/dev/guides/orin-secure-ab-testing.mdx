@@ -618,7 +618,7 @@ timeout 2h nix build \
 Sign, validate, and install normally. Reboot without manually selecting entries.
 
 **Expected:** The trial boots three times. Each run fails because
-`microvm@ab-health-failure-injection.service` is not active, reboots, and
+`microvm@ghaf-boot-health-injection-probe.service` is not active, reboots, and
 consumes one attempt. The fourth selection boots the previously blessed pair.
 The accepted generation does not advance and persist remains intact.
 
