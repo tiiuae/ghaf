@@ -56,9 +56,8 @@ let
       "vsock"
     ];
 
-    microvm.hypervisor = lib.mkForce "crosvm";
-    ghaf.virtualization.crosvm.features = [ "bpmp" ];
     ghaf.virtualization.microvm.protected-vm.enable = true;
+    ghaf.virtualization.crosvm.features = [ "bpmp" ];
   };
 in
 {

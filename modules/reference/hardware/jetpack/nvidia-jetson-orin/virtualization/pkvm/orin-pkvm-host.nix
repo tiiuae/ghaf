@@ -40,6 +40,8 @@ let
       TCG_TIS = module;
       RTW89 = module;
       RTW89_8852CE = module;
+      # PCIe device assignment
+      PKVM_GUEST_SELF_ASSIGN_DEVICE = yes;
     }
     // import "${inputs.jetpack-nixos}/pkgs/kernels/common-arch.nix" { inherit lib; };
 
@@ -104,21 +106,20 @@ in
       jetpackKernelOverlay
     ];
 
+    hardware.nvidia-jetpack.majorVersion = lib.mkForce "7";
     ghaf.hardware.nvidia.orin.kernelVersion = lib.mkForce "stable-6-18-pkvm";
 
-    hardware.nvidia-jetpack.majorVersion = lib.mkForce "7";
+    ghaf.hardware.nvidia.orin.agx.enableNetvmWlanPCIPassthrough = true;
 
     # compilation of this nvidia-oot module was skipped
     boot.initrd.availableKernelModules.rtl8852ce = lib.mkForce false;
 
-    # Passthroughs aren't ported yet
+    # These passthroughs aren't ported yet
     ghaf.hardware.nvidia.virtualization.enable = lib.mkForce false;
     ghaf.hardware.nvidia.virtualization.host.dce.enable = lib.mkForce false;
 
     ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm.enable = lib.mkForce false;
     ghaf.hardware.nvidia.passthroughs.gpu_vm.enable = lib.mkForce false;
     ghaf.hardware.nvidia.passthroughs.disp_vm.enable = lib.mkForce false;
-
-    ghaf.hardware.nvidia.orin.agx.enableNetvmWlanPCIPassthrough = lib.mkForce false;
   };
 }

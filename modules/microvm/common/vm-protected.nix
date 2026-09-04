@@ -21,6 +21,8 @@
       }
     ];
 
+    microvm.hypervisor = "crosvm";
+
     microvm.crosvm.extraArgs = [
       "--protected-vm-without-firmware"
       "--unmap-guest-memory-on-fork"
@@ -29,6 +31,7 @@
       "--swiotlb"
       "128"
     ];
+    microvm.crosvm.vfioIommu = "pkvm-iommu";
 
     microvm.kernelParams = [
       "sysctl.fs.fuse.max_pages_limit=64"
