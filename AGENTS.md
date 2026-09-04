@@ -48,7 +48,7 @@ Do not commit or push unless you were asked to.
   `targets/laptop/axes.nix` holds the feature axes
   (`low-mem`, `minimal-mem`, `storeDisk`), expanded as a power set — never write out the
   combinations. Axes sharing a `group` (the two memory ones) are mutually exclusive.
-- `targets/` — target definitions (`laptop`, `vm`, `generic-x86_64`, `nvidia-jetson-orin`, …)
+- `targets/` — target definitions (`laptop`, `vm`, `nvidia-jetson-orin`, …)
 - `packages/pkgs-by-name/<package-name>/package.nix` — flat, no first-letter sharding
 - `overlays/`, `lib/`, `nix/`, `tests/`, `docs/`
 

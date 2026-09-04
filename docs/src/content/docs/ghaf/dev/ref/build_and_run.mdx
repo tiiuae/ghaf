@@ -168,18 +168,18 @@ nix build .#intel-laptop-debug \
 
 ---
 
-## Running Ghaf Image for Generic x86 Computer
+## Running Ghaf on an x86 Intel Laptop
 
 For general x86_64 hardware, without the laptop passthrough stack:
 
 1. **Build the image**:
    ```sh
-   nix build .#generic-x86_64-debug
+   nix build .#intel-laptop-debug
    ```
 
 2. **Flash to USB**:
    ```sh
-   ./packages/pkgs-by-name/flash-script/flash.sh -d /dev/<YOUR_USB_DRIVE> -i result/ghaf-generic-x86_64-debug.img
+   ./packages/pkgs-by-name/flash-script/flash.sh -d /dev/<YOUR_USB_DRIVE> -i result/ghaf-image.raw.zst
    ```
 
 3. **Boot from USB**.
