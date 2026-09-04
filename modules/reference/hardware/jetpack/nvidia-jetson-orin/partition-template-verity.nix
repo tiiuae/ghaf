@@ -32,8 +32,8 @@ let
   # <device type="sdmmc_user"> or NVMe <device type="nvme"> children.
   # This avoids fragile line-count splicing.
   #
-  # All values are fully resolved at Nix build time (the APP partition
-  # size is read from the LVM image derivation via --set).
+  # All values are fully resolved at Nix build time (the APP partition size is
+  # derived from the exported slot capacities via --set).
   partitionsStorage = [
     {
       name = "master_boot_record";
@@ -87,7 +87,7 @@ let
         percent_reserved = "0x808";
         unique_guid = "APPUUID";
         filename = "system.img";
-        description = "LUKS2 cryptpool containing an LVM PV with A/B root+verity, swap, persist.";
+        description = "Prebuilt LVM payload for A/B root and verity slots.";
       };
     }
     {
@@ -268,9 +268,10 @@ let
     rm -rf "$_sign_dir"
     echo "ESP image built: $_esp"
 
-    echo "Decompressing pre-built LVM payload..."
-    _plain="$WORKDIR/bootloader/system.lvm"
-    "${pkgs.pkgsBuildBuild.zstd}/bin/zstd" -f -d "${verityImages}/system.img.zst" -o "$_plain"
+    echo "Installing prebuilt LVM payload..."
+    _outer="$WORKDIR/bootloader/system.img"
+    "${lib.getExe pkgs.pkgsBuildBuild.zstd}" --decompress --force \
+      "${verityImages}/system.img.zst" -o "$_outer"
     ${lib.optionalString config.ghaf.hardware.nvidia.orin.diskEncryption.enable ''
       _recovery_dir="$GHAF_DEV_KEY_DIR/recovery-passphrases"
       mkdir -p "$_recovery_dir"
@@ -282,32 +283,16 @@ let
         | "${pkgs.pkgsBuildBuild.coreutils}/bin/tr" -d '\n' > "$_recovery"
       chmod 0600 "$_recovery"
 
-      _outer="$WORKDIR/bootloader/system.img"
-      truncate -s "$(cat ${verityImages}/system.raw_size)" "$_outer"
-      printf '%s' ${lib.escapeShellArg config.ghaf.hardware.nvidia.orin.diskEncryption.deviceUniqueKey.deviceManufacturerPassphrase} \
-        | "${pkgs.pkgsBuildBuild.cryptsetup}/bin/cryptsetup" luksFormat --batch-mode \
-          --type luks2 --uuid ${config.ghaf.hardware.nvidia.orin.diskEncryption.luksUuid} \
-          --key-slot 0 \
-          --key-file=- "$_outer"
       printf '%s' ${lib.escapeShellArg config.ghaf.hardware.nvidia.orin.diskEncryption.deviceUniqueKey.deviceManufacturerPassphrase} \
         | "${pkgs.pkgsBuildBuild.cryptsetup}/bin/cryptsetup" luksAddKey \
           --new-key-slot 1 \
           --key-file=- "$_outer" "$_recovery"
-      _mapper="ghaf-flash-$PPID"
-      printf '%s' ${lib.escapeShellArg config.ghaf.hardware.nvidia.orin.diskEncryption.deviceUniqueKey.deviceManufacturerPassphrase} \
-        | "${pkgs.pkgsBuildBuild.cryptsetup}/bin/cryptsetup" open --key-file=- "$_outer" "$_mapper"
-      "${pkgs.pkgsBuildBuild.coreutils}/bin/dd" if="$_plain" of="/dev/mapper/$_mapper" bs=4M conv=fsync,notrunc status=progress
-      "${pkgs.pkgsBuildBuild.cryptsetup}/bin/cryptsetup" close "$_mapper"
-      rm -f "$_plain"
       echo "============================================================"
       echo "RECOVERY PASSPHRASE (store securely; generated for this flash):"
       cat "$_recovery"
       printf '\n'
       echo "Saved at: $_recovery"
       echo "============================================================"
-    ''}
-    ${lib.optionalString (!config.ghaf.hardware.nvidia.orin.diskEncryption.enable) ''
-      mv "$_plain" "$WORKDIR/bootloader/system.img"
     ''}
     # flash.sh -k APP looks for system.img relative to $WORKDIR
     ln -sf "$WORKDIR/bootloader/system.img" "$WORKDIR/system.img"
