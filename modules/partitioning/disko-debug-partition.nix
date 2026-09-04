@@ -41,13 +41,30 @@ in
   options.ghaf.partitioning.disko = {
     enable = lib.mkEnableOption "the disko partitioning scheme";
 
-    imageBuilder.compression = lib.mkOption {
-      type = lib.types.enum [
-        "none"
-        "zstd"
-      ];
-      description = "Compression algorithm used for the install image";
-      default = "zstd";
+    imageBuilder.compression = {
+      algorithm = lib.mkOption {
+        type = lib.types.enum [
+          "none"
+          "zstd"
+        ];
+        description = "Compression algorithm used for the install image";
+        default = "zstd";
+      };
+
+      level = lib.mkOption {
+        type = lib.types.nullOr lib.types.int;
+        default = 4;
+        description = ''
+          zstd compression level used for the install image.
+          The guest `/nix/store` erofs level
+          (`ghaf.virtualization.microvm.storeOnDisk.compression.level`) follows
+          this by default when it also uses zstd, since both are then on the
+          same libzstd level scale. Set explicitly to tune the image and the
+          store independently.
+          If set to `null`, zstd's own default level is used.
+        '';
+        example = 19;
+      };
     };
 
     rootSize = lib.mkOption {
@@ -110,6 +127,10 @@ in
 
     ghaf.partitioning.btrfs-postboot.enable = true;
 
+    ghaf.virtualization.microvm.storeOnDisk.compression.level = lib.mkIf (
+      config.ghaf.virtualization.microvm.storeOnDisk.compression.algorithm == "zstd"
+    ) (lib.mkDefault cfg.imageBuilder.compression.level);
+
     ghaf.storage.encryption.partitionDevice =
       lib.mkDefault
         config.disko.devices.disk."${diskName}".content.partitions.luks.device;
@@ -118,13 +139,17 @@ in
       !config.ghaf.partitioning.verity.enable
     ) config.system.build.diskoImages;
     disko = {
-      imageBuilder.extraPostVM = lib.mkIf (cfg.imageBuilder.compression == "zstd") ''
+      imageBuilder.extraPostVM = lib.mkIf (cfg.imageBuilder.compression.algorithm == "zstd") ''
         ${lib.getExe pkgs.bmaptool} create "$out/${diskName}.raw" -o "$out/ghaf-image.bmap"
         cores="''${NIX_BUILD_CORES:-1}"
         if [ "$cores" -gt 8 ]; then
           cores=8
         fi
-        ${lib.getExe pkgs.zstd} -T''${cores} -4 --long --compress "$out/${diskName}.raw" -o "$out/ghaf-image.raw.zst" --rm
+        ${lib.getExe pkgs.zstd} -T''${cores} ${
+          lib.optionalString (
+            cfg.imageBuilder.compression.level != null
+          ) "-${toString cfg.imageBuilder.compression.level}"
+        } --long --compress "$out/${diskName}.raw" -o "$out/ghaf-image.raw.zst" --rm
       '';
       devices = {
         disk."${diskName}" = {
