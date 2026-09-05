@@ -9,8 +9,7 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 # Orin secure A/B testing
 
 Use the [shared architecture](/ghaf/dev/architecture/ab-update) for trust,
-manifest, transaction and boot-health contracts. This runbook covers manual
-development and acceptance, not an implemented CI pipeline.
+manifest, transaction and boot-health contracts.
 
 :::danger[Destructive tests]
 Flash, corruption and power-cut cases require an explicitly authorized device.
@@ -27,10 +26,7 @@ only signed fallback.
 | NX 16 GB | `nvidia-jetson-orin-nx-verity-luks-debug` | Internal NVMe | Physical watchdog/reset |
 | AGX | `nvidia-jetson-orin-agx-verity-luks-debug` | Internal eMMC (`mmcblk0`) | DUK reboot with optional fTPM disabled |
 
-Record each board separately; results are not transferable. APP contains LUKS2,
-LVM system pairs, persist and swap; ESP/QSPI are unencrypted. Rollback must retain
-shared persist. Core VMM service activity excludes AppVMs/login and does not
-prove guest-agent readiness.
+APP contains LUKS2, LVM system pairs, persist and swap.
 
 Keep a protected evidence directory outside Git. For each test ID below record
 UTC start/end, Ghaf/GIVC revisions, exact target/generation, manifest digest,
@@ -203,9 +199,8 @@ must not reboot. Reboot manually and observe the health/rollback cases below.
 
 ## Acceptance matrix
 
-Run every applicable row on **each board**. Existing IT IDs denote optional
-GIVC privileged runtime fixtures, not image-build dependencies; this runbook
-does not add a VM to the image build. Hardware results are still required.
+Run each applicable row on NX and AGX. IT IDs identify optional GIVC runtime
+fixtures.
 
 | ID | Procedure | Required result |
 | --- | --- | --- |
@@ -283,8 +278,4 @@ fTPM disablement for clean reboot and candidate-specific selection for
 equal-version trials. Unsigned UKI rejection was partial: firmware fell through
 to networking instead of automatically selecting the signed fallback.
 
-Physical power cuts and hard-hang watchdog tests remained unrun. Repeat the
-matrix per release candidate. Stop promotion on identity ambiguity, active-slot
-mutation, a mutating rejection, incorrect attempt counts, premature acceptance,
-persist loss, recovery-slot loss, undocumented rescue, or unproven hard-hang
-reset. Development-key tests do not establish production Secure Boot assurance.
+Physical power cuts (HW-011) and hard-hang watchdog tests (HW-012) remained unrun.
