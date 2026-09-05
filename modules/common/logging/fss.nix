@@ -1192,13 +1192,14 @@ let
         chmod 0400 "$VERIFY_KEY_FILE"
       }
 
-      # Support both persistent and volatile storage
-      FSS_KEY_FILE="/var/log/journal/$MACHINE_ID/fss"
-      if [ ! -f "$FSS_KEY_FILE" ] && [ -f "/run/log/journal/$MACHINE_ID/fss" ]; then
-        FSS_KEY_FILE="/run/log/journal/$MACHINE_ID/fss"
-        fss_log info "Using volatile storage location for FSS keys"
+      # JOURNAL_DIR and FSS_KEY_FILE are resolved independently -- journald's
+      # live journal and journalctl --setup-keys' key placement can each
+      # land persistent-vs-volatile differently on the same boot.
+      JOURNAL_DIR=$(fss_resolve_live_journal_dir "/var/log/journal/$MACHINE_ID")
+      FSS_KEY_FILE=$(fss_resolve_key_file "$MACHINE_ID")
+      if [ "$JOURNAL_DIR" != "/var/log/journal/$MACHINE_ID" ]; then
+        fss_log info "journald's live journal is volatile this boot: $JOURNAL_DIR"
       fi
-      JOURNAL_DIR=$(dirname "$FSS_KEY_FILE")
 
       # Create key directory if it doesn't exist
       mkdir -p "$KEY_DIR"
@@ -1289,6 +1290,10 @@ let
 
       # Securely remove setup output (contains sensitive key material)
       shred -u "$KEY_DIR/setup-output.txt" 2>/dev/null || rm -f "$KEY_DIR/setup-output.txt"
+
+      # Re-resolve: --setup-keys may have placed it somewhere the
+      # pre-generation guess above didn't anticipate.
+      FSS_KEY_FILE=$(fss_resolve_key_file "$MACHINE_ID")
 
       # Verify sealing key was created
       if [ ! -f "$FSS_KEY_FILE" ]; then
