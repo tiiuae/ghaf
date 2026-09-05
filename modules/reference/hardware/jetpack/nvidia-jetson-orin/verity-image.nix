@@ -32,7 +32,6 @@ let
   #   ghaf_<ver>_<hash>.manifest       — JSON manifest
   inherit (config.system.build) ghafUpdateImage;
   fixedSlotSizes = cfg.rootSlotSizeMiB != null && cfg.veritySlotSizeMiB != null;
-  luksHeaderSizeMiB = if config.ghaf.hardware.nvidia.orin.diskEncryption.enable then 32 else 0;
 
   # The ESP is assembled at flash time because its EFI binaries need private
   # signing keys. The LVM/LUKS payload is built here using regular-file-only
@@ -71,7 +70,9 @@ in
       mkdir -p $out
       ln -s ${espFiles} $out/esp-files
       ln -s ${ghafUpdateImage} $out/update
-      manifest=$(find ${ghafUpdateImage} -maxdepth 1 -name '*.manifest' -print -quit)
+      mapfile -t manifests < <(find ${ghafUpdateImage} -maxdepth 1 -type f -name '*.manifest')
+      [ "''${#manifests[@]}" -eq 1 ] || { echo "Expected exactly one update manifest" >&2; exit 1; }
+      manifest="''${manifests[0]}"
       ${
         if fixedSlotSizes then
           ''
@@ -95,7 +96,7 @@ in
       truncate -s "$((payload_mib * 1024 * 1024))" "$image"
       "${lib.getExe pkgs.buildPackages.ghaf-initialize-verity-lvm}" \
         --image "$image" \
-        --update-dir ${ghafUpdateImage} \
+        --manifest "$manifest" \
         --root-size-mib "$root_mib" \
         --verity-size-mib "$verity_mib"
       ${lib.optionalString config.ghaf.hardware.nvidia.orin.diskEncryption.enable ''
@@ -104,8 +105,7 @@ in
         "${lib.getExe pkgs.buildPackages.ghaf-wrap-luks-image}" \
           --image "$image" \
           --uuid ${lib.escapeShellArg config.ghaf.hardware.nvidia.orin.diskEncryption.luksUuid} \
-          --key-file manufacturer.key \
-          --header-size-mib ${toString luksHeaderSizeMiB}
+          --key-file manufacturer.key
         rm -f manufacturer.key
       ''}
       stat -c%s "$image" > $out/system.raw_size
