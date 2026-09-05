@@ -83,6 +83,7 @@
 {
   config,
   lib,
+  options,
   pkgs,
   ...
 }:
@@ -101,6 +102,7 @@ let
   activationEnabled = cfg.activation.enable;
   loggingEnabled = config.ghaf.logging.enable;
   hasPersistentJournalStorage = config.ghaf.type == "host" || config.ghaf.storagevm.enable;
+  hasStructuredJournald = options.services.journald ? settings;
   hostPersistentJournalPath = "/persist/var/log/journal";
   fssBasePath =
     if config.ghaf.type == "host" then "/persist/common/journal-fss" else "/etc/common/journal-fss";
@@ -1878,10 +1880,21 @@ in
 
       # FSS is only meaningful for persistent journals. The journald sealing key
       # lives beside the journal files and is advanced by journald over time.
-      services.journald.extraConfig = lib.mkAfter ''
-        Storage=persistent
-        Seal=${if cfg.staticSealEnabled then "yes" else "no"}
-      '';
+      services.journald =
+        if hasStructuredJournald then
+          {
+            settings.Journal = {
+              Storage = "persistent";
+              Seal = cfg.staticSealEnabled;
+            };
+          }
+        else
+          {
+            extraConfig = lib.mkAfter ''
+              Storage=persistent
+              Seal=${if cfg.staticSealEnabled then "yes" else "no"}
+            '';
+          };
 
       ghaf.storagevm.preserveLogs = mkIf (config.ghaf.type != "host") true;
 
