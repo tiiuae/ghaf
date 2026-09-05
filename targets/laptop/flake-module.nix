@@ -109,6 +109,36 @@ let
     ) machines
   );
 
+  # Secure A/B is deliberately an additive target family: legacy laptop names
+  # and artifacts remain unchanged while the trust and rollback contract is
+  # validated. Only axis-free targets that already opted into sysupdate are
+  # candidates, avoiding a combinatorial copy of platform-independent logic.
+  secure-targets = map (
+    t:
+    let
+      secureName = "${t.name}-secure-ab";
+    in
+    (t.extendHost [
+      self.nixosModules.secure-ab-x86
+      {
+        ghaf = {
+          secureUpdate = {
+            enable = true;
+            target = secureName;
+          };
+          partitioning.verity = {
+            enable = true;
+            initialDisk.enable = true;
+          };
+          boot-health.enable = true;
+        };
+      }
+    ])
+    // {
+      name = secureName;
+    }
+  ) (builtins.filter (x: x.buildSysupdateImage) target-configs);
+
   # Map all of the defined configurations to an installer image. Each installer
   # reuses the shared base NixOS evaluation and only overrides ISO contents.
   target-installers = map (
@@ -136,9 +166,29 @@ let
     }
   ) (builtins.filter (x: x.buildSysupdateImage) target-configs);
 
-  config-targets = target-configs ++ target-sysupdates;
+  secure-sysupdates = map (
+    t:
+    (t.extendHost [
+      {
+        ghaf = {
+          partitioning.verity.initialDisk.enable = lib.mkForce false;
+        };
+        boot.uki.tries = 3;
+      }
+    ])
+    // {
+      name = "${t.name}-sysupdate";
+    }
+  ) secure-targets;
+
+  config-targets = target-configs ++ target-sysupdates ++ secure-targets ++ secure-sysupdates;
   package-targets =
-    target-configs ++ target-installers ++ target-netboot-installers ++ target-sysupdates;
+    target-configs
+    ++ target-installers
+    ++ target-netboot-installers
+    ++ target-sysupdates
+    ++ secure-targets
+    ++ secure-sysupdates;
 in
 {
   flake = {

@@ -21,6 +21,9 @@
     ghaf-intro = final.callPackage ./pkgs-by-name/ghaf-intro/package.nix { };
     ghaf-open = final.callPackage ./pkgs-by-name/ghaf-open/package.nix { };
     ghaf-powercontrol = final.callPackage ./ghaf-powercontrol/package.nix { };
+    ghaf-prepare-x86-verity-disk =
+      final.callPackage ./pkgs-by-name/ghaf-prepare-x86-verity-disk/package.nix
+        { };
     ghaf-secure-ab-config = final.callPackage ./pkgs-by-name/ghaf-secure-ab-config/package.nix { };
     ghaf-update-manifest = final.callPackage ./pkgs-by-name/ghaf-update-manifest/package.nix { };
     ghaf-vms = final.callPackage ./pkgs-by-name/ghaf-vms/package.nix { };
