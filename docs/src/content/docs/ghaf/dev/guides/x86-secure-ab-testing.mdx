@@ -8,112 +8,71 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # x86 secure A/B testing
 
-This guide covers the Intel laptop secure A/B development canary. It does not
-replace the normal `intel-laptop-*` targets. The secure family is additive:
+The Intel development canary is additive; normal laptop targets are unchanged.
+See the [shared architecture](/ghaf/dev/architecture/ab-update) for trust,
+signing, transactions and acceptance rules.
 
-| Artifact | Flake target |
+| Artifact | Target |
 | --- | --- |
-| Initial disk image | `intel-laptop-debug-secure-ab` |
-| A/B update payload | `intel-laptop-debug-secure-ab-sysupdate` |
+| Initial unsigned disk | `intel-laptop-debug-secure-ab` |
+| Update payload | `intel-laptop-debug-secure-ab-sysupdate` |
 
-The initial target builds the complete unsigned disk image in the Nix sandbox.
-Regular-file tools create its GPT, Type-2-only ESP, one active root/verity pair,
-one empty pair, Btrfs persist, swap, and LUKS2 container. The build uses no VM,
-loop device, device-mapper mapping, mount, or privilege. EFI executables remain
-unsigned so private keys never enter the store.
+The initial build creates GPT, a Type-2-only ESP, active and empty root/verity
+pairs, Btrfs persist, swap and LUKS2 using regular files: no VM, root, mount,
+loop device or device mapper. EFI signing is separate so keys stay outside the
+store. Each root is 50 GiB and each verity LV 1 GiB; with 12 GiB swap and 2 GiB
+persist the default disk needs approximately 121 GiB. Smaller images reject.
 
-Both system pairs use the established x86 capacities: 50 GiB for each root LV
-and 1 GiB for each verity LV. With the default 12 GiB swap and 2 GiB initial
-persist volume, the initial image and destination disk require approximately
-121 GiB. The build rejects a smaller configured image instead of silently
-producing a system without a usable inactive slot.
+## Build and sign
 
-## Build, prepare, and sign the initial disk
-
-Generate one external development trust directory and keep it outside Git:
+Generate development keys once using the shared guide. Export a fresh public
+configuration for each generation; never mutate an input used for an image.
 
 ```sh
-nix run .#ghaf-dev-keygen -- --output /secure/local/ghaf-dev-keys
 export GHAF_DEV_KEY_DIR=/secure/local/ghaf-dev-keys
-export SECURE_AB_GENERATION=1
-export SECURE_AB_BUILD_CONFIG="$PWD/secure-ab-x86-generation-$SECURE_AB_GENERATION"
-nix run .#ghaf-secure-ab-config -- \
-  --key-dir "$GHAF_DEV_KEY_DIR" \
-  --generation "$SECURE_AB_GENERATION" \
-  --output "$SECURE_AB_BUILD_CONFIG"
-
-timeout 2h nix build \
-  --override-input secure-ab-build-config "path:$SECURE_AB_BUILD_CONFIG" \
-  .#intel-laptop-debug-secure-ab \
-  -o result-x86-unsigned
+GENERATION=1
+PUBLIC="$PWD/secure-ab-x86-generation-$GENERATION"
+nix run .#ghaf-secure-ab-config -- --key-dir "$GHAF_DEV_KEY_DIR" \
+  --generation "$GENERATION" --output "$PUBLIC"
+timeout 2h nix build --override-input secure-ab-build-config "path:$PUBLIC" \
+  .#intel-laptop-debug-secure-ab -o result-x86-unsigned
+sudo nix run .#ghaf-sign-x86-image -- --key-dir "$GHAF_DEV_KEY_DIR" \
+  --input result-x86-unsigned --output /var/tmp/ghaf-x86-signed
 ```
 
-The result is the unsigned disk image. Sign its ESP into another new output directory.
-The build requires external public trust. The signer checks that all four public trust files match
-the evaluation inventory, signs both systemd-boot paths and every UKI, and
-regenerates the bmap:
-
-```sh
-sudo nix run .#ghaf-sign-x86-image -- \
-  --key-dir "$GHAF_DEV_KEY_DIR" \
-  --input result-x86-unsigned \
-  --output /var/tmp/ghaf-x86-signed
-```
+The post-build signer requires root to mount the ESP. It checks all four public
+trust files against the evaluation inventory, signs both systemd-boot paths and
+every UKI, rejects Type-1 entries and regenerates the bmap in a new directory.
 
 ## Install and enroll
 
-Boot a Ghaf installer in UEFI Setup Mode. Make the signed directory and its
-enrollment files available locally, then run:
+Explicitly identify and authorize the destination disk before this destructive
+step and set `INSTALL_DISK` to its exact path. Boot the installer in UEFI
+Setup Mode and provide the signed directory and matching enrollment files:
 
 ```sh
-sudo env \
-  IMG_PATH=/var/tmp/ghaf-x86-signed \
+sudo env IMG_PATH=/var/tmp/ghaf-x86-signed \
   GHAF_SECUREBOOT_KEY_DIR=/var/tmp/ghaf-x86-signed \
-  ghaf-installer -s -d /dev/nvme0n1
+  ghaf-installer -s -d "$INSTALL_DISK"
 ```
 
-Do not add `-e`: the secure A/B image already contains LUKS. Before changing
-firmware variables, the installer mounts the written ESP read-only, rejects
-Type-1 entries, and verifies every loader and UKI against `db.crt`.
+Do not add `-e`: LUKS already exists. Before firmware changes the installer
+checks the written ESP read-only, rejects Type-1 entries and verifies all loaders
+and UKIs against `db.crt`. First boot replaces the empty development bootstrap
+password slot with TPM2/FIDO2 and recovery enrollment, removing the bootstrap
+slot last. This is not a production manufacturing credential flow.
 
-The initial LUKS password slot is the existing development bootstrap empty
-passphrase. On first boot, Ghaf enrolls TPM2 or FIDO2 plus a recovery key and
-removes that password slot. This is a development provisioning boundary, not a
-production manufacturing credential flow.
+## Updates and acceptance
 
-## Build and sign an update
+Export a fresh public input with a generation newer than the accepted value,
+then build `intel-laptop-debug-secure-ab-sysupdate` with the same pure override.
+Sign its manifest with `ghaf-sign-update` as in the shared guide. The exact
+target remains `intel-laptop-debug-secure-ab`. Fetch in `net-vm`; on the host,
+validate, dry-run and install in that order, stopping on errors, then reboot
+manually to observe the counted trial.
 
-Increment the generation and export a new public-only build configuration for
-every candidate. Never edit or reuse a configuration that produced an image:
-
-```sh
-export SECURE_AB_GENERATION=2
-export SECURE_AB_BUILD_CONFIG="$PWD/secure-ab-x86-generation-$SECURE_AB_GENERATION"
-nix run .#ghaf-secure-ab-config -- \
-  --key-dir "$GHAF_DEV_KEY_DIR" \
-  --generation "$SECURE_AB_GENERATION" \
-  --output "$SECURE_AB_BUILD_CONFIG"
-timeout 2h nix build \
-  --override-input secure-ab-build-config "path:$SECURE_AB_BUILD_CONFIG" \
-  .#intel-laptop-debug-secure-ab-sysupdate \
-  -o result-x86-update
-
-nix run .#ghaf-sign-update -- \
-  --key-dir "$GHAF_DEV_KEY_DIR" \
-  --input result-x86-update/ghaf_<version>_<hash>.manifest \
-  --output signed-x86-update
-```
-
-Install with `ota-update image install`. The target string must be exactly
-`intel-laptop-debug-secure-ab`. Validation, inactive-slot writes, the
-boot-counted trial, health gate, and rollback are shared with NVIDIA.
-
-## Acceptance boundary
-
-A successful Nix build proves payload and disk construction, but not hardware
-acceptance. Hardware acceptance still requires Secure Boot enabled, the empty
-bootstrap slot removed, signed A→B→A updates, wrong-target and downgrade
-rejection, corrupt-root rollback, power interruption at each transaction phase,
-and verification that the machine resets after an early boot failure. A kernel
-`panic=10` fallback is configured; a platform watchdog is not claimed until it
-is tested per laptop.
+Per laptop, require Secure Boot, bootstrap-slot removal, recovery unlock,
+signed A→B→A reuse, wrong-target/
+downgrade/tampering rejection, health and root/verity-corruption rollback, persist
+retention and power cuts at each transaction boundary. `panic=10` is configured;
+hard-hang reset/watchdog acceptance remains unproven until physically tested.
