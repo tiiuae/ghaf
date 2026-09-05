@@ -18,63 +18,22 @@ EOF
   exit 2
 }
 
-update_dir=""
-systemd_boot=""
-trust_inventory=""
-image_size_mib=""
-root_size_mib=""
-verity_size_mib=""
-swap_size_mib=""
-persist_size_mib=""
-boot_timeout=""
-output=""
+update_dir="" systemd_boot="" trust_inventory="" output="" boot_timeout=""
+image_size_mib="" root_size_mib="" verity_size_mib="" swap_size_mib="" persist_size_mib=""
 print_plan=false
-
 while (($#)); do
   case "$1" in
-  --update-dir)
-    update_dir="${2:-}"
-    shift 2
-    ;;
-  --systemd-boot)
-    systemd_boot="${2:-}"
-    shift 2
-    ;;
-  --trust-inventory)
-    trust_inventory="${2:-}"
-    shift 2
-    ;;
-  --image-size-mib)
-    image_size_mib="${2:-}"
-    shift 2
-    ;;
-  --root-size-mib)
-    root_size_mib="${2:-}"
-    shift 2
-    ;;
-  --verity-size-mib)
-    verity_size_mib="${2:-}"
-    shift 2
-    ;;
-  --swap-size-mib)
-    swap_size_mib="${2:-}"
-    shift 2
-    ;;
-  --persist-size-mib)
-    persist_size_mib="${2:-}"
-    shift 2
-    ;;
-  --boot-timeout)
-    boot_timeout="${2:-}"
-    shift 2
-    ;;
-  --output)
-    output="${2:-}"
-    shift 2
-    ;;
   --print-plan)
     print_plan=true
     shift
+    ;;
+  --update-dir | --systemd-boot | --trust-inventory | --output | --boot-timeout | \
+    --image-size-mib | --root-size-mib | --verity-size-mib | --swap-size-mib | --persist-size-mib)
+    (($# >= 2)) || usage
+    # Only the fixed option whitelist above may select a destination variable.
+    option=${1#--}
+    printf -v "${option//-/_}" '%s' "$2"
+    shift 2
     ;;
   *) usage ;;
   esac
@@ -109,14 +68,13 @@ fi
 manifest=${manifests[0]}
 uki=${ukis[0]}
 
-lvm_plan=$(ghaf-initialize-verity-lvm \
-  --update-dir "$update_dir" \
-  --root-size-mib "$root_size_mib" \
-  --verity-size-mib "$verity_size_mib" \
-  --create-inactive-slots \
-  --swap-size-mib "$swap_size_mib" \
-  --persist-size-mib "$persist_size_mib" \
-  --print-plan)
+initialize_lvm() {
+  ghaf-initialize-verity-lvm --update-dir "$update_dir" \
+    --root-size-mib "$root_size_mib" --verity-size-mib "$verity_size_mib" \
+    --create-inactive-slots --swap-size-mib "$swap_size_mib" \
+    --persist-size-mib "$persist_size_mib" "$@"
+}
+lvm_plan=$(initialize_lvm --print-plan)
 version=$(jq -er '.version | select(type == "string" and length > 0)' "$manifest")
 root_hash=$(jq -er '.root_verity_hash | select(type == "string" and test("^[0-9a-fA-F]{64}$"))' "$manifest")
 
@@ -209,14 +167,7 @@ mcopy -i "$esp_image" "$work/loader.conf" ::loader/loader.conf
 
 luks_image="$work/luks.img"
 truncate -s "$plain_lvm_size" "$luks_image"
-ghaf-initialize-verity-lvm \
-  --image "$luks_image" \
-  --update-dir "$update_dir" \
-  --root-size-mib "$root_size_mib" \
-  --verity-size-mib "$verity_size_mib" \
-  --create-inactive-slots \
-  --swap-size-mib "$swap_size_mib" \
-  --persist-size-mib "$persist_size_mib"
+initialize_lvm --image "$luks_image"
 
 # Keep compatibility with Ghaf's existing first-boot enrollment: it unlocks
 # this bootstrap slot with an empty passphrase, enrolls TPM2/FIDO2 and recovery
