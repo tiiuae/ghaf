@@ -1,23 +1,15 @@
 # SPDX-FileCopyrightText: 2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
+  callPackage,
   coreutils,
-  cryptsetup,
   jq,
   qemu-utils,
   runCommand,
   writeShellApplication,
 }:
 let
-  imageCryptsetup = cryptsetup.overrideAttrs (old: {
-    patches = (old.patches or [ ]) ++ [ ./offline-file-convert.patch ];
-    configureFlags = (old.configureFlags or [ ]) ++ [
-      "--with-luks2-lock-path=/tmp/cryptsetup"
-    ];
-    # The package's upstream suite includes privileged kernel-mapping tests.
-    # This wrapper has a focused unprivileged regular-file round-trip below.
-    doCheck = false;
-  });
+  imageCryptsetup = callPackage ../../../overlays/custom-packages/cryptsetup-offline { };
 
   ghaf-wrap-luks-image = writeShellApplication {
     name = "ghaf-wrap-luks-image";

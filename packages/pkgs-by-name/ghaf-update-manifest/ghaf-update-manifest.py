@@ -9,52 +9,24 @@ import tempfile
 
 
 def add_generate_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument(
-        "--version", required=True, help="Version string for @v placeholder."
-    )
-    parser.add_argument(
-        "--system",
-        required=True,
-        help="Nix target system identifier (for example aarch64-linux).",
-    )
-    parser.add_argument(
-        "--build-system",
-        required=True,
-        help="Nix build system identifier that produced the artifacts.",
-    )
-    parser.add_argument(
-        "--target", required=True, help="Exact hardware/update target identifier."
-    )
-    parser.add_argument(
-        "--generation", required=True, type=int, help="Monotonic generation."
-    )
-    parser.add_argument(
-        "--hash-file", required=True, help="Path to dm-verity root hash file."
-    )
-    parser.add_argument(
-        "--root-image", required=True, help="Path to compressed root image."
-    )
-    parser.add_argument(
-        "--verity-image", required=True, help="Path to compressed verity image."
-    )
-    parser.add_argument(
-        "--kernel-image", required=True, help="Path to kernel/UKI image."
-    )
-    parser.add_argument(
-        "--manifest", required=True, help="Output manifest path template."
-    )
-    parser.add_argument(
-        "--root-unpacked-size",
-        type=int,
-        required=True,
-        help="Uncompressed root image size in bytes.",
-    )
-    parser.add_argument(
-        "--verity-unpacked-size",
-        type=int,
-        required=True,
-        help="Uncompressed verity image size in bytes.",
-    )
+    for name, help_text in (
+        ("version", "Version string for @v placeholder."),
+        ("system", "Nix target system identifier (for example aarch64-linux)."),
+        ("build-system", "Nix build system identifier that produced the artifacts."),
+        ("target", "Exact hardware/update target identifier."),
+        ("hash-file", "Path to dm-verity root hash file."),
+        ("root-image", "Path to compressed root image."),
+        ("verity-image", "Path to compressed verity image."),
+        ("kernel-image", "Path to kernel/UKI image."),
+        ("manifest", "Output manifest path template."),
+    ):
+        parser.add_argument(f"--{name}", required=True, help=help_text)
+    for name, help_text in (
+        ("generation", "Monotonic generation."),
+        ("root-unpacked-size", "Uncompressed root image size in bytes."),
+        ("verity-unpacked-size", "Uncompressed verity image size in bytes."),
+    ):
+        parser.add_argument(f"--{name}", type=int, required=True, help=help_text)
 
 
 def parse_args() -> argparse.Namespace:
@@ -63,12 +35,12 @@ def parse_args() -> argparse.Namespace:
     )
     commands = parser.add_subparsers(dest="command", required=True)
     add_generate_arguments(commands.add_parser("generate"))
-    rehash = commands.add_parser(
-        "rehash", help="Recompute artifact hashes and packed sizes in a manifest."
-    )
-    rehash.add_argument(
-        "--manifest", required=True, help="Manifest to update atomically."
-    )
+    for command, help_text in (
+        ("validate", "Check metadata, artifact names, and sizes before signing."),
+        ("rehash", "Recompute artifact hashes and packed sizes atomically."),
+    ):
+        subparser = commands.add_parser(command, help=help_text)
+        subparser.add_argument("--manifest", required=True, help="Manifest path.")
 
     # Keep direct option invocation compatible with the original generator CLI.
     argv = sys.argv[1:]
@@ -98,10 +70,6 @@ def sha256_file(path: str) -> str:
     return digest.hexdigest()
 
 
-def file_size(path: str) -> int:
-    return os.path.getsize(path)
-
-
 def validate_metadata(manifest: dict) -> None:
     if manifest.get("manifest_version") != 2:
         raise ValueError("manifest_version must be 2")
@@ -109,7 +77,7 @@ def validate_metadata(manifest: dict) -> None:
         if not isinstance(manifest.get(field), str) or not manifest[field].strip():
             raise ValueError(f"manifest {field} must be a non-empty string")
     build_system = manifest.get("build-system")
-    if build_system is not None and (
+    if "build-system" in manifest and (
         not isinstance(build_system, str) or not build_system.strip()
     ):
         raise ValueError("manifest build-system must be a non-empty string")
@@ -142,6 +110,32 @@ def artifact_path(manifest_path: str, manifest: dict, kind: str) -> str:
     ):
         raise ValueError(f"manifest {kind} file must be a safe basename")
     return os.path.join(os.path.dirname(os.path.abspath(manifest_path)), name)
+
+
+def validate_manifest(path: str, manifest: dict) -> None:
+    validate_metadata(manifest)
+    names = [os.path.basename(path), os.path.basename(path) + ".sig"]
+    for kind in ("root", "verity", "kernel"):
+        names.append(os.path.basename(artifact_path(path, manifest, kind)))
+    if len(names) != len(set(names)):
+        raise ValueError("Artifact file names must be distinct from release metadata")
+    for kind in ("root", "verity"):
+        size = manifest[kind].get("unpacked_size")
+        if isinstance(size, bool) or not isinstance(size, int) or size <= 0:
+            raise ValueError(f"manifest {kind} unpacked_size must be positive")
+
+
+def rehash_artifacts(path: str, manifest: dict) -> None:
+    validate_manifest(path, manifest)
+    for kind in ("root", "verity", "kernel"):
+        update_artifact(manifest, kind, artifact_path(path, manifest, kind))
+
+
+def update_artifact(manifest: dict, kind: str, path: str) -> None:
+    size = os.path.getsize(path)
+    manifest[kind].update(sha256=sha256_file(path), packed_size=size)
+    if kind == "kernel":
+        manifest[kind]["unpacked_size"] = size
 
 
 def write_manifest(path: str, manifest: dict) -> None:
@@ -180,10 +174,6 @@ def generate(args: argparse.Namespace) -> None:
     root_verity_hash = root_verity_hash[:64]
     storehash = root_verity_hash[:16]
 
-    store = rename(args.root_image, args.version, storehash)
-    verity = rename(args.verity_image, args.version, storehash)
-    kernel = rename(args.kernel_image, args.version, storehash)
-
     manifest = {
         "manifest_version": 2,
         "system": args.system,
@@ -193,51 +183,16 @@ def generate(args: argparse.Namespace) -> None:
         "meta": {},
         "version": args.version,
         "root_verity_hash": root_verity_hash,
-        "root": {
-            "file": os.path.basename(store),
-            "sha256": sha256_file(store),
-            "packed_size": file_size(store),
-            "unpacked_size": args.root_unpacked_size,
-        },
-        "verity": {
-            "file": os.path.basename(verity),
-            "sha256": sha256_file(verity),
-            "packed_size": file_size(verity),
-            "unpacked_size": args.verity_unpacked_size,
-        },
-        "kernel": {
-            "file": os.path.basename(kernel),
-            "sha256": sha256_file(kernel),
-            "packed_size": file_size(kernel),
-            "unpacked_size": file_size(kernel),
-        },
     }
-    validate_metadata(manifest)
-    write_manifest(fixname(args.manifest, args.version, storehash), manifest)
-
-
-def rehash(manifest_path: str) -> None:
-    with open(manifest_path, "r", encoding="utf-8") as file:
-        manifest = json.load(file)
-    validate_metadata(manifest)
-
     for kind in ("root", "verity", "kernel"):
-        path = artifact_path(manifest_path, manifest, kind)
-        size = file_size(path)
-        manifest[kind]["sha256"] = sha256_file(path)
-        manifest[kind]["packed_size"] = size
-        if kind == "kernel":
-            manifest[kind]["unpacked_size"] = size
-        else:
-            unpacked_size = manifest[kind].get("unpacked_size")
-            if (
-                isinstance(unpacked_size, bool)
-                or not isinstance(unpacked_size, int)
-                or unpacked_size <= 0
-            ):
-                raise ValueError(f"manifest {kind} unpacked_size must be positive")
-
-    write_manifest(manifest_path, manifest)
+        filename = rename(getattr(args, f"{kind}_image"), args.version, storehash)
+        manifest[kind] = {"file": os.path.basename(filename)}
+        if kind != "kernel":
+            manifest[kind]["unpacked_size"] = getattr(args, f"{kind}_unpacked_size")
+        update_artifact(manifest, kind, filename)
+    path = fixname(args.manifest, args.version, storehash)
+    validate_manifest(path, manifest)
+    write_manifest(path, manifest)
 
 
 def main() -> None:
@@ -245,7 +200,13 @@ def main() -> None:
     if args.command == "generate":
         generate(args)
     else:
-        rehash(args.manifest)
+        with open(args.manifest, "r", encoding="utf-8") as file:
+            manifest = json.load(file)
+        if args.command == "validate":
+            validate_manifest(args.manifest, manifest)
+        else:
+            rehash_artifacts(args.manifest, manifest)
+            write_manifest(args.manifest, manifest)
 
 
 if __name__ == "__main__":

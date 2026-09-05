@@ -47,6 +47,7 @@ ghaf-sign-update.overrideAttrs (old: {
             "manifest_version": 2,
             "system": "test-system",
             "target": "test-target",
+            "version": "test-version",
             "generation": 1,
             "root_verity_hash": "0000000000000000000000000000000000000000000000000000000000000000",
             "root": { "file": "manifest.json" },

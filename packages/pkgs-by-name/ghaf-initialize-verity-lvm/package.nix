@@ -89,6 +89,18 @@ ghaf-initialize-verity-lvm.overrideAttrs (old: {
           grep 'root_1_deadbeef {' first-metadata.txt
           grep 'verity_1_deadbeef {' first-metadata.txt
 
+          # Exercise the shared bounded writer with locally formatted files too.
+          truncate -s 256M complete.img
+          ghaf-initialize-verity-lvm \
+            --update-dir payload --root-size-mib 1 --verity-size-mib 1 \
+            --create-inactive-slots --swap-size-mib 4 --persist-size-mib 128 \
+            --vg-name ghaf_complete --image complete.img
+          pvck --driverloaded n --nolocking --config 'global { locking_type = 0 }' \
+            --dump metadata complete.img > complete-metadata.txt
+          for name in root_empty verity_empty swap persist; do
+            grep "$name {" complete-metadata.txt
+          done
+
           truncate -s $((1024 * 1024 + 1)) overlong-root.raw
           zstd --force overlong-root.raw -o payload/ghaf_root_1_deadbeef.raw.zst
           truncate -s 96M overlong.img

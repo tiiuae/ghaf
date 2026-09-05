@@ -51,45 +51,23 @@ if [[ $(stat -c%s "$key_dir/update.pub") -ne 32 ]] ||
   echo "update.key does not match update.pub" >&2
   exit 1
 fi
-[[ $(jq -er '
-  .manifest_version == 2
-  and (.system | type == "string" and length > 0)
-  and ((has("build-system") | not) or (."build-system" | type == "string" and length > 0))
-  and (.target | type == "string" and length > 0)
-  and (.generation | type == "number" and floor == . and . > 0)
-  and (.root_verity_hash | type == "string" and test("^[0-9a-fA-F]{64}$"))
-' "$input") == true ]]
-
 source_dir=$(cd "$(dirname "$input")" && pwd)
+# Keep the validated manifest stable while copying and signing its artifacts.
+mkdir "$trust_check/manifest"
+cp "$input" "$trust_check/manifest/"
+input="$trust_check/manifest/$(basename "$input")"
+ghaf-update-manifest validate --manifest "$input"
+
 mkdir -p "$output"
 manifest="$output/$(basename "$input")"
 cp "$input" "$manifest"
 
-# Artifact names must be distinct from each other and from the manifest, or a
-# later copy could clobber release material before it is signed.
-if ! jq -e --arg manifest "$(basename "$input")" \
-  '[.root.file, .verity.file, .kernel.file, $manifest] | length == (unique | length)' \
-  "$manifest" >/dev/null; then
-  echo "Artifact file names must be distinct and must not collide with the manifest" >&2
-  exit 1
-fi
-
 for kind in root verity; do
   file=$(jq -er ".$kind.file" "$manifest")
-  [[ $file == "$(basename -- "$file")" ]] || {
-    echo "Unsafe artifact path: $file" >&2
-    exit 1
-  }
-  jq -e --arg kind "$kind" '.[$kind].unpacked_size | type == "number" and floor == . and . > 0' \
-    "$manifest" >/dev/null
   cp "$source_dir/$file" "$output/$file"
 done
 
 kernel=$(jq -er '.kernel.file' "$manifest")
-[[ $kernel == "$(basename -- "$kernel")" ]] || {
-  echo "Unsafe artifact path: $kernel" >&2
-  exit 1
-}
 sbsign --key "$key_dir/db.key" --cert "$key_dir/db.crt" \
   --output "$output/$kernel" "$source_dir/$kernel"
 sbverify --cert "$key_dir/db.crt" "$output/$kernel" >/dev/null
