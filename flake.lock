@@ -801,11 +801,11 @@
     "secure-ab-build-config": {
       "flake": false,
       "locked": {
-        "path": "./config/secure-ab-ci",
+        "path": "./config/secure-ab-build-config",
         "type": "path"
       },
       "original": {
-        "path": "./config/secure-ab-ci",
+        "path": "./config/secure-ab-build-config",
         "type": "path"
       },
       "parent": []
