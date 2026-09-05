@@ -95,19 +95,6 @@ in
       '';
     };
 
-    externalPublicTrustConfigured = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      internal = true;
-      description = ''
-        Whether the image was evaluated with a complete external public trust
-        set. The exported flake flash entry point uses this marker to select
-        either the secure A/B implementation or the board-matched generic
-        unsigned fallback. The secure A/B implementation itself remains
-        fail-closed for CI-only images.
-      '';
-    };
-
     publicTrustDigests = lib.mkOption {
       type = lib.types.attrsOf lib.types.str;
       default = { };

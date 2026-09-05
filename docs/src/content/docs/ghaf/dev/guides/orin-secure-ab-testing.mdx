@@ -73,44 +73,15 @@ For every test case record:
 
 ## Common setup
 
-### Pure CI build mode
+### Required build configuration
 
-The repository's default pure flake input is sufficient for evaluation and
-build discovery. Evaluate both debug canaries directly:
+The default input contains no public keys. Secure A/B image and flash-script
+evaluation must fail until an external public configuration is supplied as
+described below. Flash attributes always select the requested target; there is
+no automatic fallback to a generic unsigned image.
 
-```sh
-timeout 2h nix eval \
-  '.#nixosConfigurations."nvidia-jetson-orin-nx-verity-luks-debug-from-x86_64".config.system.build.ghafImage.drvPath'
-
-timeout 2h nix eval \
-  '.#nixosConfigurations."nvidia-jetson-orin-agx-verity-luks-debug-from-x86_64".config.system.build.ghafImage.drvPath'
-```
-
-Each evaluation must succeed and emit the target-specific message ending in:
-
-```text
-using repository CI-only trust from secure-ab-build-config; this image is restricted to debug build coverage and must not be deployed.
-```
-
-This public fallback is deliberately unsafe for deployment. It exists only so
-CI can evaluate and build the secure A/B image without access to local secrets.
-Build the exported NX and AGX flash attributes sequentially, then inspect each
-wrapper without running it. Confirm it selects the board-matched generic image
-and contains the exact warning:
-
-```text
-WARNING: secure A/B development trust was unavailable at evaluation; flashing the generic unsigned target instead.
-  Requested: <secure-A/B-target>
-  Fallback:  <generic-target>
-  Rebuild with an external secure-ab-build-config input to flash the secure A/B canary.
-```
-
-The wrapper does not deploy the CI-only A/B image. It delegates to the existing
-generic unsigned target, which has a different image and partition layout. It
-strips `--secure-boot`, `-u`/`--uki`, and `-s`/`--signed-sd-image` with explicit
-warnings so secure-image-only arguments cannot alter the fallback. Do not
-execute either wrapper during this source-only check; flashing remains a
-separate, explicitly authorized operation.
+CI integration is future work described in the
+[shared architecture guide](/ghaf/dev/architecture/ab-update/#proposed-ci-integration).
 
 ### Repository and key environment
 
@@ -153,15 +124,9 @@ timeout 2h nix eval \
   '.#nixosConfigurations."nvidia-jetson-orin-nx-verity-luks-debug-from-x86_64".config.system.build.ghafImage.drvPath'
 ```
 
-It must succeed and emit the target-specific message ending in:
-
-```text
-using pure external public trust from secure-ab-build-config; private signing keys remain outside the Nix store.
-```
-
-Overriding `secure-ab-build-config` with an incomplete external directory must
-fail pure evaluation with `external secure-ab-build-config is missing required
-public trust files:` followed by the exact missing file names. Running a flash
+It must succeed with the configured generation and public trust. Overriding
+the input with an incomplete directory must fail evaluation and identify the
+missing public file or files. Running a flash
 script with the runtime key variable unset must fail with `ERROR:
 GHAF_DEV_KEY_DIR is required for secure A/B canary flashes.`; missing flash or
 signing files are reported by their exact paths.
