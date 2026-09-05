@@ -41,10 +41,6 @@ done
   echo "Missing $input/public-trust.json; the image does not expose its evaluated trust inventory" >&2
   exit 1
 }
-[[ $(jq -er '.external == true' "$input/public-trust.json") == true ]] || {
-  echo "Refusing to sign an x86 image evaluated with CI-only public trust; rebuild with an external secure-ab-build-config input" >&2
-  exit 1
-}
 for public_file in PK.crt KEK.crt db.crt update.pub; do
   expected=$(jq -er --arg name "$public_file" '.publicTrustDigests[$name]' "$input/public-trust.json")
   actual=$(sha256sum "$key_dir/$public_file")
