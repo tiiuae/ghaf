@@ -22,7 +22,8 @@
   ###############
 
   # ProtectHome=true;
-  ProtectSystem = "full";
+  # ProtectSystem="full" locks mounts, which breaks crosvm's pivot_root(); see RestrictNamespaces below.
+  ProtectSystem = false;
   ProtectProc = "noaccess";
   # ReadWritePaths=[ "/etc"];
   PrivateTmp = false;
@@ -36,7 +37,7 @@
   ###################
 
   # Not applicable for the service runs as root
-  PrivateUsers = true;
+  PrivateUsers = false;
   # DynamicUser=true;
 
   ###########
@@ -65,7 +66,8 @@
   ProtectHostname = true;
   ProtectClock = true;
   ProtectControlGroups = true;
-  RestrictNamespaces = true;
+  # TODO: crosvm's ProxyDevice (DAX, --pmem-ext2) needs unshare(CLONE_NEWNS) regardless of --disable-sandbox; narrow this later.
+  RestrictNamespaces = false;
   /*
       RestrictNamespaces=[
      #"~user"
@@ -89,7 +91,11 @@
   # Capabilities #
   ################
 
-  #AmbientCapabilities=
+  # CapabilityBoundingSet only raises the ceiling for a non-root unit; AmbientCapabilities grants it.
+  AmbientCapabilities = [
+    "CAP_SYS_ADMIN"
+    "CAP_SYS_CHROOT"
+  ];
   CapabilityBoundingSet = [
     "~CAP_SYS_PACCT"
     "~CAP_KILL"
@@ -103,7 +109,7 @@
     "~CAP_SYS_MODULE"
     "~CAP_SYS_TTY_CONFIG"
     "~CAP_SYS_BOOT"
-    "~CAP_SYS_CHROOT"
+    # "~CAP_SYS_CHROOT" - needed for crosvm's chroot("/") after pivot_root.
     # "~CAP_BLOCK_SUSPEND"
     "~CAP_LEASE"
     "~CAP_MKNOD"
@@ -126,7 +132,7 @@
     # "~CAP_AUDIT_CONTROL"
     # "~CAP_AUDIT_READ"
     # "~CAP_AUDIT_WRITE"
-    "~CAP_SYS_ADMIN"
+    # "~CAP_SYS_ADMIN" - needed for crosvm's unshare(CLONE_NEWNS).
     # "~CAP_SYSLOG"
     # "~CAP_SYS_TIME
   ];
@@ -138,9 +144,9 @@
   SystemCallFilter = [
     "~@clock"
     # "~@cpu-emulation"
-    "~@debug"
+    # "~@debug" - TEMPORARY, needed by strace's ptrace() for diagnosis.
     "~@module"
-    "~@mount"
+    # "~@mount" - crosvm calls mount() after unshare(CLONE_NEWNS).
     "~@obsolete"
     # "~@privileged"
     # "~@raw-io"
