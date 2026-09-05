@@ -60,7 +60,7 @@ Do not add `-e`: LUKS already exists. Before firmware changes the installer
 checks the written ESP read-only, rejects Type-1 entries and verifies all loaders
 and UKIs against `db.crt`. First boot replaces the empty development bootstrap
 password slot with TPM2/FIDO2 and recovery enrollment, removing the bootstrap
-slot last. This is not a production manufacturing credential flow.
+slot last.
 
 ## Updates and acceptance
 
@@ -72,7 +72,7 @@ validate, dry-run and install in that order, stopping on errors, then reboot
 manually to observe the counted trial.
 
 Per laptop, require Secure Boot, bootstrap-slot removal, recovery unlock,
-signed A→B→A reuse, wrong-target/
-downgrade/tampering rejection, health and root/verity-corruption rollback, persist
+signed A→B→A reuse, wrong-target/downgrade/tampering rejection,
+health and root/verity-corruption rollback, persist
 retention and power cuts at each transaction boundary. `panic=10` is configured;
-hard-hang reset/watchdog acceptance remains unproven until physically tested.
+hard-hang reset/watchdog testing is outstanding.
