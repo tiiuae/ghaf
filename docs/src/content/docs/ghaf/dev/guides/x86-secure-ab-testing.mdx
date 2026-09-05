@@ -49,7 +49,7 @@ timeout 2h nix build \
 ```
 
 The result is the unsigned disk image. Sign its ESP into another new output directory.
-The signer refuses CI-only images, checks that all four public trust files match
+The build requires external public trust. The signer checks that all four public trust files match
 the evaluation inventory, signs both systemd-boot paths and every UKI, and
 regenerates the bmap:
 

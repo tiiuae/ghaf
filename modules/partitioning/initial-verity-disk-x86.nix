@@ -27,7 +27,6 @@ let
   updateImage = config.system.build.ghafUpdateImage;
   trustInventory = pkgs.writeText "ghaf-secure-ab-public-trust.json" (
     builtins.toJSON {
-      external = config.ghaf.secureUpdate.externalPublicTrustConfigured;
       inherit (config.ghaf.secureUpdate) target generation publicTrustDigests;
     }
   );
