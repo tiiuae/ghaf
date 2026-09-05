@@ -65,9 +65,8 @@ timeout 2h nix build \
 ```
 
 The exporter emits raw 32-byte Ed25519 public keys; the updater also accepts
-64-character hexadecimal encoding. Private signing keys and recovery material
-must never enter the input or store. Missing/inconsistent public files fail;
-there is no CI trust mode, bundled key or unsigned fallback. Release wrapper
+64-character hexadecimal encoding. Missing/inconsistent public files fail;
+there is no bundled key or unsigned fallback. Release wrapper
 flakes should lock the public input and make Ghaf's input follow it.
 
 ### Proposed CI integration
@@ -154,10 +153,10 @@ after acceptance persistence finishes promotion/blessing without lowering state.
 Unhealthy trials re-arm while attempts remain and reboot; exhaustion selects
 the blessed fallback. Hard hangs additionally require a proven platform reset.
 
-Service activity is not guest-agent readiness: GIVC liveness remains necessary
-before claiming complete application-health acceptance.
+The health gate checks VMM service activity; guest-agent liveness is not
+currently checked.
 
-## Ownership and acceptance
+## Ownership
 
 | Concern | Owner/source |
 | --- | --- |
@@ -170,9 +169,4 @@ before claiming complete application-health acceptance.
 | NVIDIA adapter | APP/QSPI, DUK/recovery, Secure Boot, NX/AGX flash/first boot |
 | x86 adapter | GPT/ESP, TPM/FIDO2/recovery, Type-2 UKI, installer/enrollment |
 
-Development keys are not production key management. ESP/QSPI remain
-unencrypted; initial enrollment can be destructive. Each promoted device needs
-signed A→B→A reuse, rejection of wrong
-target/downgrades/tampering, corruption and health rollback, recovery unlock and
-power-interruption/hard-hang tests. NX evidence does not accept AGX, nor does one
-laptop accept every x86 target.
+ESP/QSPI remain unencrypted.

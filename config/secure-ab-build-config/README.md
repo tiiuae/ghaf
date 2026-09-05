@@ -9,6 +9,3 @@ This placeholder contains no keys. Secure A/B targets fail evaluation until
 `secure-ab-build-config` is overridden with an external public configuration.
 Export one with `ghaf-secure-ab-config`, then use its output as a pure flake
 input. Private keys must remain outside the input and the Nix store.
-
-CI integration is proposed in the shared A/B architecture guide; no CI trust
-mode, bundled test key, or unsigned deployment fallback is implemented.
