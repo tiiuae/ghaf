@@ -223,31 +223,12 @@ let
     cp "$_boot_src" "$_sign_dir/BOOTAA64.efi"
     cp "$_uki_src" "$_sign_dir/$_uki_name"
 
-    # Sign EFI binaries if secure boot keys are available
-    _sb_key_dir="$GHAF_DEV_KEY_DIR"
-    if [ -n "$_sb_key_dir" ] && [ -f "$_sb_key_dir/db.key" ] && [ -f "$_sb_key_dir/db.crt" ]; then
-      echo "Signing EFI binaries with $_sb_key_dir/db.crt ..."
-      for _efi in "$_sign_dir"/*.efi; do
-        echo "  Signing: $(basename "$_efi")"
-        "${pkgs.pkgsBuildBuild.sbsigntool}/bin/sbsign" \
-          --key "$_sb_key_dir/db.key" --cert "$_sb_key_dir/db.crt" \
-          --output "$_efi" "$_efi"
-      done
-    ${
-      if config.ghaf.hardware.nvidia.orin.secureboot.enable then
-        ''
-          else
-            echo "ERROR: Secure Boot is enabled but no signing keys found." >&2
-            echo "  Set GHAF_DEV_KEY_DIR to a directory from ghaf-dev-keygen." >&2
-            exit 1
-        ''
-      else
-        ''
-          else
-            echo "Secure Boot signing skipped (no keys found)."
-        ''
-    }
-    fi
+    # Trust and both signing keys were checked before preparing any images.
+    for _efi in "$_sign_dir"/*.efi; do
+      "${pkgs.pkgsBuildBuild.sbsigntool}/bin/sbsign" \
+        --key "$GHAF_DEV_KEY_DIR/db.key" --cert "$GHAF_DEV_KEY_DIR/db.crt" \
+        --output "$_efi" "$_efi"
+    done
 
     # Create 512M FAT32 ESP image
     "${pkgs.pkgsBuildBuild.dosfstools}/bin/mkfs.vfat" -F 32 -n ESP -C "$_esp" $((512 * 1024))
