@@ -17,6 +17,29 @@
   zstd,
 }:
 let
+  fixture = ''
+    mkdir payload
+    printf 'root\n' > root.raw
+    printf 'verity\n' > verity.raw
+    zstd root.raw -o payload/ghaf_root_1_deadbeef.raw.zst
+    zstd verity.raw -o payload/ghaf_verity_1_deadbeef.raw.zst
+    touch payload/ghaf_kernel_1_deadbeef.efi systemd-boot.efi
+    printf '{"target":"test","generation":1,"publicTrustDigests":{}}\n' > trust.json
+    cat > payload/ghaf_1_deadbeef.manifest <<'EOF'
+    {
+      "manifest_version": 2,
+      "version": "1",
+      "root_verity_hash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "root": { "file": "ghaf_root_1_deadbeef.raw.zst", "unpacked_size": 5 },
+      "verity": { "file": "ghaf_verity_1_deadbeef.raw.zst", "unpacked_size": 7 }
+    }
+    EOF
+    prepare() {
+      ghaf-prepare-x86-verity-disk --update-dir payload --systemd-boot systemd-boot.efi \
+        --trust-inventory trust.json --root-size-mib 1 --verity-size-mib 1 \
+        --boot-timeout menu-force "$@"
+    }
+  '';
   ghaf-prepare-x86-verity-disk = writeShellApplication {
     name = "ghaf-prepare-x86-verity-disk";
     runtimeInputs = [
@@ -52,33 +75,15 @@ ghaf-prepare-x86-verity-disk.overrideAttrs (old: {
           ];
         }
         ''
-          mkdir payload
-          printf 'root\n' > root.raw
-          printf 'verity\n' > verity.raw
-          zstd root.raw -o payload/ghaf_root_1_deadbeef.raw.zst
-          zstd verity.raw -o payload/ghaf_verity_1_deadbeef.raw.zst
-          touch payload/ghaf_kernel_1_deadbeef.efi systemd-boot.efi trust.json
-          cat > payload/ghaf_1_deadbeef.manifest <<'EOF'
-          {
-            "manifest_version": 2,
-            "version": "1",
-            "root_verity_hash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-            "root": { "file": "ghaf_root_1_deadbeef.raw.zst", "unpacked_size": 5 },
-            "verity": { "file": "ghaf_verity_1_deadbeef.raw.zst", "unpacked_size": 7 }
-          }
-          EOF
-          ghaf-prepare-x86-verity-disk \
-            --update-dir payload --systemd-boot systemd-boot.efi \
-            --trust-inventory trust.json --image-size-mib 4602 \
-            --root-size-mib 1 --verity-size-mib 1 --swap-size-mib 1 \
-            --persist-size-mib 1 --boot-timeout menu-force \
+          ${fixture}
+          prepare --image-size-mib 4602 --swap-size-mib 1 --persist-size-mib 1 \
             --print-plan > plan.json
           test "$(jq -r .minimum_image_size_mib plan.json)" = 4602
-          ! ghaf-prepare-x86-verity-disk \
-            --update-dir payload --systemd-boot systemd-boot.efi \
-            --trust-inventory trust.json --image-size-mib 4601 \
-            --root-size-mib 1 --verity-size-mib 1 --swap-size-mib 1 \
-            --persist-size-mib 1 --boot-timeout menu-force --print-plan
+          ! prepare --image-size-mib 4601 --swap-size-mib 1 --persist-size-mib 1 --print-plan
+          for option in --output --image-size-mib --PATH; do
+            ! ghaf-prepare-x86-verity-disk "$option" 2>error.log
+            grep -q '^Usage:' error.log
+          done
           touch "$out"
         '';
     tests.image =
@@ -93,27 +98,8 @@ ghaf-prepare-x86-verity-disk.overrideAttrs (old: {
           ];
         }
         ''
-          mkdir payload
-          printf 'root\n' > root.raw
-          printf 'verity\n' > verity.raw
-          zstd root.raw -o payload/ghaf_root_1_deadbeef.raw.zst
-          zstd verity.raw -o payload/ghaf_verity_1_deadbeef.raw.zst
-          touch payload/ghaf_kernel_1_deadbeef.efi systemd-boot.efi
-          printf '{"target":"test","generation":1,"publicTrustDigests":{}}\n' > trust.json
-          cat > payload/ghaf_1_deadbeef.manifest <<'EOF'
-          {
-            "manifest_version": 2,
-            "version": "1",
-            "root_verity_hash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-            "root": { "file": "ghaf_root_1_deadbeef.raw.zst", "unpacked_size": 5 },
-            "verity": { "file": "ghaf_verity_1_deadbeef.raw.zst", "unpacked_size": 7 }
-          }
-          EOF
-          ghaf-prepare-x86-verity-disk \
-            --update-dir payload --systemd-boot systemd-boot.efi \
-            --trust-inventory trust.json --image-size-mib 4600 \
-            --root-size-mib 1 --verity-size-mib 1 --swap-size-mib 0 \
-            --persist-size-mib 0 --boot-timeout menu-force --output "$out"
+          ${fixture}
+          prepare --image-size-mib 4600 --swap-size-mib 0 --persist-size-mib 0 --output "$out"
 
           test -s "$out/ghaf-image.raw.zst"
           test -s "$out/ghaf-image.bmap"
