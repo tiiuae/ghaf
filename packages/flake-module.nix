@@ -28,6 +28,12 @@
       # Re-export the updater from the exact GIVC revision pinned by this flake.
       apps.ghaf-ota-update = inputs.givc.apps.${system}.ota-update;
 
+      # Shared image builders live in ghafpkgs; preserve the public flake names.
+      packages.ghaf-image-tools = inputs.ghafpkgs.packages.${system}.ghaf-image-tools;
+      packages.ghaf-initialize-verity-lvm = inputs.ghafpkgs.packages.${system}.ghaf-initialize-verity-lvm;
+      packages.ghaf-wrap-luks-image = inputs.ghafpkgs.packages.${system}.ghaf-wrap-luks-image;
+      packages.lvm2-offline = inputs.ghafpkgs.packages.${system}.lvm2-offline;
+
       # Generate comprehensive documentation with enhanced module coverage
       packages.doc =
         let

@@ -215,7 +215,8 @@ signs the UKI, and signs the manifest last.
 
 ## Shared image-construction tools
 
-The shared storage tools operate on regular files in the Nix sandbox:
+The shared storage tools are Rust CLIs from the pinned ghafpkgs input. They
+operate on regular files in the Nix sandbox:
 
 - ghaf-initialize-verity-lvm creates deterministic LVM metadata, fixed logical
   volumes, and optional inactive, swap, and persistent volumes.
@@ -230,6 +231,18 @@ not open a mapper.
 Neither tool needs root, sudo, a VM, a loop device, a mount, or device mapper.
 Adapter code supplies partitioning and key policy without duplicating these
 mechanisms.
+
+The Rust library owns bounded file writes, subprocess handling, and checked
+LUKS publication. The offline LVM2 and cryptsetup patches and their integration
+tests live alongside it in ghafpkgs. Ghaf re-exports the existing command names
+and supplies configuration and platform policy; it does not carry another
+implementation. LUKS construction preserves the original until successful
+validation and atomic replacement. LVM construction remains in-place in a
+disposable, initially zero-filled image.
+
+LUKS wrapping encrypts all bytes in filesystem-reported data extents, including
+written zeroes. Only source holes are skipped; adapters must reserve those for
+unused space. Sparse encrypted holes do not decrypt to guaranteed zeroes.
 
 ## Delivery and installation
 
@@ -326,8 +339,8 @@ and one x86 laptop does not establish support for every laptop target.
 | Development key generation | packages/pkgs-by-name/ghaf-dev-keygen/ |
 | Update signing | packages/pkgs-by-name/ghaf-sign-update/ |
 | Debug HTTP fetch | packages/pkgs-by-name/ghaf-fetch-update/ |
-| Regular-file LVM construction | packages/pkgs-by-name/ghaf-initialize-verity-lvm/ |
-| Regular-file LUKS wrapping | packages/pkgs-by-name/ghaf-wrap-luks-image/ |
+| Regular-file LVM/LUKS construction | ghafpkgs/packages/rust/ghaf-image-tools/ |
+| Offline native storage dependencies | ghafpkgs/packages/storage/ |
 | Installer and OCI registry client | ghaf-givc/crates/ota-update/src/ |
 
 Platform adapter sources and test procedures are intentionally documented by

@@ -6,5 +6,3 @@
 modules/microvm/sysvms/patches/chromiumos-virtio-tpm.patch -whitespace
 overlays/patches/ghaf-mem-manager-no-syslog.patch -whitespace
 overlays/patches/ghaf-usb-applet-log-level.patch -whitespace
-overlays/custom-packages/lvm2-offline/offline-regular-files.patch -whitespace
-overlays/custom-packages/cryptsetup-offline/offline-file-convert.patch -whitespace
