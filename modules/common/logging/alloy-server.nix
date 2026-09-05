@@ -3,6 +3,7 @@
 {
   config,
   lib,
+  options,
   ...
 }:
 let
@@ -22,6 +23,7 @@ let
   givcEnabled = config.ghaf.givc.enable;
   givcHostEnabled = config.ghaf.givc.host.enable;
   needsGivcMount = givcEnabled && !givcHostEnabled;
+  hasStructuredJournald = options.services.journald ? settings;
 in
 {
   _file = ./alloy-server.nix;
@@ -110,17 +112,35 @@ in
 
     # Local journal retention for admin-vm's own logs
     services = {
-      journald.extraConfig = mkIf config.ghaf.logging.journalRetention.enable ''
-        MaxRetentionSec=${config.ghaf.logging.journalRetention.maxRetention}
-        MaxFileSec=${config.ghaf.logging.journalRetention.MaxFileSec}
-        SyncIntervalSec=${config.ghaf.logging.journalRetention.syncInterval}
-        SystemMaxUse=${config.ghaf.logging.journalRetention.maxDiskUsage}
-        SystemMaxFileSize=100M
-        Storage=persistent
-        ${optionalString config.ghaf.logging.fss.staticSealEnabled ''
-          Seal=yes
-        ''}
-      '';
+      journald =
+        if hasStructuredJournald then
+          {
+            settings.Journal = mkIf config.ghaf.logging.journalRetention.enable (
+              {
+                MaxRetentionSec = config.ghaf.logging.journalRetention.maxRetention;
+                MaxFileSec = config.ghaf.logging.journalRetention.MaxFileSec;
+                SyncIntervalSec = config.ghaf.logging.journalRetention.syncInterval;
+                SystemMaxUse = config.ghaf.logging.journalRetention.maxDiskUsage;
+                SystemMaxFileSize = "100M";
+                Storage = "persistent";
+              }
+              // lib.optionalAttrs config.ghaf.logging.fss.staticSealEnabled { Seal = true; }
+            );
+          }
+        else
+          {
+            extraConfig = mkIf config.ghaf.logging.journalRetention.enable ''
+              MaxRetentionSec=${config.ghaf.logging.journalRetention.maxRetention}
+              MaxFileSec=${config.ghaf.logging.journalRetention.MaxFileSec}
+              SyncIntervalSec=${config.ghaf.logging.journalRetention.syncInterval}
+              SystemMaxUse=${config.ghaf.logging.journalRetention.maxDiskUsage}
+              SystemMaxFileSize=100M
+              Storage=persistent
+              ${optionalString config.ghaf.logging.fss.staticSealEnabled ''
+                Seal=yes
+              ''}
+            '';
+          };
 
       alloy.enable = true;
     };

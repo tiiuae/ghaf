@@ -3,6 +3,7 @@
 {
   config,
   lib,
+  options,
   pkgs,
   ...
 }:
@@ -19,6 +20,7 @@ let
   givcEnabled = config.ghaf.givc.enable;
   givcHostEnabled = config.ghaf.givc.host.enable;
   needsGivcMount = givcEnabled && !givcHostEnabled;
+  hasStructuredJournald = options.services.journald ? settings;
 
   # The uploader starts before the receiver on admin-vm is listening, fails with
   # "Failed to connect to <addr>:<port> after 0 ms: Could not connect to server",
@@ -100,29 +102,48 @@ in
     ];
 
     # Local journal retention
-    services.journald = {
-      extraConfig = mkIf config.ghaf.logging.journalRetention.enable ''
-        MaxRetentionSec=${config.ghaf.logging.journalRetention.maxRetention}
-        MaxFileSec=${config.ghaf.logging.journalRetention.MaxFileSec}
-        SyncIntervalSec=${config.ghaf.logging.journalRetention.syncInterval}
-        SystemMaxUse=${config.ghaf.logging.journalRetention.maxDiskUsage}
-        SystemMaxFileSize=100M
-        Storage=persistent
-        ${optionalString config.ghaf.logging.fss.staticSealEnabled ''
-          Seal=yes
-        ''}
-      '';
-    };
-
-    services.journald.upload = {
-      enable = true;
-      settings.Upload = {
-        URL = "${cfg.endpoint}";
-        ServerKeyFile = cfg.tls.keyFile;
-        ServerCertificateFile = cfg.tls.certFile;
-        TrustedCertificateFile = cfg.tls.caFile;
+    services.journald =
+      (
+        if hasStructuredJournald then
+          {
+            settings.Journal = mkIf config.ghaf.logging.journalRetention.enable (
+              {
+                MaxRetentionSec = config.ghaf.logging.journalRetention.maxRetention;
+                MaxFileSec = config.ghaf.logging.journalRetention.MaxFileSec;
+                SyncIntervalSec = config.ghaf.logging.journalRetention.syncInterval;
+                SystemMaxUse = config.ghaf.logging.journalRetention.maxDiskUsage;
+                SystemMaxFileSize = "100M";
+                Storage = "persistent";
+              }
+              // lib.optionalAttrs config.ghaf.logging.fss.staticSealEnabled { Seal = true; }
+            );
+          }
+        else
+          {
+            extraConfig = mkIf config.ghaf.logging.journalRetention.enable ''
+              MaxRetentionSec=${config.ghaf.logging.journalRetention.maxRetention}
+              MaxFileSec=${config.ghaf.logging.journalRetention.MaxFileSec}
+              SyncIntervalSec=${config.ghaf.logging.journalRetention.syncInterval}
+              SystemMaxUse=${config.ghaf.logging.journalRetention.maxDiskUsage}
+              SystemMaxFileSize=100M
+              Storage=persistent
+              ${optionalString config.ghaf.logging.fss.staticSealEnabled ''
+                Seal=yes
+              ''}
+            '';
+          }
+      )
+      // {
+        upload = {
+          enable = true;
+          settings.Upload = {
+            URL = "${cfg.endpoint}";
+            ServerKeyFile = cfg.tls.keyFile;
+            ServerCertificateFile = cfg.tls.certFile;
+            TrustedCertificateFile = cfg.tls.caFile;
+          };
+        };
       };
-    };
     systemd.services.systemd-journal-upload = {
       after = [
         "systemd-journald.service"
