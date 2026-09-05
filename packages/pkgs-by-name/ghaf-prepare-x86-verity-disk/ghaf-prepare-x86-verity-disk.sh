@@ -69,7 +69,7 @@ manifest=${manifests[0]}
 uki=${ukis[0]}
 
 initialize_lvm() {
-  ghaf-initialize-verity-lvm --update-dir "$update_dir" \
+  ghaf-initialize-verity-lvm --manifest "$manifest" \
     --root-size-mib "$root_size_mib" --verity-size-mib "$verity_size_mib" \
     --create-inactive-slots --swap-size-mib "$swap_size_mib" \
     --persist-size-mib "$persist_size_mib" "$@"
@@ -176,8 +176,7 @@ initialize_lvm --image "$luks_image"
 ghaf-wrap-luks-image \
   --image "$luks_image" \
   --uuid 3E7F3D25-695A-429D-8D34-2D0A18979D7D \
-  --key-file "$work/bootstrap.key" \
-  --header-size-mib 32
+  --key-file "$work/bootstrap.key"
 [[ $(stat -c%s "$luks_image") -eq $luks_size_bytes ]] || {
   echo "LUKS image size does not match GPT partition size" >&2
   exit 1
