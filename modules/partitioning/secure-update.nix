@@ -10,12 +10,12 @@
 let
   cfg = config.ghaf.secureUpdate;
   verityCfg = config.ghaf.partitioning.verity;
-  requiredPublic = [
-    "PK.crt"
-    "KEK.crt"
-    "db.crt"
-    "update.pub"
+  uefiNames = [
+    "PK"
+    "KEK"
+    "db"
   ];
+  requiredPublic = map (name: "${name}.crt") uefiNames ++ [ "update.pub" ];
 
   buildConfigDir = inputs.secure-ab-build-config;
   buildConfigPath = buildConfigDir + "/config.json";
@@ -93,12 +93,7 @@ in
 
     publicTrustFiles = lib.mkOption {
       type = lib.types.attrsOf lib.types.path;
-      default = {
-        "PK.crt" = publicFile "PK.crt";
-        "KEK.crt" = publicFile "KEK.crt";
-        "db.crt" = publicFile "db.crt";
-        "update.pub" = publicFile "update.pub";
-      };
+      default = lib.genAttrs requiredPublic publicFile;
       readOnly = true;
       internal = true;
       description = "Public trust files selected during evaluation.";
@@ -106,17 +101,9 @@ in
 
     uefiCertificateContents = lib.mkOption {
       type = lib.types.submodule {
-        options = {
-          PK = lib.mkOption { type = lib.types.lines; };
-          KEK = lib.mkOption { type = lib.types.lines; };
-          db = lib.mkOption { type = lib.types.lines; };
-        };
+        options = lib.genAttrs uefiNames (_: lib.mkOption { type = lib.types.lines; });
       };
-      default = {
-        PK = builtins.readFile cfg.publicTrustFiles."PK.crt";
-        KEK = builtins.readFile cfg.publicTrustFiles."KEK.crt";
-        db = builtins.readFile cfg.publicTrustFiles."db.crt";
-      };
+      default = lib.genAttrs uefiNames (name: builtins.readFile cfg.publicTrustFiles."${name}.crt");
       readOnly = true;
       internal = true;
       description = "UEFI public certificates selected by the shared update trust boundary.";
