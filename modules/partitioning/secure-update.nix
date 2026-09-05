@@ -35,24 +35,12 @@ let
   missingExternalPublic = lib.filter (
     name: !builtins.pathExists (buildConfigDir + "/${name}")
   ) requiredPublic;
-  haveExternalPublic = buildConfigTrust == "external" && missingExternalPublic == [ ];
-  fallbackUefiCertDir = ../secureboot/dev-keys;
-  # RFC 8032 test-vector public key 1. Its private seed is public, so this key
-  # is deliberately suitable only for pure evaluation and CI builds.
-  fallbackUpdatePub = ../../config/secure-ab-ci/update.pub;
   publicFile =
     name:
-    if haveExternalPublic then
+    if builtins.pathExists (buildConfigDir + "/${name}") then
       buildConfigDir + "/${name}"
-    else if name == "update.pub" then
-      fallbackUpdatePub
     else
-      fallbackUefiCertDir + "/${name}";
-  trustWarning =
-    if haveExternalPublic then
-      "${cfg.target}: using pure external public trust from secure-ab-build-config; private signing keys remain outside the Nix store."
-    else
-      "${cfg.target}: using repository CI-only trust from secure-ab-build-config; this image is restricted to debug build coverage and must not be deployed.";
+      throw "${cfg.target}: secure-ab-build-config is missing ${name}; override it with a public configuration exported by ghaf-secure-ab-config.";
   updaterEnvironment = {
     GHAF_UPDATE_TRUSTED_KEY = "/etc/ghaf/update/update.pub";
     GHAF_UKI_TRUSTED_CERT = "/etc/ghaf/update/db.crt";
@@ -91,14 +79,6 @@ in
       readOnly = true;
       internal = true;
       description = "Whether the pure build input requests debug boot-health failure injection.";
-    };
-
-    externalPublicTrustConfigured = lib.mkOption {
-      type = lib.types.bool;
-      default = haveExternalPublic;
-      readOnly = true;
-      internal = true;
-      description = "Whether evaluation imported a complete external public trust set.";
     };
 
     publicTrustDigests = lib.mkOption {
@@ -150,11 +130,8 @@ in
         message = "${cfg.target}: secure-ab-build-config schema_version must be 1.";
       }
       {
-        assertion = builtins.elem buildConfigTrust [
-          "ci"
-          "external"
-        ];
-        message = "${cfg.target}: secure-ab-build-config trust must be either `ci` or `external`.";
+        assertion = buildConfigTrust == "external";
+        message = "${cfg.target}: secure-ab-build-config requires external public trust.";
       }
       {
         assertion = validBuildConfigGeneration;
@@ -169,19 +146,14 @@ in
         message = "${cfg.target}: boot-health failure injection is restricted to debug images.";
       }
       {
-        assertion = buildConfigTrust != "external" || haveExternalPublic;
+        assertion = missingExternalPublic == [ ];
         message = "${cfg.target}: external secure-ab-build-config is missing required public trust files: ${lib.concatStringsSep ", " missingExternalPublic}.";
-      }
-      {
-        assertion = buildConfigTrust != "ci" || config.ghaf.profiles.debug.enable;
-        message = "${cfg.target}: repository CI-only secure A/B trust is restricted to debug images; supply a pure external secure-ab-build-config input.";
       }
       {
         assertion = verityCfg.rootSlotSizeMiB != null && verityCfg.veritySlotSizeMiB != null;
         message = "${cfg.target}: secure A/B requires explicit rootSlotSizeMiB and veritySlotSizeMiB capacities.";
       }
     ];
-    warnings = [ trustWarning ];
 
     ghaf = {
       partitioning.verity = {

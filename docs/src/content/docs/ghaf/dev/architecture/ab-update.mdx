@@ -43,13 +43,17 @@ installation, and acceptance procedures belong in those adapter guides.
 
 The shared core uses matching LVM logical-volume names:
 
-    pool/root_<version>_<hash-fragment>
-    pool/verity_<version>_<hash-fragment>
+```text
+pool/root_<version>_<hash-fragment>
+pool/verity_<version>_<hash-fragment>
+```
 
 During installation, temporary names use:
 
-    pool/root_staging_<hash-fragment>
-    pool/verity_staging_<hash-fragment>
+```text
+pool/root_staging_<hash-fragment>
+pool/verity_staging_<hash-fragment>
+```
 
 The installer recovers or removes incomplete staging state before starting a
 new transaction. Final names are committed only after the root and verity
@@ -62,13 +66,15 @@ grow with a release.
 
 The expected encrypted platform layout is:
 
-    ESP -> selected UKI
-    system partition -> LUKS2, when enabled -> LVM volume group pool
-      -> root generation A
-      -> verity generation A
-      -> root generation B
-      -> verity generation B
-      -> persistent platform volumes
+```text
+ESP -> selected UKI
+system partition -> LUKS2, when enabled -> LVM volume group pool
+  -> root generation A
+  -> verity generation A
+  -> root generation B
+  -> verity generation B
+  -> persistent platform volumes
+```
 
 The exact partition table, encryption enrollment, persistent volumes, and
 firmware chain are adapter responsibilities.
@@ -79,7 +85,7 @@ Evaluation never reads process environment variables or private key
 directories. A lockable non-flake input named secure-ab-build-config provides:
 
 - schema version;
-- ci or external trust mode;
+- external public trust;
 - a positive generation;
 - public UEFI PK, KEK, and db certificates;
 - the Ed25519 update verification key; and
@@ -87,81 +93,103 @@ directories. A lockable non-flake input named secure-ab-build-config provides:
 
 External configurations contain only:
 
-    config.json
-    PK.crt
-    KEK.crt
-    db.crt
-    update.pub
+```text
+config.json
+PK.crt
+KEK.crt
+db.crt
+update.pub
+```
 
 They are safe to import into the Nix store. Private keys remain outside Git and
 the store. The update verifier accepts either a raw 32-byte Ed25519 public key
-or its 64-character hexadecimal encoding. ghaf-dev-keygen emits the raw form;
-the checked-in CI test vector uses hexadecimal.
+or its 64-character hexadecimal encoding. ghaf-dev-keygen emits the raw form.
 
-The repository default selects public, CI-only trust. It is structurally
-restricted to debug builds and must not be deployed. Release images require a
-complete external configuration; missing or inconsistent public inputs fail
-evaluation.
+The repository input is a keyless template. Every secure A/B image, including
+debug images, requires a complete external public configuration. Missing or
+inconsistent public inputs fail evaluation. There is no bundled verification
+key, CI trust mode, or fallback to an unsigned image.
 
 Generate a development trust set and export its public build configuration:
 
-    umask 077
-    nix run .#ghaf-dev-keygen -- --output /secure/local/ghaf-dev-keys
+```sh
+umask 077
+nix run .#ghaf-dev-keygen -- --output /secure/local/ghaf-dev-keys
 
-    nix run .#ghaf-secure-ab-config -- \
-      --key-dir /secure/local/ghaf-dev-keys \
-      --generation 8 \
-      --output ./secure-ab-generation-8
+nix run .#ghaf-secure-ab-config -- \
+  --key-dir /secure/local/ghaf-dev-keys \
+  --generation 8 \
+  --output ./secure-ab-generation-8
+```
 
 Use the public directory as a pure input:
 
-    nix build \
-      --override-input secure-ab-build-config path:./secure-ab-generation-8 \
-      .#<platform-target>
+```sh
+nix build \
+  --override-input secure-ab-build-config path:./secure-ab-generation-8 \
+  .#<platform-target>
+```
 
 For reproducible release automation, a wrapper flake should lock this input and
 make Ghaf's secure-ab-build-config follow it.
+
+### Proposed CI integration
+
+CI integration is future work; these PRs do not implement a CI trust mode or
+secure A/B pipeline. A future job should supply a dedicated public configuration
+through the same locked input, run the package checks, and build each platform
+with bounded evaluation time. Test signing keys should remain in the runner's
+secret storage and outside the flake input and Nix store.
+
+Build and hardware jobs should be separate. Hardware jobs should select an
+explicit test device and record signed update, rejection, rollback, and
+interruption results before promoting that platform. Missing configuration
+should fail the job; it must not substitute a different image or trust root.
 
 ## Signed manifest v2
 
 An update bundle contains:
 
-    ghaf_<version>_<hash>.manifest
-    ghaf_<version>_<hash>.manifest.sig
-    ghaf_root_<version>_<hash>.raw.zst
-    ghaf_verity_<version>_<hash>.raw.zst
-    ghaf_kernel_<version>_<hash>.efi
+```text
+ghaf_<version>_<hash>.manifest
+ghaf_<version>_<hash>.manifest.sig
+ghaf_root_<version>_<hash>.raw.zst
+ghaf_verity_<version>_<hash>.raw.zst
+ghaf_kernel_<version>_<hash>.efi
+```
 
 The manifest contract is:
 
-    {
-      "manifest_version": 2,
-      "system": "aarch64-linux",
-      "build-system": "x86_64-linux",
-      "target": "exact-authorized-target",
-      "generation": 8,
-      "meta": {},
-      "version": "26.08.1",
-      "root_verity_hash": "<64 hexadecimal characters>",
-      "root": {
-        "file": "ghaf_root_<version>_<hash>.raw.zst",
-        "sha256": "<64 hexadecimal characters>",
-        "packed_size": 2147483648,
-        "unpacked_size": 6442450944
-      },
-      "verity": {
-        "file": "ghaf_verity_<version>_<hash>.raw.zst",
-        "sha256": "<64 hexadecimal characters>",
-        "packed_size": 67108864,
-        "unpacked_size": 134217728
-      },
-      "kernel": {
-        "file": "ghaf_kernel_<version>_<hash>.efi",
-        "sha256": "<64 hexadecimal characters>",
-        "packed_size": 67108864,
-        "unpacked_size": 67108864
-      }
-    }
+```json
+{
+  "manifest_version": 2,
+  "system": "aarch64-linux",
+  "build-system": "x86_64-linux",
+  "target": "exact-authorized-target",
+  "generation": 8,
+  "meta": {},
+  "version": "26.08.1",
+  "root_verity_hash": "<64 hexadecimal characters>",
+  "root": {
+    "file": "ghaf_root_<version>_<hash>.raw.zst",
+    "sha256": "<64 hexadecimal characters>",
+    "packed_size": 2147483648,
+    "unpacked_size": 6442450944
+  },
+  "verity": {
+    "file": "ghaf_verity_<version>_<hash>.raw.zst",
+    "sha256": "<64 hexadecimal characters>",
+    "packed_size": 67108864,
+    "unpacked_size": 134217728
+  },
+  "kernel": {
+    "file": "ghaf_kernel_<version>_<hash>.efi",
+    "sha256": "<64 hexadecimal characters>",
+    "packed_size": 67108864,
+    "unpacked_size": 67108864
+  }
+}
+```
 
 Artifact names are safe basenames resolved relative to the manifest.
 packed_size bounds transport and identifies the transferred file.
@@ -175,10 +203,12 @@ signed manifest.
 
 Sign an unsigned update into a new directory:
 
-    nix run .#ghaf-sign-update -- \
-      --key-dir /secure/local/ghaf-dev-keys \
-      --input result-update/ghaf_<version>_<hash>.manifest \
-      --output signed-update
+```sh
+nix run .#ghaf-sign-update -- \
+  --key-dir /secure/local/ghaf-dev-keys \
+  --input result-update/ghaf_<version>_<hash>.manifest \
+  --output signed-update
+```
 
 The signer refuses colliding artifact names, recomputes artifact metadata,
 signs the UKI, and signs the manifest last.
@@ -206,12 +236,14 @@ mechanisms.
 Network retrieval belongs to the network-owning VM. Trusted validation and
 storage mutation belong to the Ghaf host:
 
-    build and sign
-      -> network VM fetch
-      -> shared persistent download area
-      -> host validation and install
-      -> boot-counted trial
-      -> health acceptance or rollback
+```text
+build and sign
+  -> network VM fetch
+  -> shared persistent download area
+  -> host validation and install
+  -> boot-counted trial
+  -> health acceptance or rollback
+```
 
 ghaf-fetch-update is a debug-only static-HTTP helper. It applies fixed metadata
 limits, per-kind artifact caps, manifest-declared packed-size limits, and exact
@@ -245,7 +277,9 @@ reboot-required result but never reboots automatically.
 
 Trial UKIs use systemd-boot's three-attempt suffix:
 
-    ghaf-<version>-<hash>+3.efi
+```text
+ghaf-<version>-<hash>+3.efi
+```
 
 The trial default is a candidate-specific glob, which continues to select the
 renamed counted entry while avoiding unrelated generations. A healthy trial is
@@ -302,7 +336,6 @@ their own PRs rather than duplicated here.
 ## Security boundaries
 
 - Development keys are not production key management.
-- CI-only trust is public and must never be deployed.
 - Private signing keys never enter the Nix store.
 - Persistent data is not rolled back with the immutable system.
 - Partition and ESP confidentiality is not provided by this design.
