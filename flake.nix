@@ -87,7 +87,7 @@
     # A set of useful nix packages and utilities for ghaf
     ghafpkgs = {
       # ghafpkgs#378: shared Rust image builders; restore upstream after merge.
-      url = "github:vadika/ghafpkgs/6862e0af154e0d9bc49b7a51adfdd91dcce3566a";
+      url = "github:vadika/ghafpkgs/d55b76076b245a082cd4f65a7841644e677d3fbd";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
