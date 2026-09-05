@@ -23,6 +23,7 @@
   grafana-alloy = import ./grafana-alloy { inherit prev; };
   intel-gpu-tools = import ./intel-gpu-tools { inherit prev; };
   libsForQt5 = import ./libsForQt5 { inherit prev; };
+  lvm2-offline = prev.callPackage ./lvm2-offline { };
   mbrola-voices = import ./mbrola-voices { inherit prev; };
   osquery-with-hostname = import ./osquery-with-hostname { inherit prev; };
   papirus-icon-theme = import ./papirus-icon-theme { inherit prev; };
