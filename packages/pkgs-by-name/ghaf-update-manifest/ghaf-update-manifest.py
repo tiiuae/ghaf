@@ -50,9 +50,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def fixname(filename: str, version: str, fragment: str) -> str:
-    filename = filename.replace("@v", version)
-    filename = filename.replace("@u", fragment)
-    return filename
+    return filename.replace("@v", version).replace("@u", fragment)
 
 
 def rename(filename: str, version: str, fragment: str) -> str:
@@ -63,11 +61,8 @@ def rename(filename: str, version: str, fragment: str) -> str:
 
 
 def sha256_file(path: str) -> str:
-    digest = hashlib.sha256()
     with open(path, "rb") as file:
-        for chunk in iter(lambda: file.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+        return hashlib.file_digest(file, "sha256").hexdigest()
 
 
 def validate_metadata(manifest: dict) -> None:
@@ -82,11 +77,7 @@ def validate_metadata(manifest: dict) -> None:
     ):
         raise ValueError("manifest build-system must be a non-empty string")
     generation = manifest.get("generation")
-    if (
-        isinstance(generation, bool)
-        or not isinstance(generation, int)
-        or generation <= 0
-    ):
+    if type(generation) is not int or generation <= 0:
         raise ValueError("manifest generation must be a positive integer")
     root_hash = manifest.get("root_verity_hash")
     if (
@@ -121,7 +112,7 @@ def validate_manifest(path: str, manifest: dict) -> None:
         raise ValueError("Artifact file names must be distinct from release metadata")
     for kind in ("root", "verity"):
         size = manifest[kind].get("unpacked_size")
-        if isinstance(size, bool) or not isinstance(size, int) or size <= 0:
+        if type(size) is not int or size <= 0:
             raise ValueError(f"manifest {kind} unpacked_size must be positive")
 
 
