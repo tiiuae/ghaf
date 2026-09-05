@@ -49,6 +49,8 @@
       nvidia.passthroughs.gpu_vm.enable = true;
       nvidia.passthroughs.disp_vm.enable = true;
 
+      nvidia.virtualization.host.dce.enable = true;
+
       # Net VM hardware-specific modules - use hardware.definition for composition model
       definition.netvm.extraModules = [
         {
