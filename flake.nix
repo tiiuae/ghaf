@@ -126,9 +126,9 @@
 
     # Ghaf Inter VM communication and control library
     #
-    # TEMPORARILY pinned to a commit rather than the branch head
+    # GIVC #478 merge: authenticated A/B image updates.
     givc = {
-      url = "github:tiiuae/ghaf-givc/9d3d25a10f226a1e39287fb3ef5ca1726bbba1a5";
+      url = "github:tiiuae/ghaf-givc/b03c2959c8a435bb64a7da07a3da06831e055c23";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
