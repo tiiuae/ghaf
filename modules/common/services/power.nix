@@ -785,6 +785,7 @@ in
                     in
                     [
                       # Clear microvm.nix ExecStop, then run with full privileges
+                      ""
                       "+${sysvm-stop}"
                     ];
                 };
@@ -852,6 +853,7 @@ in
                   in
                   [
                     # Clear microvm.nix ExecStop, then run with full privileges
+                    ""
                     "+${qmp-stop}"
                   ];
               };

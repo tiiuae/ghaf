@@ -73,6 +73,7 @@ in {
 | Build many targets | `nix-fast-build --flake '.#packages.x86_64-linux' --select …` | `ghaf-build` |
 | Deploy without reflashing | `nix develop --command ghaf-rebuild <netvm-ip> .#<target> boot`, then reboot | `ghaf-deploy` |
 | Flash an image | `sudo nix develop --command ghaf-flash -d /dev/sdX -i result/ghaf-image.raw.zst` | `ghaf-deploy` |
+| Flash a Jetson (RCM) | `sudo ./result/bin/flash-ghaf-host -s <image-result-dir>` | `ghaf-deploy` |
 | Reach a device or VM | `ssh ghaf@<host_ip>`, then `ssh <vm>` from there | `ghaf-connect` |
 | Collect logs across VMs | `.claude/skills/ghaf-logs/scripts/collect-logs.sh --machine <name>` | `ghaf-logs` |
 | Run hardware tests | `.github/skills/ghaf-hw-test/ghaf-hw-test test --device <name> --ip <IP>` | `ghaf-test` |
@@ -96,6 +97,24 @@ asking or guessing; if a field is null in both, ask once and offer to write it t
   JetPack-configured module, as `gpu-vm-load` does, to avoid breaking x86_64 evaluation.
 - **The image you flash is always `result/ghaf-image.raw.zst`** (plus `ghaf-image.bmap`,
   used automatically). No target emits `result/<target>.img` any more.
+- **A Jetson flash script no longer embeds an image; pass it with `-s`.** Every Orin board
+  pins `appPartitionSizeBytes`, so one flash script serves every image variant and
+  `*-flash-script` builds only the flasher. Running it bare fails with "this flash script was
+  built without an embedded sdImage". Build the image target too and pass the *result
+  directory*, not a file:
+
+  ```bash
+  nix build .#nvidia-jetson-orin-agx-debug-from-x86_64-flash-script -o flasher
+  nix build .#nvidia-jetson-orin-agx-debug-from-x86_64             -o image
+  sudo ./flasher/bin/flash-ghaf-host -s "$(readlink -f image)"
+  ```
+- **A Jetson only accepts a flash in RCM mode, which needs hands on the board.** On the AGX
+  devkit the three buttons are, left to right, **Power**, **Force Recovery**, **Reset**:
+  press and hold the *middle* button, tap the *right* one, keep holding the middle one for
+  about two seconds, then release. It worked when `lsusb` shows `0955:7023 NVIDIA Corp. APX`
+  and the `/dev/ttyACM*` nodes disappear. Still seeing `0955:7045 Tegra On-Platform
+  Operator` means the board reset normally and is not in RCM -- that id is the debug console,
+  present whenever the board is running.
 - **The test suite names the physical machine, not the image**: `robot-test -d` takes
   `darter-pro`, `lenovo-x1`, `dell-7330`, `orin-agx`, … A wrong value does not error, it
   silently runs a different subset of tests.
