@@ -99,7 +99,7 @@ ghaf-prepare-x86-verity-disk.overrideAttrs (old: {
           zstd root.raw -o payload/ghaf_root_1_deadbeef.raw.zst
           zstd verity.raw -o payload/ghaf_verity_1_deadbeef.raw.zst
           touch payload/ghaf_kernel_1_deadbeef.efi systemd-boot.efi
-          printf '{"external":false}\n' > trust.json
+          printf '{"target":"test","generation":1,"publicTrustDigests":{}}\n' > trust.json
           cat > payload/ghaf_1_deadbeef.manifest <<'EOF'
           {
             "manifest_version": 2,
