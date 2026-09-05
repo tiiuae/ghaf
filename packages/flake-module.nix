@@ -14,6 +14,7 @@
     {
       pkgs,
       lib,
+      system,
       ...
     }:
     let
@@ -23,6 +24,13 @@
       #use the pkgs-by-name-for-flake-parts to get the packages
       # exposed to downstream projects
       pkgsDirectory = ./pkgs-by-name;
+
+      # Re-export the updater from the exact GIVC revision pinned by this flake.
+      apps.ghaf-ota-update = inputs.givc.apps.${system}.ota-update;
+
+      # Shared image builders live in ghafpkgs; preserve the public flake names.
+      packages.ghaf-image-tools = inputs.ghafpkgs.packages.${system}.ghaf-image-tools;
+      packages.lvm2-offline = inputs.ghafpkgs.packages.${system}.lvm2-offline;
 
       # Generate comprehensive documentation with enhanced module coverage
       packages.doc =

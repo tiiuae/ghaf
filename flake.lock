@@ -382,16 +382,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1788285037,
-        "narHash": "sha256-jfJ/CHRoqIhtJvjcX95XYumwobWsESbMaxBW64ncP74=",
-        "owner": "tiiuae",
+        "lastModified": 1788620855,
+        "narHash": "sha256-oxyFP22wnoL3ix5bsSQJLdMD78TQC+lFco+DzFDP7ug=",
+        "owner": "vadika",
         "repo": "ghafpkgs",
-        "rev": "1488d02109f8e076dee49def0ad7719224075bd3",
+        "rev": "d55b76076b245a082cd4f65a7841644e677d3fbd",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "vadika",
         "repo": "ghafpkgs",
+        "rev": "d55b76076b245a082cd4f65a7841644e677d3fbd",
         "type": "github"
       }
     },
@@ -444,16 +445,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1788263319,
-        "narHash": "sha256-zHj//mVEwDVC0dEuvSRfQ63Wqsk9woda+BLzLw7yb04=",
+        "lastModified": 1788454911,
+        "narHash": "sha256-cPSaUsct3EbG9TtjuVPp6M2Q3RoyVtEZAu7Uoax/aFQ=",
         "owner": "tiiuae",
         "repo": "ghaf-givc",
-        "rev": "adc5b66ddf90c3cb9b0a2fce12166e01cc6c7e06",
+        "rev": "b03c2959c8a435bb64a7da07a3da06831e055c23",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
         "repo": "ghaf-givc",
+        "rev": "b03c2959c8a435bb64a7da07a3da06831e055c23",
         "type": "github"
       }
     },
@@ -767,6 +769,7 @@
         "pkgs-by-name-for-flake-parts": "pkgs-by-name-for-flake-parts",
         "preservation": "preservation",
         "rust-overlay": "rust-overlay",
+        "secure-ab-build-config": "secure-ab-build-config",
         "srvos": "srvos",
         "stylix": "stylix",
         "systems": "systems",
@@ -795,6 +798,18 @@
         "repo": "rust-overlay",
         "type": "github"
       }
+    },
+    "secure-ab-build-config": {
+      "flake": false,
+      "locked": {
+        "path": "./config/secure-ab-build-config",
+        "type": "path"
+      },
+      "original": {
+        "path": "./config/secure-ab-build-config",
+        "type": "path"
+      },
+      "parent": []
     },
     "spectrum": {
       "flake": false,

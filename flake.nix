@@ -86,7 +86,8 @@
 
     # A set of useful nix packages and utilities for ghaf
     ghafpkgs = {
-      url = "github:tiiuae/ghafpkgs";
+      # ghafpkgs#378: shared Rust image builders; restore upstream after merge.
+      url = "github:vadika/ghafpkgs/d55b76076b245a082cd4f65a7841644e677d3fbd";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
@@ -106,6 +107,14 @@
       flake = false;
     };
 
+    # Public-only secure A/B build configuration. Development and release
+    # flakes can replace this input while retaining pure evaluation. Never
+    # put signing keys or recovery material in this input.
+    secure-ab-build-config = {
+      url = "path:./config/secure-ab-build-config";
+      flake = false;
+    };
+
     # To ensure that checks are run locally to enforce cleanliness
     git-hooks-nix = {
       url = "github:cachix/git-hooks.nix";
@@ -117,9 +126,9 @@
 
     # Ghaf Inter VM communication and control library
     #
-    # TEMPORARILY pinned to a commit rather than the branch head
+    # GIVC #478 merge: authenticated A/B image updates.
     givc = {
-      url = "github:tiiuae/ghaf-givc";
+      url = "github:tiiuae/ghaf-givc/b03c2959c8a435bb64a7da07a3da06831e055c23";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
