@@ -766,11 +766,28 @@ let
           return 0
         fi
 
-        if [ "$restart_ok" = 1 ] && fss_sealing_active_in_config; then
-          ACTIVATION_RESTARTED_THIS_RUN=1
-          write_activation_state active
-          fss_log info "Confirmed journald sealing is active after restart"
-          return 0
+        if [ "$restart_ok" = 1 ]; then
+          # systemd-analyze cat-config queries the merged config right after
+          # restarting journald; caught at exactly the wrong moment, it can
+          # still read the pre-restart config and report Seal=no even though
+          # journald picks up the runtime drop-in within a second or two.
+          # Mirrors the re-verify-before-believing-it pattern already used for
+          # live-journal counter mismatches: retry briefly rather than failing
+          # the whole boot closed on a check taken too early.
+          local confirm_attempt=1
+          local confirm_retries=3
+          while [ "$confirm_attempt" -le "$confirm_retries" ]; do
+            if fss_sealing_active_in_config; then
+              ACTIVATION_RESTARTED_THIS_RUN=1
+              write_activation_state active
+              fss_log info "Confirmed journald sealing is active after restart"
+              return 0
+            fi
+            [ "$confirm_attempt" -eq "$confirm_retries" ] && break
+            fss_log info "Sealing not yet confirmed on attempt $confirm_attempt; retrying"
+            confirm_attempt=$((confirm_attempt + 1))
+            sleep 1
+          done
         fi
 
         fss_log fail "Journald sealing could not be confirmed after restart; failing closed"
