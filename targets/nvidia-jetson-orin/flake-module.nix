@@ -143,10 +143,7 @@ let
           inherit target;
         };
         hardware.nvidia.orin.secureboot = {
-          inherit (config.ghaf.secureUpdate)
-            externalPublicTrustConfigured
-            publicTrustDigests
-            ;
+          inherit (config.ghaf.secureUpdate) publicTrustDigests;
           certificateContents = config.ghaf.secureUpdate.uefiCertificateContents;
         };
       };
@@ -640,15 +637,6 @@ let
     ++ (map (t: generate-luks-uki (generate-nodemoapps t)) luksable-target-configs);
   crossTargets = map generate-cross-from-x86_64 targets;
 
-  genericUnsignedTarget =
-    t:
-    let
-      fallbackName = lib.replaceStrings [ "-verity-luks" ] [ "" ] t.name;
-    in
-    lib.findFirst (candidate: candidate.name == fallbackName)
-      (throw "No generic unsigned fallback target `${fallbackName}` for secure A/B target `${t.name}`")
-      crossTargets;
-
   flashTarget =
     t: qspiOnly:
     let
@@ -748,55 +736,6 @@ let
       '';
     };
 
-  exportedFlashTarget =
-    t:
-    if
-      isVerityTarget t
-      && !t.hostConfiguration.config.ghaf.hardware.nvidia.orin.secureboot.externalPublicTrustConfigured
-    then
-      let
-        fallback = genericUnsignedTarget t;
-        fallbackFlash = flashTarget fallback false;
-      in
-      pkgsX86.writeShellApplication {
-        name = "flash-ghaf-host";
-        text = ''
-          echo "WARNING: secure A/B development trust was unavailable at evaluation; flashing the generic unsigned target instead." >&2
-          echo "  Requested: ${t.name}" >&2
-          echo "  Fallback:  ${fallback.name}" >&2
-          echo "  Rebuild with an external secure-ab-build-config input to flash the secure A/B canary." >&2
-
-          args=()
-          while (($#)); do
-            case "$1" in
-              --secure-boot)
-                echo "WARNING: ignoring --secure-boot because the CI-only fallback is explicitly unsigned." >&2
-                shift
-                ;;
-              -u|--uki)
-                echo "WARNING: ignoring $1 because the generic fallback does not use a UKI image." >&2
-                shift
-                ;;
-              -s|--signed-sd-image)
-                if (($# < 2)); then
-                  echo "ERROR: $1 requires an image directory argument." >&2
-                  exit 2
-                fi
-                echo "WARNING: ignoring $1 and its argument because the fallback uses its built-in generic unsigned image." >&2
-                shift 2
-                ;;
-              *)
-                args+=("$1")
-                shift
-                ;;
-            esac
-          done
-          exec ${fallbackFlash}/bin/flash-ghaf-host "''${args[@]}"
-        '';
-      }
-    else
-      flashTarget t false;
-
   # Filter verity targets without forcing every hostConfiguration.config during
   # package-set evaluation.
   isVerityTarget = t: t.isVerity or false;
@@ -832,7 +771,7 @@ in
             t:
             #Note: secureTarget does not toggle between secureboot on/off!!
             lib.nameValuePair "${t.name}-flash-script" (
-              lazyPackage "${t.name}-flash-script" (exportedFlashTarget t)
+              lazyPackage "${t.name}-flash-script" (flashTarget t false)
             )
           ) flashCrossTargets
         )

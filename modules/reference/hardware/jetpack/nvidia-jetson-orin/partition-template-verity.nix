@@ -149,15 +149,6 @@ let
     echo "============================================================"
     echo ""
 
-    _external_public_trust=${
-      if config.ghaf.hardware.nvidia.orin.secureboot.externalPublicTrustConfigured then "1" else "0"
-    }
-    if [ "$_external_public_trust" != 1 ]; then
-      echo "ERROR: this flash script was built with CI-only public trust and cannot flash a secure A/B canary." >&2
-      echo "  Rebuild with an external secure-ab-build-config input." >&2
-      exit 1
-    fi
-
     if [ -z "''${GHAF_DEV_KEY_DIR:-}" ]; then
       echo "ERROR: GHAF_DEV_KEY_DIR is required for secure A/B canary flashes." >&2
       exit 1
