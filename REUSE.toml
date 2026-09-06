@@ -175,5 +175,5 @@ path = "overlays/jetpack-nvdisplay/*.patch"
 SPDX-License-Identifier = "MIT"
 SPDX-FileCopyrightText = "Copyright 2022-2024 Anduril Industries"
 path = [
-  "packages/pkgs-by-name/linux-pkvm-jetson/*.patch"
+  "packages/linux-pkvm-jetson/*.patch"
 ]
