@@ -52,13 +52,16 @@ let
             cp "$STORAGE_BIN" "$DEST"
             chown ${toString userUID}:${toString userGID} "$DEST"
             chmod 0755 "$DEST"
-          elif [ -f "$FACTORY" ]; then
+          # factory is nullOr path, so toString null is "": guard before testing it.
+          elif [ -n "$FACTORY" ] && [ -f "$FACTORY" ]; then
             echo "Initializing $DEST from factory: $FACTORY"
             cp "$FACTORY" "$DEST"
             chown ${toString userUID}:${toString userGID} "$DEST"
             chmod 0755 "$DEST"
+          elif [ -n "$FACTORY" ]; then
+            echo "Error! factory policy for ${name} declared but missing: $FACTORY" >&2
           else
-            echo "Error! file not found:$FACTORY"
+            echo "No stored or factory policy for ${name}; $DEST will be created when an update is delivered"
           fi
         ''
       ) startupPolicies
