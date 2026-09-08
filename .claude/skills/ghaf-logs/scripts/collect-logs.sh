@@ -295,7 +295,19 @@ collect_one() {
   fi
 
   if [ "$vm" = "ghaf-host" ]; then
-    vm_ssh "$vm" dmesg >"$dir/dmesg.txt" 2>&1
+    # dmesg needs root: ghaf-host runs with kernel.dmesg_restrict=1, so an unprivileged
+    # read fails with "read kernel buffer failed: Operation not permitted" and the file
+    # records that one line instead of the ring buffer -- a whole evidence source lost
+    # without anything in the snapshot saying so. The password goes over stdin rather
+    # than in the argument list, which would expose it in the remote process table.
+    if [ -n "$PASSWORD" ]; then
+      printf '%s\n' "$PASSWORD" | vm_ssh "$vm" sudo -S dmesg >"$dir/dmesg.txt" 2>/dev/null
+    else
+      vm_ssh "$vm" sudo -n dmesg >"$dir/dmesg.txt" 2>/dev/null
+    fi
+    # Fall back unprivileged so the original error is still captured rather than an
+    # empty file -- an empty dmesg.txt reads as "no kernel messages", which is a lie.
+    [ -s "$dir/dmesg.txt" ] || vm_ssh "$vm" dmesg >"$dir/dmesg.txt" 2>&1
     vm_ssh "$vm" cat /proc/cmdline >"$dir/cmdline.txt" 2>&1
     vm_ssh "$vm" systemctl list-units "microvm@*" --all --no-legend --no-pager \
       >"$dir/microvm-units.txt" 2>&1

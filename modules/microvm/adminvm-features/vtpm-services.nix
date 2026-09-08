@@ -11,12 +11,18 @@
 # This module is auto-included by adminvm-features/default.nix when vTPM VMs exist.
 #
 {
+  config,
   lib,
   pkgs,
   hostConfig,
   ...
 }:
 let
+  # level 20 is swtpm's maximum: it logs every command and the full response
+  # body, so a release device writes TPM randomness to a persistent journal
+  # forever. Debug images keep it.
+  swtpmLogLevel = if config.ghaf.profiles.debug.enable then 20 else 1;
+
   # Get vTPM-enabled VMs from hostConfig
   appvmConfig = hostConfig.appvms or { };
   vmsWithVtpm = lib.filterAttrs (
@@ -38,7 +44,7 @@ let
             --ctrl type=tcp,port=${toString basePort} \
             --server type=tcp,port=${toString (basePort + 1)} \
             --tpm2 \
-            --log level=20
+            --log level=${toString swtpmLogLevel}
         '';
       };
     in

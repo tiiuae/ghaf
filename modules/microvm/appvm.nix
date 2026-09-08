@@ -122,6 +122,10 @@ let
       inherit (vm) evaluatedConfig;
     };
 
+  # See the same constant in adminvm-features/vtpm-services.nix: level 20 dumps
+  # every command and response, which a release device must not journal.
+  swtpmLogLevel = if config.ghaf.profiles.debug.enable then 20 else 1;
+
   # Create host-side swtpm service for VMs with vTPM
   makeSwtpmService =
     name: vm:
@@ -137,7 +141,7 @@ let
           swtpm socket --tpmstate dir=/var/lib/swtpm/${name}/state \
             --ctrl type=unixio,path=/var/lib/swtpm/${name}/sock \
             --tpm2 \
-            --log level=20
+            --log level=${toString swtpmLogLevel}
         '';
       };
     in

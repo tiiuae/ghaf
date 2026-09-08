@@ -117,6 +117,9 @@ in
         enable = true;
         description = "Generate Github configuration file for Ghaf Control Panel";
         wantedBy = [ "default.target" ];
+        # default.target means EVERY user manager, including service accounts
+        # whose home is /var/empty, where the mkdir fails.
+        unitConfig.ConditionUser = toString config.ghaf.users.homedUser.uid;
         # ewwbar/ctrl-panel reads config.toml at startup; wantedBy alone does
         # not order the two.
         before = [ "ewwbar.service" ];
