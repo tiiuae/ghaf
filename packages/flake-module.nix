@@ -30,7 +30,6 @@
 
       # Shared image builders live in ghafpkgs; preserve the public flake names.
       packages.ghaf-image-tools = inputs.ghafpkgs.packages.${system}.ghaf-image-tools;
-      packages.lvm2-offline = inputs.ghafpkgs.packages.${system}.lvm2-offline;
 
       # Generate comprehensive documentation with enhanced module coverage
       packages.doc =
