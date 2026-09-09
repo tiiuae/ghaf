@@ -44,6 +44,7 @@ in
     inputs.self.nixosModules.hardware-x86_64-host-kernel
     inputs.self.nixosModules.mem-manager
     inputs.self.nixosModules.theming
+    ./crosvm-dax.nix
     ./networking.nix
     ./shared-mem.nix
     ./boot.nix
