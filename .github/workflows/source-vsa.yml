@@ -35,7 +35,7 @@ jobs:
         uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
 
       - name: Issue Source VSA
-        uses: tiiuae/ghaf-infra/.github/actions/source-vsa@69860c444723a0032fab66012ce702c48baa1221
+        uses: tiiuae/ghaf-infra/.github/actions/source-vsa@e360c480a84c75481f05e9042408a37750aa7447
         with:
           policy: slsa/source-vsa-policy.yaml
           verified-level: SLSA_SOURCE_LEVEL_1
