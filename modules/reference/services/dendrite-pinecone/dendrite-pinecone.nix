@@ -109,12 +109,18 @@ in
     # the bug the moment someone switched it on.
     services.smcroute = {
       enable = true;
-      uplink.enable = true;
       rules = ''
         mgroup from @UPLINK@ group ${cfg.McastUdpIp}
-        mgroup from ${cfg.internalNic} group ${cfg.McastUdpIp}
         mroute from @UPLINK@ group ${cfg.McastUdpIp} to ${cfg.internalNic}
-        mroute from ${cfg.internalNic} group ${cfg.McastUdpIp} to @UPLINK@
+      '';
+      # The other direction fans out to every uplink on one line -- an
+      # mroute's `to` list takes multiple interfaces, and declaring it once
+      # per uplink like `rules` above would instead redeclare the same (from
+      # ethint0, group) route with a different destination each time, which
+      # smcrouted rejects as a duplicate.
+      rulesOnce = ''
+        mgroup from ${cfg.internalNic} group ${cfg.McastUdpIp}
+        mroute from ${cfg.internalNic} group ${cfg.McastUdpIp} to @UPLINKS@
       '';
     };
 
