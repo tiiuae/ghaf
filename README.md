@@ -37,7 +37,8 @@ See the documentation overview under [README-docs.md](./docs/README-docs.md).
 Other repositories that are a part of the Ghaf project:
 
 - [sbomnix](https://github.com/tiiuae/sbomnix): a utility that generates SBOMs given Nix derivations or out paths
-- [ghaf-infra](https://github.com/tiiuae/ghaf-infra), [ci-test-automation](https://github.com/tiiuae/ci-test-automation), [ghafscan](https://github.com/tiiuae/ghafscan): CI/CD related files
+- [ghaf-infra](https://github.com/tiiuae/ghaf-infra), [ci-test-automation](https://github.com/tiiuae/ci-test-automation): CI/CD related files
+- [flakevuln](https://github.com/tiiuae/flakevuln): vulnerability scanning for Nix flakes, available as a GitHub Action and local CLI
 - [ghafpkgs](https://github.com/tiiuae/ghafpkgs): a repository for Ghaf-specific Nix packages
 - [ghaf-givc](https://github.com/tiiuae/ghaf-givc): a gRPC-based control channel for the Ghaf Framework
 - [vhotplug](https://github.com/tiiuae/vhotplug): a service for dynamically managing USB, PCI, and input device passthrough to virtual machines based on configurable rules
