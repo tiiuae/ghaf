@@ -174,13 +174,16 @@ in
         echo "smcroute: routing multicast on $uplink_ifaces"
       '';
 
-      # Kept from the bounded-wait fix this replaced. It should no longer be
-      # reachable via a missing interface -- that is now a skip, not a retry
-      # loop -- but a genuinely crashing smcrouted must still stop rather
-      # than spin.
+      # No start rate limit: this unit is restarted by the resolver's
+      # dependentUnits whenever the uplink set changes, and NetworkManager
+      # can fire several dispatcher events for one transition (up,
+      # dhcp4-change, connectivity-change), each triggering a restart --
+      # easily more than 3 in 600s on a device with two uplinks changing
+      # close together. Hitting that limit left smcroute refusing to start
+      # for the rest of the window, with no multicast routing at all, which
+      # is worse than the crash-loop the limit was guarding against.
       unitConfig = {
-        StartLimitIntervalSec = 600;
-        StartLimitBurst = 3;
+        StartLimitIntervalSec = 0;
         # No uplink => skipped, and visibly so. Not failed: an unplugged dock
         # is not a defect. Not silently succeeded either, which is what the
         # old unbounded wait effectively did.
