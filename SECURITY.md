@@ -73,7 +73,7 @@ You can report security vulnerabilities directly (privately or publicly) to the 
 
 * You need help tuning GitHub Actions for security.
 * You need help applying security-related updates.
-* When the issue is currently acknowledged in [Ghaf Vulnerability Reports](https://github.com/tiiuae/ghafscan/blob/main/reports/main/README.md).
+* You are reporting an issue already acknowledged in the [manual analysis records](https://github.com/tiiuae/ghaf/blob/main/.github/flakevuln/manual_analysis.csv), without additional information.
 * Your issue is not security-related.
 
 
@@ -93,16 +93,18 @@ Security vulnerabilities are handled quickly and sometimes privately. The primar
 
 ### Private Disclosure
 
-We ask that all suspected vulnerabilities be privately and responsibly disclosed through the [private disclosure process](#reporting-a-vulnerability) outlined above. Fixes may be developed and tested by the [Security Team](#security-team) in a [temporary private fork](https://docs.github.com/en/code-security/security-advisories/repository-security-advisories/collaborating-in-a-temporary-private-fork-to-resolve-a-repository-security-vulnerability) that is private from the general public if deemed necessary.
+We ask that all suspected vulnerabilities be privately and responsibly disclosed through the [private disclosure process](#reporting-vulnerability) outlined above. Fixes may be developed and tested by the [Security Team](#security-team) in a [temporary private fork](https://docs.github.com/en/code-security/security-advisories/repository-security-advisories/collaborating-in-a-temporary-private-fork-to-resolve-a-repository-security-vulnerability) that is private from the general public if deemed necessary.
 
 
 ### Public Disclosure
 
-Vulnerabilities are disclosed publicly as [Security Advisories](https://github.com/tiiuae/ghafscan/blob/main/reports/main/README.md).
+Vulnerabilities are disclosed publicly as [Security Advisories](https://github.com/tiiuae/ghaf/security/advisories).
+
+Automated dependency vulnerability reports are available in the [flakevuln workflow runs](https://github.com/tiiuae/ghaf/actions/workflows/flakevuln.yml), including run summaries and downloadable report artifacts.
 
 A public disclosure date is negotiated by the [Security Team](#security-team) and a vulnerability reporter. We prefer to fully disclose the bug as soon as possible once a user mitigation is available. It is reasonable to delay disclosure when a bug or fix is not yet fully understood, the solution is not well-tested, or for vendor coordination. The time frame for disclosure is from immediate (especially if it is already publicly known) to several weeks. For a vulnerability with straightforward mitigation, we expect a report date to disclosure date to be on the order of 14 days.
 
-If you know of a publicly disclosed security vulnerability, please *IMMEDIATELY* [report the vulnerability](#reporting-a-vulnerability) to inform the [Security Team](#security-team), so they may start the patch, release, and communication process.
+If you know of a publicly disclosed security vulnerability, please *IMMEDIATELY* [report the vulnerability](#reporting-vulnerability) to inform the [Security Team](#security-team), so they may start the patch, release, and communication process.
 
 If possible the Security Team will ask the person making the public report if the issue can be handled via a private disclosure process. If the reporter denies the request, the Security Team will move swiftly with the fix and release process. In extreme cases, you can use GitHub to delete the issue but this generally isn not necessary and is unlikely to make a public disclosure less damaging.
 
