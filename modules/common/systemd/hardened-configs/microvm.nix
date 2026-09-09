@@ -35,7 +35,6 @@
   # User separation #
   ###################
 
-  # Not applicable for the service runs as root
   PrivateUsers = true;
   # DynamicUser=true;
 
@@ -65,18 +64,18 @@
   ProtectHostname = true;
   ProtectClock = true;
   ProtectControlGroups = true;
-  RestrictNamespaces = true;
-  /*
-      RestrictNamespaces=[
-     #"~user"
-     #"~pid"
-     #"~net"
-     #"~uts"
-     #"~mnt"
-     #"~cgroup"
-     #"~ipc"
-    ];
-  */
+  # "~mnt" is deliberately absent: crosvm's ProxyDevice (DAX, --pmem-ext2) needs
+  # unshare(CLONE_NEWNS). modules/microvm/host/crosvm-dax.nix adds it back when
+  # DAX is off.
+  RestrictNamespaces = [
+    "~user"
+    "~pid"
+    "~net"
+    "~uts"
+    "~cgroup"
+    "~ipc"
+    "~time"
+  ];
   LockPersonality = true;
   MemoryDenyWriteExecute = true;
   RestrictRealtime = true;
@@ -89,46 +88,49 @@
   # Capabilities #
   ################
 
-  #AmbientCapabilities=
+  # CAP_SYS_ADMIN and CAP_SYS_CHROOT are not listed here in either direction:
+  # crosvm needs them only when the read-only /nix/store share uses DAX, and
+  # modules/microvm/host/crosvm-dax.nix grants (or denies) them accordingly.
   CapabilityBoundingSet = [
     "~CAP_SYS_PACCT"
     "~CAP_KILL"
-    # "~CAP_WAKE_ALARM"
+    "~CAP_WAKE_ALARM"
     # "~CAP_DAC_*
     "~CAP_FOWNER"
     # "~CAP_IPC_OWNER"
-    # "~CAP_BPF"
+    "~CAP_BPF"
     "~CAP_LINUX_IMMUTABLE"
     # "~CAP_IPC_LOCK"
     "~CAP_SYS_MODULE"
     "~CAP_SYS_TTY_CONFIG"
     "~CAP_SYS_BOOT"
-    "~CAP_SYS_CHROOT"
     # "~CAP_BLOCK_SUSPEND"
     "~CAP_LEASE"
     "~CAP_MKNOD"
     # "~CAP_CHOWN"
     # "~CAP_FSETID"
-    # "~CAP_SETFCAP"
-    # "~CAP_SETUID"
+    "~CAP_SETFCAP"
+    # "~CAP_SETUID" - minijail calls setresuid/setresgid in enter_user_namespace()
     # "~CAP_SETGID"
     # "~CAP_SETPCAP"
-    # "~CAP_MAC_ADMIN"
-    # "~CAP_MAC_OVERRIDE"
+    "~CAP_MAC_ADMIN"
+    "~CAP_MAC_OVERRIDE"
     "~CAP_SYS_RAWIO"
     "~CAP_SYS_PTRACE"
     # "~CAP_SYS_NICE"
     # "~CAP_SYS_RESOURCE"
     # "~CAP_NET_ADMIN"
-    # "~CAP_NET_BIND_SERVICE"
-    # "~CAP_NET_BROADCAST"
-    # "~CAP_NET_RAW"
-    # "~CAP_AUDIT_CONTROL"
-    # "~CAP_AUDIT_READ"
-    # "~CAP_AUDIT_WRITE"
-    "~CAP_SYS_ADMIN"
-    # "~CAP_SYSLOG"
-    # "~CAP_SYS_TIME
+    "~CAP_NET_BIND_SERVICE"
+    "~CAP_NET_BROADCAST"
+    "~CAP_NET_RAW"
+    "~CAP_AUDIT_CONTROL"
+    "~CAP_AUDIT_READ"
+    "~CAP_AUDIT_WRITE"
+    "~CAP_SYSLOG"
+    "~CAP_SYS_TIME"
+    # Added to the kernel after this list was written, so not covered above.
+    "~CAP_PERFMON"
+    "~CAP_CHECKPOINT_RESTORE"
   ];
 
   ################
@@ -137,15 +139,20 @@
 
   SystemCallFilter = [
     "~@clock"
-    # "~@cpu-emulation"
+    "~@cpu-emulation"
     "~@debug"
+    # "~@ipc" - contains memfd_create, which backs crosvm's guest RAM
+    "~@keyring"
+    # "~@memlock"
     "~@module"
-    "~@mount"
+    # "~@mount"
     "~@obsolete"
     # "~@privileged"
-    # "~@raw-io"
+    "~@raw-io"
     "~@reboot"
     # "~@resources"
+    # "~@sandbox" - contains seccomp, which crosvm needs for device jails
+    # "~@setuid"
     "~@swap"
   ];
 }
