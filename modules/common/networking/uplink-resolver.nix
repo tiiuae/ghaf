@@ -43,42 +43,75 @@ let
       # The uplink is the interface holding the default route: it is the only
       # definition that always agrees with where traffic actually goes, and it
       # follows a dock being plugged in or pulled out without any extra state.
+      #
+      # A device can carry more than one default route at once (Wi-Fi and a
+      # docked Ethernet both up), so this resolves *every* usable one, not
+      # just the first. `ifaces`/`uplink_ifaces` is the full list every
+      # consumer (nw-packet-forwarder, smcroute, the firewall, etc.) acts on.
       internal=${lib.escapeShellArg cfg.internalInterface}
       pinned=${lib.escapeShellArg cfg.forceInterface}
 
-      routed=$(ip route show default 2>/dev/null | awk '/^default/ {print $5; exit}')
+      # `ip route show default` already restricts to default-route lines; the
+      # `dev` field position varies (e.g. a gateway-less
+      # `default dev wlan0 scope link` has no `via`), so search for the `dev`
+      # token instead of assuming a fixed column.
+      mapfile -t routed_list < <(ip route show default 2>/dev/null \
+        | awk '{for (i=1;i<=NF;i++) if ($i=="dev") {print $(i+1); break}}')
+      routed="''${routed_list[0]:-}"
 
-      if [ -n "$pinned" ]; then
-        iface=$pinned
-      else
-        iface=$routed
-      fi
-
-      state=resolved
-      reason=""
-
-      if [ -z "$iface" ]; then
-        state=none
-        reason="no default route"
-      elif [ "$iface" = "$internal" ]; then
+      candidate_ok() {
         # ethint0 faces the guest VMs, never the LAN. If it somehow holds the
         # default route the routing table is wrong, and claiming it as the
         # uplink would bridge multicast straight back inwards.
+        [ "$1" != "$internal" ] && [ -e "/sys/class/net/$1" ]
+      }
+
+      ifaces=()
+      if [ -n "$pinned" ]; then
+        # An explicit pin wins outright -- see the disagreement warning below
+        # for why that's still not silent.
+        candidate_ok "$pinned" && ifaces=("$pinned")
+      else
+        seen=""
+        for i in "''${routed_list[@]}"; do
+          candidate_ok "$i" || continue
+          case " $seen " in
+            *" $i "*) continue ;;
+          esac
+          seen="$seen $i"
+          ifaces+=("$i")
+        done
+      fi
+
+      uplink_ifaces="''${ifaces[*]}"
+
+      if [ ''${#ifaces[@]} -eq 0 ]; then
         state=none
-        reason="default route is on the internal interface $internal"
-        iface=""
-      elif [ ! -e "/sys/class/net/$iface" ]; then
-        state=none
-        reason="interface $iface from the default route does not exist"
-        iface=""
+        if [ -z "$routed" ] && [ -z "$pinned" ]; then
+          reason="no default route"
+        elif [ "''${pinned:-$routed}" = "$internal" ]; then
+          reason="default route is on the internal interface $internal"
+        else
+          reason="interface ''${pinned:-$routed} from the default route does not exist"
+        fi
+      else
+        state=resolved
+        reason=""
       fi
 
       # Written in k=v form so it doubles as a systemd EnvironmentFile.
+      # uplink_ifaces and uplink_reason are quoted since both can contain
+      # spaces (a multi-interface list, a multi-word reason like "no default
+      # route") -- unquoted, `. stateFile` parses the second word as a
+      # command to run, not part of the value. nw-packet-forwarder-reconcile
+      # is the one consumer not gated by the ready flag (it has to run to
+      # tear down when the uplink disappears), so it's the one that actually
+      # sources the file in state=none and hits this.
       tmp=$(mktemp)
       {
-        printf 'uplink_iface=%s\n' "$iface"
+        printf 'uplink_ifaces="%s"\n' "$uplink_ifaces"
         printf 'uplink_state=%s\n' "$state"
-        printf 'uplink_reason=%s\n' "$reason"
+        printf 'uplink_reason="%s"\n' "$reason"
       } >"$tmp"
       chmod 0644 "$tmp"
 
@@ -92,7 +125,7 @@ let
       mv -f "$tmp" ${stateFile}
 
       if [ "$state" = resolved ]; then
-        echo "ghaf-uplink: uplink is $iface"
+        echo "ghaf-uplink: uplink(s): $uplink_ifaces"
         # The flag file is the readiness signal. Units that need the uplink use
         # ConditionPathExists on it, which gives them a third state -- "skipped,
         # because there is no uplink" -- that is visible in systemctl status and
@@ -228,10 +261,21 @@ in
         # uplink goes away the flag is gone, so the start half is skipped by
         # ConditionPathExists and the unit correctly ends up stopped.
         # --no-block avoids deadlocking against the resolver they depend on.
+        #
+        # Restart before clearing the flag, not after: NetworkManager can
+        # fire several dispatcher events within the same second, each
+        # restarting this unit and SIGTERMing whichever invocation (ExecStart
+        # or ExecStartPost) is still in flight -- that is what
+        # SuccessExitStatus above is for. Clearing the flag first would let
+        # that SIGTERM land between "flag gone" and "dependents actually
+        # restarted", silently dropping the update the flag was recording.
+        # Restarting first means an interruption right there just leaves the
+        # flag standing, so the next invocation (already on its way, given
+        # the burst that caused the interruption) retries it.
         ExecStartPost = pkgs.writeShellScript "ghaf-restart-uplink-dependents" ''
           if [ -e ${changedFlag} ]; then
-            rm -f ${changedFlag}
             ${pkgs.systemd}/bin/systemctl restart --no-block ${lib.escapeShellArgs cfg.dependentUnits}
+            rm -f ${changedFlag}
           fi
         '';
       };
@@ -245,8 +289,10 @@ in
     ];
 
     environment.etc."ghaf/uplink-resolver-README".text = ''
-      The current uplink is published at ${stateFile}.
-      ${readyFlag} exists only while an uplink is resolved.
+      The current uplink(s) are published at ${stateFile} as uplink_ifaces,
+      a space-separated list of every interface currently holding a default
+      route.
+      ${readyFlag} exists only while at least one uplink is resolved.
       Run `systemctl status ghaf-uplink-resolver` or `cat ${stateFile}` to see it.
     '';
   };
