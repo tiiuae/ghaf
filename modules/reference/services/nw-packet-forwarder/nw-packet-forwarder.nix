@@ -185,10 +185,13 @@ in
       "nw-packet-forwarder@" = {
         description = "Network packet forwarder daemon (%i)";
 
-        unitConfig = {
-          StartLimitIntervalSec = 600;
-          StartLimitBurst = 3;
-        };
+        # No start rate limit: the reconciler starts/stops a specific
+        # instance whenever its interface enters or leaves uplink_ifaces,
+        # and NetworkManager can fire several dispatcher events for one
+        # transition -- an interface flapping a few times in quick
+        # succession would otherwise hit the limit and leave that instance
+        # refusing to start for the rest of the window.
+        unitConfig.StartLimitIntervalSec = 0;
 
         bindsTo = [ "sys-subsystem-net-devices-${cfg.internalNic}.device" ];
         after = [
@@ -207,6 +210,9 @@ in
       nw-packet-forwarder-reconcile = {
         description = "Reconcile nw-packet-forwarder instances with the resolved uplinks";
         after = [ "ghaf-uplink-resolver.service" ];
+        # Restarted by the resolver's dependentUnits, potentially several
+        # times per transition -- same reasoning as the template unit above.
+        unitConfig.StartLimitIntervalSec = 0;
         serviceConfig = {
           Type = "oneshot";
           ExecStart = lib.getExe nw-packet-forwarder-reconcile-script;
