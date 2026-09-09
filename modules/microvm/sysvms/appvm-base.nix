@@ -443,9 +443,15 @@ in
         vcpu = lib.mkDefault (vm.vcpu or 4);
         hypervisor = vmm;
         vsock.cid = hostConfig.networking.thisVm.cid or 100;
-        # Compose this required runner argument with device-specific arguments
-        # such as the swtpm socket from vm-tpm.nix.
-        crosvm.extraArgs = lib.mkBefore (lib.optionals (vmm == "crosvm") [ "--disable-sandbox" ]);
+        # The host runs VMMs as the unprivileged `microvm` user. crosvm's
+        # multiprocess minijail needs CAP_SYS_ADMIN to create PID and mount
+        # namespaces, so retain the unprivileged service boundary and use
+        # single-process mode until a capability-scoped sandbox is wired.
+        crosvm.extraArgs = lib.mkBefore (
+          lib.optionals (vmm == "crosvm") [
+            "--disable-sandbox"
+          ]
+        );
 
         shares = [
           {
