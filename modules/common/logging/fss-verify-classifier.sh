@@ -833,6 +833,12 @@ fss_classification_tags() {
 #   $3 = pre-activation receipt records (TSV, newline-separated, optional)
 #   $4 = current boot_id (optional; distinguishes this boot's boundary from stale)
 #   $5 = journalctl --verify exit code (optional; nonzero unclassified exits fail)
+#   $6 = unclean-shutdown receipt records (TSV, newline-separated, optional)
+#   $7 = 1 if an attested re-key has retained superseded verification keys on
+#        disk (optional, default 0). When set, a leftover archived-system
+#        failure that neither a retained key nor a receipt covers is treated as
+#        re-key transition collateral (warning) rather than tamper (fail), so
+#        the verdict does not depend on journald vacuum timing across VMs.
 # Outputs (as globals):
 #   FSS_VERDICT        = verified | warning | fail
 #   FSS_VERDICT_REASON = short human-readable reason
@@ -849,7 +855,7 @@ fss_classification_tags() {
 #               backstop (see fss.mdx "does not protect against").
 #   fail      - active-system failure, key defect, unclassified failure, or an
 #               archived failure with no matching receipt (unrecorded or
-#               content-substituted).
+#               content-substituted) and no attested re-key to account for it.
 # Receipt matching is content-bound: callers should pass receipts already filtered
 # against disk (see fss_filter_valid_receipts) so a substituted archive presents
 # as unmatched and fails closed. Requires fss_classify_verify_output first.
@@ -860,6 +866,7 @@ fss_verify_policy_decision() {
   local current_boot="${4-}"
   local verify_exit="${5:-0}"
   local unclean_shutdown_receipts="${6-}"
+  local rekey_attested="${7:-0}"
   local allowed_list="" recovery_paths pre_activation_paths unclean_paths archived_paths path boot
   local recovery_seen=0 recovery_stale=0
   local pre_activation_seen=0 pre_activation_stale=0 exception_seen=0
@@ -971,6 +978,21 @@ fss_verify_policy_decision() {
           fi
         fi
       done <<<"$archived_paths"
+    elif [ "$rekey_attested" = 1 ]; then
+      # An attested backward-clock re-key retains the superseded verification
+      # keys on disk; the caller's retained-key retry already excused every
+      # archive that verifies under one. What is left is a re-key
+      # recovery-window archive sealed under a transient FSPRG state that no
+      # retained key covers -- collateral of the re-key, not tamper. Downgrade
+      # to warning so the verdict does not hinge on whether journald retention
+      # has yet vacuumed the receipted sibling (which made the same archive set
+      # warn on some VMs and fail on others). Active-system failures and key
+      # defects above still fail closed; offline verification against the
+      # off-host key stays the authoritative backstop.
+      FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "REKEY_TRANSITION_ARCHIVE")
+      FSS_VERDICT=warning
+      FSS_VERDICT_REASON="archived system journal from an attested re-key transition"
+      return 0
     else
       FSS_VERDICT=fail
       FSS_VERDICT_REASON="archived system journal failures outside allowlist"

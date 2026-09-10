@@ -1495,9 +1495,18 @@ let
             # drop the ones that verify: pre-re-key lineage, not tamper (a
             # tampered archive fails under every key). Live journals seal under
             # the current key and are never rescued.
+            #
+            # REKEY_ATTESTED also tells fss_verify_policy_decision that a re-key
+            # happened, so a leftover unreceipted archive (a recovery-window
+            # file no retained key covers) degrades to warning consistently
+            # instead of failing on whichever VM journald has not vacuumed yet.
+            REKEY_ATTESTED=0
+            if [ -n "$(fss_list_retained_verification_keys "${cfg.keyPath}")" ]; then
+              REKEY_ATTESTED=1
+            fi
             RESCUED_ARCHIVES=""
             if [ -n "$FSS_ARCHIVED_SYSTEM_FAILURES$FSS_USER_FAILURES" ] \
-              && [ -n "$(fss_list_retained_verification_keys "${cfg.keyPath}")" ]; then
+              && [ "$REKEY_ATTESTED" = 1 ]; then
               while IFS= read -r RESCUE_PATH || [ -n "$RESCUE_PATH" ]; do
                 [ -n "$RESCUE_PATH" ] || continue
                 case "$RESCUE_PATH" in
@@ -1529,7 +1538,8 @@ let
               "$PRE_ACTIVATION_RECEIPTS" \
               "$CURRENT_BOOT_ID" \
               "$VERIFY_EXIT" \
-              "$UNCLEAN_RECEIPTS"
+              "$UNCLEAN_RECEIPTS" \
+              "$REKEY_ATTESTED"
 
             case "$FSS_VERDICT" in
             fail)
