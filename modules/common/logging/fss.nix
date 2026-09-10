@@ -842,11 +842,6 @@ let
       # discard the poisoned key pair, and re-run key setup from the current
       # clock. Bounded to one attempt per invocation chain, and only when the
       # future tag sits beyond any plausible in-flight sealing interval.
-      # Shared with journal-fss-verify via the classifier lib.
-      list_retained_verification_keys() {
-        fss_list_retained_verification_keys "$KEY_DIR"
-      }
-
       # Keep the outgoing verification key: a re-key regenerates seed and
       # start_usec, so nothing sealed before it verifies under the new key.
       # Non-zero if retention failed, so the caller aborts before deleting the
@@ -871,16 +866,22 @@ let
         return 0
       }
 
+      # Keep the REKEY_RETAINED_KEYS most recently *created* keys, delete the
+      # rest. Recency comes from fss_retained_keys_newest_first (rekey-history
+      # order, mtime fallback) -- never the epoch in the filename, which runs
+      # backwards under backward clock corrections and would keep the earliest
+      # corrections' keys while dropping the latest one just created.
       prune_retained_verification_keys() {
-        local kept=0 path
+        local budget="$REKEY_RETAINED_KEYS" kept=0 path
+        [ "$budget" -ge 0 ] 2>/dev/null || budget=0
 
         while IFS= read -r path || [ -n "$path" ]; do
           [ -n "$path" ] || continue
           kept=$(( kept + 1 ))
-          [ "$kept" -gt "$REKEY_RETAINED_KEYS" ] || continue
+          [ "$kept" -le "$budget" ] && continue
           rm -f "$path"
-          fss_log info "Pruned superseded verification key $path (keeping newest $REKEY_RETAINED_KEYS)"
-        done < <(list_retained_verification_keys)
+          fss_log info "Pruned superseded verification key $path (keeping newest $budget by creation order)"
+        done < <(fss_retained_keys_newest_first "$KEY_DIR" "$REKEY_HISTORY_FILE")
       }
 
       # Append-only re-key log. A silent re-key invalidates the off-host copy of
