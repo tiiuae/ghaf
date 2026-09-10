@@ -12,8 +12,9 @@
 # LVM payload: the image builder creates volume group "pool" with:
 #   - root_<ver>_<hash>  (erofs nix-store image from ghafImage)
 #   - verity_<ver>_<hash> (dm-verity hash tree from ghafImage)
+#   - root_empty / verity_empty (reserved inactive system pair)
 #
-# Swap, persist and B-slot LVs are created on first boot by
+# Swap and persist LVs are created on first boot by
 # firstboot-persist.nix, which resizes the APP partition to fill the
 # eMMC and uses the free VG space.
 {
@@ -89,14 +90,16 @@ in
       }
       printf '%s\n' "$root_mib" > $out/root_size_mib
       printf '%s\n' "$verity_mib" > $out/verity_size_mib
-      # One populated A-slot and LVM metadata headroom. In encrypted builds the
+      # Both fixed system pairs and LVM metadata headroom. Empty B-slot extents
+      # remain sparse. In encrypted builds the
       # regular-file LUKS conversion adds its header without shrinking payload.
-      payload_mib=$((root_mib + verity_mib + 64))
+      payload_mib=$((2 * (root_mib + verity_mib) + 64))
       image=system.img
       truncate -s "$((payload_mib * 1024 * 1024))" "$image"
       "${lib.getExe pkgs.buildPackages.ghaf-initialize-verity-lvm}" \
         --image "$image" \
         --manifest "$manifest" \
+        --create-inactive-slots \
         --root-size-mib "$root_mib" \
         --verity-size-mib "$verity_mib"
       ${lib.optionalString config.ghaf.hardware.nvidia.orin.diskEncryption.enable ''

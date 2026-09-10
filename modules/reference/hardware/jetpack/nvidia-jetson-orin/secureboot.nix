@@ -33,22 +33,12 @@ let
 
   keysDir = cfg.keysSource;
 
-  certFile =
-    name:
-    if cfg.certificateContents == null then
-      keysDir + "/${name}.crt"
-    else
-      pkgs.writeText "ghaf-secureboot-${name}.crt" cfg.certificateContents.${name};
-
-  requiredCertFiles =
-    if cfg.certificateContents == null then
-      [
-        (keysDir + "/PK.crt")
-        (keysDir + "/KEK.crt")
-        (keysDir + "/db.crt")
-      ]
-    else
-      [ ];
+  certFile = name: keysDir + "/${name}.crt";
+  requiredCertFiles = map certFile [
+    "PK"
+    "KEK"
+    "db"
+  ];
 
   pkEsl = eslFromCert "PK.esl" (certFile "PK");
   kekEsl = eslFromCert "KEK.esl" (certFile "KEK");
@@ -65,23 +55,6 @@ in
         Directory containing PK.crt, KEK.crt and db.crt used to generate ESLs.
         Normally org-supplied via ghaf.org.pki.secureBootKeysSource; null
         enrolls no keys.
-      '';
-    };
-
-    certificateContents = lib.mkOption {
-      type = lib.types.nullOr (
-        lib.types.submodule {
-          options = {
-            PK = lib.mkOption { type = lib.types.lines; };
-            KEK = lib.mkOption { type = lib.types.lines; };
-            db = lib.mkOption { type = lib.types.lines; };
-          };
-        }
-      );
-      default = null;
-      description = ''
-        Public UEFI certificates supplied as text. This imports only public
-        material when a development trust directory also contains private keys.
       '';
     };
 
