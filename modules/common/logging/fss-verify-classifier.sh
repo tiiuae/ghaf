@@ -205,20 +205,50 @@ fss_drop_fail_lines_for_paths() {
   printf '%s' "$kept"
 }
 
-# Superseded FSS verification keys in a key directory, newest first. A re-key
-# regenerates seed and start_usec, so journals sealed before it verify only
-# under the key that was live when they were sealed; retain_previous_verification_key
-# keeps those as verification-key.<epoch>. Sorted on the numeric epoch suffix,
-# not the whole path, so a dot in the key directory cannot reorder them.
-# Not pure (touches the filesystem) -- kept above the pure predicate section.
+# Superseded FSS verification keys in a key directory, newest-created first. A
+# re-key regenerates seed and start_usec, so journals sealed before it verify
+# only under the key that was live when they were sealed;
+# retain_previous_verification_key keeps those as verification-key.<epoch>.
+# Ordered by mtime, NOT the epoch parsed from the filename: under backward clock
+# corrections each re-key's epoch is *lower* than the last, so a filename-epoch
+# sort would rank the newest key oldest. Not pure (touches the filesystem) --
+# kept above the pure predicate section.
 fss_list_retained_verification_keys() {
   local key_dir="$1"
 
   [ -n "$key_dir" ] || return 0
-  find "$key_dir" -maxdepth 1 -type f -name 'verification-key.*' -print 2>/dev/null |
-    awk -F'verification-key.' '{ printf "%s\t%s\n", $NF, $0 }' |
+  find "$key_dir" -maxdepth 1 -type f -name 'verification-key.*' -printf '%T@\t%p\n' 2>/dev/null |
     sort -k1,1nr |
     cut -f2-
+}
+
+# The authoritative newest-created-first ordering of the retained keys: the
+# rekey-history file (append-only, one line per retained key, oldest first --
+# field 2 is the key path) when present, then any on-disk key it does not name,
+# ordered by mtime. History order breaks mtime ties and is correct even under
+# backward corrections. prune_retained_verification_keys keeps the first N of
+# this list and deletes the rest.
+fss_retained_keys_newest_first() {
+  local key_dir="$1" history_file="${2-}"
+  local ranked="" line hpath extra
+
+  [ -n "$key_dir" ] || return 0
+  if [ -n "$history_file" ] && [ -s "$history_file" ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+      hpath=${line#*$'\t'}
+      hpath=${hpath%%$'\t'*}
+      { [ -n "$hpath" ] && [ -f "$hpath" ]; } || continue
+      if printf '%s\n' "$ranked" | grep -Fxq "$hpath"; then continue; fi
+      ranked=$(fss_append_line "$ranked" "$hpath")
+    done < <(tac -- "$history_file" 2>/dev/null)
+  fi
+  while IFS= read -r extra || [ -n "$extra" ]; do
+    [ -n "$extra" ] || continue
+    if printf '%s\n' "$ranked" | grep -Fxq "$extra"; then continue; fi
+    ranked=$(fss_append_line "$ranked" "$extra")
+  done < <(fss_list_retained_verification_keys "$key_dir")
+
+  printf '%s' "$ranked"
 }
 
 # True if an archived journal verifies under some retained key: proof it
