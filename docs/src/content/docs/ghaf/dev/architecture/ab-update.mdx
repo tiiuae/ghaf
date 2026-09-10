@@ -113,13 +113,13 @@ LVM and optional inactive/swap/persist volumes) and `ghaf-wrap-luks-image`
 Separate outputs keep QEMU/cryptsetup out of LVM-only closures.
 
 Builds use regular files without root, sudo, VMs, mounts, loop devices or
-device-mapper activation. LVM is compiled with kernel ioctls disabled. Shared
+device-mapper activation. The creation-only Rust writer emits LVM metadata directly. Shared
 code bounds writes, checks arithmetic and reaps failed producers. LVM modifies
 a disposable, initially zero-filled image; LUKS preserves the original until
 validation and atomic replacement. LUKS encrypts written zeroes as data and skips
 only filesystem-reported holes: callers must reserve holes for unused space,
-since encrypted holes do not decrypt to guaranteed zeroes. Native patches and
-integration tests live beside the Rust package in ghafpkgs.
+since encrypted holes do not decrypt to guaranteed zeroes. Encryption uses stock QEMU and cryptsetup; integration tests live beside the
+Rust package in ghafpkgs.
 
 ## Delivery and installation
 
@@ -164,7 +164,7 @@ currently checked.
 | Payload/UKI/manifest build | `modules/partitioning/verity-volume.nix` |
 | Acceptance/blessing | `modules/partitioning/boot-health.nix` |
 | Manifest, key generation/export, signing, HTTP fetch | Corresponding `packages/pkgs-by-name/ghaf-*/` packages |
-| Regular-file builders/native patches | ghafpkgs `packages/rust/ghaf-image-tools/` and `packages/storage/` |
+| Regular-file image builders | ghafpkgs `packages/rust/ghaf-image-tools/` |
 | Transaction engine/OCI client | ghaf-givc `crates/ota-update/src/` |
 | NVIDIA adapter | APP/QSPI, DUK/recovery, Secure Boot, NX/AGX flash/first boot |
 | x86 adapter | GPT/ESP, TPM/FIDO2/recovery, Type-2 UKI, installer/enrollment |

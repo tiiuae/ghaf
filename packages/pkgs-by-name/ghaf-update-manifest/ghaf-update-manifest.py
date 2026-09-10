@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import sys
 import tempfile
 
@@ -66,19 +67,27 @@ def sha256_file(path: str) -> str:
 
 
 def validate_metadata(manifest: dict) -> None:
-    if manifest.get("manifest_version") != 2:
+    if (
+        type(manifest.get("manifest_version")) is not int
+        or manifest["manifest_version"] != 2
+    ):
         raise ValueError("manifest_version must be 2")
     for field in ("system", "target", "version"):
         if not isinstance(manifest.get(field), str) or not manifest[field].strip():
             raise ValueError(f"manifest {field} must be a non-empty string")
+    for field in ("target", "version"):
+        if re.fullmatch(r"[A-Za-z0-9._-]+", manifest[field]) is None:
+            raise ValueError(
+                f"manifest {field} must contain only ASCII letters, digits, '.', '_' or '-'"
+            )
     build_system = manifest.get("build-system")
     if "build-system" in manifest and (
         not isinstance(build_system, str) or not build_system.strip()
     ):
         raise ValueError("manifest build-system must be a non-empty string")
     generation = manifest.get("generation")
-    if type(generation) is not int or generation <= 0:
-        raise ValueError("manifest generation must be a positive integer")
+    if type(generation) is not int or not 0 < generation < 2**64:
+        raise ValueError("manifest generation must be a positive 64-bit integer")
     root_hash = manifest.get("root_verity_hash")
     if (
         not isinstance(root_hash, str)
@@ -112,8 +121,10 @@ def validate_manifest(path: str, manifest: dict) -> None:
         raise ValueError("Artifact file names must be distinct from release metadata")
     for kind in ("root", "verity"):
         size = manifest[kind].get("unpacked_size")
-        if type(size) is not int or size <= 0:
-            raise ValueError(f"manifest {kind} unpacked_size must be positive")
+        if type(size) is not int or not 0 < size < 2**64:
+            raise ValueError(
+                f"manifest {kind} unpacked_size must be a positive 64-bit integer"
+            )
 
 
 def rehash_artifacts(path: str, manifest: dict) -> None:
@@ -175,6 +186,8 @@ def generate(args: argparse.Namespace) -> None:
         "version": args.version,
         "root_verity_hash": root_verity_hash,
     }
+    # Reject invalid identifiers before they are substituted into artifact paths.
+    validate_metadata(manifest)
     for kind in ("root", "verity", "kernel"):
         filename = rename(getattr(args, f"{kind}_image"), args.version, storehash)
         manifest[kind] = {"file": os.path.basename(filename)}
