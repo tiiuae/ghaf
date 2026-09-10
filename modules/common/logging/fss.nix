@@ -842,13 +842,9 @@ let
       # discard the poisoned key pair, and re-run key setup from the current
       # clock. Bounded to one attempt per invocation chain, and only when the
       # future tag sits beyond any plausible in-flight sealing interval.
-      # Superseded keys, newest first. Sorted on the epoch suffix, not the whole
-      # path, so a dot in cfg.keyPath cannot reorder them.
+      # Shared with journal-fss-verify via the classifier lib.
       list_retained_verification_keys() {
-        find "$KEY_DIR" -maxdepth 1 -type f -name 'verification-key.*' -print 2>/dev/null \
-          | awk -F'verification-key.' '{ printf "%s\t%s\n", $NF, $0 }' \
-          | sort -k1,1nr \
-          | cut -f2-
+        fss_list_retained_verification_keys "$KEY_DIR"
       }
 
       # Keep the outgoing verification key: a re-key regenerates seed and
@@ -902,21 +898,9 @@ let
           | systemd-cat -t journal-fss -p crit 2>/dev/null || true
       }
 
-      # Proof an archive belongs to a lineage sealed before the re-key. One
-      # tampered with beforehand fails under the old key too, so is not excused.
+      # Shared with journal-fss-verify via the classifier lib.
       archive_verifies_under_retained_key() {
-        local archive_path="$1" key_file key
-
-        while IFS= read -r key_file || [ -n "$key_file" ]; do
-          [ -n "$key_file" ] || continue
-          [ -s "$key_file" ] && [ -r "$key_file" ] || continue
-          key=$(tr -d '[:space:]' < "$key_file")
-          if journalctl --verify --verify-key="$key" --file="$archive_path" >/dev/null 2>&1; then
-            return 0
-          fi
-        done < <(list_retained_verification_keys)
-
-        return 1
+        fss_archive_verifies_under_retained_key "$1" "$KEY_DIR"
       }
 
       recover_from_time_poisoned_sealing() {
@@ -1365,6 +1349,7 @@ let
       util-linux
       gnugrep
       gawk
+      findutils
     ];
     # /etc/fss-verify-classifier.sh is populated at runtime (see environment.etc
     # above); shellcheck cannot follow it statically.
@@ -1499,6 +1484,39 @@ let
             UNCLEAN_RECEIPTS=$(fss_filter_valid_receipts "$RAW_UNCLEAN_RECEIPTS")
 
             fss_classify_verify_output "$VERIFY_OUTPUT"
+
+            # Retained-key rescue: a re-key reseals under a new key, so
+            # pre-re-key archives fail the current key even though intact.
+            # Retry failing archives against retained keys; a tampered
+            # archive still fails under every key.
+            RESCUED_ARCHIVES=""
+            if [ -n "$FSS_ARCHIVED_SYSTEM_FAILURES$FSS_USER_FAILURES" ] \
+              && [ -n "$(fss_list_retained_verification_keys "${cfg.keyPath}")" ]; then
+              while IFS= read -r RESCUE_PATH || [ -n "$RESCUE_PATH" ]; do
+                [ -n "$RESCUE_PATH" ] || continue
+                case "$RESCUE_PATH" in
+                *@*.journal | *@*.journal~) ;;
+                *) continue ;;
+                esac
+                if fss_archive_verifies_under_retained_key "$RESCUE_PATH" "${cfg.keyPath}"; then
+                  RESCUED_ARCHIVES=$(fss_append_line "$RESCUED_ARCHIVES" "$RESCUE_PATH")
+                fi
+              done <<<"$(fss_unique_fail_paths_from_output "$(printf '%s\n%s\n' "$FSS_ARCHIVED_SYSTEM_FAILURES" "$FSS_USER_FAILURES")")"
+            fi
+
+            if [ -n "$RESCUED_ARCHIVES" ]; then
+              fss_log warn "Retained-key rescue: archived journals verify under a superseded verification key (pre-re-key lineage), excusing:"
+              printf '%s\n' "$RESCUED_ARCHIVES" | fss_log_block
+              VERIFY_OUTPUT=$(fss_drop_fail_lines_for_paths "$VERIFY_OUTPUT" "$RESCUED_ARCHIVES")
+              # No failing lines left => every journal verifies under the
+              # current or a retained key; mirror journalctl's clean exit so
+              # the policy decision does not trip its nonzero-exit backstop.
+              if ! printf '%s\n' "$VERIFY_OUTPUT" | grep -q '^FAIL: '; then
+                VERIFY_EXIT=0
+              fi
+              fss_classify_verify_output "$VERIFY_OUTPUT"
+            fi
+
             fss_verify_policy_decision \
               "$(fss_read_recorded_pre_fss_archive "$PRE_FSS_ARCHIVE_FILE")" \
               "$RECOVERY_RECEIPTS" \

@@ -188,6 +188,62 @@ fss_unique_fail_paths_from_output() {
   printf '%s' "$unique"
 }
 
+# Drop the "FAIL: <path> ..." lines whose path is in drop_paths (one path per
+# line) from a classified failure block, keeping every other line. Used to
+# withdraw archives that a later check (e.g. a retained-key retry) has excused.
+fss_drop_fail_lines_for_paths() {
+  local block="$1" drop_paths="$2" line path kept=""
+
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+    FAIL:\ *)
+      path="${line#FAIL: }"
+      path="${path%% *}"
+      if printf '%s\n' "$drop_paths" | grep -Fxq "$path"; then
+        continue
+      fi
+      ;;
+    esac
+    kept=$(fss_append_line "$kept" "$line")
+  done <<<"$block"
+
+  printf '%s' "$kept"
+}
+
+# Superseded verification keys (verification-key.<epoch>), newest first.
+# Sorted on the numeric epoch suffix, not the whole path, so a dot in the
+# key directory cannot reorder them.
+fss_list_retained_verification_keys() {
+  local key_dir="$1"
+
+  [ -n "$key_dir" ] || return 0
+  find "$key_dir" -maxdepth 1 -type f -name 'verification-key.*' -print 2>/dev/null |
+    awk -F'verification-key.' '{ printf "%s\t%s\n", $NF, $0 }' |
+    sort -k1,1nr |
+    cut -f2-
+}
+
+# True if an archived journal verifies under some retained key: proof it
+# belongs to a lineage sealed before a re-key. A journal tampered with
+# beforehand fails under the old key too, so is not excused. Never call this
+# on a live journal -- a live file seals under the current key and must verify
+# under it.
+fss_archive_verifies_under_retained_key() {
+  local archive_path="$1" key_dir="$2" key_file key
+
+  [ -n "$archive_path" ] && [ -n "$key_dir" ] || return 1
+  while IFS= read -r key_file || [ -n "$key_file" ]; do
+    [ -n "$key_file" ] || continue
+    [ -s "$key_file" ] && [ -r "$key_file" ] || continue
+    key=$(tr -d '[:space:]' <"$key_file")
+    if journalctl --verify --verify-key="$key" --file="$archive_path" >/dev/null 2>&1; then
+      return 0
+    fi
+  done < <(fss_list_retained_verification_keys "$key_dir")
+
+  return 1
+}
+
 # Clock-jump and FSS re-key predicates. Pure, so they are testable: see
 # tests/logging/test_scripts/fss-classifier-cases.nix.
 
