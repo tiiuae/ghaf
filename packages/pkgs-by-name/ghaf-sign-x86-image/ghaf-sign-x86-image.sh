@@ -27,10 +27,6 @@ while (($#)); do
   esac
 done
 [[ -n $key_dir && -n $input && -n $output ]] || usage
-[[ $EUID -eq 0 ]] || {
-  echo "ghaf-sign-x86-image must run as root to mount the image ESP" >&2
-  exit 1
-}
 for required in db.key db.crt PK.crt KEK.crt update.pub PK.auth KEK.auth db.auth; do
   [[ -s $key_dir/$required ]] || {
     echo "Missing $key_dir/$required" >&2
@@ -59,21 +55,10 @@ done
   exit 1
 }
 
-key_pub=$(mktemp)
-cert_pub=$(mktemp)
 work=$(mktemp -d)
-loop=""
-mounted=false
-cleanup() {
-  if $mounted; then
-    umount "$work/esp" || true
-  fi
-  if [[ -n $loop ]]; then
-    losetup -d "$loop" || true
-  fi
-  rm -f "$key_pub" "$cert_pub"
-  rm -rf "$work"
-}
+key_pub="$work/key.pub"
+cert_pub="$work/cert.pub"
+cleanup() { rm -rf "$work"; }
 trap cleanup EXIT
 
 openssl pkey -in "$key_dir/db.key" -pubout -out "$key_pub"
@@ -84,26 +69,22 @@ cmp -s "$key_pub" "$cert_pub" || {
 }
 
 zstd -d "$input/ghaf-image.raw.zst" -o "$work/ghaf-image.raw"
-loop=$(losetup --find --show --partscan "$work/ghaf-image.raw")
-udevadm settle
-esp=$(
-  lsblk -nrpo NAME,PARTTYPE "$loop" |
-    awk 'tolower($2) == "c12a7328-f81f-11d2-ba4b-00a0c93ec93b" { print $1; exit }'
+esp_offset=$(
+  sfdisk --json "$work/ghaf-image.raw" |
+    jq -er '.partitiontable | .sectorsize as $sector |
+      [.partitions[] | select((.type | ascii_downcase) == "c12a7328-f81f-11d2-ba4b-00a0c93ec93b")] |
+      if length == 1 then .[0].start * $sector else error("Expected exactly one ESP") end'
 )
-[[ -n $esp ]] || {
-  echo "No EFI system partition found in the image" >&2
-  exit 1
-}
+esp_image="$work/ghaf-image.raw@@$esp_offset"
 mkdir "$work/esp"
-mount -t vfat "$esp" "$work/esp"
-mounted=true
+mcopy -s -i "$esp_image" ::EFI ::loader "$work/esp/"
 
 sign_one() {
   local file=$1 signed="$work/signed.efi"
   sbsign --key "$key_dir/db.key" --cert "$key_dir/db.crt" \
     --output "$signed" "$file"
   sbverify --cert "$key_dir/db.crt" "$signed" >/dev/null
-  install -m 0644 "$signed" "$file"
+  mcopy -o -i "$esp_image" "$signed" "::${file#"$work/esp/"}"
 }
 
 for loader in \
@@ -130,11 +111,7 @@ if find "$work/esp/loader/entries" -maxdepth 1 -type f -name '*.conf' -print -qu
   exit 1
 fi
 
-sync -f "$work/esp"
-umount "$work/esp"
-mounted=false
-losetup -d "$loop"
-loop=""
+sync -f "$work/ghaf-image.raw"
 
 mkdir -m 0700 "$output"
 bmaptool create "$work/ghaf-image.raw" -o "$output/ghaf-image.bmap"
