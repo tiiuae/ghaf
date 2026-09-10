@@ -674,4 +674,99 @@ _: ''
               rm -rf "$VKEY"; mv "$BACKUP" "$VKEY"
             '
           """)
+
+  with subtest("Backward re-key: verify excuses pre-re-key archives via a retained key"):
+      if not skip_if_setup_failed("retained-key rescue"):
+          machine.succeed("""
+            bash -lc '
+              set -euo pipefail
+              KEY_DIR="/persist/common/journal-fss/test-host"
+              VKEY="$KEY_DIR/verification-key"
+              INIT="$KEY_DIR/initialized"
+              MID=$(cat /etc/machine-id)
+              DIR="/var/log/journal/$MID"
+              WORK=$(mktemp -d)
+
+              # Regenerate a clean FSS key pair via journal-fss-setup, which owns
+              # the journald restart. (A journal dir wipe + regen also clears the
+              # assorted stale journals/keys earlier subtests leave behind.)
+              regen_keys() {
+                systemctl stop systemd-journald.service systemd-journald.socket
+                rm -f "$DIR"/*.journal "$DIR"/*.journal~ "$DIR/fss" "$VKEY" \
+                  "$KEY_DIR"/verification-key.* "$INIT"
+                systemctl start systemd-journald.service
+                systemctl restart journal-fss-setup.service
+                [ "$(systemctl show journal-fss-setup.service -p Result --value)" = success ]
+                test -s "$VKEY" && test -s "$DIR/fss"
+              }
+
+              restore() {
+                systemctl start journal-fss-verify.timer 2>/dev/null || true
+                rm -f "$KEY_DIR/verification-key.1"
+                regen_keys 2>/dev/null || true
+                rm -rf "$WORK"
+              }
+              trap restore EXIT
+
+              # Stop the periodic verify so only our explicit runs fire, and the
+              # invocation id we read back is unambiguous.
+              systemctl stop journal-fss-verify.timer
+
+              # Key pair K0.
+              regen_keys
+              cp -a "$VKEY" "$WORK/vkey.k0"
+
+              # Seal an archive under K0.
+              logger -t fss-rescue-test "pre-rekey marker $$"
+              journalctl --sync; journalctl --rotate; journalctl --sync
+              ARCHIVE=$(find "$DIR" -maxdepth 1 -name "system@*.journal" | sort | tail -n 1)
+              test -n "$ARCHIVE"
+              journalctl --verify --verify-key="$(tr -d "[:space:]" < "$VKEY")" --file="$ARCHIVE"
+
+              # Re-key to K1 (drop only the key pair; keep the K0 archive). Then
+              # install K0 as the retained key and drop any receipt store so the
+              # archive can only be excused by the retained-key retry, not an
+              # allowlist.
+              rm -f "$DIR/fss" "$VKEY" "$INIT"
+              systemctl restart journal-fss-setup.service
+              [ "$(systemctl show journal-fss-setup.service -p Result --value)" = success ]
+              cp -a "$WORK/vkey.k0" "$KEY_DIR/verification-key.1"
+              chmod 0400 "$KEY_DIR/verification-key.1"
+              rm -f "$DIR"/fss-pre-activation-receipts "$DIR"/fss-recovery-receipts \
+                "$DIR"/fss-unclean-shutdown-receipts "$DIR"/fss-pre-fss-archive
+
+              # The K0 archive now fails under K1 and verifies under the retained key.
+              if journalctl --verify --verify-key="$(tr -d "[:space:]" < "$VKEY")" --file="$ARCHIVE" >/dev/null 2>&1; then
+                echo "archive still verifies under the new key" >&2; exit 1
+              fi
+              journalctl --verify --verify-key="$(tr -d "[:space:]" < "$KEY_DIR/verification-key.1")" --file="$ARCHIVE"
+
+              # journal-fss-verify must rescue it, not degrade.
+              systemctl start --wait journal-fss-verify.service || true
+              INVID=$(systemctl show journal-fss-verify.service -p InvocationID --value)
+              journalctl _SYSTEMD_INVOCATION_ID="$INVID" --no-pager > "$WORK/verify.log" 2>&1
+              grep -F "Retained-key rescue" "$WORK/verify.log"
+              grep -Fq "$ARCHIVE" "$WORK/verify.log"
+              if grep -F "Journal integrity verification: FAILED" "$WORK/verify.log"; then
+                echo "verify degraded despite a valid retained key" >&2
+                cat "$WORK/verify.log" >&2
+                exit 1
+              fi
+
+              # Tamper the archive: rescue must not excuse it -- a tampered
+              # archive fails under the retained key too. Overwrite bytes well
+              # inside the object region (not the header, not the tail tag) so it
+              # still parses as a journal and surfaces as a FAIL: line rather than
+              # an unreadable file journalctl skips.
+              test -f "$ARCHIVE"
+              dd if=/dev/urandom of="$ARCHIVE" bs=1 count=512 seek=16384 conv=notrunc status=none
+              if journalctl --verify --verify-key="$(tr -d "[:space:]" < "$KEY_DIR/verification-key.1")" --file="$ARCHIVE" >/dev/null 2>&1; then
+                echo "tampered archive still verifies under the retained key" >&2; exit 1
+              fi
+              systemctl start --wait journal-fss-verify.service || true
+              INVID=$(systemctl show journal-fss-verify.service -p InvocationID --value)
+              journalctl _SYSTEMD_INVOCATION_ID="$INVID" --no-pager > "$WORK/verify-tamper.log" 2>&1
+              grep -F "Journal integrity verification: FAILED" "$WORK/verify-tamper.log"
+            '
+          """)
 ''
