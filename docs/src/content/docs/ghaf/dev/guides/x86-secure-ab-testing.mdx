@@ -36,11 +36,12 @@ nix run .#ghaf-secure-ab-config -- --key-dir "$GHAF_DEV_KEY_DIR" \
   --generation "$GENERATION" --output "$PUBLIC"
 timeout 2h nix build --override-input secure-ab-build-config "path:$PUBLIC" \
   .#intel-laptop-debug-secure-ab -o result-x86-unsigned
-sudo nix run .#ghaf-sign-x86-image -- --key-dir "$GHAF_DEV_KEY_DIR" \
+nix run .#ghaf-sign-x86-image -- --key-dir "$GHAF_DEV_KEY_DIR" \
   --input result-x86-unsigned --output /var/tmp/ghaf-x86-signed
 ```
 
-The post-build signer requires root to mount the ESP. It checks all four public
+The post-build signer edits the ESP with offline FAT tools as an ordinary user.
+It checks all four public
 trust files against the evaluation inventory, signs both systemd-boot paths and
 every UKI, rejects Type-1 entries and regenerates the bmap in a new directory.
 
