@@ -36,5 +36,6 @@ in
       debugLevel = 6;
       inherit (config.ghaf.users.active-directory) domains;
     };
+
   };
 }

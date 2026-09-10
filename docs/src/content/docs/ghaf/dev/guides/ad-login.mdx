@@ -72,8 +72,10 @@ ghaf = {
           ad_site = Default-First-Site-Name
           # Deny access if no GPO is found (default: false)
           ad_gpo_implicit_deny = true
-          # Map display manager PAM services to interactive logon rights
-          ad_gpo_map_interactive = +greetd, +cosmic-greeter
+          # Map display manager and su PAM services to interactive logon rights
+          ad_gpo_map_interactive = +login, +greetd, +cosmic-greeter, +su, +su-l
+          # Map SSH PAM service to remote interactive logon rights
+          ad_gpo_map_remote_interactive = +sshd
         '';
       };
       krb5 = {
@@ -117,8 +119,10 @@ ad = {
     ad_site = Default-First-Site-Name
     # Deny access if no GPO is found (default: false)
     ad_gpo_implicit_deny = true
-    # Map display manager PAM services to interactive logon rights
-    ad_gpo_map_interactive = +greetd, +cosmic-greeter
+    # Map display manager and su PAM services to interactive logon rights
+    ad_gpo_map_interactive = +login, +greetd, +cosmic-greeter, +su, +su-l
+    # Map SSH PAM service to remote interactive logon rights
+    ad_gpo_map_remote_interactive = +sshd
   '';
 };
 ```
@@ -127,11 +131,23 @@ ad = {
 |--------|---------|
 | `gpoAccessControl = "enforcing"` | Enable strict GPO evaluation |
 | `ad_gpo_implicit_deny = true` | Deny login when no applicable GPO is found |
-| `ad_gpo_map_interactive` | Map Ghaf display manager services to the Windows "interactive logon" right |
+| `ad_gpo_map_interactive` | Map Ghaf display manager, login, and su services to the Windows "interactive logon" right |
+| `ad_gpo_map_remote_interactive` | Map SSH PAM service to the Windows "remote interactive logon" right |
 
 ### PAM Strict Access
 
-The SSSD service module (`modules/common/services/sssd.nix`) enables `sssdStrictAccess` on the interactive PAM entrypoints Ghaf exposes, including the display manager and the standard `login`/`sshd` stacks. This ensures that SSSD account-phase deny decisions (from GPO evaluation) are enforced consistently for graphical, TTY, and SSH logins.
+The SSSD service module (`modules/common/services/sssd.nix`) enables `sssdStrictAccess` on the interactive PAM entrypoints Ghaf exposes, including the display manager, `su`/`su-l`, and the standard `login`/`sshd` stacks. This ensures that SSSD account-phase deny decisions (from GPO evaluation) are enforced consistently for graphical, TTY, switch-user, and SSH logins.
+
+### Sudo Privileges for AD Groups
+
+To grant sudo privileges to specific Active Directory administrative groups, add the group rule to `security.sudo.extraConfig`:
+
+```nix
+security.sudo.extraConfig = ''
+  %<ad-group-name> ALL=(ALL) ALL
+  %<ad-group-name>@<domain> ALL=(ALL) ALL
+'';
+```
 
 ### Additional SSSD GPO Options
 
@@ -247,7 +263,7 @@ To check:
 
 1. Boot the device — the provisioning TUI appears
 2. Join the domain using admin credentials
-3. Reboot, or restart SSSD:
+3. SSSD starts automatically upon domain enrollment (triggered by `systemd.paths.sssd-keytab` when `/etc/krb5.keytab` is created). If needed, you can also restart it manually:
    ```bash
    systemctl restart sssd
    ```

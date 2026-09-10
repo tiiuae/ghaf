@@ -33,6 +33,8 @@ let
         cfg.pam.displayManagerService
         "cosmic-greeter"
         "login"
+        "su"
+        "su-l"
       ]
       ++ lib.optional config.services.openssh.enable "sshd"
     )
@@ -320,8 +322,21 @@ in
       config = sssdConfig;
     };
 
+    # Watch for the Kerberos keytab creation on first boot and start SSSD automatically
+    systemd.paths.sssd-keytab = lib.mkIf hasKerberosRealm {
+      description = "Watch Kerberos keytab and trigger SSSD on domain enrollment";
+      wantedBy = [ "multi-user.target" ];
+      pathConfig = {
+        PathChanged = "/etc/krb5.keytab";
+        Unit = "sssd.service";
+      };
+    };
+
     # SSSD service dependencies
     systemd.services.sssd = {
+      unitConfig = lib.mkIf hasKerberosRealm {
+        ConditionPathExists = "/etc/krb5.keytab";
+      };
       before = [
         "greetd.service"
         "cosmic-greeter.service"
