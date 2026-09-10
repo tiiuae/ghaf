@@ -1495,9 +1495,14 @@ let
             # drop the ones that verify: pre-re-key lineage, not tamper (a
             # tampered archive fails under every key). Live journals seal under
             # the current key and are never rescued.
+            #
+            REKEY_ATTESTED=0
+            if [ -n "$(fss_list_retained_verification_keys "${cfg.keyPath}")" ]; then
+              REKEY_ATTESTED=1
+            fi
             RESCUED_ARCHIVES=""
             if [ -n "$FSS_ARCHIVED_SYSTEM_FAILURES$FSS_USER_FAILURES" ] \
-              && [ -n "$(fss_list_retained_verification_keys "${cfg.keyPath}")" ]; then
+              && [ "$REKEY_ATTESTED" = 1 ]; then
               while IFS= read -r RESCUE_PATH || [ -n "$RESCUE_PATH" ]; do
                 [ -n "$RESCUE_PATH" ] || continue
                 case "$RESCUE_PATH" in

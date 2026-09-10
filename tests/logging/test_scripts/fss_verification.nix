@@ -911,11 +911,8 @@ _: ''
                 exit 1
               fi
 
-              # Tamper the archive: rescue must not excuse it -- a tampered
-              # archive fails under the retained key too. Overwrite bytes well
-              # inside the object region (not the header, not the tail tag) so it
-              # still parses as a journal and surfaces as a FAIL: line rather than
-              # an unreadable file journalctl skips.
+              # Tamper the pre-re-key archive: it now fails under every key,
+              # so an attested re-key must not excuse it.
               test -f "$ARCHIVE"
               dd if=/dev/urandom of="$ARCHIVE" bs=1 count=512 seek=16384 conv=notrunc status=none
               if journalctl --verify --verify-key="$(tr -d "[:space:]" < "$KEY_DIR/verification-key.1")" --file="$ARCHIVE" >/dev/null 2>&1; then
@@ -924,7 +921,21 @@ _: ''
               systemctl start --wait journal-fss-verify.service || true
               INVID=$(systemctl show journal-fss-verify.service -p InvocationID --value)
               journalctl _SYSTEMD_INVOCATION_ID="$INVID" --no-pager > "$WORK/verify-tamper.log" 2>&1
-              grep -F "Journal integrity verification: FAILED" "$WORK/verify-tamper.log"
+              if ! grep -F "Journal integrity verification: FAILED" "$WORK/verify-tamper.log"; then
+                echo "tampered archive with no surviving key or receipt was not failed closed" >&2
+                cat "$WORK/verify-tamper.log" >&2; exit 1
+              fi
+
+              # A must not blunt an ACTIVE journal tamper: corrupt the live
+              # system.journal and the verdict is a hard FAIL again.
+              journalctl --sync
+              LIVE="$DIR/system.journal"
+              test -f "$LIVE"
+              dd if=/dev/urandom of="$LIVE" bs=1 count=512 seek=16384 conv=notrunc status=none
+              systemctl start --wait journal-fss-verify.service || true
+              INVID=$(systemctl show journal-fss-verify.service -p InvocationID --value)
+              journalctl _SYSTEMD_INVOCATION_ID="$INVID" --no-pager > "$WORK/verify-live-tamper.log" 2>&1
+              grep -F "Journal integrity verification: FAILED" "$WORK/verify-live-tamper.log"
             '
           """)
 ''

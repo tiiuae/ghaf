@@ -833,6 +833,7 @@ fss_classification_tags() {
 #   $3 = pre-activation receipt records (TSV, newline-separated, optional)
 #   $4 = current boot_id (optional; distinguishes this boot's boundary from stale)
 #   $5 = journalctl --verify exit code (optional; nonzero unclassified exits fail)
+#   $6 = unclean-shutdown receipt records (TSV, newline-separated, optional)
 # Outputs (as globals):
 #   FSS_VERDICT        = verified | warning | fail
 #   FSS_VERDICT_REASON = short human-readable reason
@@ -849,7 +850,9 @@ fss_classification_tags() {
 #               backstop (see fss.mdx "does not protect against").
 #   fail      - active-system failure, key defect, unclassified failure, or an
 #               archived failure with no matching receipt (unrecorded or
-#               content-substituted).
+#               content-substituted). The retained-key rescue retry (the
+#               caller, before classification) is the only excuse for a
+#               re-key-window archive; nothing here substitutes for it.
 # Receipt matching is content-bound: callers should pass receipts already filtered
 # against disk (see fss_filter_valid_receipts) so a substituted archive presents
 # as unmatched and fails closed. Requires fss_classify_verify_output first.

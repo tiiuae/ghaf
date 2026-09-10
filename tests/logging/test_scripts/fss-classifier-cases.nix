@@ -41,7 +41,7 @@ writeShellApplication {
     NC=""
 
     # Assert that classifying $sample and running policy yields $want.
-    # Usage: assert_verdict <want> <sample> [pre] [recovery_receipts] [pre_activation_receipts] [boot] [verify_exit]
+    # Usage: assert_verdict <want> <sample> [pre] [recovery_receipts] [pre_activation_receipts] [boot] [verify_exit] [unclean]
     assert_verdict() {
       local want="$1" sample="$2" pre="''${3:-}" recov="''${4:-}" receipts="''${5:-}" boot="''${6:-}" verify_exit="''${7:-0}" unclean="''${8:-}"
       fss_classify_verify_output "$sample"
@@ -113,6 +113,24 @@ writeShellApplication {
       "$(printf "FAIL: %s (Bad message)\nPASS: %s" "$PRE_ACTIVATION_ARCHIVE" "$ACTIVE")" \
       "" "" "" "$CURBOOT"
     [ "$FSS_VERDICT_REASON" = "archived system journal failures outside allowlist" ]
+
+    # An attested re-key must not excuse an archive that fails under every
+    # retained key too -- the caller's own rescue retry is the only excuse.
+    assert_verdict fail \
+      "$(printf "FAIL: %s (Tag failed verification)\nPASS: %s" "$UNEXPECTED_ARCHIVE" "$ACTIVE")" \
+      "" "" "" "$CURBOOT"
+    [ "$FSS_VERDICT_REASON" = "archived system journal failures outside allowlist" ]
+
+    # ...active-system failures fail closed regardless, as before.
+    assert_verdict fail "FAIL: $ACTIVE (Bad message)" "" "" "" "$CURBOOT"
+    [ "$FSS_VERDICT_REASON" = "active system journal verification failed" ]
+
+    # ...and a receipted archive still stays warning with its receipt reason,
+    # attested re-key or not.
+    assert_verdict warning \
+      "$(printf "FAIL: %s (Bad message)\nPASS: %s" "$PRE_ACTIVATION_ARCHIVE" "$ACTIVE")" \
+      "" "" "$(mkreceipt "$PRE_ACTIVATION_ARCHIVE" "$CURBOOT")" "$CURBOOT"
+    [ "$FSS_VERDICT_REASON" = "recorded insecure boot logs (current boot)" ]
 
     assert_verdict warning "$(printf "FAIL: %s (Bad message)\nPASS: %s" "$USER_JOURNAL" "$ACTIVE")"
     [ -n "$FSS_USER_FAILURES" ]
