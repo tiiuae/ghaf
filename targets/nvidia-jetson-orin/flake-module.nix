@@ -144,7 +144,7 @@ let
         };
         hardware.nvidia.orin.secureboot = {
           inherit (config.ghaf.secureUpdate) publicTrustDigests;
-          certificateContents = config.ghaf.secureUpdate.uefiCertificateContents;
+          keysSource = inputs.secure-ab-build-config;
         };
       };
     };

@@ -3,13 +3,11 @@
 #
 # First-boot service for Jetson Orin A/B verity boot.
 #
-# The pre-built LVM image only contains the A-slot root and verity LVs
-# to minimize flash image size (~5.5 GiB instead of ~16 GiB). On first
+# The pre-built LVM image contains both fixed-capacity system slots. On first
 # boot this service:
 #
 #   1. Expands the LVM PV after initrd has grown APP and the open LUKS mapping
-#   2. Creates the fixed-capacity empty B-slot root and verity LVs
-#   3. Creates swap and persist LVs from the remaining free space
+#   2. Creates swap and persist LVs from the remaining free space
 #
 # Every step is idempotent — the service can be interrupted and re-run
 # safely (e.g. after a power loss during first boot).
@@ -55,27 +53,8 @@ let
       echo "Resizing PV..."
       pvresize "$PV_PATH"
 
-      # --- Provision the fixed-capacity B slot before persist takes the rest ---
-
-      ensure_empty_lv() {
-        name="$1"
-        expected_mib="$2"
-        if lvs "pool/$name" >/dev/null 2>&1; then
-          actual_mib=$(lvs --noheadings -o lv_size --nosuffix --units m "pool/$name" \
-            | awk '{ sub(/^</, "", $1); printf "%d", $1 }')
-          if [ "$actual_mib" -ne "$expected_mib" ]; then
-            echo "ERROR: pool/$name is $actual_mib MiB, expected $expected_mib MiB" >&2
-            exit 1
-          fi
-          echo "pool/$name already has the required $expected_mib MiB capacity."
-        else
-          echo "Creating pool/$name ($expected_mib MiB)..."
-          DM_DISABLE_UDEV=1 lvcreate -y -Zn -Wn -n "$name" -L "''${expected_mib}M" pool
-        fi
-      }
-
-      ensure_empty_lv root_empty ${toString cfg.rootSlotSizeMiB}
-      ensure_empty_lv verity_empty ${toString cfg.veritySlotSizeMiB}
+      # The image builder owns the two system pairs. Their names change during
+      # updates, so provisioning must not recreate the initial empty names.
       vgmknodes pool
 
       # --- Create swap LV (skip if already exists) ---
@@ -132,7 +111,7 @@ in
 
     # --- First-boot service ---
     systemd.services.firstboot-persist = {
-      description = "Create inactive system slot, swap, and persist LVs on first boot";
+      description = "Grow the storage pool and provision swap and persist";
       wantedBy = [ "local-fs-pre.target" ];
       before = [ "local-fs-pre.target" ];
       after = [
