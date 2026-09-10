@@ -3,7 +3,7 @@
 #
 { inputs, ... }:
 {
-  # keep-sorted start skip_lines=1
+  # keep-sorted start skip_lines=1 block=yes
   flake.overlays.own-pkgs-overlay = final: _prev: {
     audit-rules = final.callPackage ./pkgs-by-name/audit-rules/package.nix { };
     chrome-extensions = final.callPackage ./chrome-extensions { };
@@ -22,7 +22,9 @@
     ghaf-open = final.callPackage ./pkgs-by-name/ghaf-open/package.nix { };
     ghaf-powercontrol = final.callPackage ./ghaf-powercontrol/package.nix { };
     ghaf-secure-ab-config = final.callPackage ./pkgs-by-name/ghaf-secure-ab-config/package.nix { };
-    ghaf-update-manifest = final.callPackage ./pkgs-by-name/ghaf-update-manifest/package.nix { };
+    ghaf-update-manifest = final.callPackage ./pkgs-by-name/ghaf-update-manifest/package.nix {
+      inherit inputs;
+    };
     ghaf-vms = final.callPackage ./pkgs-by-name/ghaf-vms/package.nix { };
     gpu-vm-partition-manager-sdk = inputs.gpu-partition-manager.lib.mkSdk { pkgs = final; };
     hardware-scan = final.callPackage ./pkgs-by-name/hardware-scan/package.nix { };
