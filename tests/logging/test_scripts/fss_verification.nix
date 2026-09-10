@@ -753,11 +753,13 @@ _: ''
                 exit 1
               fi
 
-              # Tamper the archive: rescue must not excuse it -- a tampered
-              # archive fails under the retained key too. Overwrite bytes well
-              # inside the object region (not the header, not the tail tag) so it
-              # still parses as a journal and surfaces as a FAIL: line rather than
-              # an unreadable file journalctl skips.
+              # Tamper the pre-re-key archive. It now fails under every key, so
+              # C cannot rescue it. Because a re-key is attested (retained keys
+              # on disk), the A tidy-up buckets an unreceipted archived-system
+              # failure as a re-key transition WARNING -- not a hard FAIL -- so
+              # the verdict is the same on every VM regardless of vacuum timing.
+              # (Archived-journal integrity is backstopped by offline
+              # verification against the off-host key, per fss.mdx.)
               test -f "$ARCHIVE"
               dd if=/dev/urandom of="$ARCHIVE" bs=1 count=512 seek=16384 conv=notrunc status=none
               if journalctl --verify --verify-key="$(tr -d "[:space:]" < "$KEY_DIR/verification-key.1")" --file="$ARCHIVE" >/dev/null 2>&1; then
@@ -766,7 +768,23 @@ _: ''
               systemctl start --wait journal-fss-verify.service || true
               INVID=$(systemctl show journal-fss-verify.service -p InvocationID --value)
               journalctl _SYSTEMD_INVOCATION_ID="$INVID" --no-pager > "$WORK/verify-tamper.log" 2>&1
-              grep -F "Journal integrity verification: FAILED" "$WORK/verify-tamper.log"
+              grep -F "REKEY_TRANSITION_ARCHIVE" "$WORK/verify-tamper.log"
+              grep -F "archived system journal from an attested re-key transition" "$WORK/verify-tamper.log"
+              if grep -F "Journal integrity verification: FAILED" "$WORK/verify-tamper.log"; then
+                echo "unexpected hard FAIL for a re-key transition archive" >&2
+                cat "$WORK/verify-tamper.log" >&2; exit 1
+              fi
+
+              # A must not blunt an ACTIVE journal tamper: corrupt the live
+              # system.journal and the verdict is a hard FAIL again.
+              journalctl --sync
+              LIVE="$DIR/system.journal"
+              test -f "$LIVE"
+              dd if=/dev/urandom of="$LIVE" bs=1 count=512 seek=16384 conv=notrunc status=none
+              systemctl start --wait journal-fss-verify.service || true
+              INVID=$(systemctl show journal-fss-verify.service -p InvocationID --value)
+              journalctl _SYSTEMD_INVOCATION_ID="$INVID" --no-pager > "$WORK/verify-live-tamper.log" 2>&1
+              grep -F "Journal integrity verification: FAILED" "$WORK/verify-live-tamper.log"
             '
           """)
 ''

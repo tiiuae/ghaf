@@ -1488,10 +1488,16 @@ let
             # Retained-key rescue: a re-key reseals under a new key, so
             # pre-re-key archives fail the current key even though intact.
             # Retry failing archives against retained keys; a tampered
-            # archive still fails under every key.
+            # archive still fails under every key. REKEY_ATTESTED also
+            # downgrades a leftover unreceipted archive to warning in
+            # fss_verify_policy_decision, instead of failing.
+            REKEY_ATTESTED=0
+            if [ -n "$(fss_list_retained_verification_keys "${cfg.keyPath}")" ]; then
+              REKEY_ATTESTED=1
+            fi
             RESCUED_ARCHIVES=""
             if [ -n "$FSS_ARCHIVED_SYSTEM_FAILURES$FSS_USER_FAILURES" ] \
-              && [ -n "$(fss_list_retained_verification_keys "${cfg.keyPath}")" ]; then
+              && [ "$REKEY_ATTESTED" = 1 ]; then
               while IFS= read -r RESCUE_PATH || [ -n "$RESCUE_PATH" ]; do
                 [ -n "$RESCUE_PATH" ] || continue
                 case "$RESCUE_PATH" in
@@ -1523,7 +1529,8 @@ let
               "$PRE_ACTIVATION_RECEIPTS" \
               "$CURRENT_BOOT_ID" \
               "$VERIFY_EXIT" \
-              "$UNCLEAN_RECEIPTS"
+              "$UNCLEAN_RECEIPTS" \
+              "$REKEY_ATTESTED"
 
             case "$FSS_VERDICT" in
             fail)
