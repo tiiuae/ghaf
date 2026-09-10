@@ -787,4 +787,66 @@ _: ''
               grep -F "Journal integrity verification: FAILED" "$WORK/verify-live-tamper.log"
             '
           """)
+
+  with subtest("FSS key retention keeps the newest generations by creation order, not epoch"):
+      if not skip_if_setup_failed("retained-key retention order"):
+          machine.succeed("""
+            bash -lc '
+              set -euo pipefail
+              source /etc/fss-verify-classifier.sh
+              KEY_DIR="/persist/common/journal-fss/test-host"
+              WORK=$(mktemp -d)
+              SC="$WORK/keys"
+              mkdir "$SC"
+              cleanup() { rm -rf "$WORK" "$KEY_DIR"/verification-key.77[789]; }
+              trap cleanup EXIT
+
+              # Four backward clock corrections: each re-key epoch is LOWER than
+              # the last, but each key is created LATER. rekey-history is
+              # append-only, oldest first; field 2 is the key path.
+              : > "$SC/rekey-history"
+              i=0
+              for epoch in 4000 3000 2000 1000; do
+                printf "gen-%s" "$epoch" > "$SC/verification-key.$epoch"
+                touch -d "@$(( 1000000000 + i * 60 ))" "$SC/verification-key.$epoch"
+                printf "%s\t%s\t-\t-\n" "$epoch" "$SC/verification-key.$epoch" >> "$SC/rekey-history"
+                i=$(( i + 1 ))
+              done
+
+              want=$(printf "%s\n%s\n%s\n%s" \
+                "$SC/verification-key.1000" "$SC/verification-key.2000" \
+                "$SC/verification-key.3000" "$SC/verification-key.4000")
+
+              # History order and mtime order both give newest-created first --
+              # verification-key.1000 (latest correction, LOWEST epoch) leads,
+              # verification-key.4000 (earliest, HIGHEST epoch) trails. The
+              # pre-fix filename-epoch sort produced the exact reverse.
+              [ "$(fss_retained_keys_newest_first "$SC" "$SC/rekey-history")" = "$want" ]
+              [ "$(fss_list_retained_verification_keys "$SC")" = "$want" ]
+
+              # A budget-3 prune keeps 1000/2000/3000 and drops 4000.
+              order=$(fss_retained_keys_newest_first "$SC" "$SC/rekey-history")
+              [ "$(printf "%s" "$order" | tail -n +4)" = "$SC/verification-key.4000" ]
+              printf "%s\n" "$order" | head -n 3 | grep -Fxq "$SC/verification-key.1000"
+
+              # The retained-key retry scans every retained generation: seal an
+              # archive under the current key, park that verification key as the
+              # OLDEST retained generation behind two newer non-matching ones,
+              # and it is still found.
+              MID=$(cat /etc/machine-id)
+              DIR="/var/log/journal/$MID"
+              logger -t fss-retain-test "seal under current gen $$"
+              journalctl --sync; journalctl --rotate; journalctl --sync
+              AR=$(find "$DIR" -maxdepth 1 -name "system@*.journal" | sort | tail -n 1)
+              test -n "$AR"
+              cp -a "$KEY_DIR/verification-key" "$KEY_DIR/verification-key.777"
+              touch -d "@1000000000" "$KEY_DIR/verification-key.777"
+              printf "not-a-key-a" > "$KEY_DIR/verification-key.778"
+              touch -d "@1000000100" "$KEY_DIR/verification-key.778"
+              printf "not-a-key-b" > "$KEY_DIR/verification-key.779"
+              touch -d "@1000000200" "$KEY_DIR/verification-key.779"
+              chmod 0400 "$KEY_DIR"/verification-key.77[789]
+              fss_archive_verifies_under_retained_key "$AR" "$KEY_DIR"
+            '
+          """)
 ''
