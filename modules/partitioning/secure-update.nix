@@ -99,15 +99,6 @@ in
       description = "Public trust files selected during evaluation.";
     };
 
-    uefiCertificateContents = lib.mkOption {
-      type = lib.types.submodule {
-        options = lib.genAttrs uefiNames (_: lib.mkOption { type = lib.types.lines; });
-      };
-      default = lib.genAttrs uefiNames (name: builtins.readFile cfg.publicTrustFiles."${name}.crt");
-      readOnly = true;
-      internal = true;
-      description = "UEFI public certificates selected by the shared update trust boundary.";
-    };
   };
 
   config = lib.mkIf cfg.enable {
