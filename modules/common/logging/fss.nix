@@ -1778,15 +1778,21 @@ in
 
       retainedKeys = mkOption {
         type = types.int;
-        default = 2;
+        default = 3;
         description = ''
           How many superseded verification keys to keep alongside the live one.
 
           A re-key regenerates the seed and start_usec, so journals sealed
           before it can never be verified with the new key. Retaining the
-          outgoing key keeps that history auditable offline, and lets the
+          outgoing key keeps that history auditable offline, lets the
           transition sweep prove an archive belongs to a pre-re-key lineage
-          cryptographically instead of inferring it from timestamps.
+          cryptographically instead of inferring it from timestamps, and lets
+          journal-fss-verify excuse pre-re-key archives instead of degrading.
+
+          The default of 3 covers two attested backward corrections close
+          enough together that the second re-keys before the first's archives
+          have aged out of journald retention -- the second correction then
+          needs both the pre-first and post-first keys still on disk.
 
           The cost is exposure: an FSS verification key is seed + start +
           interval, so possession allows forging entries from that epoch
