@@ -42,6 +42,7 @@ in
               {
                 bus = "pci";
                 path = "0001:01:00.0";
+                crosvm.guestAddress = "00:01.0";
               }
             ];
         # Network Manager is defined for netvm of Orin Devices
@@ -51,7 +52,7 @@ in
       }
     ];
 
-    hardware.deviceTree.overlays = [
+    hardware.deviceTree.overlays = lib.mkIf (!config.ghaf.host.kernel.hardening.hypervisor.enable) [
       {
         name = "agx-ethernet-pci-passthough-overlay";
         dtsFile =
@@ -64,6 +65,21 @@ in
       }
     ];
 
+    systemd.services.unbindPcieRootport = {
+      enable = config.ghaf.host.kernel.hardening.hypervisor.enable;
+      description = "Unbind PCIe root port to release IOMMU group";
+      wantedBy = [ "multi-user.target" ];
+      before = [ "microvm@net-vm.service" ];
+      script = ''
+        echo 0001:00:00.0 > /sys/bus/pci/devices/0001:00:00.0/driver/unbind || true
+        echo 1 > /sys/bus/platform/devices/14100000.pcie/dma_cleanup || true
+      '';
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = "yes";
+      };
+    };
+
     boot.kernelPatches = lib.mkIf (config.ghaf.hardware.nvidia.orin.kernelVersion == "upstream-6-6") [
       {
         name = "vfio-true";
@@ -75,6 +91,10 @@ in
     boot.kernelParams = [
       "vfio-pci.ids=10ec:c822,10ec:c82f,8086:1533"
       "vfio_iommu_type1.allow_unsafe_interrupts=1"
+    ]
+    ++ lib.optionals config.ghaf.host.kernel.hardening.hypervisor.enable [
+      "pkvm.assign_permissive=1"
+      "kvm-arm.hyp_iommu_pages=86016" # 0x15000
     ];
   };
 }
