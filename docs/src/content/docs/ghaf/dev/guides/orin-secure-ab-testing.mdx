@@ -1,0 +1,281 @@
+---
+title: Orin Secure A/B Testing
+---
+{/*
+SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+*/}
+
+# Orin secure A/B testing
+
+Use the [shared architecture](/ghaf/dev/architecture/ab-update) for trust,
+manifest, transaction and boot-health contracts.
+
+:::danger[Destructive tests]
+Flash, corruption and power-cut cases require an explicitly authorized device.
+Match board model, ECID, before/after USB topology, storage and serial endpoint;
+VID/PID alone is insufficient. Require exactly one identified recovery target
+before flashing, and stop on ambiguity. Never overwrite the active pair or the
+only signed fallback.
+:::
+
+## Scope and records
+
+| Board | Target prefix | APP storage | Additional gate |
+| --- | --- | --- | --- |
+| NX 16 GB | `nvidia-jetson-orin-nx-verity-luks-debug` | Internal NVMe | Physical watchdog/reset |
+| AGX | `nvidia-jetson-orin-agx-verity-luks-debug` | Internal eMMC (`mmcblk0`) | DUK reboot with optional fTPM disabled |
+
+APP contains LUKS2, LVM system pairs, persist and swap.
+
+Keep a protected evidence directory outside Git. For each test ID below record
+UTC start/end, Ghaf/GIVC revisions, exact target/generation, manifest digest,
+device identity, active pair/default/accepted generation before and after,
+commands/fault point, serial/journal evidence, pass/fail/blocked/not-run and any
+manual recovery. Exclude private keys, recovery passphrases and LUKS headers;
+redact network/device identities before sharing.
+
+## Build and sign
+
+Generate keys once as described in the shared guide. Set `ORIN=nx` or
+`ORIN=agx` explicitly for the authorized board. Export a new public directory
+for every candidate; never edit an input used for a published image.
+
+```sh
+export GHAF_DEV_KEY_DIR=/secure/local/ghaf-dev-keys
+ORIN=nx
+TARGET="nvidia-jetson-orin-$ORIN-verity-luks-debug"
+GENERATION=10
+PUBLIC="$PWD/secure-ab-$ORIN-generation-$GENERATION"
+nix run .#ghaf-secure-ab-config -- --key-dir "$GHAF_DEV_KEY_DIR" \
+  --generation "$GENERATION" --output "$PUBLIC"
+
+# Sequential, bounded evaluations; -from-x86_64 is required on an x86 host.
+for artifact in ghafImage flash-script; do
+  timeout 2h nix build --override-input secure-ab-build-config "path:$PUBLIC" \
+    ".#$TARGET-from-x86_64-$artifact" -o "result-$ORIN-$artifact"
+done
+
+MANIFEST="$(find -L "result-$ORIN-ghafImage" -maxdepth 1 -name '*.manifest' -print -quit)"
+jq -e --arg target "$TARGET" --argjson generation "$GENERATION" \
+  '.system == "aarch64-linux" and .target == $target and .generation == $generation' \
+  "$MANIFEST"
+SIGNED_DIR="signed-$ORIN-generation-$GENERATION"
+nix run .#ghaf-sign-update -- --key-dir "$GHAF_DEV_KEY_DIR" \
+  --input "$MANIFEST" --output "$SIGNED_DIR"
+SIGNED_MANIFEST="$SIGNED_DIR/$(basename "$MANIFEST")"
+```
+
+Require one manifest, its detached signature and three artifacts. Record public
+certificate/key SHA-256 values. The default keyless input and incomplete public
+directories must fail evaluation; no generic-image fallback is allowed.
+
+With **no recovery target attached**, test the flash script with an unset key
+directory, missing files, an independent trust set, and mismatched `db.key` or
+`update.key`. Each must fail before device/work-directory preparation. Restore
+the evaluated trust set and require the checks to pass. Never run key-negative
+tests while a recovery-mode device is attached.
+
+## Flash and first boot
+
+For HW-001/AGX-002, capture `lsusb` and `lsusb -t` before/after recovery and
+match the returned ECID to the serial-identified board. NX commonly appears as
+`0955:7323`, AGX as `0955:7023`; neither alone authorizes a flash. Exclude other
+APX devices. Confirm NVMe versus eMMC in the selected flash script.
+
+For HW-002, record `udevadm info --query=property --name="$SERIAL_DEVICE"`, set
+115200 baud and start a timestamped serial capture before flashing. Then repeat
+the identity checks immediately before the destructive command:
+
+```sh
+sudo --preserve-env=GHAF_DEV_KEY_DIR \
+  "result-$ORIN-flash-script/bin/flash-ghaf-host" --secure-boot -u
+```
+
+Keep the new recovery passphrase in protected offline custody, not command
+arguments, ordinary logs or the evidence bundle.
+
+Capture this baseline before every mutating runtime case:
+
+```sh
+sudo ota-update image status
+bootctl status --no-pager
+bootctl list --no-pager
+cat /proc/cmdline
+cat /persist/common/ota/accepted-generation
+sudo cryptsetup status cryptroot
+sudo veritysetup status nix-store
+sudo lvs -a -o lv_name,lv_size,lv_attr,lv_uuid,devices pool
+findmnt --mountpoint /nix/store
+findmnt --mountpoint /persist
+swapon --show
+systemctl is-active microvm@{admin,disp,gpu,net}-vm.service
+journalctl -b -u firstboot-persist -u ghaf-boot-health --no-pager
+```
+
+Require Secure Boot, LUKS-backed `pool`, verified read-only store, read-write
+Btrfs persist, encrypted swap, healthy configured core VMs and matching accepted
+generation. Initial storage reserves the second pair's capacity. Create a
+non-secret sentinel under `/persist/common/ota-test/`; compare it after every
+update, reboot and rollback. Stop if the active pair cannot be identified.
+
+## Delivery
+
+All network requests belong in `net-vm`; host validation and storage mutation
+remain separate. Never use registry pull's `--install` here.
+
+### OCI: REG-000 through REG-002
+
+Use a managed HTTPS registry or a disposable TLS registry outside Ghaf. Verify
+DNS/reachability from both hosts, unauthenticated `/v2/` rejection, authenticated
+success, CA fingerprint agreement and failure with the wrong CA. Do not use
+`--insecure`. Developer credentials may push; device credentials must be
+read-only. A disposable basic-auth registry without repository authorization
+does not prove read-only access and must be recorded as such.
+
+With `UPDATE_REF=<registry>/<namespace>/<repository>:<approved-tag>` and
+`REGISTRY_AUTH_ARGS` supplied privately (`--token TOKEN` or
+`--username USER --password PASSWORD`), run on the developer host:
+
+```sh
+nix run 'path:../ghaf-givc#ota-update' -- registry "${REGISTRY_AUTH_ARGS[@]}" \
+  push --manifest "$SIGNED_MANIFEST" "$UPDATE_REF"
+PULL_ROOT="$(mktemp -d)"
+nix run 'path:../ghaf-givc#ota-update' -- registry "${REGISTRY_AUTH_ARGS[@]}" \
+  pull --validate --destination "$PULL_ROOT" "$UPDATE_REF"
+```
+
+Record the OCI digest. Compare pulled `<repository>/<tag>/manifest.json` and
+`manifest.json.sig` byte-for-byte with the signed originals; run signed image
+validation with the target's public keys and accepted-generation state.
+Missing signature layers, tampered manifests or altered artifacts must fail.
+
+In `net-vm`, repeat `ota-update registry ... discover <repository>` and
+`ota-update registry ... pull --validate --destination /persist/sysupdate "$UPDATE_REF"`
+using the read-only credential. Record the printed manifest path. This is
+manual self-fetch, not periodic discovery, approval or unattended installation.
+
+### Static HTTP: REG-003
+
+For an isolated lab only, serve a directory containing exactly five public
+files. Set `UPDATE_HTTP_BIND` and `UPDATE_HTTP_PORT` to a target-reachable
+interface/nonprivileged port; scope any firewall opening to the lab network.
+
+```sh
+HTTP_ROOT="$(mktemp -d)"
+install -m 0644 "$SIGNED_MANIFEST" "$HTTP_ROOT/manifest.json"
+install -m 0644 "$SIGNED_MANIFEST.sig" "$HTTP_ROOT/manifest.json.sig"
+for kind in root verity kernel; do
+  artifact="$(jq -er --arg kind "$kind" '.[$kind].file' "$SIGNED_MANIFEST")"
+  case "$artifact" in "" | .* | *[!A-Za-z0-9._-]*) exit 1 ;; esac
+  install -m 0644 "$SIGNED_DIR/$artifact" "$HTTP_ROOT/$artifact"
+done
+python3 -m http.server --bind "$UPDATE_HTTP_BIND" \
+  --directory "$HTTP_ROOT" "$UPDATE_HTTP_PORT"
+```
+
+In `net-vm`, run
+`ghaf-fetch-update http://<developer-interface>:<port> <generation> /persist/sysupdate`.
+It publishes `http-generation-<generation>/manifest.json` with `fetch.complete`.
+Interrupt each download: no final directory/complete marker may appear. Retry
+fresh, never manufacture a marker or reuse old contents. Tamper with every
+bundle component and exercise target/generation rejection on the host.
+Stop the server and remove only its scoped firewall rule and inspected public
+staging directory afterward; never expose keys or recovery material.
+
+### Host installation
+
+Use the manifest path printed by either transport:
+
+```sh
+sudo ota-update image validate --manifest "$PULLED_MANIFEST"
+sudo ota-update image --dry-run install --manifest "$PULLED_MANIFEST"
+sudo ota-update image install --manifest "$PULLED_MANIFEST"
+```
+
+Stop on any error. Confirm the active pair/default against the baseline,
+a complete `+3.efi` trial and its candidate-specific default glob; installation
+must not reboot. Reboot manually and observe the health/rollback cases below.
+
+## Acceptance matrix
+
+Run each applicable row on NX and AGX. IT IDs identify optional GIVC runtime
+fixtures.
+
+| ID | Procedure | Required result |
+| --- | --- | --- |
+| IT-001 | Exercise signed install against real disposable LUKS/LVM/verity storage | Active pair retained, staged pair verified, persist retained |
+| IT-002 / HW-007 / AGX-005 | Install three strictly increasing generations A→B→A | Two bounded system pairs, inactive space reused, active hashes unchanged, acceptance advances |
+| IT-003 | Inject each transaction failure listed below | Active hashes/UUIDs unchanged; no partial UKI selected; retry converges |
+| BT-001 | Reboot a valid installed trial with healthy dependencies | Exact candidate default, counter removed, accepted generation advances, persist intact |
+| BT-002 / HW-009 | Export a newer public config with `--inject-boot-health-failure`; build/sign/install normally | Three probe-service failures/reboots, one attempt consumed each time, then blessed fallback; acceptance unchanged |
+| BT-003 / HW-010 | With serial and explicit LV identity, corrupt one 4096-byte block of the **inactive trial** root; repeat for verity | Three dm-verity failures, automatic fourth selection of blessed pair; active hashes unchanged |
+| BT-004 | Compare sentinel and persist identity after each case | Same Btrfs LV and contents, no reformat |
+| HW-003 / AGX-001 | Build/flash the board-matched artifacts above | Intended NVMe/eMMC target, signed boot, complete baseline |
+| HW-004 | Select a separate unsigned test UKI without replacing signed fallback | Kernel never runs; signed fallback remains selectable. PXE/shell fallback proves rejection only |
+| HW-005 / AGX-003 | Test manufacturer rejection, recovery slot 1 with external tokens disabled, then unattended DUK reboot | Manufacturer fails; recovery succeeds; no false positive from an already-open mapping |
+| HW-006 | Interrupt first boot after APP/LUKS/PV growth, swap/persist creation and persist formatting | Restart converges, no duplicate LVs; blank persist formats once, Btrfs retained, unexpected filesystem rejects |
+| HW-008 | Apply every rejection variant below | No active hash, LV, ESP or boot-default mutation |
+| HW-011 | Physically cut power at every named phase below | Old blessed boot or complete trial, recoverable staging, persist intact |
+| HW-012 | Hard-hang a counted trial repeatedly | Bounded physical watchdog reset each time, exactly one attempt consumed, eventual fallback |
+| AGX-004 | Verify fTPM disabled and perform ordinary shutdown/reboot | No `/dev/tpmrm0`, load service or `tpm_ftpm_tee` task; prompt reboot, unattended DUK unlock and unchanged persist |
+
+For HW-005, make a protected `cryptsetup luksHeaderBackup` after key rotation
+and before faults. Move it into encrypted offline custody; keep only its
+inventory identifier with the run record. Prompt for recovery secrets without
+echo. Never delete slots to investigate recovery failure. Test unexpected
+persist filesystems only in a disposable fixture, not by replacing real data.
+
+### Rejection and interruption cases
+
+HW-008: missing/random/wrong-key signature; manifest changed after signing;
+root or verity size/hash mismatch; unsigned/wrong-key UKI; opposite-board target;
+equal/older generation; UKI root hash or generation disagreeing with manifest.
+Validate first and do not continue to installation after a failed preflight.
+
+IT-003: root decoder failure (including writer success), short/failed root
+write, verity decoder/write failure, failed `veritysetup verify`, second final
+LV rename failure, UKI temporary write/sync failure, default-selection failure
+after UKI rename, and process termination after default selection. Record
+pre/post active hashes, LV UUIDs, ESP listing and loader variables.
+
+HW-011: validation before mutation; staging creation; root write; verity write;
+verity verification; first final LV rename; UKI temporary installation; UKI
+atomic rename; boot-default commit; each of the three trial boots; acceptance
+persistence before blessing. Confirm the phase from live evidence before cutting
+power, collect state before retry, then rerun the exact signed candidate.
+Before boot commit the old pair must boot; afterward only the old pair or
+complete trial may boot. Health retries must converge without lowering accepted
+generation. No undocumented LV surgery is an acceptable recovery.
+
+## Recovery and triage
+
+Capture the baseline commands, `systemd-bless-boot status`, ESP filenames,
+current/previous boot journals and updater output **before** retrying.
+
+| State | Action and boundary |
+| --- | --- |
+| Recognizable one-sided inactive staging, partial final rename, complete LVs without UKI, or failed candidate default selection | Rerun the exact signed candidate; never rename/delete the active pair |
+| Orphan UKI `.tmp` or ESP full | Preserve evidence; remove only proven stale managed files, never current/only blessed fallback; retry |
+| Candidate exceeds fixed slots or pre-canary layout is incompatible | Intentional destructive reflash with suitable layout, not shrinking persist |
+| Incomplete HTTP fetch | Inspect/retain or delete only that temporary directory; retry fresh |
+| Blank/Btrfs/unexpected persist | Restart to format blank/retain Btrfs; stop on any other filesystem |
+| Trust/key mismatch or authentication/policy failure | Restore matching evaluated trust or reject/rebuild; never repair signed contents in place |
+| Ambiguous active pair, unmanaged/non-staging partial LV, different VG or more than two groups | Stop and escalate |
+| DUK and matching recovery both fail | Preserve header/slots; use controlled rescue and protected backup, never reformat APP |
+
+For rollback failures, check counter suffixes, the candidate-specific
+`ghaf-<version>-<hash>*.efi` glob and surviving blessed UKI. Broad `ghaf-*.efi`
+can pick an older equal-version image by hash order; an exhausted trial must
+not be pinned as an exact default.
+
+## Historical evidence and release gates
+
+The 2026-08-19 campaign recorded sequential NX/AGX builds and encrypted first
+boot, NX signed slot reuse and three-failure corruption rollback, AGX static-HTTP
+self-fetch and generations 1→2→3, and persist retention. AGX required optional
+fTPM disablement for clean reboot and candidate-specific selection for
+equal-version trials. Unsigned UKI rejection was partial: firmware fell through
+to networking instead of automatically selecting the signed fallback.
+
+Physical power cuts (HW-011) and hard-hang watchdog tests (HW-012) remained unrun.

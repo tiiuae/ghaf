@@ -33,15 +33,16 @@ let
 
   keysDir = cfg.keysSource;
 
-  requiredCertFiles = [
-    (keysDir + "/PK.crt")
-    (keysDir + "/KEK.crt")
-    (keysDir + "/db.crt")
+  certFile = name: keysDir + "/${name}.crt";
+  requiredCertFiles = map certFile [
+    "PK"
+    "KEK"
+    "db"
   ];
 
-  pkEsl = eslFromCert "PK.esl" (keysDir + "/PK.crt");
-  kekEsl = eslFromCert "KEK.esl" (keysDir + "/KEK.crt");
-  dbEsl = eslFromCert "db.esl" (keysDir + "/db.crt");
+  pkEsl = eslFromCert "PK.esl" (certFile "PK");
+  kekEsl = eslFromCert "KEK.esl" (certFile "KEK");
+  dbEsl = eslFromCert "db.esl" (certFile "db");
 in
 {
   options.ghaf.hardware.nvidia.orin.secureboot = {
@@ -55,7 +56,7 @@ in
 
     signingKeyDir = lib.mkOption {
       type = lib.types.str;
-      default = toString ../../../../secureboot/dev-keys;
+      default = "";
       description = ''
         Path to directory containing db.key and db.crt for signing EFI
         binaries at flash time (on the build host). This is intentionally
@@ -64,6 +65,17 @@ in
 
         Can be overridden at flash time via the SECURE_BOOT_SIGNING_KEY_DIR
         environment variable.
+      '';
+    };
+
+    publicTrustDigests = lib.mkOption {
+      type = lib.types.attrsOf lib.types.str;
+      default = { };
+      internal = true;
+      description = ''
+        SHA-256 digests of the external public trust files embedded during
+        evaluation. Flash scripts compare these with the runtime key directory
+        before signing or preparing images.
       '';
     };
   };
