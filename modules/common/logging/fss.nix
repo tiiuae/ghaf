@@ -1621,7 +1621,8 @@ let
               # No failing lines left => every journal verifies under the
               # current or a retained key; mirror journalctl's clean exit so
               # the policy decision does not trip its nonzero-exit backstop.
-              if ! printf '%s\n' "$VERIFY_OUTPUT" | grep -q '^FAIL: '; then
+              # Here-string avoids a pipefail/SIGPIPE misreport (see fss-verify-classifier.sh).
+              if ! grep -q '^FAIL: ' <<<"$VERIFY_OUTPUT"; then
                 VERIFY_EXIT=0
               fi
               fss_classify_verify_output "$VERIFY_OUTPUT"

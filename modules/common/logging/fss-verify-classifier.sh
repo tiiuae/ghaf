@@ -199,7 +199,7 @@ fss_drop_fail_lines_for_paths() {
     FAIL:\ *)
       path="${line#FAIL: }"
       path="${path%% *}"
-      if printf '%s\n' "$drop_paths" | grep -Fxq "$path"; then
+      if grep -Fxq -- "$path" <<<"$drop_paths"; then
         continue
       fi
       ;;
@@ -237,13 +237,14 @@ fss_retained_keys_newest_first() {
       hpath=${line#*$'\t'}
       hpath=${hpath%%$'\t'*}
       { [ -n "$hpath" ] && [ -f "$hpath" ]; } || continue
-      if printf '%s\n' "$ranked" | grep -Fxq "$hpath"; then continue; fi
+      # Here-string avoids a pipefail/SIGPIPE misreport from grep -q's early exit.
+      if grep -Fxq -- "$hpath" <<<"$ranked"; then continue; fi
       ranked=$(fss_append_line "$ranked" "$hpath")
     done < <(tac -- "$history_file" 2>/dev/null)
   fi
   while IFS= read -r extra || [ -n "$extra" ]; do
     [ -n "$extra" ] || continue
-    if printf '%s\n' "$ranked" | grep -Fxq "$extra"; then continue; fi
+    if grep -Fxq -- "$extra" <<<"$ranked"; then continue; fi
     ranked=$(fss_append_line "$ranked" "$extra")
   done < <(fss_list_retained_verification_keys "$key_dir")
 
