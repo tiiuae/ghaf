@@ -16,11 +16,65 @@ let
   });
 
   inherit (lib)
+    cartesianProduct
+    genAttrs
+    getExe'
+    listToAttrs
     literalExpression
-    mkIf
     mkOption
+    nameValuePair
+    optionalString
     types
     ;
+
+  # The six profiles every set has: three PPD levels x AC/battery. One source for
+  # the profile list, the ppd.conf mapping and the GIVC unit names.
+  mkProfileVariants =
+    prefix:
+    listToAttrs (
+      map (v: nameValuePair "${prefix}-${v.base}${optionalString v.onBattery "-battery"}" v)
+        (cartesianProduct {
+          base = [
+            "powersave"
+            "balanced"
+            "performance"
+          ];
+          onBattery = [
+            false
+            true
+          ];
+        })
+    );
+
+  # tuned-ppd's mapping from the three PPD levels to our profiles.
+  mkPpdSettings = prefix: {
+    main.default = "balanced";
+    battery = {
+      power-saver = "${prefix}-powersave-battery";
+      balanced = "${prefix}-balanced-battery";
+      performance = "${prefix}-performance-battery";
+    };
+    profiles = {
+      power-saver = "${prefix}-powersave";
+      balanced = "${prefix}-balanced";
+      performance = "${prefix}-performance";
+    };
+  };
+
+  # Started over GIVC by the gui-vm; whitelisted in modules/givc/<vm>.nix.
+  mkPpdServices =
+    location: names:
+    genAttrs names (profile: {
+      description = "Enable ${profile} Ghaf PPD profile on ${location}";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "-${getExe' pkgs.tuned "tuned-adm"} profile ${profile}";
+      };
+    });
+
+  # Each generated script is its own store path holding one profile directory.
+  mkProfileDirs =
+    scripts: "/etc/tuned/profiles,${lib.concatMapStringsSep "," toString (lib.attrValues scripts)}";
 
   # General TuneD script generator
   # Here we can add helper functions which can be used in the scripts
@@ -88,24 +142,8 @@ in
   _file = ./default.nix;
 
   imports = [
-    (import ./host.nix {
-      inherit
-        pkgs
-        config
-        lib
-        mkTunedScript
-        tunedNoDesktop
-        ;
-    })
-    (import ./guests.nix {
-      inherit
-        pkgs
-        config
-        lib
-        mkTunedScript
-        tunedNoDesktop
-        ;
-    })
+    ./host.nix
+    ./guests.nix
   ];
 
   options.ghaf.services.performance = {
@@ -134,8 +172,20 @@ in
     };
   };
 
-  config = mkIf cfg.enable {
-    assertions = [
+  config = {
+    # Passed as module arguments so the sub-modules stay real NixOS modules.
+    _module.args = {
+      inherit
+        mkTunedScript
+        tunedNoDesktop
+        mkProfileVariants
+        mkPpdSettings
+        mkPpdServices
+        mkProfileDirs
+        ;
+    };
+
+    assertions = lib.optionals cfg.enable [
       {
         assertion = !config.hardware.system76.power-daemon.enable;
         message = "`config.ghaf.performance` conflicts with `config.hardware.system76.power-daemon.enable`.";
