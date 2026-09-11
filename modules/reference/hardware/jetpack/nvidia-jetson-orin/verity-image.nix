@@ -25,6 +25,8 @@
 }:
 let
   cfg = config.ghaf.partitioning.verity;
+  buildPkgs = pkgs.pkgsBuildBuild;
+  runVM = import ../../../../../lib/image-builder-vm.nix { pkgs = buildPkgs; };
 
   # The ghafUpdateImage derivation from verity-volume.nix produces:
   #   ghaf_root_<ver>_<hash>.raw.zst   — erofs nix-store image (compressed)
@@ -35,8 +37,8 @@ let
   fixedSlotSizes = cfg.rootSlotSizeMiB != null && cfg.veritySlotSizeMiB != null;
 
   # The ESP is assembled at flash time because its EFI binaries need private
-  # signing keys. The LVM/LUKS payload is built here using regular-file-only
-  # userspace tools; no loop device, device mapper, VM, or privilege is needed.
+  # signing keys. The LVM/LUKS payload is created on a disposable build-VM disk
+  # using stock cryptsetup and LVM tools.
   espFiles = pkgs.runCommand "esp-files" { } ''
     mkdir -p $out
 
@@ -67,54 +69,58 @@ let
 in
 {
   config = lib.mkIf cfg.enable {
-    system.build.verityImages = pkgs.runCommand "verity-images" { } ''
-      mkdir -p $out
-      ln -s ${espFiles} $out/esp-files
-      ln -s ${ghafUpdateImage} $out/update
-      mapfile -t manifests < <(find ${ghafUpdateImage} -maxdepth 1 -type f -name '*.manifest')
-      [ "''${#manifests[@]}" -eq 1 ] || { echo "Expected exactly one update manifest" >&2; exit 1; }
-      manifest="''${manifests[0]}"
-      ${
-        if fixedSlotSizes then
-          ''
-            root_mib=${toString cfg.rootSlotSizeMiB}
-            verity_mib=${toString cfg.veritySlotSizeMiB}
-          ''
-        else
-          ''
-            root_bytes=$(${pkgs.buildPackages.jq}/bin/jq -er '.root.unpacked_size' "$manifest")
-            verity_bytes=$(${pkgs.buildPackages.jq}/bin/jq -er '.verity.unpacked_size' "$manifest")
-            root_mib=$(( (root_bytes + 1048575) / 1048576 + 512 ))
-            verity_mib=$(( (verity_bytes + 1048575) / 1048576 + 16 ))
-          ''
-      }
-      printf '%s\n' "$root_mib" > $out/root_size_mib
-      printf '%s\n' "$verity_mib" > $out/verity_size_mib
-      # Both fixed system pairs and LVM metadata headroom. Empty B-slot extents
-      # remain sparse. In encrypted builds the
-      # regular-file LUKS conversion adds its header without shrinking payload.
-      payload_mib=$((2 * (root_mib + verity_mib) + 64))
-      image=system.img
-      truncate -s "$((payload_mib * 1024 * 1024))" "$image"
-      "${lib.getExe pkgs.buildPackages.ghaf-initialize-verity-lvm}" \
-        --image "$image" \
-        --manifest "$manifest" \
-        --create-inactive-slots \
-        --root-size-mib "$root_mib" \
-        --verity-size-mib "$verity_mib"
-      ${lib.optionalString config.ghaf.hardware.nvidia.orin.diskEncryption.enable ''
-        printf '%s' ${lib.escapeShellArg config.ghaf.hardware.nvidia.orin.diskEncryption.deviceUniqueKey.deviceManufacturerPassphrase} \
-          > manufacturer.key
-        "${lib.getExe pkgs.buildPackages.ghaf-wrap-luks-image}" \
-          --image "$image" \
-          --uuid ${lib.escapeShellArg config.ghaf.hardware.nvidia.orin.diskEncryption.luksUuid} \
-          --key-file manufacturer.key
-        rm -f manufacturer.key
-      ''}
-      stat -c%s "$image" > $out/system.raw_size
-      "${lib.getExe pkgs.buildPackages.zstd}" --compress --threads=0 \
-        "$image" -o $out/system.img.zst
-    '';
+    system.build.verityImages = runVM (
+      buildPkgs.runCommand "verity-images"
+        {
+          preVM = ''
+            mapfile -t manifests < <(find ${ghafUpdateImage} -maxdepth 1 -type f -name '*.manifest')
+            [ "''${#manifests[@]}" -eq 1 ] || { echo "Expected exactly one update manifest" >&2; exit 1; }
+            manifest="''${manifests[0]}"
+            printf '%s' "$manifest" > xchg/manifest-path
+            ${
+              if fixedSlotSizes then
+                ''
+                  root_mib=${toString cfg.rootSlotSizeMiB}
+                  verity_mib=${toString cfg.veritySlotSizeMiB}
+                ''
+              else
+                ''
+                  root_bytes=$(${buildPkgs.jq}/bin/jq -er '.root.unpacked_size' "$manifest")
+                  verity_bytes=$(${buildPkgs.jq}/bin/jq -er '.verity.unpacked_size' "$manifest")
+                  root_mib=$(( (root_bytes + 1048575) / 1048576 + 512 ))
+                  verity_mib=$(( (verity_bytes + 1048575) / 1048576 + 16 ))
+                ''
+            }
+            printf '%s\n' "$root_mib" > xchg/root_size_mib
+            printf '%s\n' "$verity_mib" > xchg/verity_size_mib
+            diskImage=$PWD/system.img
+            truncate -s "$(( (2 * (root_mib + verity_mib) + 64 + ${
+              if config.ghaf.hardware.nvidia.orin.diskEncryption.enable then "32" else "0"
+            }) * 1048576 ))" "$diskImage"
+          '';
+          postVM = ''
+            mkdir -p "$out"
+            ln -s ${espFiles} "$out/esp-files"
+            ln -s ${ghafUpdateImage} "$out/update"
+            cp xchg/root_size_mib xchg/verity_size_mib "$out/"
+            stat -c%s "$diskImage" > "$out/system.raw_size"
+            ${lib.getExe buildPkgs.zstd} --compress --threads=0 "$diskImage" -o "$out/system.img.zst"
+          '';
+        }
+        ''
+          encryption=()
+          ${lib.optionalString config.ghaf.hardware.nvidia.orin.diskEncryption.enable ''
+            umask 077
+            printf '%s' ${lib.escapeShellArg config.ghaf.hardware.nvidia.orin.diskEncryption.deviceUniqueKey.deviceManufacturerPassphrase} > manufacturer.key
+            encryption=(--luks-uuid ${lib.escapeShellArg config.ghaf.hardware.nvidia.orin.diskEncryption.luksUuid} --key-file manufacturer.key)
+          ''}
+          ${lib.getExe buildPkgs.ghaf-initialize-verity-lvm} \
+            --image /dev/vda --manifest "$(cat manifest-path)" --create-inactive-slots \
+            --root-size-mib "$(cat root_size_mib)" --verity-size-mib "$(cat verity_size_mib)" \
+            "''${encryption[@]}"
+          rm -f manufacturer.key
+        ''
+    );
 
     # Configure filesystem mounts for the verity layout.
     # /persist and swap are declared in firstboot-persist.nix.
