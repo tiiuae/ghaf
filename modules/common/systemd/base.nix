@@ -72,9 +72,16 @@ let
       }
     )).overrideAttrs
       (prevAttrs: {
-        patches = prevAttrs.patches ++ [
-          ./systemd-boot-double-dtb-buffer-size.patch
-        ];
+        patches = prevAttrs.patches ++ [ ./systemd-boot-double-dtb-buffer-size.patch ];
+        # Tolerate repeated same-epoch FSS TAGs in `journalctl --verify` (a forward
+        # clock correction re-tags a sealed file within one FSPRG interval).
+        # TODO: remove once upstreamed -- https://github.com/tiiuae/ghaf/issues/2243
+        postPatch = (prevAttrs.postPatch or "") + ''
+          substituteInPlace src/libsystemd/sd-journal/journal-verify.c \
+            --replace-fail \
+              'if (!(n_tags == 0 || (n_tags == 1 && le64toh(o->tag.epoch) == last_epoch)' \
+              'if (!(n_tags == 0 || le64toh(o->tag.epoch) == last_epoch'
+        '';
       });
 
   # Definition of suppressed system units in systemd configuration. This removes the units and has priority.

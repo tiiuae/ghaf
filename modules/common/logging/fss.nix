@@ -106,8 +106,20 @@ let
   hostPersistentJournalPath = "/persist/var/log/journal";
   fssBasePath =
     if config.ghaf.type == "host" then "/persist/common/journal-fss" else "/etc/common/journal-fss";
+  # All FSS journalctl callers must use the SAME systemd as PID 1 / journald.
+  # journalctl --verify's integrity verdict depends on the journal-verify.c
+  # tag/epoch logic, and Ghaf vendors a patch to it
+  # (systemd-fss-verify-tolerate-repeated-epoch.patch, SSRCSP-8820). A verifier
+  # built from a different (unpatched) systemd would disagree with the sealing
+  # journald and report spurious "Epoch sequence not continuous" failures.
+  systemdPackage = config.systemd.package;
+
   fssTriagePackage =
-    pkgs.fss-triage or (pkgs.callPackage ../../../packages/pkgs-by-name/fss-triage/package.nix { });
+    (pkgs.fss-triage or (pkgs.callPackage ../../../packages/pkgs-by-name/fss-triage/package.nix { }))
+    .override
+      {
+        systemd = systemdPackage;
+      };
 
   preparePersistentJournalScript = pkgs.writeShellApplication {
     name = "journal-fss-prepare-persistent-journal";
@@ -122,14 +134,15 @@ let
   # Script to setup FSS keys on first boot
   setupScript = pkgs.writeShellApplication {
     name = "journal-fss-setup";
-    runtimeInputs = with pkgs; [
-      systemd
-      coreutils
-      gawk
-      findutils
-      gnugrep
-      util-linux
-    ];
+    runtimeInputs =
+      (with pkgs; [
+        coreutils
+        gawk
+        findutils
+        gnugrep
+        util-linux
+      ])
+      ++ [ systemdPackage ];
     # /etc/fss-verify-classifier.sh is populated at runtime (see environment.etc
     # below); shellcheck cannot follow it statically.
     excludeShellChecks = [ "SC1091" ];
@@ -769,13 +782,8 @@ let
         fi
 
         if [ "$restart_ok" = 1 ]; then
-          # systemd-analyze cat-config queries the merged config right after
-          # restarting journald; caught at exactly the wrong moment, it can
-          # still read the pre-restart config and report Seal=no even though
-          # journald picks up the runtime drop-in within a second or two.
-          # Mirrors the re-verify-before-believing-it pattern already used for
-          # live-journal counter mismatches: retry briefly rather than failing
-          # the whole boot closed on a check taken too early.
+          # cat-config can read the pre-restart config for a second or two
+          # after the restart; retry briefly rather than failing closed early.
           local confirm_attempt=1
           local confirm_retries=3
           while [ "$confirm_attempt" -le "$confirm_retries" ]; do
@@ -1209,9 +1217,8 @@ let
         chmod 0400 "$VERIFY_KEY_FILE"
       }
 
-      # JOURNAL_DIR and FSS_KEY_FILE are resolved independently -- journald's
-      # live journal and journalctl --setup-keys' key placement can each
-      # land persistent-vs-volatile differently on the same boot.
+      # Resolved independently: journald's live journal and --setup-keys' key
+      # placement can land persistent-vs-volatile differently on the same boot.
       JOURNAL_DIR=$(fss_resolve_live_journal_dir "/var/log/journal/$MACHINE_ID")
       FSS_KEY_FILE=$(fss_resolve_key_file "$MACHINE_ID")
       if [ "$JOURNAL_DIR" != "/var/log/journal/$MACHINE_ID" ]; then
@@ -1308,8 +1315,7 @@ let
       # Securely remove setup output (contains sensitive key material)
       shred -u "$KEY_DIR/setup-output.txt" 2>/dev/null || rm -f "$KEY_DIR/setup-output.txt"
 
-      # Re-resolve: --setup-keys may have placed it somewhere the
-      # pre-generation guess above didn't anticipate.
+      # Re-resolve: --setup-keys may not match the pre-generation guess.
       FSS_KEY_FILE=$(fss_resolve_key_file "$MACHINE_ID")
 
       # Verify sealing key was created
@@ -1359,13 +1365,14 @@ let
   # Script to verify journal integrity
   verifyScript = pkgs.writeShellApplication {
     name = "journal-fss-verify";
-    runtimeInputs = with pkgs; [
-      systemd
-      coreutils
-      util-linux
-      gnugrep
-      gawk
-    ];
+    runtimeInputs =
+      (with pkgs; [
+        coreutils
+        util-linux
+        gnugrep
+        gawk
+      ])
+      ++ [ systemdPackage ];
     # /etc/fss-verify-classifier.sh is populated at runtime (see environment.etc
     # above); shellcheck cannot follow it statically.
     excludeShellChecks = [ "SC1091" ];
