@@ -971,8 +971,9 @@ let
         receipted=0
         while IFS= read -r archive_path || [ -n "$archive_path" ]; do
           [ -n "$archive_path" ] || continue
+          # Here-string avoids a pipefail/SIGPIPE misreport from grep -q's early exit.
           if ! grep -Fxq "$archive_path" "$before_file" 2>/dev/null \
-            || printf '%s\n' "$failing_paths" | grep -Fxq "$archive_path"; then
+            || grep -Fxq -- "$archive_path" <<<"$failing_paths"; then
             record_recovery_receipt "$archive_path" "clock-jump-rekey"
             receipted=$(( receipted + 1 ))
           fi

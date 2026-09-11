@@ -116,7 +116,7 @@ fss_append_tag() {
 
   if [ -z "$current" ]; then
     printf '%s' "$tag"
-  elif printf '%s\n' ",$current," | grep -Fq ",$tag,"; then
+  elif grep -Fq -- ",$tag," <<<",$current,"; then
     printf '%s' "$current"
   else
     printf '%s,%s' "$current" "$tag"
@@ -140,7 +140,7 @@ fss_append_unique_line() {
 
   if [ -z "$line" ]; then
     printf '%s' "$current"
-  elif printf '%s\n' "$current" | grep -Fxq "$line"; then
+  elif grep -Fxq -- "$line" <<<"$current"; then
     printf '%s' "$current"
   else
     fss_append_line "$current" "$line"
@@ -178,7 +178,7 @@ fss_unique_fail_paths_from_output() {
     FAIL:\ *)
       failure_path="${line#FAIL: }"
       failure_path="${failure_path%% *}"
-      if [ -n "$failure_path" ] && ! printf '%s\n' "$unique" | grep -Fxq "$failure_path"; then
+      if [ -n "$failure_path" ] && ! grep -Fxq -- "$failure_path" <<<"$unique"; then
         unique=$(fss_append_line "$unique" "$failure_path")
       fi
       ;;
@@ -310,15 +310,16 @@ fss_clock_jump_stamp_state() {
 # that have moved since. systemd emits six variants of this
 # (journal-verify.c:1266-1315). On the LIVE journal it is an artefact of the
 # file being open for append, not evidence of tampering.
+# Here-string avoids a pipefail/SIGPIPE misreport from grep -q's early exit.
 fss_output_has_counter_mismatch() {
-  printf '%s\n' "$1" |
-    grep -qE '(Object|Entry|Data|Field|Tag|Entry array) number mismatch \([0-9]+ != [0-9]+\)'
+  grep -qE '(Object|Entry|Data|Field|Tag|Entry array) number mismatch \([0-9]+ != [0-9]+\)' <<<"$1"
 }
 
 # Signatures that mean the content itself is wrong. Never retried away.
+# Here-string: a SIGPIPE-confused false negative here would let tampered
+# content through instead of failing closed.
 fss_output_has_tamper_signature() {
-  printf '%s\n' "$1" |
-    grep -qE 'Tag failed verification|Hash value mismatch|Older entry after newer tag|Epoch sequence|realtime timestamp out of synchronization'
+  grep -qE 'Tag failed verification|Hash value mismatch|Older entry after newer tag|Epoch sequence|realtime timestamp out of synchronization' <<<"$1"
 }
 
 # Whether an active-journal failure is worth re-verifying rather than believing
@@ -335,7 +336,7 @@ fss_active_failure_retryable() {
 fss_path_list_contains() {
   local path_list="$1"
   local needle="$2"
-  [ -n "$needle" ] && printf '%s\n' "$path_list" | grep -Fxq "$needle"
+  [ -n "$needle" ] && grep -Fxq -- "$needle" <<<"$path_list"
 }
 
 fss_merge_path_lists() {
@@ -381,7 +382,7 @@ fss_read_recorded_archive_list() {
 FSS_RECEIPT_SCHEMA_VERSION="v1"
 
 fss_valid_sha256() {
-  printf '%s' "$1" | grep -Eq '^[0-9a-f]{64}$'
+  grep -Eq '^[0-9a-f]{64}$' <<<"$1"
 }
 
 fss_current_boot_id() {
