@@ -30,6 +30,7 @@ let
 
   guiProfileVariants = mkProfileVariants "gui";
   netProfileVariants = mkProfileVariants "net";
+  audioProfileVariants = mkProfileVariants "audio";
 
   useGivc = config.ghaf.givc.enable;
 
@@ -119,14 +120,21 @@ let
       forwardTo = {
         ghaf-host = "host";
         net-vm = "net";
+        audio-vm = "audio";
       };
     in
     mapAttrs (
-      name: _:
+      name: v:
       mkTunedScript {
         inherit name;
         start =
-          optionalString (brightness.${name} != null) (mkBrightnessScript brightness.${name})
+          # The GPU is passed through here, so its ceiling is ours to set. Only
+          # on-battery powersave caps it: RP1 is 300MHz against a 1300MHz ceiling.
+          ''
+            pci_runtime_pm ${if v.base == "performance" then "on" else "auto"}
+            gpu_max_freq ${if v.base == "powersave" && v.onBattery then "efficient" else "max"}
+          ''
+          + optionalString (brightness.${name} != null) (mkBrightnessScript brightness.${name})
           + optionalString useGivc (
             lib.concatStrings (
               lib.mapAttrsToList (vm: prefix: ''
@@ -137,24 +145,46 @@ let
       }
     ) guiProfileVariants;
 
-  netProfileScripts = {
-    net-performance = mkTunedScript {
-      name = "net-performance";
+  # The NIC is passed through to this VM, so its runtime PM is ours to set.
+  netProfileScripts = mapAttrs (
+    name:
+    { base, ... }:
+    mkTunedScript {
+      inherit name;
       start = ''
+        pci_runtime_pm ${if base == "performance" then "on" else "auto"}
+      ''
+      + optionalString (base == "performance") ''
         wifi_set_pm off
       '';
-      stop = ''
+      stop = optionalString (base == "performance") ''
         wifi_set_pm on
       '';
-    };
+    }
+  ) netProfileVariants;
+
+  # snd_hda_intel lives here, not on the host, which blacklists the module.
+  audioProfileScripts = mapAttrs (
+    name:
+    { base, ... }:
+    mkTunedScript {
+      inherit name;
+      start = ''
+        pci_runtime_pm ${if base == "performance" then "on" else "auto"}
+      '';
+    }
+  ) audioProfileVariants;
+
+  # Seconds for the [audio] plugin's snd_hda_intel power_save; 0 disables it.
+  audioTimeout = {
+    powersave = "5";
+    balanced = "10";
+    performance = "0";
   };
 
   tunedProfiles = {
     vm = {
-      main = {
-        summary = "Ghaf TuneD profile for Virtual Machines";
-        include = "virtual-guest";
-      };
+      main.summary = "Ghaf TuneD profile for Virtual Machines";
     };
   };
 in
@@ -215,13 +245,28 @@ in
       };
     };
 
-    vm = {
-      enable = mkEnableOption ''
-        Generalized Ghaf-specific power and performance optimizations for VMs.
-
-        This will enable the general virtual-guest tuned profile statically -
-        gui-vm power profile changes will not propagate to this VM and no custom scripts will be run.
-      '';
+    audio = {
+      enable = mkEnableOption "Ghaf-specific power optimizations for audio-vm.";
+      tuned = {
+        enable = mkEnableOption "TuneD service on the audio-vm for Ghaf-specific performance profiles." // {
+          default = true;
+        };
+        defaultProfile = mkOption {
+          type = types.str;
+          default = "audio-balanced";
+          description = "Default TuneD profile to use on audio-vm.";
+        };
+        profileNames = mkOption {
+          type = types.listOf types.str;
+          readOnly = true;
+          default = lib.attrNames audioProfileVariants;
+          description = ''
+            The profiles this module defines. GIVC whitelists the matching
+            units so the gui-vm can select a profile here; read the list from
+            this option rather than repeating it.
+          '';
+        };
+      };
     };
   };
 
@@ -247,6 +292,9 @@ in
         package = tunedNoDesktop;
         ppdSupport = true;
         settings.profile_dirs = mkProfileDirs guiProfileScripts;
+        # Profile changes arrive over D-Bus, so a per-second wakeup in a guest
+        # is pure vmexit cost.
+        settings.sleep_interval = 60;
         recommend = {
           "${cfg.gui.tuned.defaultProfile}" = { };
         };
@@ -268,30 +316,35 @@ in
         };
         ppdSettings = mkPpdSettings "net";
         profiles = mapAttrs (
-          _name:
-          { base, ... }:
-          tunedProfiles.vm
-          // lib.optionalAttrs (base == "performance") {
-            script.script = "${getExe netProfileScripts.net-performance}";
-          }
+          name: _: tunedProfiles.vm // { script.script = "${getExe netProfileScripts.${name}}"; }
         ) netProfileVariants;
       };
 
       systemd.services = mkPpdServices "net-vm" cfg.net.tuned.profileNames;
     })
 
-    (mkIf cfg.vm.enable {
+    (mkIf cfg.audio.enable {
       services.tuned = {
-        inherit (cfg.vm) enable;
-        settings.sleep_interval = 60;
+        inherit (cfg.audio.tuned) enable;
         ppdSupport = true;
-        profiles = {
-          vm-balanced = tunedProfiles.vm;
-        };
+        settings.sleep_interval = 60;
+        settings.profile_dirs = mkProfileDirs audioProfileScripts;
         recommend = {
-          vm-balanced = { };
+          "${cfg.audio.tuned.defaultProfile}" = { };
         };
+        ppdSettings = mkPpdSettings "audio";
+        profiles = mapAttrs (
+          name:
+          { base, ... }:
+          tunedProfiles.vm
+          // {
+            audio.timeout = audioTimeout.${base};
+            script.script = "${getExe audioProfileScripts.${name}}";
+          }
+        ) audioProfileVariants;
       };
+
+      systemd.services = mkPpdServices "audio-vm" cfg.audio.tuned.profileNames;
     })
   ]);
 }
