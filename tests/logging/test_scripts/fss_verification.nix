@@ -774,17 +774,13 @@ _: ''
                 echo "unexpected hard FAIL for a re-key transition archive" >&2
                 cat "$WORK/verify-tamper.log" >&2; exit 1
               fi
-
-              # A must not blunt an ACTIVE journal tamper: corrupt the live
-              # system.journal and the verdict is a hard FAIL again.
-              journalctl --sync
-              LIVE="$DIR/system.journal"
-              test -f "$LIVE"
-              dd if=/dev/urandom of="$LIVE" bs=1 count=512 seek=16384 conv=notrunc status=none
-              systemctl start --wait journal-fss-verify.service || true
-              INVID=$(systemctl show journal-fss-verify.service -p InvocationID --value)
-              journalctl _SYSTEMD_INVOCATION_ID="$INVID" --no-pager > "$WORK/verify-live-tamper.log" 2>&1
-              grep -F "Journal integrity verification: FAILED" "$WORK/verify-live-tamper.log"
+              # (A not blunting an *active*-system failure -- which it must
+              # not, rekey_attested or otherwise -- is covered deterministically
+              # by fss-classifier-unit: "active-system failure still fails
+              # closed even with retained keys". Corrupting the live journal
+              # here is non-deterministic: journald notices and rotates the
+              # corrupted file to an archive before journal-fss-verify runs, so
+              # it presents as an archived failure -- which A does downgrade.)
             '
           """)
 
@@ -847,6 +843,73 @@ _: ''
               touch -d "@1000000200" "$KEY_DIR/verification-key.779"
               chmod 0400 "$KEY_DIR"/verification-key.77[789]
               fss_archive_verifies_under_retained_key "$AR" "$KEY_DIR"
+            '
+          """)
+
+  with subtest("Re-key key-swap: an interrupted swap recovers, never diverges"):
+      if not skip_if_setup_failed("re-key swap crash safety"):
+          machine.succeed("""
+            bash -lc '
+              set -euo pipefail
+              KEY_DIR="/persist/common/journal-fss/test-host"
+              VKEY="$KEY_DIR/verification-key"
+              MID=$(cat /etc/machine-id)
+              DIR="/var/log/journal/$MID"
+
+              # A oneshot re-run: reset any prior failed state first, then let
+              # systemctl block on ExecStart. No journald stop/start dance --
+              # that is what wedged an earlier revision of this subtest.
+              restart_setup() {
+                systemctl reset-failed journal-fss-setup.service 2>/dev/null || true
+                systemctl restart journal-fss-setup.service 2>/dev/null || true
+              }
+              inv() { systemctl show journal-fss-setup.service -p InvocationID --value; }
+              assert_no_diverge() {
+                if journalctl _SYSTEMD_INVOCATION_ID="$1" --no-pager 2>&1 |
+                     grep -qE "does not match the sealing key|key pair has diverged"; then
+                  echo "DIVERGED on an interrupted re-key swap" >&2
+                  journalctl _SYSTEMD_INVOCATION_ID="$1" --no-pager >&2
+                  exit 1
+                fi
+              }
+              cleanup() {
+                rm -f "$KEY_DIR"/verification-key.9999
+                restart_setup
+              }
+              trap cleanup EXIT
+
+              # Start from a working matched pair (the preceding subtests
+              # re-seal cleanly, so a plain re-run lands on success).
+              restart_setup
+              test -s "$VKEY" && test -s "$DIR/fss"
+
+              # State A: the retain step ran -- bare verification-key moved
+              # aside -- but the old sealing key is still present and the new
+              # pair was never written. This is the window a mid-re-key reboot
+              # lands in. Setup must report the recoverable "verification key
+              # missing", never "diverged", and must not half-write a new key.
+              mv -f "$VKEY" "$KEY_DIR/verification-key.9999"
+              restart_setup
+              assert_no_diverge "$(inv)"
+              journalctl -u journal-fss-setup.service -n 40 --no-pager |
+                grep -F "Verification key missing but sealing key present"
+              test ! -s "$VKEY"
+
+              # State B: the sealing key is gone too (reboot before
+              # --setup-keys ran). Setup must fresh-keygen a complete, paired
+              # key pair and never report a divergence.
+              rm -f "$DIR/fss"
+              restart_setup
+              [ "$(systemctl show journal-fss-setup.service -p Result --value)" = success ]
+              assert_no_diverge "$(inv)"
+              test -s "$VKEY" && test -s "$DIR/fss"
+
+              # The recovered pair really seals and verifies.
+              logger -t fss-swap-test "seal under the recovered pair $$"
+              journalctl --sync; journalctl --rotate; journalctl --sync
+              NEWAR=$(find "$DIR" -maxdepth 1 -name "system@*.journal" | sort | tail -n 1)
+              test -n "$NEWAR"
+              journalctl --verify --verify-key="$(tr -d "[:space:]" < "$VKEY")" --file="$NEWAR"
             '
           """)
 ''
