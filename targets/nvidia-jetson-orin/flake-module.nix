@@ -214,6 +214,30 @@ let
       };
     })
 
+    (
+      (ghaf-configuration {
+        name = "nvidia-jetson-orin-agx64-pvm";
+        inherit system;
+        profile = "orin";
+        hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx64;
+        variant = "debug";
+        extraModules = commonModules;
+        extraConfig = {
+          reference.profiles.mvp-orinuser-trial.enable = true;
+
+          host.kernel.hardening.hypervisor.enable = true;
+          guest.hardening.protected.enable = true;
+        };
+        vmConfig = {
+          sysvms.netvm.mem = 4096;
+          sysvms.adminvm.mem = 4096;
+        };
+      })
+      // {
+        useLegacyFlash = true;
+      }
+    )
+
     (ghaf-configuration {
       name = "nvidia-jetson-orin-agx-industrial";
       inherit system;
@@ -485,6 +509,10 @@ let
   flashTarget =
     t: qspiOnly:
     let
+      # TEMP: Used by pkvm target
+      # legacyFlashScript keeps the old flash behavior
+      flashScriptAttr = if t.useLegacyFlash or false then "legacyFlashScript" else "signedFlashScript";
+
       # Shared by both secureboot variants so the two cannot drift apart.
       nxDiskOverrides = lib.optionalAttrs (lib.strings.hasInfix "nx" t.name && !qspiOnly) {
         # NX boots from USB or NVMe; the flash script targets NVMe.
@@ -502,13 +530,7 @@ let
           )
         ];
       };
-      # Read the board name off a fixpoint that is already forced for `noSB`
-      # rather than forcing `t.hostConfiguration` as a third one. The added
-      # modules do not touch `som`/`carrierBoard`, so the string is identical by
-      # construction. Each extra fixpoint is a full re-evaluation -- see
-      # `extendModules` in nixpkgs lib/modules.nix, which shares nothing.
-      innerName = noSBCfg.config.hardware.nvidia-jetpack.name;
-      noSB = noSBCfg.pkgs.nvidia-jetpack.signedFlashScript;
+      noSB = noSBCfg.pkgs.nvidia-jetpack.${flashScriptAttr};
       # Targets that already enable secureboot unconditionally get the identical
       # derivation back from `mkForce true`, so skip the second fixpoint entirely.
       withSB =
@@ -525,7 +547,7 @@ let
                 // nxDiskOverrides
               )
             ];
-          }).pkgs.nvidia-jetpack.signedFlashScript;
+          }).pkgs.nvidia-jetpack.${flashScriptAttr};
     in
     # Single `*-flash-script` entrypoint that picks between two
     # pre-built QSPI firmware variants at flash time.
@@ -574,9 +596,9 @@ let
           esac
         done
         if [ "$sb" = 1 ]; then
-          exec ${withSB}/bin/flash-signed-${innerName} "''${args[@]}"
+          exec ${lib.getExe withSB} "''${args[@]}"
         else
-          exec ${noSB}/bin/flash-signed-${innerName} "''${args[@]}"
+          exec ${lib.getExe noSB} "''${args[@]}"
         fi
       '';
     };

@@ -1,0 +1,57 @@
+From 4a89bc8e7afeaa4f62a95cd8b5024f8cce2a8c87 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Markku=20Ahvenj=C3=A4rvi?= <mankku@gmail.com>
+Date: Fri, 29 May 2026 15:01:54 +0300
+Subject: [PATCH] vhost-user: handle ACCESS_PLATFORM for protected guests
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: Markku Ahvenjärvi <mankku@gmail.com>
+---
+ devices/src/virtio/vhost_user_frontend/mod.rs | 15 ++++++++++++++-
+ 1 file changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/devices/src/virtio/vhost_user_frontend/mod.rs b/devices/src/virtio/vhost_user_frontend/mod.rs
+index 4ee5233873ba..e97a921c7c2b 100644
+--- a/devices/src/virtio/vhost_user_frontend/mod.rs
++++ b/devices/src/virtio/vhost_user_frontend/mod.rs
+@@ -28,6 +28,7 @@ use base::SafeDescriptor;
+ use base::SendTube;
+ use base::WorkerThread;
+ use snapshot::AnySnapshot;
++use virtio_sys::virtio_config::VIRTIO_F_ACCESS_PLATFORM;
+ use vm_memory::GuestMemory;
+ use vmm_vhost::message::VhostUserConfigFlags;
+ use vmm_vhost::message::VhostUserMigrationPhase;
+@@ -130,8 +131,15 @@ impl VhostUserFrontend {
+         let allow_features = VIRTIO_DEVICE_TYPE_SPECIFIC_FEATURES_MASK
+             | base_features
+             | 1 << VHOST_USER_F_PROTOCOL_FEATURES;
+-        let avail_features =
++        let mut avail_features =
+             allow_features & backend_client.get_features().map_err(Error::GetFeatures)?;
++
++        // Protected VMs must expose ACCESS_PLATFORM to the guest even if the
++        // vhost-user backend does not advertise it.
++        if base_features & (1u64 << VIRTIO_F_ACCESS_PLATFORM) != 0 {
++            avail_features |= 1u64 << VIRTIO_F_ACCESS_PLATFORM;
++        }
++
+         let mut acked_features = 0;
+ 
+         let allow_protocol_features = VhostUserProtocolFeatures::CONFIG
+@@ -399,6 +407,11 @@ impl VirtioDevice for VhostUserFrontend {
+ 
+     fn ack_features(&mut self, features: u64) {
+         self.acked_features |= features & self.avail_features;
++
++        // ACCESS_PLATFORM may have been negotiated with the guest, but for the backend that
++        // feature implies support for IOTLB/IOMMU mode which is currently not supported.
++        // Therefore do not pass it to the backend.
++        self.acked_features &= !(1u64 << VIRTIO_F_ACCESS_PLATFORM);
+     }
+ 
+     fn read_config(&self, offset: u64, data: &mut [u8]) {
+-- 
+2.51.2
+
