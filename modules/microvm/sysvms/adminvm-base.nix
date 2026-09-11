@@ -25,6 +25,7 @@
 let
   vmName = "admin-vm";
   timezoneEnabled = lib.ghaf.features.isEnabledFor globalConfig "timezone" vmName;
+  performanceEnabled = lib.ghaf.features.isEnabledFor globalConfig "performance" vmName;
 in
 {
   _file = ./adminvm-base.nix;
@@ -206,6 +207,13 @@ in
     services.timezone.enable = lib.mkDefault (
       timezoneEnabled && globalConfig.platform.timeZone == null
     );
+
+    # No hardware of its own, so the static virtual-guest profile is all this VM
+    # can use: guest memory and I/O sysctls, no PPD profile switching.
+    services.performance = {
+      enable = lib.mkDefault performanceEnabled;
+      vm.enable = true;
+    };
 
     # Make sure admin-vm is the last to shutdown
     # This is done to allow servicing GIVC requests until the very end

@@ -141,7 +141,7 @@ in
 
       performance = {
         enable = lib.mkDefault performanceEnabled;
-        vm.enable = true;
+        audio.enable = true;
       };
 
       timezone.enable = lib.mkDefault (timezoneEnabled && globalConfig.platform.timeZone == null);

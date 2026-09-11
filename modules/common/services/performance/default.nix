@@ -112,16 +112,52 @@ let
           done
         }
 
-        # Set PCI device runtime power management
-        pci_device_runtime_pm() {
+        # Set runtime power management for every PCI device present
+        pci_runtime_pm() {
           # 'on' - best performance
           # 'auto' - best power saving
-
           pm=$1
-          devices=$2
 
-          for device in $devices; do
-            (echo "$pm" > "/sys/bus/pci/devices/$device/power/control") &> /dev/null
+          for device in /sys/bus/pci/devices/*; do
+            # Never storage (0x01xxxx) or USB (0x0c03xx): suspending the link
+            # to a boot device takes the root filesystem away.
+            class=$(cat "$device/class" 2>/dev/null) || continue
+            case "$class" in
+              0x01* | 0x0c03*) continue ;;
+            esac
+            (echo "$pm" > "$device/power/control") &> /dev/null
+          done
+        }
+
+        # Cap the GPU ceiling: 'efficient' is RP1/RPe, 'max' is RP0. Handles
+        # both i915 (flat gt_* attributes) and xe (per-gt freq directories).
+        gpu_max_freq() {
+          level=$1
+
+          for gt in /sys/class/drm/card*/device/tile*/gt*/freq0; do
+            [ -e "$gt/max_freq" ] || continue
+            case "$level" in
+              efficient) want=$(cat "$gt/rpe_freq" 2>/dev/null) ;;
+              *)         want=$(cat "$gt/rp0_freq" 2>/dev/null) ;;
+            esac
+            [ -n "$want" ] || continue
+            # Ceiling only -- leave the floor so the GPU can still idle down.
+            cur_min=$(cat "$gt/min_freq" 2>/dev/null || echo 0)
+            [ "$cur_min" -gt "$want" ] && (echo "$want" > "$gt/min_freq") &> /dev/null
+            (echo "$want" > "$gt/max_freq") &> /dev/null
+          done
+
+          for card in /sys/class/drm/card*; do
+            [ -e "$card/gt_max_freq_mhz" ] || continue
+            case "$level" in
+              efficient) want=$(cat "$card/gt_RP1_freq_mhz" 2>/dev/null) ;;
+              *)         want=$(cat "$card/gt_RP0_freq_mhz" 2>/dev/null) ;;
+            esac
+            [ -n "$want" ] || continue
+            cur_min=$(cat "$card/gt_min_freq_mhz" 2>/dev/null || echo 0)
+            [ "$cur_min" -gt "$want" ] && (echo "$want" > "$card/gt_min_freq_mhz") &> /dev/null
+            (echo "$want" > "$card/gt_max_freq_mhz") &> /dev/null
+            (echo "$want" > "$card/gt_boost_freq_mhz") &> /dev/null
           done
         }
 

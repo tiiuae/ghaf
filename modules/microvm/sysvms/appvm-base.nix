@@ -317,6 +317,15 @@ in
           role = "client";
         };
 
+        # No hardware of its own, so the static virtual-guest profile is all an
+        # app VM can use: guest memory and I/O sysctls, no PPD profile switching.
+        # Follows the global toggle rather than features.performance.targetVms,
+        # which names singleton VMs only.
+        services.performance = {
+          enable = lib.mkDefault (globalConfig.features.performance.enable or false);
+          vm.enable = true;
+        };
+
         # Logging - from globalConfig
         logging = {
           inherit (globalConfig.logging) enable listener;
