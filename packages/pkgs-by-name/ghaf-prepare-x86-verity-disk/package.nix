@@ -6,9 +6,10 @@
   cryptsetup,
   dosfstools,
   findutils,
-  gawk,
   ghaf-initialize-verity-lvm,
-  ghaf-wrap-luks-image,
+  ghaf-update-manifest,
+  pkgs,
+  util-linux,
   gptfdisk,
   jq,
   mtools,
@@ -25,39 +26,56 @@ let
     zstd verity.raw -o payload/ghaf_verity_1_deadbeef.raw.zst
     touch payload/ghaf_kernel_1_deadbeef.efi systemd-boot.efi
     printf '{"target":"test","generation":1,"publicTrustDigests":{}}\n' > trust.json
-    cat > payload/ghaf_1_deadbeef.manifest <<'EOF'
-    {
-      "manifest_version": 2,
-      "version": "1",
-      "root_verity_hash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-      "root": { "file": "ghaf_root_1_deadbeef.raw.zst", "unpacked_size": 5 },
-      "verity": { "file": "ghaf_verity_1_deadbeef.raw.zst", "unpacked_size": 7 }
-    }
-    EOF
+    printf '%064d\n' 0 > hash
+    ghaf-update-manifest generate --version 1 --system x86_64-linux --build-system x86_64-linux \
+      --target test --generation 1 --hash-file hash --root-image payload/ghaf_root_1_deadbeef.raw.zst \
+      --verity-image payload/ghaf_verity_1_deadbeef.raw.zst --kernel-image payload/ghaf_kernel_1_deadbeef.efi \
+      --root-unpacked-size 5 --verity-unpacked-size 7 --manifest payload/ghaf_1_deadbeef.manifest
     prepare() {
       ghaf-prepare-x86-verity-disk --update-dir payload --systemd-boot systemd-boot.efi \
         --trust-inventory trust.json --root-size-mib 1 --verity-size-mib 1 \
         --boot-timeout menu-force "$@"
     }
   '';
+  runVM = import ../../../lib/image-builder-vm.nix { inherit pkgs; };
+  buildImage =
+    { imageSizeMiB, buildCommand }:
+    runVM (
+      runCommand "ghaf-x86-verity-disk" {
+        nativeBuildInputs = [
+          ghaf-prepare-x86-verity-disk
+          ghaf-update-manifest
+          cryptsetup
+          gptfdisk
+          mtools
+          zstd
+          bmaptool
+        ];
+        preVM = ''
+          diskImage=$PWD/ghaf-image.raw
+          truncate -s ${toString imageSizeMiB}M "$diskImage"
+        '';
+        postVM = ''
+          bmaptool create "$diskImage" -o "$out/ghaf-image.bmap"
+          zstd --compress -T8 "$diskImage" -o "$out/ghaf-image.raw.zst"
+        '';
+      } buildCommand
+    );
   ghaf-prepare-x86-verity-disk = writeShellApplication {
     name = "ghaf-prepare-x86-verity-disk";
     runtimeInputs = [
-      bmaptool
       coreutils
       dosfstools
       findutils
-      gawk
       ghaf-initialize-verity-lvm
-      ghaf-wrap-luks-image
+      util-linux
       gptfdisk
       jq
       mtools
-      zstd
     ];
     text = builtins.readFile ./ghaf-prepare-x86-verity-disk.sh;
     meta = {
-      description = "Build a Ghaf x86 secure A/B disk from regular files";
+      description = "Populate a Ghaf x86 secure A/B disk inside a build VM";
       mainProgram = "ghaf-prepare-x86-verity-disk";
       platforms = [ "x86_64-linux" ];
     };
@@ -65,11 +83,13 @@ let
 in
 ghaf-prepare-x86-verity-disk.overrideAttrs (old: {
   passthru = (old.passthru or { }) // {
+    inherit buildImage;
     tests.plan =
       runCommand "ghaf-prepare-x86-verity-disk-plan"
         {
           nativeBuildInputs = [
             ghaf-prepare-x86-verity-disk
+            ghaf-update-manifest
             jq
             zstd
           ];
@@ -86,35 +106,18 @@ ghaf-prepare-x86-verity-disk.overrideAttrs (old: {
           done
           touch "$out"
         '';
-    tests.image =
-      runCommand "ghaf-prepare-x86-verity-disk-image"
-        {
-          nativeBuildInputs = [
-            cryptsetup
-            ghaf-prepare-x86-verity-disk
-            gptfdisk
-            mtools
-            zstd
-          ];
-        }
-        ''
-          ${fixture}
-          prepare --image-size-mib 4600 --swap-size-mib 0 --persist-size-mib 0 --output "$out"
-
-          test -s "$out/ghaf-image.raw.zst"
-          test -s "$out/ghaf-image.bmap"
-          cmp trust.json "$out/public-trust.json"
-          zstd --decompress "$out/ghaf-image.raw.zst" -o image.raw
-          sgdisk --verify image.raw
-          test "$(sgdisk -i 1 image.raw | awk '/Partition name:/ { print $3 }')" = "'ESP'"
-          test "$(sgdisk -i 2 image.raw | awk '/Partition name:/ { print $3 }')" = "'disk-disk1-luks'"
-          sgdisk -i 2 image.raw | grep -Fq \
-            'Partition GUID code: CA7D7CCB-63ED-4C53-861C-1742536059CC'
-          esp_first=$(sgdisk -i 1 image.raw | awk '/First sector:/ { print $3 }')
-          luks_first=$(sgdisk -i 2 image.raw | awk '/First sector:/ { print $3 }')
-          mdir -i "image.raw@@$((esp_first * 512))" ::EFI/Linux/ghaf-1-0123456789abcdef.efi
-          dd if=image.raw of=luks-header.img bs=512 skip="$luks_first" count=65536 status=none
-          cryptsetup isLuks --type luks2 luks-header.img
-        '';
+    tests.image = buildImage {
+      imageSizeMiB = 4600;
+      buildCommand = ''
+        ${fixture}
+        prepare --disk /dev/vda --image-size-mib 4600 --swap-size-mib 0 --persist-size-mib 0 --output "$out"
+        cmp trust.json "$out/public-trust.json"
+        sgdisk --verify /dev/vda
+        sgdisk -i 2 /dev/vda | grep -Fq 'Partition GUID code: CA7D7CCB-63ED-4C53-861C-1742536059CC'
+        mdir -i /dev/vda1 ::EFI/Linux/ghaf-1-0000000000000000.efi
+        cryptsetup isLuks --type luks2 /dev/vda2
+        test "$(cryptsetup luksUUID /dev/vda2)" = 3e7f3d25-695a-429d-8d34-2d0a18979d7d
+      '';
+    };
   };
 })

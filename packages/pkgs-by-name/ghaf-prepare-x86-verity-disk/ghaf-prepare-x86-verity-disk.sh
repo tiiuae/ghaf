@@ -9,16 +9,16 @@ Usage: ghaf-prepare-x86-verity-disk \
   --update-dir DIR --systemd-boot FILE --trust-inventory FILE \
   --image-size-mib MIB --root-size-mib MIB --verity-size-mib MIB \
   --swap-size-mib MIB --persist-size-mib MIB --boot-timeout VALUE \
-  [--output DIR] [--print-plan]
+  [--disk BLOCK_DEVICE --output DIR] [--print-plan]
 
-Creates an unsigned x86 GPT/LUKS/LVM secure A/B disk image using regular
-files only. It needs no root privileges, loop devices, device mapper, mount,
-or VM. --print-plan validates all immutable inputs without creating an image.
+Populates a disposable build-VM disk with unsigned x86 GPT/FAT/LUKS/LVM.
+--print-plan validates inputs without a VM. The Nix builder starts the VM
+and compresses the completed disk after it exits successfully.
 EOF
   exit 2
 }
 
-update_dir="" systemd_boot="" trust_inventory="" output="" boot_timeout=""
+disk="" update_dir="" systemd_boot="" trust_inventory="" output="" boot_timeout=""
 image_size_mib="" root_size_mib="" verity_size_mib="" swap_size_mib="" persist_size_mib=""
 print_plan=false
 while (($#)); do
@@ -27,7 +27,7 @@ while (($#)); do
     print_plan=true
     shift
     ;;
-  --update-dir | --systemd-boot | --trust-inventory | --output | --boot-timeout | \
+  --disk | --update-dir | --systemd-boot | --trust-inventory | --output | --boot-timeout | \
     --image-size-mib | --root-size-mib | --verity-size-mib | --swap-size-mib | --persist-size-mib)
     (($# >= 2)) || usage
     # Only the fixed option whitelist above may select a destination variable.
@@ -115,8 +115,13 @@ cleanup() {
 trap cleanup EXIT
 
 mkdir -m 0700 "$output"
-raw="$output/ghaf-image.raw"
-truncate -s "${image_size_mib}M" "$raw"
+[[ -b $disk && $EUID -eq 0 ]] || usage
+[[ $(blockdev --getsize64 "$disk") -eq $((image_size_mib * 1048576)) ]] || usage
+[[ -z $(wipefs --noheadings --output TYPE "$disk") ]] || {
+  echo "Refusing nonempty disk" >&2
+  exit 1
+}
+raw=$disk
 last_partition_sector=$(((image_size_mib - 1) * 2048 - 1))
 sgdisk --zap-all "$raw"
 sgdisk \
@@ -131,28 +136,13 @@ sgdisk \
   --partition-guid=2:3C05B9C2-6F7C-4B13-ACB7-47C615AAB14A \
   "$raw"
 
-partition_sector() {
-  local partition=$1 field=$2 value
-  value=$(sgdisk -i "$partition" "$raw" | awk -v field="$field" \
-    '$1 " " $2 == field ":" { print $3; exit }')
-  [[ $value =~ ^[0-9]+$ ]] || {
-    echo "Could not read $field for GPT partition $partition" >&2
-    exit 1
-  }
-  printf '%s\n' "$value"
+blockdev --rereadpt "$disk"
+esp_image="${disk}1"
+luks_image="${disk}2"
+[[ -b $esp_image && -b $luks_image ]] || {
+  echo "Partition devices missing" >&2
+  exit 1
 }
-
-esp_first=$(partition_sector 1 "First sector")
-esp_last=$(partition_sector 1 "Last sector")
-luks_first=$(partition_sector 2 "First sector")
-luks_last=$(partition_sector 2 "Last sector")
-esp_size_bytes=$(((esp_last - esp_first + 1) * 512))
-luks_size_bytes=$(((luks_last - luks_first + 1) * 512))
-luks_header_size=$((32 * 1024 * 1024))
-plain_lvm_size=$((luks_size_bytes - luks_header_size))
-
-esp_image="$work/esp.img"
-truncate -s "$esp_size_bytes" "$esp_image"
 mkfs.vfat -F 32 -n ESP "$esp_image"
 for directory in EFI EFI/systemd EFI/BOOT EFI/Linux loader; do
   mmd -i "$esp_image" "::$directory"
@@ -165,34 +155,12 @@ printf 'timeout %s\ndefault %s\neditor no\n' \
   "$boot_timeout" "${uki_name%.efi}" >"$work/loader.conf"
 mcopy -i "$esp_image" "$work/loader.conf" ::loader/loader.conf
 
-luks_image="$work/luks.img"
-truncate -s "$plain_lvm_size" "$luks_image"
-initialize_lvm --image "$luks_image"
-
-# Keep compatibility with Ghaf's existing first-boot enrollment: it unlocks
-# this bootstrap slot with an empty passphrase, enrolls TPM2/FIDO2 and recovery
-# credentials, then removes the bootstrap slot last.
+# The empty bootstrap passphrase is replaced by first-boot enrollment.
 : >"$work/bootstrap.key"
-ghaf-wrap-luks-image \
-  --image "$luks_image" \
-  --uuid 3E7F3D25-695A-429D-8D34-2D0A18979D7D \
-  --key-file "$work/bootstrap.key"
-[[ $(stat -c%s "$luks_image") -eq $luks_size_bytes ]] || {
-  echo "LUKS image size does not match GPT partition size" >&2
-  exit 1
-}
+initialize_lvm --image "$luks_image" \
+  --luks-uuid 3E7F3D25-695A-429D-8D34-2D0A18979D7D --key-file "$work/bootstrap.key"
 
-dd if="$esp_image" of="$raw" bs=4M seek="$((esp_first * 512))" \
-  oflag=seek_bytes conv=notrunc,sparse status=none
-dd if="$luks_image" of="$raw" bs=4M seek="$((luks_first * 512))" \
-  oflag=seek_bytes conv=notrunc,sparse status=none
-
-bmaptool create "$raw" -o "$output/ghaf-image.bmap"
-cores=${NIX_BUILD_CORES:-1}
-[[ $cores =~ ^[1-9][0-9]*$ ]] || cores=1
-if ((cores > 8)); then cores=8; fi
-zstd -T"$cores" --compress "$raw" -o "$output/ghaf-image.raw.zst" --rm
 install -m 0644 "$trust_inventory" "$output/public-trust.json"
 
 complete=true
-echo "Unsigned x86 image written to $output"
+echo "Unsigned x86 disk populated on $disk"

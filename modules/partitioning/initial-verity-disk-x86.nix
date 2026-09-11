@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # x86 bootstrap disk image for the shared secure A/B payload. GPT, FAT, LUKS,
-# and LVM are assembled from regular files in the Nix build sandbox without a
-# VM or kernel storage devices. The result is unsigned; ghaf-sign-x86-image
+# and LVM are assembled with stock tools inside a disposable build VM.
+# The result is unsigned; ghaf-sign-x86-image
 # signs its ESP later, outside the Nix store.
 {
   config,
@@ -31,23 +31,27 @@ let
     }
   );
   buildPkgs = pkgs.pkgsBuildBuild;
-  initialDiskImage = pkgs.runCommand "ghaf-x86-verity-disk" { } ''
-    ${lib.getExe buildPkgs.ghaf-prepare-x86-verity-disk} \
-      --update-dir ${updateImage} \
-      --systemd-boot ${config.systemd.package}/lib/systemd/boot/efi/systemd-bootx64.efi \
-      --trust-inventory ${trustInventory} \
-      --image-size-mib ${toString diskoCfg.imageSize} \
-      --root-size-mib ${toString verityCfg.rootSlotSizeMiB} \
-      --verity-size-mib ${toString verityCfg.veritySlotSizeMiB} \
-      --swap-size-mib ${toString diskoCfg.swapSize} \
-      --persist-size-mib ${toString diskoCfg.persistSize} \
-      --boot-timeout ${
-        lib.escapeShellArg (
-          if config.boot.loader.timeout == null then "menu-force" else toString config.boot.loader.timeout
-        )
-      } \
-      --output "$out"
-  '';
+  initialDiskImage = buildPkgs.ghaf-prepare-x86-verity-disk.buildImage {
+    imageSizeMiB = diskoCfg.imageSize;
+    buildCommand = ''
+      ${lib.getExe buildPkgs.ghaf-prepare-x86-verity-disk} \
+        --disk /dev/vda \
+        --update-dir ${updateImage} \
+        --systemd-boot ${config.systemd.package}/lib/systemd/boot/efi/systemd-bootx64.efi \
+        --trust-inventory ${trustInventory} \
+        --image-size-mib ${toString diskoCfg.imageSize} \
+        --root-size-mib ${toString verityCfg.rootSlotSizeMiB} \
+        --verity-size-mib ${toString verityCfg.veritySlotSizeMiB} \
+        --swap-size-mib ${toString diskoCfg.swapSize} \
+        --persist-size-mib ${toString diskoCfg.persistSize} \
+        --boot-timeout ${
+          lib.escapeShellArg (
+            if config.boot.loader.timeout == null then "menu-force" else toString config.boot.loader.timeout
+          )
+        } \
+        --output "$out"
+    '';
+  };
 in
 {
   options.ghaf.partitioning.verity.initialDisk.enable =
