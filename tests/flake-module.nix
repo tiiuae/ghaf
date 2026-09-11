@@ -17,6 +17,7 @@
           );
         in
         {
+          orin-rekey = pkgs.callPackage ./orin-rekey.nix { };
           installer = pkgs.callPackage ./installer { inherit self; };
           netboot-boot = pkgs.callPackage ./installer/netboot-boot.nix { inherit self; };
           netboot-fetch = pkgs.callPackage ./installer/netboot-fetch.nix { inherit self; };

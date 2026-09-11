@@ -511,16 +511,8 @@ let
         uniqueKeyDescription=$1
         defaultKey=$2
         luksDev=$3
-        # The flash image reserves slot 1 for the printable recovery
-        # passphrase. Put the DUK in a known, separate slot so manufacturer
-        # removal cannot remove or rewrite recovery.
-        uniqueKeySlot=2
-
         printf "Switching to use device unique key. This might take a bit..\n"
-        if ! printf "%s" "$defaultKey" | cryptsetup luksAddKey \
-          --new-key-description "$uniqueKeyDescription" \
-          --new-key-slot "$uniqueKeySlot" \
-          --key-file=- "$luksDev"; then
+        if ! printf "%s" "$defaultKey" | cryptsetup luksAddKey --new-key-description "$uniqueKeyDescription" --key-file=- "$luksDev"; then
           printf "error: Failed to set unique key\n"
           handle_error
         fi
@@ -530,11 +522,16 @@ let
           handle_error
         fi
 
-        # Do not rotate the volume key here.  cryptsetup cannot re-wrap a
-        # recovery keyslot without knowing its passphrase, so volume-key
-        # re-encryption would discard the offline recovery credential.  Removing
-        # the manufacturer keyslot is sufficient to revoke that passphrase: it
-        # never exposed the random volume key itself.
+        ${lib.optionalString (!(config.ghaf.partitioning.verity.enable or false)) ''
+          # Keyslot changes do not replace the shared image's volume key.
+          printf "Note: Re-encryption may take 1 minute for every 1 GB of data ...\n"
+          if ! cryptsetup reencrypt --key-description "$uniqueKeyDescription" "$luksDev"; then
+             printf "error: Re-encryption failed\n"
+             handle_error
+          fi
+        ''}
+        # Secure A/B rotates per flash, before enrolling the offline recovery
+        # credential, whose passphrase is unavailable on the device.
       }
 
       # Resolve the LUKS partition by its pinned header UUID and verify it is a

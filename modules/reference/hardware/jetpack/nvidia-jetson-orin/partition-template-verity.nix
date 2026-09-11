@@ -26,6 +26,15 @@ let
 
   inherit (config.system.build) verityImages;
 
+  rekeyVerityImage = pkgs.pkgsBuildBuild.writeShellApplication {
+    name = "rekey-verity-image";
+    runtimeInputs = with pkgs.pkgsBuildBuild; [
+      cryptsetup
+      jq
+    ];
+    text = builtins.readFile ./rekey-verity-image.sh;
+  };
+
   # Root storage partition layout as structured Nix data.
   # Serialized to JSON and spliced into NVIDIA's flash XML by
   # splice-flash-xml.py, which replaces either the eMMC
@@ -244,10 +253,15 @@ let
     _outer="$WORKDIR/bootloader/system.img"
     "${lib.getExe pkgs.pkgsBuildBuild.zstd}" --decompress --force \
       "${verityImages}/system.img.zst" -o "$_outer"
-    ${lib.optionalString config.ghaf.hardware.nvidia.orin.diskEncryption.enable ''
+    ${lib.optionalString (cfg.diskEncryption.enable && !cfg.flashScriptOverrides.onlyQSPI) ''
+      (
+      umask 077
+      _key_dir=$(mktemp -d)
+      trap 'rm -rf "$_key_dir"' EXIT
+      printf '%s' ${lib.escapeShellArg cfg.diskEncryption.deviceUniqueKey.deviceManufacturerPassphrase} > "$_key_dir/manufacturer"
       _recovery_dir="$GHAF_DEV_KEY_DIR/recovery-passphrases"
-      mkdir -p "$_recovery_dir"
-      _recovery="$_recovery_dir/recovery-$(date -u +%Y%m%dT%H%M%SZ).txt"
+      install -d -m 0700 "$_recovery_dir"
+      _recovery=$(mktemp "$_recovery_dir/recovery-$(date -u +%Y%m%dT%H%M%SZ)-XXXXXX.txt")
       # Store exactly the printable passphrase bytes that an operator types.
       # A trailing newline would become part of a cryptsetup key file during
       # enrollment and make the printed value fail interactive recovery.
@@ -255,16 +269,9 @@ let
         | "${pkgs.pkgsBuildBuild.coreutils}/bin/tr" -d '\n' > "$_recovery"
       chmod 0600 "$_recovery"
 
-      printf '%s' ${lib.escapeShellArg config.ghaf.hardware.nvidia.orin.diskEncryption.deviceUniqueKey.deviceManufacturerPassphrase} \
-        | "${pkgs.pkgsBuildBuild.cryptsetup}/bin/cryptsetup" luksAddKey \
-          --new-key-slot 1 \
-          --key-file=- "$_outer" "$_recovery"
-      echo "============================================================"
-      echo "RECOVERY PASSPHRASE (store securely; generated for this flash):"
-      cat "$_recovery"
-      printf '\n'
-      echo "Saved at: $_recovery"
-      echo "============================================================"
+      ${lib.getExe rekeyVerityImage} "$_outer" "$_key_dir/manufacturer" "$_recovery"
+      echo "Recovery passphrase saved at: $_recovery"
+      )
     ''}
     # flash.sh -k APP looks for system.img relative to $WORKDIR
     ln -sf "$WORKDIR/bootloader/system.img" "$WORKDIR/system.img"

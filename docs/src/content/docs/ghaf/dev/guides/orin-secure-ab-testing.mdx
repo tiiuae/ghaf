@@ -95,6 +95,11 @@ sudo --preserve-env=GHAF_DEV_KEY_DIR \
 Keep the new recovery passphrase in protected offline custody, not command
 arguments, ordinary logs or the evidence bundle.
 
+The flash script rotates the shared image's LUKS volume key before adding the
+per-flash recovery keyslot. First boot enrolls the DUK and removes the manufacturer
+keyslot without discarding recovery. Existing non-verity LUKS targets retain
+their on-device first-boot reencryption.
+
 Capture this baseline before every mutating runtime case:
 
 ```sh
