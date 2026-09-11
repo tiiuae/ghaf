@@ -107,19 +107,18 @@ UKI, recomputes artifact metadata and signs the manifest last.
 
 ## Shared image-construction tools
 
-The pinned ghafpkgs Rust tools provide `ghaf-initialize-verity-lvm` (deterministic
-LVM and optional inactive/swap/persist volumes) and `ghaf-wrap-luks-image`
-(userspace LUKS2). Ghaf re-exports them; it carries no second implementation.
-Separate outputs keep QEMU/cryptsetup out of LVM-only closures.
+Initial disk creation runs in a disposable Nix build VM with its own scratch disk.
+`ghaf-initialize-verity-lvm` validates the manifest and decompressed payload lengths,
+then uses stock `cryptsetup`, `pvcreate`, `vgcreate` and `lvcreate` to create LUKS2
+and the fixed A/B slots. Optional swap and persist filesystems use stock formatters.
+The build host needs KVM; it does not need root access to host storage devices.
 
-Builds use regular files without root, sudo, VMs, mounts, loop devices or
-device-mapper activation. The creation-only Rust writer emits LVM metadata directly. Shared
-code bounds writes, checks arithmetic and reaps failed producers. LVM modifies
-a disposable, initially zero-filled image; LUKS preserves the original until
-validation and atomic replacement. LUKS encrypts written zeroes as data and skips
-only filesystem-reported holes: callers must reserve holes for unused space,
-since encrypted holes do not decrypt to guaranteed zeroes. Encryption uses stock QEMU and cryptsetup; integration tests live beside the
-Rust package in ghafpkgs.
+The shared VM wrapper keeps large payloads on host-backed scratch storage. Platform
+adapters own GPT/ESP layout and publish the compressed disk only after the VM
+finishes successfully. Private signing remains outside the Nix build. The core
+storage test activates the resulting volumes, reads payloads, renames an inactive
+slot, and grows and remounts persist. The build no longer depends on ghafpkgs #378
+or a custom LVM metadata writer or LUKS header conversion.
 
 ## Delivery and installation
 
@@ -164,7 +163,7 @@ currently checked.
 | Payload/UKI/manifest build | `modules/partitioning/verity-volume.nix` |
 | Acceptance/blessing | `modules/partitioning/boot-health.nix` |
 | Manifest, key generation/export, signing, HTTP fetch | Corresponding `packages/pkgs-by-name/ghaf-*/` packages |
-| Regular-file image builders | ghafpkgs `packages/rust/ghaf-image-tools/` |
+| VM disk-image construction | `lib/image-builder-vm.nix`, `packages/pkgs-by-name/ghaf-initialize-verity-lvm/` |
 | Transaction engine/OCI client | ghaf-givc `crates/ota-update/src/` |
 | NVIDIA adapter | APP/QSPI, DUK/recovery, Secure Boot, NX/AGX flash/first boot |
 | x86 adapter | GPT/ESP, TPM/FIDO2/recovery, Type-2 UKI, installer/enrollment |

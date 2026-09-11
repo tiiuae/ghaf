@@ -17,6 +17,9 @@
     gala = final.callPackage ./pkgs-by-name/gala/package.nix { };
     ghaf-build-helper = final.callPackage ./pkgs-by-name/ghaf-build-helper/package.nix { };
     ghaf-fetch-update = final.callPackage ./pkgs-by-name/ghaf-fetch-update/package.nix { };
+    ghaf-initialize-verity-lvm =
+      final.callPackage ./pkgs-by-name/ghaf-initialize-verity-lvm/package.nix
+        { };
     ghaf-installer = final.callPackage ./pkgs-by-name/ghaf-installer/package.nix { };
     ghaf-intro = final.callPackage ./pkgs-by-name/ghaf-intro/package.nix { };
     ghaf-open = final.callPackage ./pkgs-by-name/ghaf-open/package.nix { };

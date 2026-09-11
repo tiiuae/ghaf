@@ -28,9 +28,6 @@
       # Re-export the updater from the exact GIVC revision pinned by this flake.
       apps.ghaf-ota-update = inputs.givc.apps.${system}.ota-update;
 
-      # Shared image builders live in ghafpkgs; preserve the public flake names.
-      packages.ghaf-image-tools = inputs.ghafpkgs.packages.${system}.ghaf-image-tools;
-
       # Generate comprehensive documentation with enhanced module coverage
       packages.doc =
         let
