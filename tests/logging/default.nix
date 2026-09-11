@@ -26,6 +26,16 @@ let
   fssSetupTest = import ./test_scripts/fss_setup.nix;
   fssVerificationTest = import ./test_scripts/fss_verification.nix;
 
+  # Path-matched fsync/fdatasync fault injection for the durability-barrier
+  # subtests. Reached only from here: fss-test.nix ships inside every -debug
+  # image (modules/development/debug-tools.nix), so nothing it imports may
+  # grow a test-only dependency.
+  fsyncFault = pkgs.runCommandCC "fss-fsync-fault" { } ''
+    mkdir -p "$out/lib"
+    cc -shared -fPIC -O2 -o "$out/lib/libfss-fsync-fault.so" \
+      ${./test_scripts/fss-fsync-fault.c}
+  '';
+
   # Same journal-verify.c tolerance as modules/common/systemd/base.nix.
   patchedSystemd = pkgs.systemd.overrideAttrs (prev: {
     postPatch = (prev.postPatch or "") + ''
@@ -99,6 +109,7 @@ pkgs.testers.nixosTest {
           coreutils
           gnugrep
           util-linux
+          strace
           (callPackage ./test_scripts/fss-test.nix { systemd = patchedSystemd; })
           (callPackage ./test_scripts/fss-classifier-cases.nix { })
           (callPackage ../../packages/pkgs-by-name/fss-triage/package.nix { systemd = patchedSystemd; })
@@ -343,7 +354,7 @@ pkgs.testers.nixosTest {
           '
         """)
 
-    ${fssSetupTest { }}
+    ${fssSetupTest { faultLib = "${fsyncFault}/lib/libfss-fsync-fault.so"; }}
 
     with subtest("FSS activation survives a real reboot without system journal failures"):
         boot1 = machine.succeed("cat /proc/sys/kernel/random/boot_id").strip()
