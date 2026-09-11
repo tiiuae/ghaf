@@ -106,12 +106,8 @@ let
   hostPersistentJournalPath = "/persist/var/log/journal";
   fssBasePath =
     if config.ghaf.type == "host" then "/persist/common/journal-fss" else "/etc/common/journal-fss";
-  # All FSS journalctl callers must use the SAME systemd as PID 1 / journald.
-  # journalctl --verify's integrity verdict depends on the journal-verify.c
-  # tag/epoch logic, and Ghaf vendors a patch to it
-  # (systemd-fss-verify-tolerate-repeated-epoch.patch, SSRCSP-8820). A verifier
-  # built from a different (unpatched) systemd would disagree with the sealing
-  # journald and report spurious "Epoch sequence not continuous" failures.
+  # FSS journalctl callers must use the same (patched) systemd as PID 1, or
+  # the verifier disagrees with the sealing journald.
   systemdPackage = config.systemd.package;
 
   fssTriagePackage =
@@ -1551,6 +1547,18 @@ let
             esac
     '';
   };
+
+  # Seal + archive via --rotate (no restart) so a later teardown can't strand
+  # a sealed file STATE_ONLINE. Best-effort; shared by both finalizer units.
+  sealRotateScript = pkgs.writeShellApplication {
+    name = "journal-fss-seal-rotate";
+    runtimeInputs = [ systemdPackage ];
+    text = ''
+      journalctl --sync 2>/dev/null || true
+      journalctl --rotate 2>/dev/null || true
+      journalctl --sync 2>/dev/null || true
+    '';
+  };
 in
 {
   _file = ./fss.nix;
@@ -2080,6 +2088,60 @@ in
               ];
             };
           };
+
+          # Runs early in shutdown, before microVM teardown can force-kill
+          # journald mid-offline-close.
+          journal-fss-shutdown-finalize = {
+            description = "Seal and archive FSS journals before shutdown";
+            documentation = [ "man:journalctl(1)" ];
+
+            wantedBy = [ "multi-user.target" ];
+            # After journald at start => ExecStop runs before journald stops.
+            after = [
+              "systemd-journald.service"
+              "journal-fss-setup.service"
+            ];
+            # Out of the normal stop wave, so ExecStop runs late in shutdown.
+            before = [ "shutdown.target" ];
+            conflicts = [ "shutdown.target" ];
+
+            unitConfig = {
+              DefaultDependencies = false;
+              # Only meaningful once FSS keys exist (skips the host, which has none).
+              ConditionPathExists = "${cfg.keyPath}/initialized";
+            };
+
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+              ExecStart = "${pkgs.coreutils}/bin/true";
+              ExecStop = [
+                (getExe sealRotateScript)
+                # Drop journald's sockets so PID 1 can't reactivate it later.
+                # --no-block: this unit stops before journald, so a blocking
+                # stop would deadlock.
+                "-${systemdPackage}/bin/systemctl stop --no-block systemd-journald.socket systemd-journald-dev-log.socket"
+              ];
+              # Bounded well under the microVM stop timeout (crosvm, ~30s).
+              TimeoutStopSec = "25s";
+            };
+          };
+
+          # Archives pre-step content under the journald that wrote it, before
+          # the reboot. Fires on any step; cheap.
+          journal-fss-clockstep-rotate = {
+            description = "Seal and archive FSS journals on a wall-clock step";
+            documentation = [ "man:journalctl(1)" ];
+            after = [
+              "systemd-journald.service"
+              "journal-fss-setup.service"
+            ];
+            unitConfig.ConditionPathExists = "${cfg.keyPath}/initialized";
+            serviceConfig = {
+              Type = "oneshot";
+              ExecStart = getExe sealRotateScript;
+            };
+          };
         };
 
         # Timer for periodic verification
@@ -2096,6 +2158,16 @@ in
           }
           // optionalAttrs cfg.verifyOnBoot {
             OnBootSec = "10min";
+          };
+        };
+
+        timers.journal-fss-clockstep-rotate = {
+          description = "Seal FSS journals when the wall clock is stepped";
+          documentation = [ "man:journalctl(1)" ];
+          wantedBy = [ "timers.target" ];
+          timerConfig = {
+            OnClockChange = true;
+            Unit = "journal-fss-clockstep-rotate.service";
           };
         };
       };
