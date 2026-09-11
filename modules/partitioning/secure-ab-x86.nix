@@ -3,6 +3,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 {
@@ -16,7 +17,11 @@
     keysSource = lib.mkForce null;
   };
 
-  ghaf.storage.encryption.deferred = lib.mkForce false;
+  ghaf.storage.encryption.deferred = true;
+  boot.initrd.systemd.services.first-boot-encrypt = {
+    requiredBy = [ "sysroot.mount" ];
+    serviceConfig.ExecStartPost = "${pkgs.cryptsetup}/bin/cryptsetup isLuks ${lib.escapeShellArg config.ghaf.storage.encryption.partitionDevice}";
+  };
 
   # Preserve the established x86 storage policy, but apply it equally to both
   # secure A/B slots instead of deriving their capacities from generation 1.

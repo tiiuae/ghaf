@@ -5,6 +5,7 @@ set -euo pipefail
 
 usage() {
   echo "Usage: ghaf-sign-x86-image --key-dir DIR --input IMAGE_DIR --output DIR" >&2
+  echo "--input must be a trusted, immutable Nix build output, including esp.sha256." >&2
   exit 2
 }
 
@@ -50,6 +51,10 @@ done
   echo "Missing $input/ghaf-image.raw.zst" >&2
   exit 1
 }
+[[ -s $input/esp.sha256 ]] || {
+  echo "Missing $input/esp.sha256; rebuild the image with an ESP file inventory" >&2
+  exit 1
+}
 [[ ! -e $output ]] || {
   echo "Refusing to overwrite $output" >&2
   exit 1
@@ -77,7 +82,20 @@ esp_offset=$(
 )
 esp_image="$work/ghaf-image.raw@@$esp_offset"
 mkdir "$work/esp"
-mcopy -s -i "$esp_image" ::EFI ::loader "$work/esp/"
+mcopy -s -i "$esp_image" '::*' "$work/esp/"
+(
+  cd "$work/esp"
+  find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum
+) >"$work/esp.sha256"
+cmp -s "$input/esp.sha256" "$work/esp.sha256" || {
+  echo "ESP file inventory mismatch; refusing to sign modified or unlisted files" >&2
+  exit 1
+}
+
+if find "$work/esp/loader/entries" -maxdepth 1 -type f -name '*.conf' -print -quit 2>/dev/null | grep -q .; then
+  echo "Type-1 boot entries remain in loader/entries; refusing an image whose initrd/cmdline are not UKI-bound" >&2
+  exit 1
+fi
 
 sign_one() {
   local file=$1 signed="$work/signed.efi"
@@ -105,11 +123,6 @@ mapfile -d '' ukis < <(find "$work/esp/EFI/Linux" -maxdepth 1 -type f -iname '*.
 for uki in "${ukis[@]}"; do
   sign_one "$uki"
 done
-
-if find "$work/esp/loader/entries" -maxdepth 1 -type f -name '*.conf' -print -quit 2>/dev/null | grep -q .; then
-  echo "Type-1 boot entries remain in loader/entries; refusing an image whose initrd/cmdline are not UKI-bound" >&2
-  exit 1
-fi
 
 sync -f "$work/ghaf-image.raw"
 

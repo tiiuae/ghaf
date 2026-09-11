@@ -76,6 +76,16 @@ signer.overrideAttrs (old: {
           for name in EFI/systemd/systemd-bootx64.efi EFI/BOOT/BOOTX64.EFI EFI/Linux/ghaf-test.efi; do
             mcopy -i "$esp" "$efi" "::$name"
           done
+          touch marker
+          mcopy -i "$esp" marker ::.ghaf-installer-encrypt
+          inventory() {
+            mkdir inventory-esp
+            mcopy -s -i "$esp" '::*' inventory-esp/
+            (cd inventory-esp; find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum) > input/esp.sha256
+            rm -r inventory-esp
+          }
+          inventory
+          grep -F './.ghaf-installer-encrypt' input/esp.sha256
           zstd disk.raw -o input/ghaf-image.raw.zst
           ghaf-sign-x86-image --key-dir keys --input input --output signed
           test -s signed/ghaf-image.bmap
@@ -86,9 +96,35 @@ signer.overrideAttrs (old: {
             sbverify --cert keys/db.crt check.efi
           done
 
+          cp input/ghaf-image.raw.zst original.zst
+          mv input/esp.sha256 missing.sha256
+          ! ghaf-sign-x86-image --key-dir keys --input input --output missing-inventory 2>error.log
+          grep -F 'Missing input/esp.sha256' error.log
+          test ! -e missing-inventory
+          mv missing.sha256 input/esp.sha256
+
+          # Reject changed, added, and removed files against the trusted inventory.
+          for change in modified unlisted removed; do
+            zstd -d -f original.zst -o disk.raw
+            case "$change" in
+              modified)
+                printf corrupted > changed.efi
+                mcopy -o -i "$esp" changed.efi ::EFI/Linux/ghaf-test.efi
+                ;;
+              unlisted) mcopy -i "$esp" "$efi" ::unexpected.EFI ;;
+              removed) mdel -i "$esp" ::EFI/BOOT/BOOTX64.EFI ;;
+            esac
+            zstd -f disk.raw -o input/ghaf-image.raw.zst
+            ! ghaf-sign-x86-image --key-dir keys --input input --output "$change" 2>error.log
+            grep -F 'ESP file inventory mismatch' error.log
+            test ! -e "$change"
+          done
+          zstd -d -f original.zst -o disk.raw
+
           # A mixed Type-1/Type-2 ESP must never be published for enrollment.
           printf legacy > legacy.conf
           mcopy -i "$esp" legacy.conf ::loader/entries/legacy.conf
+          inventory
           zstd -f disk.raw -o input/ghaf-image.raw.zst
           ! ghaf-sign-x86-image --key-dir keys --input input --output rejected 2>error.log
           grep -F 'Type-1 boot entries remain' error.log

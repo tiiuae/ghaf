@@ -1,9 +1,9 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# x86 bootstrap disk image for the shared secure A/B payload. GPT, FAT, LUKS,
-# and LVM are assembled from regular files in the Nix build sandbox without a
-# VM or kernel storage devices. The result is unsigned; ghaf-sign-x86-image
+# x86 bootstrap disk image for the shared secure A/B payload. GPT, FAT,
+# and plain LVM are assembled in a build VM; first boot applies encryption.
+# The result is unsigned; ghaf-sign-x86-image
 # signs its ESP later, outside the Nix store.
 {
   config,
@@ -31,27 +31,31 @@ let
     }
   );
   buildPkgs = pkgs.pkgsBuildBuild;
-  initialDiskImage = pkgs.runCommand "ghaf-x86-verity-disk" { } ''
-    ${lib.getExe buildPkgs.ghaf-prepare-x86-verity-disk} \
-      --update-dir ${updateImage} \
-      --systemd-boot ${config.systemd.package}/lib/systemd/boot/efi/systemd-bootx64.efi \
-      --trust-inventory ${trustInventory} \
-      --image-size-mib ${toString diskoCfg.imageSize} \
-      --root-size-mib ${toString verityCfg.rootSlotSizeMiB} \
-      --verity-size-mib ${toString verityCfg.veritySlotSizeMiB} \
-      --swap-size-mib ${toString diskoCfg.swapSize} \
-      --persist-size-mib ${toString diskoCfg.persistSize} \
-      --boot-timeout ${
-        lib.escapeShellArg (
-          if config.boot.loader.timeout == null then "menu-force" else toString config.boot.loader.timeout
-        )
-      } \
-      --output "$out"
-  '';
+  initialDiskImage = buildPkgs.ghaf-prepare-x86-verity-disk.buildImage {
+    imageSizeMiB = diskoCfg.imageSize;
+    buildCommand = ''
+      ${lib.getExe buildPkgs.ghaf-prepare-x86-verity-disk} \
+        --disk /dev/vda \
+        --update-dir ${updateImage} \
+        --systemd-boot ${config.systemd.package}/lib/systemd/boot/efi/systemd-bootx64.efi \
+        --trust-inventory ${trustInventory} \
+        --image-size-mib ${toString diskoCfg.imageSize} \
+        --root-size-mib ${toString verityCfg.rootSlotSizeMiB} \
+        --verity-size-mib ${toString verityCfg.veritySlotSizeMiB} \
+        --swap-size-mib ${toString diskoCfg.swapSize} \
+        --persist-size-mib ${toString diskoCfg.persistSize} \
+        --boot-timeout ${
+          lib.escapeShellArg (
+            if config.boot.loader.timeout == null then "menu-force" else toString config.boot.loader.timeout
+          )
+        } \
+        --output "$out"
+    '';
+  };
 in
 {
   options.ghaf.partitioning.verity.initialDisk.enable =
-    lib.mkEnableOption "an initial x86 GPT/FAT/LUKS/LVM secure A/B disk image builder";
+    lib.mkEnableOption "an initial x86 GPT/FAT/LVM secure A/B disk image builder";
 
   config = lib.mkIf cfg.enable {
     assertions = [
@@ -64,8 +68,8 @@ in
         message = "ghaf.partitioning.verity.initialDisk requires the verity update layout";
       }
       {
-        assertion = config.ghaf.storage.encryption.enable && !config.ghaf.storage.encryption.deferred;
-        message = "ghaf.partitioning.verity.initialDisk requires immediate LUKS configuration";
+        assertion = config.ghaf.storage.encryption.enable && config.ghaf.storage.encryption.deferred;
+        message = "ghaf.partitioning.verity.initialDisk requires deferred per-device encryption";
       }
       {
         assertion = diskoCfg.imageSize >= minimumImageSizeMiB;
@@ -76,7 +80,7 @@ in
     ghaf.partitioning.disko.imageSize = lib.mkDefault minimumImageSizeMiB;
 
     fileSystems."/boot" = lib.mkForce {
-      device = "/dev/disk/by-label/ESP";
+      device = "/dev/disk/by-partlabel/disk-disk1-ESP";
       fsType = "vfat";
       options = [ "umask=0077" ];
     };

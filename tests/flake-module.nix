@@ -17,6 +17,7 @@
           );
         in
         {
+          x86-deferred-encryption = pkgs.callPackage ./x86-deferred-encryption.nix { inherit self; };
           installer = pkgs.callPackage ./installer { inherit self; };
           netboot-boot = pkgs.callPackage ./installer/netboot-boot.nix { inherit self; };
           netboot-fetch = pkgs.callPackage ./installer/netboot-fetch.nix { inherit self; };
