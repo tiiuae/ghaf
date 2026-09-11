@@ -51,34 +51,59 @@ Documentation is the story of your code. Update Ghaf documentation with the code
 
 > Make sure to run spelling checking tools to catch common miss spellings before making a pull request. For example, you can use [aspell](https://www.manuel-strehl.de/check_markdown_spelling_with_aspell) in Linux/UNIX.
 
+### Structuring Commits
+
+Each commit should be atomic: one logical change, complete on its own. Split or squash your
+work until every commit meets all three of these:
+
+1. The tree builds and evaluates at that commit — `nix flake check` should not fail because a
+   later commit is missing.
+2. Reverting it does not break the commits around it.
+3. It does one thing. A change that needs the word "and" to describe it is usually two commits.
+
+Squash the noise, not the history. Review fixes, typo corrections, "address review comments"
+and `git commit --amend` material belong folded into the commit they fix — use `git commit
+--fixup <sha>` while you work and `git rebase --autosquash` before you ask for review. But a
+pull request that genuinely does three separable things reads better as three commits than as
+one, so do not flatten a whole branch out of habit; a reviewer reads commit by commit, and
+`git bisect` and `git revert` only work at the granularity you leave behind.
+
+Because we rebase rather than merge, rewriting your branch is expected. Force-push your fork
+after a rebase, and keep refactoring separate from behaviour changes so a reviewer does not
+have to find the two-line fix inside a thousand moved lines.
+
 ### Commit Message Guidelines
 
-We follow the [Conventional Commits](https://www.conventionalcommits.org/) format for commit messages. Use the same `type(scope): description` format for the subject line.
+We follow the [Conventional Commits](https://www.conventionalcommits.org/) format for commit messages: the summary line is `type(scope): description`.
 
-Rules for the full commit message:
+A commit message has two parts, separated by a blank line: the summary and the body.
 
-1. Separate subject from body with a blank line.
-2. Limit the subject line to 50 characters.
-3. Use the imperative (commanding) mood in the subject line.
-   - “Fix a bug causing reboots on nuc” rather than “Fixed a bug causing reboots on nuc”.
-   - “Update weston to version 10.5.1” rather than “New weston version 10.5.1”.
-4. Do not end the subject line with a period.
-5. Wrap the body at 72 characters.
-6. Use the body to explain **what** and **why** vs. how.
+**Summary**
+
+- Use `<type>(<optional scope>): <description>`, with a type from the [allowed types](#pull-request-title-guidelines) and a lowercase scope without spaces.
+- Describe the change itself, not the issue behind it or the benefit it brings - those belong in the body.
+- Use the imperative (commanding) mood, no capital first letter, no trailing period.
+  - "fix: resolve reboots on nuc" rather than "fix: resolved reboots on nuc".
+  - "bump: update weston to 10.5.1" rather than "bump: new weston 10.5.1".
+- Keep the whole line within 75 characters.
+
+**Body**
+
+- Explain **what** changed and **why**, in normal prose with ordinary punctuation and capitalization. Skip the how: anyone who needs it can read the diff.
+- Write it as if it were an email to the other developers, or to yourself six months from now. Say whether any external or private interfaces changed.
+- Wrap every line at 75 characters. Keep the body to a single short paragraph; use more only when the change genuinely cannot be explained in one.
+- A body is optional for a change that is genuinely self-explanatory; most changes are not.
 
 Example:
 
 ```
-subject line: explain the commit in one line
+fix(netvm): keep the uplink up across suspend
 
-Body of commit message is a few lines of text, explaining things
-in more detail, possibly giving some background about the issue
-being fixed, etc etc.
-
-The body of the commit message can be several paragraphs, and
-please do proper word-wrap and keep columns shorter than about
-72 characters or so. That way "git log" will show things
-nicely even when it's indented.
+The uplink was torn down on suspend because the interface was
+renamed before the link was brought back, so resume found no
+device to configure and left netvm without connectivity. Bring
+the link up after the rename instead. No external interfaces
+change.
 
 Signed-off-by: Your Name <youremail@yourhost.com>
 ```
