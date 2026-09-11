@@ -32,9 +32,43 @@ New files need an SPDX header — Apache-2.0 for code, CC-BY-SA-4.0 for document
 If a file cannot carry a header (YAML frontmatter must come first, binary assets), add it
 to the annotations block in `REUSE.toml` instead.
 
-Commit subjects follow conventional commits: `feat:`, `fix:`, `chore:`, `docs:`,
-`refactor:`, `test:`, with an optional scope — `fix(vm): resolve networking in gui-vm`.
+## Commits
+
+Commit messages MUST follow the "Commit Message Guidelines" section of `CONTRIBUTING.md`.
+
+In short: conventional commits, `<type>(<optional scope>): <description>`, with the type one
+of `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, `revert`, `build`, `bump`, and
+the scope lowercase and without spaces — `fix(vm): resolve networking in gui-vm`. The summary
+is imperative mood, no capital first letter, no trailing period, and describes the change
+rather than the issue behind it. Separate the body with a blank line and wrap every line —
+summary included — at 75 characters. The body is normal prose explaining what and why, never
+how, and says whether any interface changed.
+
+Keep the message as short as the change allows — only what a reviewer absolutely needs, in
+plain human-readable prose. Omit the body only when the change is genuinely self-explanatory.
+Do not list files, restate the diff, or pad the message with narration.
+
+Each commit is one atomic logical change: the tree must build at that commit, reverting it
+must not break the commits around it, and it should do one thing. Fold review fixes and typo
+corrections into the commit they fix rather than leaving them as separate commits, but do not
+flatten a branch that genuinely does several separable things into one commit. See
+"Structuring Commits" in `CONTRIBUTING.md`.
+
 Do not commit or push unless you were asked to.
+
+## Code comments
+
+Comments are concise and limited to what is absolutely necessary: the non-obvious why, a
+constraint, a workaround. Code that explains itself gets no comment.
+
+When a change exists only because a fix is pending upstream (an open PR, an unreleased
+release, a patch waiting in nixpkgs or microvm.nix), mark it with a `TODO` naming what is
+awaited, so the workaround can be deleted once it lands. Link the upstream pull request or
+issue by full URL, so the next reader can check its state without hunting for it:
+
+```nix
+# TODO: drop once https://github.com/astro/microvm.nix/pull/123 lands and the input is bumped.
+```
 
 ## Layout
 
@@ -66,17 +100,17 @@ in {
 
 ## Everyday commands
 
-| Task | Command | Depth |
-|---|---|---|
-| See what a build will cost | `nix build --dry-run .#<target>` | `ghaf-build` |
-| Build an image | `nix build .#intel-laptop-debug` | `ghaf-build` |
-| Build many targets | `nix-fast-build --flake '.#packages.x86_64-linux' --select …` | `ghaf-build` |
-| Deploy without reflashing | `nix develop --command ghaf-rebuild <netvm-ip> .#<target> boot`, then reboot | `ghaf-deploy` |
-| Flash an image | `sudo nix develop --command ghaf-flash -d /dev/sdX -i result/ghaf-image.raw.zst` | `ghaf-deploy` |
-| Flash a Jetson (RCM) | `sudo ./result/bin/flash-ghaf-host -s <image-result-dir>` | `ghaf-deploy` |
-| Reach a device or VM | `ssh ghaf@<host_ip>`, then `ssh <vm>` from there | `ghaf-connect` |
-| Collect logs across VMs | `.claude/skills/ghaf-logs/scripts/collect-logs.sh --machine <name>` | `ghaf-logs` |
-| Run hardware tests | `.github/skills/ghaf-hw-test/ghaf-hw-test test --device <name> --ip <IP>` | `ghaf-test` |
+| Task                       | Command                                                                          | Depth          |
+| -------------------------- | -------------------------------------------------------------------------------- | -------------- |
+| See what a build will cost | `nix build --dry-run .#<target>`                                                 | `ghaf-build`   |
+| Build an image             | `nix build .#intel-laptop-debug`                                                 | `ghaf-build`   |
+| Build many targets         | `nix-fast-build --flake '.#packages.x86_64-linux' --select …`                    | `ghaf-build`   |
+| Deploy without reflashing  | `nix develop --command ghaf-rebuild <netvm-ip> .#<target> boot`, then reboot     | `ghaf-deploy`  |
+| Flash an image             | `sudo nix develop --command ghaf-flash -d /dev/sdX -i result/ghaf-image.raw.zst` | `ghaf-deploy`  |
+| Flash a Jetson (RCM)       | `sudo ./result/bin/flash-ghaf-host -s <image-result-dir>`                        | `ghaf-deploy`  |
+| Reach a device or VM       | `ssh ghaf@<host_ip>`, then `ssh <vm>` from there                                 | `ghaf-connect` |
+| Collect logs across VMs    | `.claude/skills/ghaf-logs/scripts/collect-logs.sh --machine <name>`              | `ghaf-logs`    |
+| Run hardware tests         | `.github/skills/ghaf-hw-test/ghaf-hw-test test --device <name> --ip <IP>`        | `ghaf-test`    |
 
 Device details (addresses, drives, serial nodes, target and test names per machine) live in
 `.github/skills/ghaf-hw-test/config.yaml`, with per-machine values (addresses, MACs, ssh
@@ -100,20 +134,21 @@ asking or guessing; if a field is null in both, ask once and offer to write it t
 - **A Jetson flash script no longer embeds an image; pass it with `-s`.** Every Orin board
   pins `appPartitionSizeBytes`, so one flash script serves every image variant and
   `*-flash-script` builds only the flasher. Running it bare fails with "this flash script was
-  built without an embedded sdImage". Build the image target too and pass the *result
-  directory*, not a file:
+  built without an embedded sdImage". Build the image target too and pass the _result
+  directory_, not a file:
 
   ```bash
   nix build .#nvidia-jetson-orin-agx-debug-from-x86_64-flash-script -o flasher
   nix build .#nvidia-jetson-orin-agx-debug-from-x86_64             -o image
   sudo ./flasher/bin/flash-ghaf-host -s "$(readlink -f image)"
   ```
+
 - **A Jetson only accepts a flash in RCM mode, which needs hands on the board.** On the AGX
   devkit the three buttons are, left to right, **Power**, **Force Recovery**, **Reset**:
-  press and hold the *middle* button, tap the *right* one, keep holding the middle one for
+  press and hold the _middle_ button, tap the _right_ one, keep holding the middle one for
   about two seconds, then release. It worked when `lsusb` shows `0955:7023 NVIDIA Corp. APX`
   and the `/dev/ttyACM*` nodes disappear. Still seeing `0955:7045 Tegra On-Platform
-  Operator` means the board reset normally and is not in RCM -- that id is the debug console,
+Operator` means the board reset normally and is not in RCM -- that id is the debug console,
   present whenever the board is running.
 - **The test suite names the physical machine, not the image**: `robot-test -d` takes
   `darter-pro`, `lenovo-x1`, `dell-7330`, `orin-agx`, … A wrong value does not error, it
