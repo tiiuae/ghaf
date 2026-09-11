@@ -54,11 +54,8 @@ fss_log() {
 
 fss_log_block() { cat; }
 
-# journald's Storage=persistent falls back to volatile at its own startup
-# (journald.conf(5)) and never re-evaluates -- resolve where it actually
-# landed via its open fd, not by guessing from file existence.
-# Falls back to the caller's default on any resolution failure; must not
-# abort the caller under errexit.
+# journald's persistent->volatile fallback (journald.conf(5)) is decided once
+# at its own startup; resolve where it actually landed via its open fd.
 fss_resolve_live_journal_dir() {
   local default_dir="$1" journald_pid journald_comm fd_target
 
@@ -70,8 +67,7 @@ fss_resolve_live_journal_dir() {
     ;;
   esac
 
-  # Guards against PID reuse between the lookup above and the fd walk below.
-  # comm is kernel-truncated to 15 chars, hence "systemd-journal" not "...ld".
+  # Guards against PID reuse; comm is truncated to "systemd-journal".
   journald_comm=$(cat "/proc/$journald_pid/comm" 2>/dev/null) || true
   if [ "$journald_comm" != "systemd-journal" ]; then
     printf '%s' "$default_dir"
@@ -92,10 +88,9 @@ fss_resolve_live_journal_dir() {
   fi
 }
 
-# Resolve the FSS key file by which candidate path actually has one.
-# Deliberately NOT derived from fss_resolve_live_journal_dir: `journalctl
-# --setup-keys` places the key independently of journald's live journal.
-# Defaults to persistent when neither exists, matching --setup-keys itself.
+# Resolve the FSS key file by which candidate path actually has one -- NOT
+# derived from fss_resolve_live_journal_dir: --setup-keys places it
+# independently of journald's live journal.
 fss_resolve_key_file() {
   local machine_id="$1"
   local persistent="/var/log/journal/$machine_id/fss"
