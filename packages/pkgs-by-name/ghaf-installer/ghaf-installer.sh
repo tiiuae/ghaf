@@ -34,6 +34,9 @@ Environment:
   GHAF_QUEUE_MAX_WAIT   seconds to wait for an install server's download slot
                         before giving up (default 14400). A fleet server
                         staggers image downloads, so a long wait is normal.
+  GHAF_SECUREBOOT_KEY_DIR
+                        directory containing PK.auth, KEK.auth, db.auth, and
+                        db.crt (default /etc/ghaf/secureboot/keys)
 
 After a successful install the firmware is pointed at the disk that was just
 written -- a boot entry is created if none exists, put first in BootOrder, and
@@ -427,10 +430,17 @@ fi
 if [ "$SECUREBOOT_INSTALL" = true ]; then
   echo "Setting up Secure Boot enrollment..."
 
-  KEYS_DIR="/etc/ghaf/secureboot/keys"
+  KEYS_DIR="${GHAF_SECUREBOOT_KEY_DIR:-/etc/ghaf/secureboot/keys}"
   PK_AUTH="$KEYS_DIR/PK.auth"
   KEK_AUTH="$KEYS_DIR/KEK.auth"
   DB_AUTH="$KEYS_DIR/db.auth"
+
+  udevadm settle
+  ESP_DEVICE="$(find_esp_device)" || {
+    echo "Error: Could not find ESP partition for Secure Boot verification."
+    exit 1
+  }
+  verify_secureboot_esp "$ESP_DEVICE" "$KEYS_DIR" || exit 1
 
   if ! ensure_efivars; then
     echo "EFI variables not available. Ensure the installer booted in UEFI mode."
