@@ -19,6 +19,7 @@ let
   ssdpMcastPort = 1900;
   mdnsMcastPort = 5353;
   ssdpMcastIp = "239.255.255.250";
+  mdnsMcastIp = "224.0.0.251";
 in
 {
   _file = ./chromecast.nix;
@@ -26,13 +27,6 @@ in
   options.ghaf.reference.services.chromecast = {
     enable = mkEnableOption "the Chromecast service";
 
-    externalNic = mkOption {
-      type = types.str;
-      default = "";
-      description = ''
-        External network interface
-      '';
-    };
     internalNic = mkOption {
       type = types.str;
       default = "";
@@ -74,41 +68,30 @@ in
 
   config = mkIf cfg.enable {
     assertions = [
-      # externalNic is no longer required: the interface is resolved at runtime.
-      # It remains only as an optional pin for a fixed rig.
       {
         assertion = cfg.internalNic != "";
         message = "Internal Nic must be set";
       }
     ];
 
-    # cfg.externalNic comes from (lib.head hardware.definition.network.pciDevices),
+    # The uplink used to come from (lib.head hardware.definition.network.pciDevices),
     # which enumerates PCI-passthrough NICs and is therefore the Wi-Fi card. A
     # wired uplink arrives via vhotplug at runtime and is not in that list at
-    # all, so the multicast routing below is driven by the resolved uplink
-    # instead. externalNic survives only as the "what the build assumed" value
-    # the resolver compares against, and as the firewall rules' interface until
-    # those move too.
+    # all, so the multicast routing below is driven entirely by the resolved
+    # uplink instead.
     ghaf.networking.uplinkResolver = {
-      # externalNic is empty by default, meaning "resolve it". If someone pins
-      # it for a fixed rig, routing that through the resolver keeps a single
-      # place where the uplink is decided -- otherwise the pin would be honoured
-      # by some consumers and ignored by others.
-      forceInterface = lib.mkDefault cfg.externalNic;
       # Both units render the uplink into their configuration at start, so they
       # have to be restarted when it changes, not merely reloaded.
       dependentUnits = [
         "smcroute.service"
-        "nw-packet-forwarder.service"
+        "nw-packet-forwarder-reconcile.service"
         "ghaf-firewall-uplink.service"
       ];
     };
 
     services.nw-packet-forwarder = {
       enable = true;
-      inherit (cfg) externalNic;
       inherit (cfg) internalNic;
-      uplink.enable = true;
       chromecast = {
         enable = true;
         inherit (cfg) vmName;
@@ -117,16 +100,31 @@ in
 
     services.smcroute = {
       enable = true;
-      bindingNic = "${cfg.externalNic}";
-      uplink.enable = true;
-      # @UPLINK@ is substituted with the resolved interface when the config is
-      # generated at start. smcroute asserts at eval time that this placeholder
-      # is actually present, so the uplink cannot be silently ignored.
+      # @UPLINK@ is substituted with each resolved uplink in turn, rendering
+      # this block once per uplink -- so each gets its own group join and its
+      # own route back to chrome-vm.
+      #
+      # The mDNS mgroup has no matching mroute: nw-pckt-fwd already relays
+      # mDNS itself (mdns_enabled is on in the binary), so an mroute here
+      # would forward every mDNS packet twice, once via smcrouted's kernel
+      # route and once via nw-pckt-fwd's own relay. The join is still needed
+      # on its own -- nw-pckt-fwd's raw capture only sees packets once they
+      # actually arrive at the interface, and on Wi-Fi an AP doing IGMP
+      # snooping will not deliver a multicast group to a station that never
+      # joined it, promiscuous mode notwithstanding.
       rules = ''
         mgroup from @UPLINK@ group ${ssdpMcastIp}
-        mgroup from ${cfg.internalNic} group ${ssdpMcastIp}
+        mgroup from @UPLINK@ group ${mdnsMcastIp}
         mroute from @UPLINK@ group ${ssdpMcastIp} to ${cfg.internalNic}
-        mroute from ${cfg.internalNic} group ${ssdpMcastIp} to @UPLINK@
+      '';
+      # The other direction fans out from chrome-vm to every uplink on one
+      # line -- an mroute's `to` list takes multiple interfaces, and
+      # declaring it once per uplink like `rules` above would instead
+      # redeclare the same (from ethint0, group) route with a different
+      # destination each time, which smcrouted rejects as a duplicate.
+      rulesOnce = ''
+        mgroup from ${cfg.internalNic} group ${ssdpMcastIp}
+        mroute from ${cfg.internalNic} group ${ssdpMcastIp} to @UPLINKS@
       '';
     };
 

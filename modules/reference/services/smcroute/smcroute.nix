@@ -8,16 +8,15 @@
 }:
 let
   cfg = config.services.smcroute;
-  # Seconds to wait for bindingNic to acquire an address before failing. Kept
-  # below the default TimeoutStartSec (90s) so our diagnostic is what gets
-  # logged, rather than systemd's generic "start-pre operation timed out".
-  bindingNicTimeout = 60;
 
-  # With uplink.enable the store file is a *template* carrying the placeholder;
-  # the real config is rendered next to it in the unit's RuntimeDirectory, which
-  # systemd creates before ExecStartPre and removes on stop.
+  # The store file is a *template* carrying the placeholders; the real config
+  # is rendered next to it in the unit's RuntimeDirectory, which systemd
+  # creates before ExecStartPre and removes on stop.
   confTemplate = pkgs.writeText "smcroute.conf.in" ''
     ${lib.concatStringsSep "\n" (lib.optionals (cfg.rules != null) [ cfg.rules ])}
+  '';
+  confTemplateOnce = pkgs.writeText "smcroute-once.conf.in" ''
+    ${lib.concatStringsSep "\n" (lib.optionals (cfg.rulesOnce != null) [ cfg.rulesOnce ])}
   '';
   runtimeConfFile = "/run/smcroute/smcroute.conf";
 in
@@ -26,78 +25,99 @@ in
 
   options.services.smcroute = {
     enable = lib.mkEnableOption "smcroute";
-    confFile = lib.mkOption {
-      type = lib.types.path;
-      example = "/var/lib/smcroute/smcroute.conf";
-      description = ''
-        Ignore all other smcroute options and load configuration from this file.
-      '';
-    };
-
-    bindingNic = lib.mkOption {
-      type = lib.types.str;
-      default = "";
-      example = "";
-      description = ''
-        Binding NIC
-      '';
-    };
 
     rules = lib.mkOption {
       type = lib.types.nullOr lib.types.lines;
       default = null;
       description = ''
         https://github.com/troglobit/smcroute?tab=readme-ov-file#usage
+
+        Rendered once per resolved uplink, with `placeholder` substituted for
+        the interface being rendered. Put anything here that must be a
+        *separate* directive per uplink (e.g. `mgroup from @UPLINK@ ...`, or
+        an mroute whose source is the uplink). A directive that instead needs
+        every uplink named on the same line (e.g. an mroute fanning out from
+        the internal interface to all of them) belongs in `rulesOnce`
+        instead -- repeating it here would redeclare the same route with a
+        different destination each time, which smcrouted rejects.
       '';
     };
 
-    uplink = {
-      enable = lib.mkEnableOption ''
-        taking the binding NIC from the runtime uplink resolver instead of
-        `bindingNic`. `rules` must then use `placeholder` wherever the uplink
-        interface appears; it is substituted when the config is generated at
-        start
+    rulesOnce = lib.mkOption {
+      type = lib.types.nullOr lib.types.lines;
+      default = null;
+      description = ''
+        Rendered exactly once, with `placeholderAll` substituted for every
+        resolved uplink, space-separated -- for directives that must name all
+        of them on one line, such as an mroute's `to` list. See `rules` for
+        the per-uplink counterpart.
       '';
+    };
 
-      placeholder = lib.mkOption {
-        type = lib.types.str;
-        default = "@UPLINK@";
-        description = ''
-          Token in `rules` replaced by the resolved uplink interface.
-        '';
-      };
+    placeholder = lib.mkOption {
+      type = lib.types.str;
+      default = "@UPLINK@";
+      description = ''
+        Token in `rules` replaced by the resolved uplink interface.
+      '';
+    };
 
-      stateFile = lib.mkOption {
-        type = lib.types.path;
-        default = "/run/ghaf-uplink-state";
-        description = "Where the uplink resolver publishes the current uplink.";
-      };
+    placeholderAll = lib.mkOption {
+      type = lib.types.str;
+      default = "@UPLINKS@";
+      description = ''
+        Token in `rulesOnce` replaced by every resolved uplink interface,
+        space-separated.
+      '';
+    };
 
-      readyFlag = lib.mkOption {
-        type = lib.types.path;
-        default = "/run/ghaf-uplink-ready";
-        description = ''
-          Gate for the unit. Absent means there is no uplink, and the unit is
-          skipped rather than failed.
-        '';
-      };
+    stateFile = lib.mkOption {
+      type = lib.types.path;
+      default = "/run/ghaf-uplink-state";
+      description = "Where the uplink resolver publishes the current uplink.";
+    };
+
+    readyFlag = lib.mkOption {
+      type = lib.types.path;
+      default = "/run/ghaf-uplink-ready";
+      description = ''
+        Gate for the unit. Absent means there is no uplink, and the unit is
+        skipped rather than failed.
+      '';
     };
   };
 
   config = lib.mkIf cfg.enable {
     assertions = [
       {
-        assertion = cfg.uplink.enable || cfg.bindingNic != "";
-        message = "Binding Nic must be set, or services.smcroute.uplink.enable used";
+        # smcroute has no build-time fallback any more: it always renders its
+        # config from the resolver's state file, so without the resolver
+        # actually running, ConditionPathExists never sees a ready flag and
+        # the unit sits silently skipped forever instead of failing loudly.
+        assertion = config.ghaf.networking.uplinkResolver.enable;
+        message = ''
+          services.smcroute.enable requires ghaf.networking.uplinkResolver.enable
+          -- smcroute always renders its config from the resolved uplink, and
+          without the resolver it would never see a ready flag and would sit
+          skipped forever instead of routing anything.
+        '';
       }
       {
-        assertion =
-          !cfg.uplink.enable || cfg.rules == null || lib.hasInfix cfg.uplink.placeholder cfg.rules;
+        assertion = cfg.rules == null || lib.hasInfix cfg.placeholder cfg.rules;
         message = ''
-          services.smcroute.uplink.enable is set but the rules never mention
-          ${cfg.uplink.placeholder}, so the resolved uplink would be ignored and
-          smcrouted would route multicast on the wrong interface -- silently,
-          which is the exact failure this mechanism exists to prevent.
+          services.smcroute.rules never mentions ${cfg.placeholder}, so the
+          resolved uplink would be ignored and smcrouted would route
+          multicast on the wrong interface -- silently, which is the exact
+          failure this mechanism exists to prevent.
+        '';
+      }
+      {
+        assertion = cfg.rulesOnce == null || lib.hasInfix cfg.placeholderAll cfg.rulesOnce;
+        message = ''
+          services.smcroute.rulesOnce never mentions ${cfg.placeholderAll}.
+          If a directive doesn't need the uplink list, it belongs in `rules`
+          instead -- rulesOnce exists only for directives that must name
+          every uplink on one line.
         '';
       }
     ];
@@ -117,79 +137,62 @@ in
       }
     ];
 
-    services.smcroute.confFile = lib.mkDefault (
-      pkgs.writeText "smcroute.conf" ''
-
-        ${lib.concatStringsSep "\n" (lib.optionals (cfg.rules != null) [ cfg.rules ])}
-      ''
-    );
-
     systemd.services."smcroute" = {
       description = "Static Multicast Routing daemon";
       wantedBy = [ "multi-user.target" ];
       after = [
         "network-online.target"
-      ]
-      ++ lib.optional cfg.uplink.enable "ghaf-uplink-resolver.service";
+        "ghaf-uplink-resolver.service"
+      ];
       requires = [ "network-online.target" ];
 
-      preStart =
-        if cfg.uplink.enable then
-          # With the uplink resolved at runtime there is nothing left to wait
-          # for: the resolver only publishes an interface that holds the default
-          # route, and ConditionPathExists below keeps this unit from starting
-          # at all until it does. What remains is substituting that interface
-          # into the config, which smcrouted reads from a file at startup.
-          ''
-            # shellcheck disable=SC1090
-            . ${cfg.uplink.stateFile}
-            if [ -z "''${uplink_iface:-}" ]; then
-              echo "smcroute: ${cfg.uplink.stateFile} names no uplink; refusing to route multicast on a guess." >&2
-              exit 1
-            fi
-            ${pkgs.gnused}/bin/sed -e "s|${cfg.uplink.placeholder}|$uplink_iface|g" \
-              ${confTemplate} >${runtimeConfFile}
-            echo "smcroute: routing multicast on $uplink_iface"
-          ''
-        else
-          # Legacy path, for consumers still naming a build-time bindingNic.
-          # Unchanged from the bounded-wait fix: the loop used to be unbounded,
-          # which turned "the interface never comes up" into a permanent restart
-          # loop that hid in "activating" while systemctl --failed stayed clean.
-          ''
-            deadline=$(( $(${pkgs.coreutils}/bin/date +%s) + ${toString bindingNicTimeout} ))
-            while :; do
-              if [ -n "$(${pkgs.iproute2}/bin/ip -4 -o addr show dev ${cfg.bindingNic} scope global 2>/dev/null)" ]; then
-                exit 0
-              fi
-              if [ "$(${pkgs.coreutils}/bin/date +%s)" -ge "$deadline" ]; then
-                echo "smcroute: '${cfg.bindingNic}' still has no global IPv4 address after ${toString bindingNicTimeout}s - giving up." >&2
-                echo "smcroute: set services.smcroute.uplink.enable to resolve the interface at runtime instead." >&2
-                exit 1
-              fi
-              ${pkgs.coreutils}/bin/sleep 2
-            done
-          '';
+      # With the uplink resolved at runtime there is nothing left to wait
+      # for: the resolver only publishes an interface once it holds the
+      # default route, and ConditionPathExists below keeps this unit from
+      # starting at all until at least one does. What remains is rendering
+      # the config once per resolved uplink -- a device with several
+      # simultaneous uplinks (Wi-Fi and a docked Ethernet, say) gets
+      # multicast routed on all of them, not just one.
+      preStart = ''
+        # shellcheck disable=SC1090,SC1091
+        . ${cfg.stateFile}
+        if [ -z "''${uplink_ifaces:-}" ]; then
+          echo "smcroute: ${cfg.stateFile} names no uplink; refusing to route multicast on a guess." >&2
+          exit 1
+        fi
+        : >${runtimeConfFile}
+        # rulesOnce first: directives naming every uplink on one line
+        # (e.g. an mroute's `to` list), rendered exactly once.
+        ${pkgs.gnused}/bin/sed -e "s|${cfg.placeholderAll}|$uplink_ifaces|g" \
+          ${confTemplateOnce} >>${runtimeConfFile}
+        # rules next: directives that are their own thing per uplink
+        # (e.g. `mgroup from @UPLINK@ ...`), rendered once per uplink.
+        for iface in $uplink_ifaces; do
+          ${pkgs.gnused}/bin/sed -e "s|${cfg.placeholder}|$iface|g" \
+            ${confTemplate} >>${runtimeConfFile}
+        done
+        echo "smcroute: routing multicast on $uplink_ifaces"
+      '';
 
-      # Kept from the bounded-wait fix. It should no longer be reachable via a
-      # missing interface -- that is now a skip, not a retry loop -- but a
-      # genuinely crashing smcrouted must still stop rather than spin.
+      # No start rate limit: this unit is restarted by the resolver's
+      # dependentUnits whenever the uplink set changes, and NetworkManager
+      # can fire several dispatcher events for one transition (up,
+      # dhcp4-change, connectivity-change), each triggering a restart --
+      # easily more than 3 in 600s on a device with two uplinks changing
+      # close together. Hitting that limit left smcroute refusing to start
+      # for the rest of the window, with no multicast routing at all, which
+      # is worse than the crash-loop the limit was guarding against.
       unitConfig = {
-        StartLimitIntervalSec = 600;
-        StartLimitBurst = 3;
-      }
-      // lib.optionalAttrs cfg.uplink.enable {
-        # No uplink => skipped, and visibly so. Not failed: an unplugged dock is
-        # not a defect. Not silently succeeded either, which is what the old
-        # unbounded wait effectively did.
-        ConditionPathExists = cfg.uplink.readyFlag;
+        StartLimitIntervalSec = 0;
+        # No uplink => skipped, and visibly so. Not failed: an unplugged dock
+        # is not a defect. Not silently succeeded either, which is what the
+        # old unbounded wait effectively did.
+        ConditionPathExists = cfg.readyFlag;
       };
 
       serviceConfig = {
         Type = "simple";
-        ExecStart = "${pkgs.smcroute}/sbin/smcrouted -n -s -f ${
-          if cfg.uplink.enable then runtimeConfFile else cfg.confFile
-        }";
+        ExecStart = "${pkgs.smcroute}/sbin/smcrouted -n -s -f ${runtimeConfFile}";
         User = "root";
         # Restart the service if it fails
         Restart = "on-failure";
@@ -197,14 +200,12 @@ in
         RestartSec = "5s";
         # Created before ExecStartPre and removed on stop, so a stale config can
         # never outlive the uplink it was generated for.
-        RuntimeDirectory = lib.mkIf cfg.uplink.enable "smcroute";
+        RuntimeDirectory = "smcroute";
         ProtectHome = true;
         NoNewPrivileges = true;
         ProtectControlGroups = true;
         ProtectSystem = "full";
       };
     };
-
   };
-
 }
