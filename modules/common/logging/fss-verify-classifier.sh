@@ -191,6 +191,13 @@ fss_unique_fail_paths_from_output() {
 # Clock-jump and FSS re-key predicates. Pure, so they are testable: see
 # tests/logging/test_scripts/fss-classifier-cases.nix.
 
+# |d(realtime) - d(monotonic)| between two samples, in seconds: the amount the wall
+# clock was set. Shared by the watcher and the setup script's guard.
+fss_clock_drift_abs() {
+  awk -v r1="$1" -v u1="$2" -v r2="$3" -v u2="$4" \
+    'BEGIN{d=(r2-r1)-(u2-u1); print (d<0)?-d:d}'
+}
+
 # Epochs of journald's backward-jump attestations, from --output=short-unix
 # lines on stdin. Excludes the monotonic variant, which does not move realtime
 # and so cannot leave the FSPRG sealing epoch ahead of it.
