@@ -819,6 +819,7 @@ let
       verification_key_diverged_from_sealing_key() {
         local key="$1" active_journal probe_output probe_exit
 
+        FSS_DIVERGED_FUTURE_TAG_US=""
         active_journal="$JOURNAL_DIR/system.journal"
         [ -f "$active_journal" ] || return 1
 
@@ -828,7 +829,10 @@ let
         [ "$probe_exit" -eq 0 ] && return 1
 
         case "''${probe_output,,}" in
-        *"tag failed verification"* | *"bad message"*) return 0 ;;
+        *"tag failed verification"* | *"bad message"*)
+          FSS_DIVERGED_FUTURE_TAG_US=$(fss_max_future_tag_epoch_us "$probe_output")
+          return 0
+          ;;
         *) return 1 ;;
         esac
       }
@@ -1081,7 +1085,8 @@ let
           # re-execs the setup script and does not return.
           recover_from_time_poisoned_sealing "$verify_output" || true
           if [ -n "$FSS_ACTIVE_SYSTEM_FAILURES" ] \
-            && verification_key_diverged_from_sealing_key "$verify_key"; then
+            && verification_key_diverged_from_sealing_key "$verify_key" \
+            && [ -z "$FSS_DIVERGED_FUTURE_TAG_US" ]; then
             fss_log fail "FSS verification key does not match the sealing key in use"
             fss_log fail "  verification key: $VERIFY_KEY_FILE"
             fss_log fail "  sealing key:      $FSS_KEY_FILE"
@@ -1090,6 +1095,10 @@ let
             fss_log fail "FSS state is re-provisioned by hand."
             fss_log fail "Recovery discards sealed history: archive and clear the journal,"
             fss_log fail "remove both keys above, then reboot so setup regenerates the pair."
+          elif [ -n "$FSS_ACTIVE_SYSTEM_FAILURES" ] && [ -n "$FSS_DIVERGED_FUTURE_TAG_US" ]; then
+            # Sub-margin future tag: recover declined by design and the divergence probe
+            # would misreport it -- same "Bad message" from journalctl.
+            fss_log fail "Active journal has entries older than its sealing tag (epoch starts $(date -u -d "@$(( FSS_DIVERGED_FUTURE_TAG_US / 1000000 ))" +%FT%TZ)); self-heals once this journal rotates"
           else
             fss_log fail "Live active-journal verification failed after FSS activation"
           fi
