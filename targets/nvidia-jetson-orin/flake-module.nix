@@ -502,12 +502,6 @@ let
           )
         ];
       };
-      # Read the board name off a fixpoint that is already forced for `noSB`
-      # rather than forcing `t.hostConfiguration` as a third one. The added
-      # modules do not touch `som`/`carrierBoard`, so the string is identical by
-      # construction. Each extra fixpoint is a full re-evaluation -- see
-      # `extendModules` in nixpkgs lib/modules.nix, which shares nothing.
-      innerName = noSBCfg.config.hardware.nvidia-jetpack.name;
       noSB = noSBCfg.pkgs.nvidia-jetpack.signedFlashScript;
       # Targets that already enable secureboot unconditionally get the identical
       # derivation back from `mkForce true`, so skip the second fixpoint entirely.
@@ -574,9 +568,9 @@ let
           esac
         done
         if [ "$sb" = 1 ]; then
-          exec ${withSB}/bin/flash-signed-${innerName} "''${args[@]}"
+          exec ${lib.getExe withSB} "''${args[@]}"
         else
-          exec ${noSB}/bin/flash-signed-${innerName} "''${args[@]}"
+          exec ${lib.getExe noSB} "''${args[@]}"
         fi
       '';
     };
