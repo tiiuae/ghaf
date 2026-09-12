@@ -514,6 +514,7 @@ rec {
             "gui-vm"
             "audio-vm"
             "net-vm"
+            "admin-vm"
           ];
         };
         locale = {
@@ -621,6 +622,7 @@ rec {
             "gui-vm"
             "audio-vm"
             "net-vm"
+            "admin-vm"
           ];
         };
         locale = {

@@ -6,23 +6,31 @@
   lib,
   mkTunedScript,
   tunedNoDesktop,
+  mkProfileVariants,
+  mkPpdSettings,
+  mkPpdServices,
+  mkProfileDirs,
   ...
 }:
 let
   cfg = config.ghaf.services.performance;
   inherit (lib)
-    concatMapStringsSep
     getExe
     getExe'
+    mapAttrs
     mkEnableOption
     mkIf
     mkMerge
     mkOption
-    nameValuePair
     optionalString
+    removePrefix
     replaceString
     types
     ;
+
+  guiProfileVariants = mkProfileVariants "gui";
+  netProfileVariants = mkProfileVariants "net";
+  audioProfileVariants = mkProfileVariants "audio";
 
   useGivc = config.ghaf.givc.enable;
 
@@ -95,72 +103,83 @@ let
 
   # For a general structure of the scripts, see:
   # https://github.com/redhat-performance/tuned/blob/master/profiles/powersave/script.sh
-  guiProfileScripts = {
-    gui-powersave = mkTunedScript {
-      name = "gui-powersave";
-      start =
-        (mkBrightnessScript 40)
-        + optionalString useGivc ''
-          timeout 5s ${givc-cli} start service --vm "ghaf-host" host-powersave.service &
-          timeout 5s ${givc-cli} start service --vm "net-vm" net-powersave.service &
-        '';
-    };
-    gui-balanced = mkTunedScript {
-      name = "gui-balanced";
-      start =
-        (mkBrightnessScript 70)
-        + optionalString useGivc ''
-          timeout 5s ${givc-cli} start service --vm "ghaf-host" host-balanced.service &
-          timeout 5s ${givc-cli} start service --vm "net-vm" net-balanced.service &
-        '';
-    };
-    gui-performance = mkTunedScript {
-      name = "gui-performance";
-      start =
-        ""
-        + optionalString useGivc ''
-          timeout 5s ${givc-cli} start service --vm "ghaf-host" host-performance.service &
-          timeout 5s ${givc-cli} start service --vm "net-vm" net-performance.service &
-        '';
-    };
-    gui-powersave-battery = mkTunedScript {
-      name = "gui-powersave-battery";
-      start =
-        (mkBrightnessScript 25)
-        + optionalString useGivc ''
-          timeout 5s ${givc-cli} start service --vm "ghaf-host" host-powersave-battery.service &
-          timeout 5s ${givc-cli} start service --vm "net-vm" net-powersave-battery.service &
-        '';
-    };
-    gui-balanced-battery = mkTunedScript {
-      name = "gui-balanced-battery";
-      start =
-        (mkBrightnessScript 50)
-        + optionalString useGivc ''
-          timeout 5s ${givc-cli} start service --vm "ghaf-host" host-balanced-battery.service &
-          timeout 5s ${givc-cli} start service --vm "net-vm" net-balanced-battery.service &
-        '';
-    };
-    gui-performance-battery = mkTunedScript {
-      name = "gui-performance-battery";
-      start =
-        (mkBrightnessScript 70)
-        + optionalString useGivc ''
-          timeout 5s ${givc-cli} start service --vm "ghaf-host" host-performance-battery.service &
-          timeout 5s ${givc-cli} start service --vm "net-vm" net-performance-battery.service &
-        '';
-    };
-  };
-  netProfileScripts = {
-    net-performance = mkTunedScript {
-      name = "net-performance";
+  #
+  # gui-vm is where the profile is picked, so each one fans out over GIVC.
+  guiProfileScripts =
+    let
+      # Panel brightness per profile; performance on AC leaves it alone.
+      brightness = {
+        gui-powersave = 40;
+        gui-balanced = 70;
+        gui-performance = null;
+        gui-powersave-battery = 25;
+        gui-balanced-battery = 50;
+        gui-performance-battery = 70;
+      };
+      # VM to forward to, and the profile prefix that VM uses.
+      forwardTo = {
+        ghaf-host = "host";
+        net-vm = "net";
+        audio-vm = "audio";
+      };
+    in
+    mapAttrs (
+      name: v:
+      mkTunedScript {
+        inherit name;
+        start =
+          # The GPU is passed through here, so its ceiling is ours to set. Only
+          # on-battery powersave caps it: RP1 is 300MHz against a 1300MHz ceiling.
+          ''
+            pci_runtime_pm ${if v.base == "performance" then "on" else "auto"}
+            gpu_max_freq ${if v.base == "powersave" && v.onBattery then "efficient" else "max"}
+          ''
+          + optionalString (brightness.${name} != null) (mkBrightnessScript brightness.${name})
+          + optionalString useGivc (
+            lib.concatStrings (
+              lib.mapAttrsToList (vm: prefix: ''
+                timeout 5s ${givc-cli} start service --vm "${vm}" ${prefix}-${removePrefix "gui-" name}.service &
+              '') forwardTo
+            )
+          );
+      }
+    ) guiProfileVariants;
+
+  # The NIC is passed through to this VM, so its runtime PM is ours to set.
+  netProfileScripts = mapAttrs (
+    name:
+    { base, ... }:
+    mkTunedScript {
+      inherit name;
       start = ''
+        pci_runtime_pm ${if base == "performance" then "on" else "auto"}
+      ''
+      + optionalString (base == "performance") ''
         wifi_set_pm off
       '';
-      stop = ''
+      stop = optionalString (base == "performance") ''
         wifi_set_pm on
       '';
-    };
+    }
+  ) netProfileVariants;
+
+  # snd_hda_intel lives here, not on the host, which blacklists the module.
+  audioProfileScripts = mapAttrs (
+    name:
+    { base, ... }:
+    mkTunedScript {
+      inherit name;
+      start = ''
+        pci_runtime_pm ${if base == "performance" then "on" else "auto"}
+      '';
+    }
+  ) audioProfileVariants;
+
+  # Seconds for the [audio] plugin's snd_hda_intel power_save; 0 disables it.
+  audioTimeout = {
+    powersave = "5";
+    balanced = "10";
+    performance = "0";
   };
 
   tunedProfiles = {
@@ -192,6 +211,16 @@ in
           default = "gui-balanced";
           description = "Default TuneD profile to use on gui-vm.";
         };
+        profileNames = mkOption {
+          type = types.listOf types.str;
+          readOnly = true;
+          default = lib.attrNames guiProfileVariants;
+          description = ''
+            The profiles this module defines. GIVC whitelists the matching
+            units so the gui-vm can select a profile here; read the list from
+            this option rather than repeating it.
+          '';
+        };
       };
     };
 
@@ -205,6 +234,40 @@ in
           type = types.str;
           default = "net-balanced";
           description = "Default TuneD profile to use on net-vm.";
+        };
+        profileNames = mkOption {
+          type = types.listOf types.str;
+          readOnly = true;
+          default = lib.attrNames netProfileVariants;
+          description = ''
+            The profiles this module defines. GIVC whitelists the matching
+            units so the gui-vm can select a profile here; read the list from
+            this option rather than repeating it.
+          '';
+        };
+      };
+    };
+
+    audio = {
+      enable = mkEnableOption "Ghaf-specific power optimizations for audio-vm.";
+      tuned = {
+        enable = mkEnableOption "TuneD service on the audio-vm for Ghaf-specific performance profiles." // {
+          default = true;
+        };
+        defaultProfile = mkOption {
+          type = types.str;
+          default = "audio-balanced";
+          description = "Default TuneD profile to use on audio-vm.";
+        };
+        profileNames = mkOption {
+          type = types.listOf types.str;
+          readOnly = true;
+          default = lib.attrNames audioProfileVariants;
+          description = ''
+            The profiles this module defines. GIVC whitelists the matching
+            units so the gui-vm can select a profile here; read the list from
+            this option rather than repeating it.
+          '';
         };
       };
     };
@@ -240,113 +303,61 @@ in
         inherit (cfg.gui.tuned) enable;
         package = tunedNoDesktop;
         ppdSupport = true;
-        settings.profile_dirs = "/etc/tuned/profiles,${
-          concatMapStringsSep "," (script: "${script}") (lib.attrValues guiProfileScripts)
-        }";
+        settings.profile_dirs = mkProfileDirs guiProfileScripts;
+        # Profile changes arrive over D-Bus, so a per-second wakeup in a guest
+        # is pure vmexit cost.
+        settings.sleep_interval = 60;
         recommend = {
           "${cfg.gui.tuned.defaultProfile}" = { };
         };
-        ppdSettings = {
-          main.default = "balanced";
-          battery = {
-            power-saver = "gui-powersave-battery";
-            balanced = "gui-balanced-battery";
-            performance = "gui-performance-battery";
-          };
-          profiles = {
-            power-saver = "gui-powersave";
-            balanced = "gui-balanced";
-            performance = "gui-performance";
-          };
-        };
-        profiles = {
-          gui-powersave = tunedProfiles.vm // {
-            script.script = "${getExe guiProfileScripts.gui-powersave}";
-          };
-          gui-balanced = tunedProfiles.vm // {
-            script.script = "${getExe guiProfileScripts.gui-balanced}";
-          };
-          gui-performance = tunedProfiles.vm // {
-            script.script = "${getExe guiProfileScripts.gui-performance}";
-          };
-          gui-powersave-battery = tunedProfiles.vm // {
-            script.script = "${getExe guiProfileScripts.gui-powersave-battery}";
-          };
-          gui-balanced-battery = tunedProfiles.vm // {
-            script.script = "${getExe guiProfileScripts.gui-balanced-battery}";
-          };
-          gui-performance-battery = tunedProfiles.vm // {
-            script.script = "${getExe guiProfileScripts.gui-performance-battery}";
-          };
-        };
+        ppdSettings = mkPpdSettings "gui";
+        profiles = mapAttrs (
+          name: _: tunedProfiles.vm // { script.script = "${getExe guiProfileScripts.${name}}"; }
+        ) guiProfileVariants;
       };
     })
 
-    (mkIf cfg.net.enable (
-      {
-        services.tuned = {
-          inherit (cfg.net.tuned) enable;
-          ppdSupport = true;
-          settings.sleep_interval = 60;
-          settings.profile_dirs = "/etc/tuned/profiles,${
-            concatMapStringsSep "," (script: "${script}") (lib.attrValues netProfileScripts)
-          }";
-          recommend = {
-            "${cfg.net.tuned.defaultProfile}" = { };
-          };
-          ppdSettings = {
-            main.default = "balanced";
-            battery = {
-              power-saver = "net-powersave-battery";
-              balanced = "net-balanced-battery";
-              performance = "net-performance-battery";
-            };
-            profiles = {
-              power-saver = "net-powersave";
-              balanced = "net-balanced";
-              performance = "net-performance";
-            };
-          };
-          profiles = {
-            net-powersave = tunedProfiles.vm;
-            net-balanced = tunedProfiles.vm;
-            net-performance = tunedProfiles.vm // {
-              script.script = "${getExe netProfileScripts.net-performance}";
-            };
-            net-powersave-battery = tunedProfiles.vm;
-            net-balanced-battery = tunedProfiles.vm;
-            net-performance-battery = tunedProfiles.vm // {
-              script.script = "${getExe netProfileScripts.net-performance}";
-            };
-          };
+    (mkIf cfg.net.enable {
+      services.tuned = {
+        inherit (cfg.net.tuned) enable;
+        ppdSupport = true;
+        settings.sleep_interval = 60;
+        settings.profile_dirs = mkProfileDirs netProfileScripts;
+        recommend = {
+          "${cfg.net.tuned.defaultProfile}" = { };
         };
-      }
-      # Service units to set Ghaf PPD profiles on the net-vm when requested from GUI VM
-      # These must be whitelisted in modules/givc/netvm.nix
-      // {
-        systemd.services =
-          let
-            mkPpdService = profile: {
-              description = "Enable ${profile} Ghaf PPD profile on net-vm";
-              serviceConfig = {
-                Type = "oneshot";
-                ExecStart = ''
-                  -${getExe' pkgs.tuned "tuned-adm"} profile ${profile}
-                '';
-              };
-            };
-            netProfiles = [
-              "net-powersave"
-              "net-balanced"
-              "net-performance"
-              "net-powersave-battery"
-              "net-balanced-battery"
-              "net-performance-battery"
-            ];
-          in
-          lib.listToAttrs (map (profile: nameValuePair "${profile}" (mkPpdService profile)) netProfiles);
-      }
-    ))
+        ppdSettings = mkPpdSettings "net";
+        profiles = mapAttrs (
+          name: _: tunedProfiles.vm // { script.script = "${getExe netProfileScripts.${name}}"; }
+        ) netProfileVariants;
+      };
+
+      systemd.services = mkPpdServices "net-vm" cfg.net.tuned.profileNames;
+    })
+
+    (mkIf cfg.audio.enable {
+      services.tuned = {
+        inherit (cfg.audio.tuned) enable;
+        ppdSupport = true;
+        settings.sleep_interval = 60;
+        settings.profile_dirs = mkProfileDirs audioProfileScripts;
+        recommend = {
+          "${cfg.audio.tuned.defaultProfile}" = { };
+        };
+        ppdSettings = mkPpdSettings "audio";
+        profiles = mapAttrs (
+          name:
+          { base, ... }:
+          tunedProfiles.vm
+          // {
+            audio.timeout = audioTimeout.${base};
+            script.script = "${getExe audioProfileScripts.${name}}";
+          }
+        ) audioProfileVariants;
+      };
+
+      systemd.services = mkPpdServices "audio-vm" cfg.audio.tuned.profileNames;
+    })
 
     (mkIf cfg.vm.enable {
       services.tuned = {

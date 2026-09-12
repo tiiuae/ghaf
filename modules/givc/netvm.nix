@@ -60,14 +60,9 @@ in
             "suspend.target"
             "systemd-suspend.service"
           ]
-          ++ optionals config.ghaf.services.performance.net.tuned.enable [
-            "net-powersave.service"
-            "net-balanced.service"
-            "net-performance.service"
-            "net-powersave-battery.service"
-            "net-balanced-battery.service"
-            "net-performance-battery.service"
-          ];
+          ++ optionals config.ghaf.services.performance.net.tuned.enable (
+            map (profile: "${profile}.service") config.ghaf.services.performance.net.tuned.profileNames
+          );
         hwid.enable = true;
 
         socketProxy = {

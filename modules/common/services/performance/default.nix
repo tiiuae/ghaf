@@ -16,11 +16,65 @@ let
   });
 
   inherit (lib)
+    cartesianProduct
+    genAttrs
+    getExe'
+    listToAttrs
     literalExpression
-    mkIf
     mkOption
+    nameValuePair
+    optionalString
     types
     ;
+
+  # The six profiles every set has: three PPD levels x AC/battery. One source for
+  # the profile list, the ppd.conf mapping and the GIVC unit names.
+  mkProfileVariants =
+    prefix:
+    listToAttrs (
+      map (v: nameValuePair "${prefix}-${v.base}${optionalString v.onBattery "-battery"}" v)
+        (cartesianProduct {
+          base = [
+            "powersave"
+            "balanced"
+            "performance"
+          ];
+          onBattery = [
+            false
+            true
+          ];
+        })
+    );
+
+  # tuned-ppd's mapping from the three PPD levels to our profiles.
+  mkPpdSettings = prefix: {
+    main.default = "balanced";
+    battery = {
+      power-saver = "${prefix}-powersave-battery";
+      balanced = "${prefix}-balanced-battery";
+      performance = "${prefix}-performance-battery";
+    };
+    profiles = {
+      power-saver = "${prefix}-powersave";
+      balanced = "${prefix}-balanced";
+      performance = "${prefix}-performance";
+    };
+  };
+
+  # Started over GIVC by the gui-vm; whitelisted in modules/givc/<vm>.nix.
+  mkPpdServices =
+    location: names:
+    genAttrs names (profile: {
+      description = "Enable ${profile} Ghaf PPD profile on ${location}";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "-${getExe' pkgs.tuned "tuned-adm"} profile ${profile}";
+      };
+    });
+
+  # Each generated script is its own store path holding one profile directory.
+  mkProfileDirs =
+    scripts: "/etc/tuned/profiles,${lib.concatMapStringsSep "," toString (lib.attrValues scripts)}";
 
   # General TuneD script generator
   # Here we can add helper functions which can be used in the scripts
@@ -58,16 +112,52 @@ let
           done
         }
 
-        # Set PCI device runtime power management
-        pci_device_runtime_pm() {
+        # Set runtime power management for every PCI device present
+        pci_runtime_pm() {
           # 'on' - best performance
           # 'auto' - best power saving
-
           pm=$1
-          devices=$2
 
-          for device in $devices; do
-            (echo "$pm" > "/sys/bus/pci/devices/$device/power/control") &> /dev/null
+          for device in /sys/bus/pci/devices/*; do
+            # Never storage (0x01xxxx) or USB (0x0c03xx): suspending the link
+            # to a boot device takes the root filesystem away.
+            class=$(cat "$device/class" 2>/dev/null) || continue
+            case "$class" in
+              0x01* | 0x0c03*) continue ;;
+            esac
+            (echo "$pm" > "$device/power/control") &> /dev/null
+          done
+        }
+
+        # Cap the GPU ceiling: 'efficient' is RP1/RPe, 'max' is RP0. Handles
+        # both i915 (flat gt_* attributes) and xe (per-gt freq directories).
+        gpu_max_freq() {
+          level=$1
+
+          for gt in /sys/class/drm/card*/device/tile*/gt*/freq0; do
+            [ -e "$gt/max_freq" ] || continue
+            case "$level" in
+              efficient) want=$(cat "$gt/rpe_freq" 2>/dev/null) ;;
+              *)         want=$(cat "$gt/rp0_freq" 2>/dev/null) ;;
+            esac
+            [ -n "$want" ] || continue
+            # Ceiling only -- leave the floor so the GPU can still idle down.
+            cur_min=$(cat "$gt/min_freq" 2>/dev/null || echo 0)
+            [ "$cur_min" -gt "$want" ] && (echo "$want" > "$gt/min_freq") &> /dev/null
+            (echo "$want" > "$gt/max_freq") &> /dev/null
+          done
+
+          for card in /sys/class/drm/card*; do
+            [ -e "$card/gt_max_freq_mhz" ] || continue
+            case "$level" in
+              efficient) want=$(cat "$card/gt_RP1_freq_mhz" 2>/dev/null) ;;
+              *)         want=$(cat "$card/gt_RP0_freq_mhz" 2>/dev/null) ;;
+            esac
+            [ -n "$want" ] || continue
+            cur_min=$(cat "$card/gt_min_freq_mhz" 2>/dev/null || echo 0)
+            [ "$cur_min" -gt "$want" ] && (echo "$want" > "$card/gt_min_freq_mhz") &> /dev/null
+            (echo "$want" > "$card/gt_max_freq_mhz") &> /dev/null
+            (echo "$want" > "$card/gt_boost_freq_mhz") &> /dev/null
           done
         }
 
@@ -88,24 +178,8 @@ in
   _file = ./default.nix;
 
   imports = [
-    (import ./host.nix {
-      inherit
-        pkgs
-        config
-        lib
-        mkTunedScript
-        tunedNoDesktop
-        ;
-    })
-    (import ./guests.nix {
-      inherit
-        pkgs
-        config
-        lib
-        mkTunedScript
-        tunedNoDesktop
-        ;
-    })
+    ./host.nix
+    ./guests.nix
   ];
 
   options.ghaf.services.performance = {
@@ -134,8 +208,20 @@ in
     };
   };
 
-  config = mkIf cfg.enable {
-    assertions = [
+  config = {
+    # Passed as module arguments so the sub-modules stay real NixOS modules.
+    _module.args = {
+      inherit
+        mkTunedScript
+        tunedNoDesktop
+        mkProfileVariants
+        mkPpdSettings
+        mkPpdServices
+        mkProfileDirs
+        ;
+    };
+
+    assertions = lib.optionals cfg.enable [
       {
         assertion = !config.hardware.system76.power-daemon.enable;
         message = "`config.ghaf.performance` conflicts with `config.hardware.system76.power-daemon.enable`.";
