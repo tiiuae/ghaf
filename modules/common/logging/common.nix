@@ -21,6 +21,8 @@ let
   # Effective time-sync wait before FSS activation; only applies when the
   # activation boundary is enabled. Computed once and reused below.
   effectiveSyncWaitSeconds = if fssActivationEnabled then fssActivationCfg.syncWaitSeconds else 0;
+  # FIFO shared by the OnClockChange oneshot and the watcher's read loop.
+  clockStepFifo = "/run/ghaf-clock-jump-watcher/step.fifo";
 
   ghafClockReady = pkgs.writeShellApplication {
     name = "ghaf-clock-ready";
@@ -258,6 +260,15 @@ let
     '';
   };
 
+  # FIFO, not a signal: back-to-back signals coalesce, FIFO writes do not.
+  ghafClockStepNotify = pkgs.writeShellApplication {
+    name = "ghaf-clock-step-notify";
+    runtimeInputs = [ pkgs.coreutils ];
+    text = ''
+      printf 'step\n' | timeout 2 tee ${clockStepFifo} >/dev/null || true
+    '';
+  };
+
   ghafClockJumpWatcher = pkgs.writeShellApplication {
     name = "ghaf-clock-jump-watcher";
     runtimeInputs = with pkgs; [
@@ -272,6 +283,14 @@ let
     excludeShellChecks = [ "SC1091" ];
     text = ''
       source /etc/fss-verify-classifier.sh
+
+      step_fd=""
+
+      # Read-write open: never blocks, and the oneshot's write never lacks a reader.
+      rm -f ${clockStepFifo}
+      mkfifo -m 600 ${clockStepFifo}
+      exec {step_fd}<>${clockStepFifo}
+      trap 'exec {step_fd}<&-' EXIT
 
       threshold="${toString recCfg.thresholdSeconds}"
       interval="${toString recCfg.intervalSeconds}"
@@ -350,7 +369,8 @@ let
       [ -z "$seen_cursor" ] || cursor="$seen_cursor"
 
       while true; do
-        sleep "$interval"
+        # Woken early by a clock step or by the poll interval; the checks are the same.
+        read -r -t "$interval" -u "$step_fd" _line || true
         real="$(date +%s)"
         up="$(cut -d' ' -f1 /proc/uptime)"
 
@@ -778,7 +798,22 @@ in
           Type = "simple";
           Restart = "always";
           RestartSec = 2;
+          RuntimeDirectory = "ghaf-clock-jump-watcher";
           ExecStart = lib.getExe ghafClockJumpWatcher;
+        };
+      };
+
+      # No After= on the watcher: that orders unit start, not the FIFO setup.
+      timers.ghaf-clock-step-notify = {
+        wantedBy = [ "multi-user.target" ];
+        timerConfig.OnClockChange = true;
+      };
+      services.ghaf-clock-step-notify = {
+        description = "Notify ghaf-clock-jump-watcher of a realtime step";
+        serviceConfig = {
+          Type = "oneshot";
+          TimeoutStartSec = "5";
+          ExecStart = lib.getExe ghafClockStepNotify;
         };
       };
 
