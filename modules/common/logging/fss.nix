@@ -161,6 +161,7 @@ let
       REKEY_HISTORY_FILE="$KEY_DIR/rekey-history"
       PRE_ACTIVATION_MAX_RECEIPTS="${toString cfg.activation.maxReceipts}"
       RECOVERY_MAX_RECEIPTS="${toString config.ghaf.logging.recovery.maxReceipts}"
+      RECOVERY_CLOCK_THRESHOLD_SECONDS="${toString config.ghaf.logging.recovery.thresholdSeconds}"
       UNCLEAN_SHUTDOWN_MAX_RECEIPTS="${toString cfg.uncleanShutdown.maxReceipts}"
       ACTIVATION_FAILED=0
       ACTIVATION_RESTARTED_THIS_RUN=0
@@ -1022,8 +1023,12 @@ let
 
       verify_live_sealing_after_activation() {
         local verify_key verify_output verify_exit marker probe_scope
+        local guard_real1 guard_up1 guard_real2 guard_up2 guard_drift
 
         [ "$ACTIVATION_ENABLED" = 1 ] || return 0
+
+        guard_real1="$(date +%s)"
+        guard_up1="$(cut -d' ' -f1 /proc/uptime)"
 
         if [ "$ACTIVATION_RESTARTED_THIS_RUN" = 1 ]; then
           # Activation boundary, once per boot: verify everything, as before.
@@ -1053,6 +1058,18 @@ let
           verify_output=$(journalctl --verify --verify-key="$verify_key" 2>&1) || verify_exit=$?
         fi
         fss_classify_verify_output "$verify_output"
+
+        # The verify calls take real time; a clock step inside them poisons the verdict.
+        # Defer instead: recover's dependency, the verify timer and the next boot re-check.
+        guard_real2="$(date +%s)"
+        guard_up2="$(cut -d' ' -f1 /proc/uptime)"
+        guard_drift="$(fss_clock_drift_abs "$guard_real1" "$guard_up1" "$guard_real2" "$guard_up2")"
+        if awk -v d="$guard_drift" -v t="$RECOVERY_CLOCK_THRESHOLD_SECONDS" \
+          'BEGIN{t=(t<1)?1:t; exit !(d>=t)}'; then
+          fss_log warn "Clock moved during live sealing verification; deferring this verdict rather than trusting evidence gathered across two clock readings"
+          write_live_probe_state unclean
+          return 0
+        fi
 
         if [ -n "$FSS_ACTIVE_SYSTEM_FAILURES" ] \
           || [ -n "$FSS_OTHER_FAILURES" ] \
