@@ -432,6 +432,15 @@ writeShellApplication {
     [ -z "$(printf "%s\n" "$MONOTONIC" | fss_time_jump_epochs_from_lines)" ]
     [ -z "$(printf "" | fss_time_jump_epochs_from_lines)" ]
 
+    # Clock-step event count: missing/empty file reads as 0.
+    EVENTS_FILE=$(mktemp -u)
+    [ "$(fss_clock_step_events "$EVENTS_FILE")" = 0 ]
+    EVENTS_FILE=$(mktemp)
+    [ "$(fss_clock_step_events "$EVENTS_FILE")" = 0 ]
+    printf "1700000000000000\n1700000005000000\n" > "$EVENTS_FILE"
+    [ "$(fss_clock_step_events "$EVENTS_FILE")" = 2 ]
+    rm -f "$EVENTS_FILE"
+
     # Archive mtime windowed against attested jump epochs.
     EPOCHS=$(printf "1700000000\n1700000500")
     fss_mtime_matches_time_jump_epoch 1700000010 "$EPOCHS"
