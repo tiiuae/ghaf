@@ -318,16 +318,18 @@
     "ghaf-crosvm": {
       "flake": false,
       "locked": {
-        "lastModified": 1788280008,
-        "narHash": "sha256-+1WP7iAexfmT9nviC39aXeqLVrBAVisNilnCLFA9r8I=",
-        "ref": "refs/heads/main",
-        "rev": "2a98c208e586a43a092d122dce2a35a235b33389",
-        "revCount": 11729,
+        "lastModified": 1788197538,
+        "narHash": "sha256-ul6CMIPp3HJ/Ie6fyAygQcm4UG7MH74HOKkWh1nTxBs=",
+        "ref": "refs/heads/feat/protected-guivm-r3",
+        "rev": "8a01aeb570283b2122e50bf6c3ee45ca02f3d5e7",
+        "revCount": 11736,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
       },
       "original": {
+        "ref": "refs/heads/feat/protected-guivm-r3",
+        "rev": "8a01aeb570283b2122e50bf6c3ee45ca02f3d5e7",
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
@@ -340,11 +342,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1788353713,
-        "narHash": "sha256-i0LDGoKGyZY38+4+U2GfNPfK2k+mvxzXBqSWBE2YTZA=",
+        "lastModified": 1787665362,
+        "narHash": "sha256-lQ+UYvLy/Z0M3j75fKEcagLKCKNi//QhFccsHuEUIhM=",
         "owner": "tiiuae",
         "repo": "ghaf-device-manager",
-        "rev": "ce84615c99742fdb7f857c702ef117f3e7b929ef",
+        "rev": "97835a588f651e915b3812a045164eac64fee1ed",
         "type": "github"
       },
       "original": {
@@ -444,11 +446,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1788454911,
-        "narHash": "sha256-cPSaUsct3EbG9TtjuVPp6M2Q3RoyVtEZAu7Uoax/aFQ=",
+        "lastModified": 1788872713,
+        "narHash": "sha256-UBGjwkyBPZG9F9Te5Mr0M12PG54X36LjPx24OdE0Wv4=",
         "owner": "tiiuae",
         "repo": "ghaf-givc",
-        "rev": "b03c2959c8a435bb64a7da07a3da06831e055c23",
+        "rev": "9d8f2d5abbfca459ebff78fdd5a24e09c37c8262",
         "type": "github"
       },
       "original": {
@@ -546,17 +548,34 @@
         ]
       },
       "locked": {
-        "lastModified": 1787661902,
-        "narHash": "sha256-mJmAXcM7JUbt8sdF8CpKcQzuBIQA0fld8HGWADc3eTs=",
+        "lastModified": 1788137636,
+        "narHash": "sha256-B3jClnmtlwj+/NT3nzEv4y31QL4ng+iB8utFaxWN6ts=",
         "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "5a30003720b195428fbceb01c117a157605c249c",
+        "rev": "278ebc4004ca89bbeb6d217db137026cb31fc63d",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "august-rebase",
         "repo": "jetpack-nixos",
+        "rev": "278ebc4004ca89bbeb6d217db137026cb31fc63d",
+        "type": "github"
+      }
+    },
+    "linux-pkvm": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1788137556,
+        "narHash": "sha256-BVYBZG5MzfSS5kCTlK9Ok3dWXooQCCu6nsXVn8x3sH8=",
+        "owner": "tiiuae",
+        "repo": "linux-pkvm",
+        "rev": "7a290b85d63207794ed5c469527bbcc75f074590",
+        "type": "github"
+      },
+      "original": {
+        "owner": "tiiuae",
+        "repo": "linux-pkvm",
+        "rev": "7a290b85d63207794ed5c469527bbcc75f074590",
         "type": "github"
       }
     },
@@ -568,16 +587,17 @@
         "spectrum": "spectrum"
       },
       "locked": {
-        "lastModified": 1788518164,
-        "narHash": "sha256-vY71mJCu5NgR+n+V4zpcRzZc6KL6SU9WmyMGzd8kYIA=",
-        "owner": "microvm-nix",
+        "lastModified": 1788873657,
+        "narHash": "sha256-xpNPbM7Mgl6Z0F3JhfDhPG2QAdaIrOF7Z9IYRueMVuo=",
+        "owner": "vadika",
         "repo": "microvm.nix",
-        "rev": "fdfc1821a0eb76e44a13d206b72e6ca6961fbb7c",
+        "rev": "37184b96454b97b789fc97839d6234780c11d751",
         "type": "github"
       },
       "original": {
-        "owner": "microvm-nix",
+        "owner": "vadika",
         "repo": "microvm.nix",
+        "rev": "37184b96454b97b789fc97839d6234780c11d751",
         "type": "github"
       }
     },
@@ -759,6 +779,7 @@
         "gp-gui": "gp-gui",
         "gpu-partition-manager": "gpu-partition-manager",
         "jetpack-nixos": "jetpack-nixos",
+        "linux-pkvm": "linux-pkvm",
         "microvm": "microvm",
         "nix-store-veritysetup-generator": "nix-store-veritysetup-generator",
         "nixd": "nixd",

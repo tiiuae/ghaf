@@ -34,63 +34,514 @@ let
     jetpack-nixos.nixosModules.default
   ];
 
+  # Crosvm and ghaf-device-manager are the default virtualization stack for
+  # every exported Orin target and all generated variants.
+  orinCrosvmModule = {
+    ghaf.hardware.nvidia.orin.crosvm.enable = true;
+    ghaf.hardware.nvidia.passthroughs.gui_vm.enable = true;
+  };
+
   # Common modules shared across all Orin configurations
   commonModules = orinSpecificModules ++ [
     self.nixosModules.reference-host-demo-apps
     self.nixosModules.reference-profiles-orin
     self.nixosModules.profiles
+    orinCrosvmModule
   ];
 
-  # Exercise the complete manager/CDI integration in an existing CI-built
-  # image without making example workloads part of Ghaf. The manager-owned
-  # mock plugin is sufficient for build and boot validation; downstream
-  # configurations replace this default with real workload plugins.
-  nxGpuPartitioningDebugModule =
-    { pkgs, ... }:
-    let
-      managerSdk = inputs.gpu-partition-manager.lib.mkSdk { inherit pkgs; };
-      managerMockPlugin = pkgs.stdenv.mkDerivation {
-        pname = "gpu-partition-manager-mock-plugin";
-        version = "1.0";
-
-        dontUnpack = true;
-        dontConfigure = true;
-
-        buildPhase = ''
-          runHook preBuild
-          $CC -std=c11 -Wall -Wextra -Werror -fPIC -shared \
-            -I${managerSdk}/include \
-            -I${pkgs.nvidia-jetpack.cudaPackages.cuda_cudart}/include \
-            ${inputs.gpu-partition-manager}/tests/mock-plugin.c \
-            -o plugin.so
-          runHook postBuild
-        '';
-
-        installPhase = ''
-          runHook preInstall
-          install -Dm755 plugin.so \
-            $out/lib/gpu-partition-manager/plugin.so
-          runHook postInstall
-        '';
-
-        passthru = {
-          gpuPartitionPluginName = "mock";
-          requiredPluginAbiVersion = managerSdk.pluginAbiVersion;
+  linuxPkvmPackages =
+    pkgs:
+    pkgs.linuxPackagesFor (
+      pkgs.linux_7_1.override {
+        argsOverride = rec {
+          src = inputs.linux-pkvm;
+          version = "7.1.7";
+          modDirVersion = version;
         };
+      }
+    );
 
-        meta = {
-          description = "Manager-owned mock plugin for NX debug integration validation";
-          platforms = [ "aarch64-linux" ];
+  linux71PkvmGuestSupportModule =
+    { lib, ... }:
+    {
+      boot.kernelPatches = [
+        {
+          name = "Arm pKVM guest support";
+          patch = null;
+          structuredExtraConfig = with lib.kernel; {
+            DMA_RESTRICTED_POOL = yes;
+            ARM_PKVM_GUEST = yes;
+          };
+        }
+      ];
+    };
+
+  linux71PkvmGuestModule =
+    { lib, pkgs, ... }:
+    {
+      imports = [ linux71PkvmGuestSupportModule ];
+      boot.kernelPackages = lib.mkForce pkgs.linuxPackages_7_1;
+    };
+
+  linux71GpuGuestModule =
+    { lib, pkgs, ... }:
+    {
+      # Keep the accelerated GUIVM unprotected while bringing the NVIDIA
+      # R36.5 guest closure forward. The provider module owns the final kernel
+      # package extension, so select Linux 7.1 through its public option.
+      hardware.nvidia-jetpack.virtualization.gpuPassthroughGuest.kernelPackages =
+        lib.mkForce pkgs.linuxPackages_7_1;
+    };
+
+  linux71ExternalPkvmGpuGuestModule =
+    { lib, pkgs, ... }:
+    {
+      imports = [ linux71PkvmGuestSupportModule ];
+
+      # The NVIDIA provider extends this package set with its out-of-tree GPU,
+      # display and media modules. Select the same immutable pKVM source as the
+      # host without bypassing that provider-owned extension.
+      hardware.nvidia-jetpack.virtualization.gpuPassthroughGuest.kernelPackages = lib.mkOverride 40 (
+        linuxPkvmPackages pkgs
+      );
+
+      # NVIDIA EGL waits for host1x syncpoints through the staging Tegra DRM
+      # UAPI. Without these options, DRM_IOCTL_TEGRA_SYNCPOINT_WAIT is left
+      # unregistered and fence creation fails with EINVAL.
+      boot.kernelPatches = [
+        {
+          name = "Enable the Tegra HOST1X userspace interface";
+          patch = null;
+          structuredExtraConfig = with lib.kernel; {
+            STAGING = yes;
+            DRM_TEGRA_STAGING = yes;
+          };
+        }
+      ];
+    };
+
+  linux71ExternalPkvmGuestModule =
+    { lib, pkgs, ... }:
+    {
+      imports = [ linux71PkvmGuestSupportModule ];
+      # This module extends guests inherited from the rollback target, whose
+      # ordinary Linux 7.1 selection is already forced.
+      boot.kernelPackages = lib.mkOverride 40 (linuxPkvmPackages pkgs);
+      boot.kernelPatches = [
+        {
+          name = "Disable protected device assignment by default";
+          patch = null;
+          structuredExtraConfig = with lib.kernel; {
+            PKVM_PVIOMMU = lib.mkDefault no;
+            VFIO_PKVM_IOMMU = no;
+          };
+        }
+      ];
+    };
+
+  linux71PkvmAssignedGuestModule =
+    { lib, ... }:
+    {
+      boot.kernelPatches = [
+        {
+          name = "Arm pKVM protected device assignment";
+          patch = null;
+          structuredExtraConfig = with lib.kernel; {
+            PKVM_PVIOMMU = yes;
+          };
+        }
+      ];
+    };
+
+  netvmCrosvmVgicItsModule =
+    { config, lib, ... }:
+    {
+      assertions = [
+        {
+          assertion = config.microvm.hypervisor == "crosvm";
+          message = "The AGX NetVM vGIC ITS canary requires Crosvm";
+        }
+      ];
+
+      # AArch64 Crosvm leaves the virtual ITS disabled by default, which makes
+      # PCI passthrough fall back to legacy INTx. Expose the ITS so the
+      # physical WLAN device can use MSI inside NetVM.
+      microvm.crosvm.extraArgs = lib.mkIf (config.microvm.hypervisor == "crosvm") [
+        "--irqchip"
+        "kernel[allow-vgic-its]"
+      ];
+    };
+
+  protectedVmWithoutFirmwareModule =
+    { config, lib, ... }:
+    {
+      assertions = [
+        {
+          assertion = config.microvm.hypervisor == "crosvm";
+          message = "The AGX protected VM canary requires Crosvm";
+        }
+      ];
+
+      # Start with direct kernel boot so guest-memory isolation can be tested
+      # independently of pVM firmware and secret provisioning.
+      microvm.crosvm.protection.mode = lib.mkIf (
+        config.microvm.hypervisor == "crosvm"
+      ) "protected-without-firmware";
+
+      # An external vhost-user backend maps guest memory into a separate host
+      # process. With upstream pKVM, an access outside the guest-shared
+      # restricted DMA pool force-reclaims and poisons the private page. Keep
+      # shares disabled unless a guest explicitly selects Crosvm's native
+      # non-DAX virtio-fs backend. The Nix store remains block-backed.
+      microvm.shares = lib.mkIf (config.microvm.crosvm.virtiofsBackend != "crosvm") (lib.mkForce [ ]);
+
+      # Upstream Linux reports protected-VM support by accepting the protected
+      # KVM_CREATE_VM type. Crosvm otherwise probes an Android-only capability
+      # number after the VM has already been created and rejects Linux 7.1.
+      microvm.crosvm.package = lib.mkForce (
+        config.microvm.vmHostPackages.crosvm.overrideAttrs (old: {
+          patches = (old.patches or [ ]) ++ [ ./patches/crosvm-upstream-pkvm-create-vm.patch ];
+        })
+      );
+    };
+
+  protectedAppVmModules = [
+    linux71ExternalPkvmGuestModule
+    protectedVmWithoutFirmwareModule
+    {
+      # Keep AppVM file exchange in-process so the protected guest does not
+      # expose private memory to an external vhost-user virtio-fs daemon. The
+      # Nix store remains block-backed through storeOnDisk below.
+      microvm.crosvm.virtiofsBackend = lib.mkForce "crosvm";
+    }
+  ];
+
+  linux71PkvmHostModule =
+    { lib, pkgs, ... }:
+    {
+      # jetpack-nixos owns the NVIDIA host compatibility layer. Select Linux
+      # 7.1 only for this AGX debug target while retaining its 6.6 default for
+      # every other Orin export.
+      hardware.nvidia-jetpack.virtualization.dceHost.kernelPackages = lib.mkForce pkgs.linuxPackages_7_1;
+
+      # MGBE0 owns NetVM's kernel selection so its BPMP integration follows
+      # the selected package set. GUIVM retains its independent 6.12 default.
+      ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm.guestKernelPackages =
+        lib.mkForce pkgs.linuxPackages_7_1;
+
+      # Linux 7.1's defconfig makes the eMMC block layer modular. Preserve the
+      # upstream Tegra boot closure without requesting unavailable NVIDIA OOT
+      # modules such as nvethernet and nvpps.
+      boot.initrd.availableKernelModules = lib.mkForce [
+        "autofs"
+        "efivarfs"
+        "ext2"
+        "ext4"
+        "xhci-tegra"
+        "ucsi_ccg"
+        "typec_ucsi"
+        "typec"
+        "nvme"
+        "mmc_block"
+        "phy-tegra-xusb"
+        "i2c-tegra"
+        "phy_tegra194_p2u"
+        "pcie_tegra194"
+      ];
+    };
+
+  pkvmDebugModule =
+    { lib, pkgs, ... }:
+    {
+      # The rollback target keeps pristine Linux stable. Only this derived
+      # target consumes the validated pKVM integration source.
+      hardware.nvidia-jetpack.virtualization.dceHost = {
+        # Retain the validated host DCE compatibility closure for the combined
+        # protected GUIVM display path.
+        enable = lib.mkForce true;
+        kernelPackages = lib.mkOverride 40 (linuxPkvmPackages pkgs);
+      };
+      ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm.guestKernelPackages = lib.mkOverride 40 (
+        linuxPkvmPackages pkgs
+      );
+
+      # Keep pKVM development in one evolving debug target. The
+      # ordinary accelerated GUI target remains the rollback image.
+      boot.kernelParams = [
+        "kvm-arm.mode=protected"
+        # Keep protected identity-DMA allocations below SDMMC's 34-bit limit.
+        "mem=12G"
+        # The validated firmware state-save path is protected nVHE.
+        "arm64_sw.hvhe=0"
+        "id_aa64mmfr1.vh=0"
+      ];
+
+      boot.blacklistedKernelModules = [
+        # The DSU PMU callback accesses a register trapped by protected EL2.
+        "arm_dsu_pmu"
+      ];
+
+      # Keep the validated 1 + 1 + 6 GiB boot topology below the 12 GiB host
+      # memory cap. ChromiumVM and FlatpakVM are available on demand, use a
+      # fixed 2 GiB allocation, and do not join the boot-time memory budget.
+      ghaf.hardware.nvidia.passthroughs.gui_vm.enable = lib.mkForce true;
+      ghaf.virtualization.microvm.guivm.enable = lib.mkForce true;
+      ghaf.virtualization.microvm.appvm.enable = lib.mkForce true;
+      ghaf.reference.appvms.enable = lib.mkForce true;
+      ghaf.reference.appvms.chromium.enable = lib.mkForce true;
+      ghaf.reference.appvms.flatpak.enable = lib.mkForce true;
+      ghaf.virtualization.vmConfig.sysvms = {
+        adminvm.mem = 1024;
+        netvm.mem = 1024;
+        guivm.mem = 6144;
+      };
+      ghaf.virtualization.vmConfig.appvms = {
+        chromium = {
+          vmm = "crosvm";
+          mem = 2048;
+          vcpu = 2;
+          # pKVM does not support Ghaf's AppVM balloon lifecycle yet. Without
+          # this override the declared 2 GiB minimum reserves 6 GiB.
+          balloonRatio = 0;
+          extraModules = protectedAppVmModules;
+        };
+        flatpak = {
+          vmm = "crosvm";
+          mem = 2048;
+          vcpu = 2;
+          balloonRatio = 0;
+          extraModules = protectedAppVmModules;
         };
       };
-    in
-    {
-      ghaf.hardware.nvidia.passthroughs.gpu_vm = {
-        containerRuntime.enable = true;
-        partitionManager = {
-          enable = true;
-          plugins = lib.mkDefault [ managerMockPlugin ];
+
+      # The Logitech receiver remains owned by the host. Its event stream is
+      # forwarded when Crosvm starts GUIVM, so input is host-mediated and stays
+      # in the host TCB; this is not a trusted-input boundary.
+      ghaf.hardware.passthrough.usb.guivmDeny = [
+        {
+          vendorId = "046d";
+          productId = "c52b";
+          description = "Logitech Unifying Receiver: host-mediated evdev for protected GUIVM";
+        }
+      ];
+      ghaf.hardware.passthrough.evdev.evdevRules = [
+        {
+          description = "Logitech K400 Plus input for protected GUIVM";
+          targetVm = "gui-vm";
+          includeUsb = true;
+          allow = [ { name = "^Logitech K400 Plus$"; } ];
+        }
+      ];
+
+      # Kernel code comes from linux-pkvm; Ghaf retains target configuration.
+      boot.kernelPatches = [
+        {
+          name = "Tegra pKVM protected-device configuration";
+          patch = null;
+          structuredExtraConfig = with lib.kernel; {
+            ARM_SMMU = no;
+            ARM_SMMU_TEGRA_PKVM = yes;
+            IOMMU_POOL_PAGES = freeform "0x10000";
+            # Protected PCI discovery must complete before pKVM drops host
+            # privileges during late kernel initialization.
+            PCIE_TEGRA194_HOST = yes;
+            PHY_TEGRA194_P2U = yes;
+            PKVM_PVIOMMU = yes;
+            VFIO_PKVM_IOMMU = yes;
+          };
+        }
+      ];
+
+      hardware.deviceTree = {
+        enable = true;
+        overlays = [
+          {
+            name = "mgbe0-protected-assignment";
+            dtsFile = ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/pkvm/mgbe0-protected-assignment-overlay.dts;
+          }
+          {
+            name = "rtw8822ce-protected-assignment";
+            dtsFile = ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/pkvm/rtw8822ce-protected-assignment-overlay.dts;
+          }
+          {
+            name = "gui-protected-assignment";
+            dtsFile = ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/pkvm/gui-protected-assignment-overlay.dts;
+          }
+        ];
+      };
+
+      ghaf.hardware.nvidia.orin.agx = {
+        enableNetvmWlanPCIPassthrough = lib.mkForce true;
+        netvmWlanPCICrosvmIommu = lib.mkForce "pkvm-iommu";
+      };
+      ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm.crosvmIommu = "pkvm-iommu";
+      ghaf.hardware.nvidia.passthroughs.gui_vm.crosvmIommu = "pkvm-iommu";
+
+      # Preserve the nVHE timer, virtualization, and interrupt-control state
+      # across NVIDIA R36.5 TF-A CPU power-down.
+      nixpkgs.overlays = [
+        (_final: prev: {
+          nvidia-jetpack = prev.nvidia-jetpack.overrideScope (
+            _finalJetpack: prevJetpack: {
+              gitRepos = prevJetpack.gitRepos // {
+                "tegra/optee-src/atf" = prev.applyPatches {
+                  name = "atf-pkvm";
+                  src = prevJetpack.gitRepos."tegra/optee-src/atf";
+                  patches = [
+                    ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/pkvm/0001-tegra-t234-save-and-restore-virtualization-registers.patch
+                  ];
+                };
+              };
+            }
+          );
+        })
+      ];
+
+      # Ghaf's boot-order module starts every configured VM regardless of the
+      # microvm.nix autostart setting. Disable it so the reduced target can use
+      # explicit weak ordering between its three protected VMs.
+      ghaf.microvm-boot.enable = lib.mkForce false;
+      # balloon-manager is normally pulled into microvms.target and requires
+      # each ballooned AppVM's memory manager, which in turn requires the VM.
+      # Remove that indirect startup path for this staged target.
+      systemd.services.balloon-manager.wantedBy = lib.mkForce [ ];
+
+      # Protected guests cannot use the normal vhost-user ro-store without
+      # risking host access to private guest pages. Use the established Ghaf
+      # EROFS store-disk path for every guest in this debug target.
+      ghaf.virtualization.microvm.storeOnDisk.enable = true;
+
+      # AdminVM is the device-free GIVC control-plane guest.
+      ghaf.virtualization.vmConfig.sysvms.adminvm.extraModules = [
+        linux71ExternalPkvmGuestModule
+        protectedVmWithoutFirmwareModule
+      ];
+      ghaf.virtualization.vmConfig.sysvms.netvm.extraModules = [
+        linux71ExternalPkvmGuestModule
+        linux71PkvmAssignedGuestModule
+        protectedVmWithoutFirmwareModule
+        {
+          microvm = {
+            crosvm = {
+              protection.allowDeviceAssignment = true;
+              virtiofsBackend = "crosvm";
+            };
+
+            # NetVM's dynamic-hostname setter reads the hardware-derived name
+            # from this share. Keep the native protected-guest surface limited
+            # to ghaf-common: sysupdate, hwinfo, and the Nix store stay outside
+            # this step.
+            shares = lib.mkForce [
+              {
+                tag = "ghaf-common";
+                source = "/persist/common";
+                mountPoint = "/etc/common";
+                proto = "virtiofs";
+              }
+            ];
+          };
+        }
+      ];
+      ghaf.virtualization.vmConfig.sysvms.guivm.extraModules = [
+        linux71ExternalPkvmGpuGuestModule
+        linux71PkvmAssignedGuestModule
+        protectedVmWithoutFirmwareModule
+        {
+          microvm.crosvm.protection.allowDeviceAssignment = true;
+          microvm.crosvm.virtiofsBackend = "crosvm";
+
+          # Retain only the existing ghaf-common share for the first native
+          # virtio-fs canary. XDG and user-facing shared directories remain
+          # disabled, and the Nix store stays on its block-backed image.
+          ghaf.storagevm.shared-directories.enable = lib.mkForce false;
+          ghaf.xdgitems.enable = lib.mkForce false;
+        }
+      ];
+      # EL2 must reset MGBE0 before assigning it to a protected guest and
+      # again while reclaiming it. Keep the BPMP clock votes alive across the
+      # complete assignment lifetime; touching the powered-down MAC from nVHE
+      # can raise an external abort instead of returning a reset error.
+      systemd.services.pkvm-mgbe0-clocks = {
+        description = "Keep MGBE0 clocks enabled for protected assignment";
+        wantedBy = [ "multi-user.target" ];
+        before = [ "microvm@net-vm.service" ];
+        after = [ "sys-kernel-debug.mount" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
         };
+        script = ''
+          for clock in /sys/kernel/debug/bpmp/debug/clk/mgbe0_*; do
+            echo 1 > "$clock/state"
+          done
+        '';
+      };
+      systemd.services."microvm@net-vm" = {
+        requires = [ "pkvm-mgbe0-clocks.service" ];
+        # AdminVM owns the GIVC control plane. Start it first so NetVM's agent
+        # can register as soon as its internal TAP becomes routable, but keep
+        # NetVM available for recovery if the control plane itself fails.
+        wants = [ "microvm@admin-vm.service" ];
+        after = [
+          "microvm@admin-vm.service"
+          "pkvm-mgbe0-clocks.service"
+        ];
+      };
+      systemd.services."microvm@gui-vm" = {
+        # GUIVM consumes both the routed network and the GIVC control plane.
+        # Keep these dependencies weak so a failed service-plane VM is visible
+        # as a degraded boot rather than suppressing graphics diagnostics.
+        wants = [
+          "microvm@admin-vm.service"
+          "microvm@net-vm.service"
+        ];
+        after = [
+          "microvm@admin-vm.service"
+          "microvm@net-vm.service"
+        ];
+      };
+
+      systemd.services."microvm@chromium-vm" = {
+        # ChromiumVM needs the routed network, GIVC control plane, and the
+        # persistent Waypipe endpoint in GUIVM. Keep these dependencies weak
+        # so a failed prerequisite remains diagnosable from the guest unit.
+        # The fixed protected-VM allocations cannot safely fit concurrently
+        # under the current 12 GiB host memory cap.
+        conflicts = [ "microvm@flatpak-vm.service" ];
+        wants = [
+          "microvm@admin-vm.service"
+          "microvm@net-vm.service"
+          "microvm@gui-vm.service"
+        ];
+        after = [
+          "microvm@admin-vm.service"
+          "microvm@net-vm.service"
+          "microvm@gui-vm.service"
+        ];
+      };
+      systemd.services."microvm@flatpak-vm" = {
+        conflicts = [ "microvm@chromium-vm.service" ];
+        wants = [
+          "microvm@admin-vm.service"
+          "microvm@net-vm.service"
+          "microvm@gui-vm.service"
+        ];
+        after = [
+          "microvm@admin-vm.service"
+          "microvm@net-vm.service"
+          "microvm@gui-vm.service"
+        ];
+      };
+
+      # Autostart the protected service plane and GUIVM while the broad boot
+      # orchestrator stays disabled. AppVMs remain explicitly on-demand so
+      # their memory is allocated only when an application is launched.
+      microvm.vms = {
+        "admin-vm".autostart = lib.mkForce true;
+        "net-vm".autostart = lib.mkForce true;
+        "gui-vm".autostart = lib.mkForce true;
+        "chromium-vm".autostart = lib.mkForce false;
+        "flatpak-vm".autostart = lib.mkForce false;
       };
     };
 
@@ -101,6 +552,7 @@ let
     self.nixosModules.reference-host-demo-apps
     self.nixosModules.reference-profiles-orin
     self.nixosModules.profiles
+    orinCrosvmModule
     ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/verity-image.nix
     ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/partition-template-verity.nix
     inputs.nix-store-veritysetup-generator.nixosModules.ghaf-store-veritysetup-generator
@@ -124,47 +576,6 @@ let
     }
   ];
 
-  # Shared by the AGX and NX accelerated-guivm variants.
-  acceleratedGuivmUsbRules = [
-
-    {
-      description = "USB Devices for GUIVM";
-      targetVm = "gui-vm";
-      allow = [
-        {
-          interfaceClass = 3;
-          interfaceProtocol = 1;
-          description = "HID Keyboard";
-        }
-        {
-          interfaceClass = 3;
-          interfaceProtocol = 2;
-          description = "HID Mouse";
-        }
-        {
-          interfaceClass = 11;
-          description = "Chip/SmartCard (e.g. YubiKey)";
-        }
-        {
-          interfaceClass = 8;
-          interfaceSubclass = 6;
-          description = "Mass Storage - SCSI (USB drives)";
-        }
-        {
-          interfaceClass = 17;
-          description = "USB-C alternate modes supported by device";
-        }
-      ];
-      deny = [
-        {
-          vendorId = "046d";
-          productId = "c52b";
-          description = "Logitech Unifying Receiver: evdev-only on Orin (usb-host interrupt-IN broken)";
-        }
-      ];
-    }
-  ];
-
   # Non-verity Orin configurations using mkGhafConfiguration
   target-configs = [
     # ============================================================
@@ -177,28 +588,16 @@ let
       profile = "orin";
       hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx;
       variant = "debug";
-      extraModules = commonModules;
+      extraModules = commonModules ++ [ linux71PkvmHostModule ];
       extraConfig = {
         reference.profiles.mvp-orinuser-trial.enable = true;
       };
-    })
-
-    (ghaf-configuration {
-      name = "nvidia-jetson-orin-agx-accelerated-guivm";
-      inherit system;
-      profile = "orin";
-      hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx;
-      variant = "debug";
-      extraModules = commonModules;
-      extraConfig = {
-        reference.profiles.mvp-orinuser-trial.enable = true;
-        # Accelerated topology has one combined GPU/display owner.
-        hardware.nvidia.passthroughs.gui_vm.enable = true;
-        hardware.nvidia.passthroughs.gpu_vm.enable = lib.mkForce false;
-        hardware.nvidia.passthroughs.disp_vm.enable = lib.mkForce false;
-
-        # Keep the Unifying receiver on the working evdev path.
-        hardware.passthrough.usb.guivmRules = lib.mkForce acceleratedGuivmUsbRules;
+      vmConfig = {
+        sysvms.adminvm.extraModules = [ linux71PkvmGuestModule ];
+        sysvms.netvm.extraModules = [ netvmCrosvmVgicItsModule ];
+        sysvms.guivm.extraModules = [ linux71GpuGuestModule ];
+        appvms.chromium.extraModules = [ linux71PkvmGuestModule ];
+        appvms.flatpak.extraModules = [ linux71PkvmGuestModule ];
       };
     })
 
@@ -232,7 +631,7 @@ let
       profile = "orin";
       hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-nx;
       variant = "debug";
-      extraModules = commonModules ++ [ nxGpuPartitioningDebugModule ];
+      extraModules = commonModules;
       extraConfig = {
         reference.profiles.mvp-orinuser-trial.enable = true;
         # Crucial for Orin devices to use the correct render device
@@ -254,53 +653,6 @@ let
           # then evicts page cache backing the USB-eth driver and the dongle
           # disconnects, killing sshd on the test-net IP.
           mem = 2048;
-        };
-        # The split topology reserves ~2.1GiB after dropping the old 4GiB VRAM
-        # bank. Keep the VM total at or under 7GiB until this reduced layout is
-        # validated on NX; 10.1GiB under the former ~6.1GiB layout OOM-killed a
-        # VM and hung PID 1 on every boot.
-        sysvms.gpuvm = {
-          mem = 2048;
-        };
-        # disp-vm runs on the 1:1 dispram carveout; -m only backs the
-        # machine's default RAM window.
-        sysvms.dispvm = {
-          mem = 1536;
-        };
-      };
-    })
-
-    (ghaf-configuration {
-      name = "nvidia-jetson-orin-nx-accelerated-guivm";
-      inherit system;
-      profile = "orin";
-      hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-nx;
-      variant = "debug";
-      extraModules = commonModules;
-      extraConfig = {
-        reference.profiles.mvp-orinuser-trial.enable = true;
-        # Accelerated topology has one combined GPU/display owner.
-        hardware.nvidia.passthroughs.gui_vm.enable = true;
-        hardware.nvidia.passthroughs.gpu_vm.enable = lib.mkForce false;
-        hardware.nvidia.passthroughs.disp_vm.enable = lib.mkForce false;
-
-        # Pin APP so the flash script carries no embedded image: every flash
-        # supplies one with -s, which also keeps the script buildable without
-        # the image.
-        hardware.nvidia.orin.flashScriptOverrides.appPartitionSizeBytes = 34359738368;
-
-        # Keep the Unifying receiver on the working evdev path.
-        hardware.passthrough.usb.guivmRules = lib.mkForce acceleratedGuivmUsbRules;
-      };
-      vmConfig = {
-        sysvms.netvm = {
-          vcpu = 4;
-          mem = 2048;
-        };
-        # VFIO pins all guest RAM up front, so 4096 only fits alongside the
-        # host zram in orin-nx.nix; without it this OOM-crash-looped.
-        sysvms.guivm = {
-          mem = 4096;
         };
       };
     })
@@ -403,6 +755,21 @@ let
       ];
   all-target-configs = target-configs ++ verity-target-configs;
 
+  pkvmDebugTarget =
+    let
+      baseTarget = lib.findFirst (
+        target: target.name == "nvidia-jetson-orin-agx-debug"
+      ) (throw "AGX debug target not found") target-configs;
+    in
+    baseTarget
+    // rec {
+      name = "nvidia-jetson-orin-agx-accelerated-guivm-pkvm-debug";
+      hostConfiguration = baseTarget.hostConfiguration.extendModules {
+        modules = [ pkvmDebugModule ];
+      };
+      package = hostConfiguration.config.system.build.ghafImage;
+    };
+
   generate-nodemoapps =
     tgt:
     tgt
@@ -480,7 +847,8 @@ let
     ++ (map generate-luks luksable-target-configs)
     ++ (map generate-luks-uki luksable-target-configs)
     ++ (map (t: generate-luks (generate-nodemoapps t)) luksable-target-configs)
-    ++ (map (t: generate-luks-uki (generate-nodemoapps t)) luksable-target-configs);
+    ++ (map (t: generate-luks-uki (generate-nodemoapps t)) luksable-target-configs)
+    ++ [ pkvmDebugTarget ];
   crossTargets = map generate-cross-from-x86_64 targets;
   flashTarget =
     t: qspiOnly:

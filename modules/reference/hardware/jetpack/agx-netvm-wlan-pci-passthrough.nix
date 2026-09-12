@@ -12,8 +12,23 @@ in
 {
   _file = ./agx-netvm-wlan-pci-passthrough.nix;
 
-  options.ghaf.hardware.nvidia.orin.agx.enableNetvmWlanPCIPassthrough =
-    lib.mkEnableOption "WLAN or ethernet card PCI passthrough to NetVM";
+  options.ghaf.hardware.nvidia.orin.agx = {
+    enableNetvmWlanPCIPassthrough = lib.mkEnableOption "WLAN or ethernet card PCI passthrough to NetVM";
+    netvmWlanPCICrosvmIommu = lib.mkOption {
+      type = lib.types.enum [
+        "off"
+        "viommu"
+        "coiommu"
+        "pkvm-iommu"
+      ];
+      default = "off";
+      description = ''
+        Crosvm IOMMU backend used for the AGX NetVM WLAN endpoint. Selecting
+        an IOMMU backend retains the PCIe controller's host IOMMU mapping;
+        the legacy off mode keeps the existing passthrough overlay.
+      '';
+    };
+  };
   config = lib.mkIf cfg.agx.enableNetvmWlanPCIPassthrough {
     # Orin AGX WLAN card PCI passthrough
     ghaf.hardware.nvidia.orin.enablePCIPassthroughCommon = true;
@@ -22,36 +37,44 @@ in
 
     # Passthrough devices - use hardware.definition for composition model
     ghaf.hardware.definition.netvm.extraModules = [
-      {
-        ghaf.services.wifi.enable = true;
-        # This bus holds the PCI ethernet or WLAN devices on ORIN AGX's
-        microvm.devices =
-          if cfg.somType == "agx-industrial" then
-            [
-              {
-                bus = "pci";
-                path = "0001:01:00.0";
-              }
-              {
-                bus = "pci";
-                path = "0000:01:00.0";
-              }
-            ]
-          else
-            [
-              {
-                bus = "pci";
-                path = "0001:01:00.0";
-              }
-            ];
-        # Network Manager is defined for netvm of Orin Devices
-        environment.systemPackages = [ pkgs.networkmanager ];
-        # Network Manager package defines a gnome plugin with build failure on Orin
-        networking.networkmanager.plugins = lib.mkForce [ ];
-      }
+      (
+        { config, ... }:
+        let
+          wifiDevice = {
+            bus = "pci";
+            path = "0001:01:00.0";
+            crosvm = lib.optionalAttrs (config.microvm.hypervisor == "crosvm") {
+              guestAddress = "00:1f.0";
+              # The legacy off mode retains the existing host-DT bypass
+              # overlay. Protected assignment selects pkvm-iommu and keeps
+              # the physical controller attached to the host SMMU.
+              iommu = cfg.agx.netvmWlanPCICrosvmIommu;
+            };
+          };
+        in
+        {
+          ghaf.services.wifi.enable = true;
+          # This bus holds the PCI ethernet or WLAN devices on ORIN AGX's
+          microvm.devices =
+            if cfg.somType == "agx-industrial" then
+              [
+                wifiDevice
+                {
+                  bus = "pci";
+                  path = "0000:01:00.0";
+                }
+              ]
+            else
+              [ wifiDevice ];
+          # Network Manager is defined for netvm of Orin Devices
+          environment.systemPackages = [ pkgs.networkmanager ];
+          # Network Manager package defines a gnome plugin with build failure on Orin
+          networking.networkmanager.plugins = lib.mkForce [ ];
+        }
+      )
     ];
 
-    hardware.deviceTree.overlays = [
+    hardware.deviceTree.overlays = lib.mkIf (cfg.agx.netvmWlanPCICrosvmIommu == "off") [
       {
         name = "agx-ethernet-pci-passthough-overlay";
         dtsFile =

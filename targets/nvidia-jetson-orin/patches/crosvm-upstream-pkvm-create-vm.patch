@@ -1,0 +1,46 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+
+From: Ghaf contributors
+Subject: [PATCH] crosvm: Accept upstream protected KVM creation
+
+Upstream arm64 KVM reports protected-VM support by accepting
+KVM_CREATE_VM with KVM_VM_TYPE_ARM_PROTECTED. It does not expose the
+Android-only KVM_CAP_ARM_PROTECTED_VM capability number that Crosvm probes
+after creating the VM.
+
+Treat successful creation as authoritative for the KVM backend. Kernels
+without upstream pKVM protected-guest support reject the protected VM type
+during KvmVm::new().
+
+---
+ src/crosvm/sys/linux.rs | 15 ++++++++-------
+ 1 file changed, 8 insertions(+), 7 deletions(-)
+
+diff --git a/src/crosvm/sys/linux.rs b/src/crosvm/sys/linux.rs
+index d7eb6a4..886721d 100644
+--- a/src/crosvm/sys/linux.rs
++++ b/src/crosvm/sys/linux.rs
+@@ -162,6 +162,10 @@ use hypervisor::HypervisorCap;
+ use hypervisor::MemCacheType;
+ use hypervisor::ProtectionType;
+ use hypervisor::Vm;
++#[cfg(all(
++    target_arch = "aarch64",
++    any(feature = "geniezone", feature = "gunyah", feature = "halla")
++))]
+ use hypervisor::VmCap;
+ use jail::*;
+ #[cfg(feature = "pci-hotplug")]
+@@ -2138,7 +2138,4 @@ fn run_kvm(device_path: Option<&Path>, cfg: Config, components: VmComponents) ->
+-    // Check that the VM was actually created in protected mode as expected.
+-    // This check is only needed on aarch64. On x86_64, protected VM creation will fail
+-    // if protected mode is not supported.
+-    #[cfg(not(target_arch = "x86_64"))]
+-    if cfg.protection_type.isolates_memory() && !vm.check_capability(VmCap::Protected) {
+-        bail!("Failed to create protected VM");
+-    }
++    // Upstream arm64 KVM rejects KVM_CREATE_VM with the protected type when
++    // protected mode is unavailable. Reaching this point therefore confirms
++    // that KvmVm::new() created the requested protected VM. The legacy
++    // KVM_CAP_ARM_PROTECTED_VM probe is specific to Android's downstream ABI.
