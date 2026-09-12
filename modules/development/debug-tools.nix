@@ -12,7 +12,11 @@ let
   sysbench-test-script = pkgs.callPackage ./scripts/sysbench_test.nix { };
   sysbench-fileio-test-script = pkgs.callPackage ./scripts/sysbench_fileio_test.nix { };
   nvpmodel-check = pkgs.callPackage ./scripts/nvpmodel_check.nix { };
-  fss-test = pkgs.callPackage ../../tests/logging/test_scripts/fss-test.nix { };
+  # Use the same systemd as PID 1 so fss-test's journalctl --verify agrees with
+  # the sealing journald (Ghaf vendors a journal-verify.c patch, SSRCSP-8820).
+  fss-test = pkgs.callPackage ../../tests/logging/test_scripts/fss-test.nix {
+    systemd = config.systemd.package;
+  };
 
   inherit (lib) mkEnableOption mkIf rmDesktopEntries;
 in

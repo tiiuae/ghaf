@@ -106,8 +106,16 @@ let
   hostPersistentJournalPath = "/persist/var/log/journal";
   fssBasePath =
     if config.ghaf.type == "host" then "/persist/common/journal-fss" else "/etc/common/journal-fss";
+  # FSS journalctl callers must use the same (patched) systemd as PID 1, or
+  # the verifier disagrees with the sealing journald.
+  systemdPackage = config.systemd.package;
+
   fssTriagePackage =
-    pkgs.fss-triage or (pkgs.callPackage ../../../packages/pkgs-by-name/fss-triage/package.nix { });
+    (pkgs.fss-triage or (pkgs.callPackage ../../../packages/pkgs-by-name/fss-triage/package.nix { }))
+    .override
+      {
+        systemd = systemdPackage;
+      };
 
   preparePersistentJournalScript = pkgs.writeShellApplication {
     name = "journal-fss-prepare-persistent-journal";
@@ -122,14 +130,15 @@ let
   # Script to setup FSS keys on first boot
   setupScript = pkgs.writeShellApplication {
     name = "journal-fss-setup";
-    runtimeInputs = with pkgs; [
-      systemd
-      coreutils
-      gawk
-      findutils
-      gnugrep
-      util-linux
-    ];
+    runtimeInputs =
+      (with pkgs; [
+        coreutils
+        gawk
+        findutils
+        gnugrep
+        util-linux
+      ])
+      ++ [ systemdPackage ];
     # /etc/fss-verify-classifier.sh is populated at runtime (see environment.etc
     # below); shellcheck cannot follow it statically.
     excludeShellChecks = [ "SC1091" ];
@@ -769,13 +778,8 @@ let
         fi
 
         if [ "$restart_ok" = 1 ]; then
-          # systemd-analyze cat-config queries the merged config right after
-          # restarting journald; caught at exactly the wrong moment, it can
-          # still read the pre-restart config and report Seal=no even though
-          # journald picks up the runtime drop-in within a second or two.
-          # Mirrors the re-verify-before-believing-it pattern already used for
-          # live-journal counter mismatches: retry briefly rather than failing
-          # the whole boot closed on a check taken too early.
+          # cat-config can read the pre-restart config for a second or two
+          # after the restart; retry briefly rather than failing closed early.
           local confirm_attempt=1
           local confirm_retries=3
           while [ "$confirm_attempt" -le "$confirm_retries" ]; do
@@ -1209,9 +1213,8 @@ let
         chmod 0400 "$VERIFY_KEY_FILE"
       }
 
-      # JOURNAL_DIR and FSS_KEY_FILE are resolved independently -- journald's
-      # live journal and journalctl --setup-keys' key placement can each
-      # land persistent-vs-volatile differently on the same boot.
+      # Resolved independently: journald's live journal and --setup-keys' key
+      # placement can land persistent-vs-volatile differently on the same boot.
       JOURNAL_DIR=$(fss_resolve_live_journal_dir "/var/log/journal/$MACHINE_ID")
       FSS_KEY_FILE=$(fss_resolve_key_file "$MACHINE_ID")
       if [ "$JOURNAL_DIR" != "/var/log/journal/$MACHINE_ID" ]; then
@@ -1308,8 +1311,7 @@ let
       # Securely remove setup output (contains sensitive key material)
       shred -u "$KEY_DIR/setup-output.txt" 2>/dev/null || rm -f "$KEY_DIR/setup-output.txt"
 
-      # Re-resolve: --setup-keys may have placed it somewhere the
-      # pre-generation guess above didn't anticipate.
+      # Re-resolve: --setup-keys may not match the pre-generation guess.
       FSS_KEY_FILE=$(fss_resolve_key_file "$MACHINE_ID")
 
       # Verify sealing key was created
@@ -1359,13 +1361,14 @@ let
   # Script to verify journal integrity
   verifyScript = pkgs.writeShellApplication {
     name = "journal-fss-verify";
-    runtimeInputs = with pkgs; [
-      systemd
-      coreutils
-      util-linux
-      gnugrep
-      gawk
-    ];
+    runtimeInputs =
+      (with pkgs; [
+        coreutils
+        util-linux
+        gnugrep
+        gawk
+      ])
+      ++ [ systemdPackage ];
     # /etc/fss-verify-classifier.sh is populated at runtime (see environment.etc
     # above); shellcheck cannot follow it statically.
     excludeShellChecks = [ "SC1091" ];
@@ -1542,6 +1545,18 @@ let
               exit 0
               ;;
             esac
+    '';
+  };
+
+  # Seal + archive via --rotate (no restart) so a later teardown can't strand
+  # a sealed file STATE_ONLINE. Best-effort; shared by both finalizer units.
+  sealRotateScript = pkgs.writeShellApplication {
+    name = "journal-fss-seal-rotate";
+    runtimeInputs = [ systemdPackage ];
+    text = ''
+      journalctl --sync 2>/dev/null || true
+      journalctl --rotate 2>/dev/null || true
+      journalctl --sync 2>/dev/null || true
     '';
   };
 in
@@ -2073,6 +2088,60 @@ in
               ];
             };
           };
+
+          # Runs early in shutdown, before microVM teardown can force-kill
+          # journald mid-offline-close.
+          journal-fss-shutdown-finalize = {
+            description = "Seal and archive FSS journals before shutdown";
+            documentation = [ "man:journalctl(1)" ];
+
+            wantedBy = [ "multi-user.target" ];
+            # After journald at start => ExecStop runs before journald stops.
+            after = [
+              "systemd-journald.service"
+              "journal-fss-setup.service"
+            ];
+            # Out of the normal stop wave, so ExecStop runs late in shutdown.
+            before = [ "shutdown.target" ];
+            conflicts = [ "shutdown.target" ];
+
+            unitConfig = {
+              DefaultDependencies = false;
+              # Only meaningful once FSS keys exist (skips the host, which has none).
+              ConditionPathExists = "${cfg.keyPath}/initialized";
+            };
+
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+              ExecStart = "${pkgs.coreutils}/bin/true";
+              ExecStop = [
+                (getExe sealRotateScript)
+                # Drop journald's sockets so PID 1 can't reactivate it later.
+                # --no-block: this unit stops before journald, so a blocking
+                # stop would deadlock.
+                "-${systemdPackage}/bin/systemctl stop --no-block systemd-journald.socket systemd-journald-dev-log.socket"
+              ];
+              # Bounded well under the microVM stop timeout (crosvm, ~30s).
+              TimeoutStopSec = "25s";
+            };
+          };
+
+          # Archives pre-step content under the journald that wrote it, before
+          # the reboot. Fires on any step; cheap.
+          journal-fss-clockstep-rotate = {
+            description = "Seal and archive FSS journals on a wall-clock step";
+            documentation = [ "man:journalctl(1)" ];
+            after = [
+              "systemd-journald.service"
+              "journal-fss-setup.service"
+            ];
+            unitConfig.ConditionPathExists = "${cfg.keyPath}/initialized";
+            serviceConfig = {
+              Type = "oneshot";
+              ExecStart = getExe sealRotateScript;
+            };
+          };
         };
 
         # Timer for periodic verification
@@ -2089,6 +2158,16 @@ in
           }
           // optionalAttrs cfg.verifyOnBoot {
             OnBootSec = "10min";
+          };
+        };
+
+        timers.journal-fss-clockstep-rotate = {
+          description = "Seal FSS journals when the wall clock is stepped";
+          documentation = [ "man:journalctl(1)" ];
+          wantedBy = [ "timers.target" ];
+          timerConfig = {
+            OnClockChange = true;
+            Unit = "journal-fss-clockstep-rotate.service";
           };
         };
       };
