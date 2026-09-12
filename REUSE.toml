@@ -22,6 +22,7 @@ path = [
   ".github/workflows/dependency-review.yml",
   ".pre-commit-config.yaml",
   ".github/cliff.toml",
+  "config/secure-ab-build-config/config.json",
   "flake.lock",
   ".version",
   "assets/**/*.png",

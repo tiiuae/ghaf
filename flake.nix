@@ -106,6 +106,14 @@
       flake = false;
     };
 
+    # Public-only secure A/B build configuration. Development and release
+    # flakes can replace this input while retaining pure evaluation. Never
+    # put signing keys or recovery material in this input.
+    secure-ab-build-config = {
+      url = "path:./config/secure-ab-build-config";
+      flake = false;
+    };
+
     # To ensure that checks are run locally to enforce cleanliness
     git-hooks-nix = {
       url = "github:cachix/git-hooks.nix";
@@ -117,9 +125,9 @@
 
     # Ghaf Inter VM communication and control library
     #
-    # TEMPORARILY pinned to a commit rather than the branch head
+    # Authenticated A/B updates with fixed slot capacities and shared manifest contracts.
     givc = {
-      url = "github:tiiuae/ghaf-givc";
+      url = "github:tiiuae/ghaf-givc/78deab3def207be348dfb1329165f837fe9e67c7";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
