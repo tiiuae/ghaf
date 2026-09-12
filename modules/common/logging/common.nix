@@ -354,10 +354,7 @@ let
         real="$(date +%s)"
         up="$(cut -d' ' -f1 /proc/uptime)"
 
-        drift="$(awk -v r1="$last_real" -v r2="$real" -v u1="$last_up" -v u2="$up" \
-          'BEGIN{print (r2-r1) - (u2-u1)}')"
-
-        abs="$(awk -v d="$drift" 'BEGIN{print (d<0)?-d:d}')"
+        abs="$(fss_clock_drift_abs "$last_real" "$last_up" "$real" "$up")"
 
         raw="$(read_journald_since_cursor)"
         seen_cursor="$(cursor_from_output "$raw")"

@@ -161,6 +161,7 @@ let
       REKEY_HISTORY_FILE="$KEY_DIR/rekey-history"
       PRE_ACTIVATION_MAX_RECEIPTS="${toString cfg.activation.maxReceipts}"
       RECOVERY_MAX_RECEIPTS="${toString config.ghaf.logging.recovery.maxReceipts}"
+      RECOVERY_CLOCK_THRESHOLD_SECONDS="${toString config.ghaf.logging.recovery.thresholdSeconds}"
       UNCLEAN_SHUTDOWN_MAX_RECEIPTS="${toString cfg.uncleanShutdown.maxReceipts}"
       ACTIVATION_FAILED=0
       ACTIVATION_RESTARTED_THIS_RUN=0
@@ -818,6 +819,7 @@ let
       verification_key_diverged_from_sealing_key() {
         local key="$1" active_journal probe_output probe_exit
 
+        FSS_DIVERGED_FUTURE_TAG_US=""
         active_journal="$JOURNAL_DIR/system.journal"
         [ -f "$active_journal" ] || return 1
 
@@ -827,7 +829,10 @@ let
         [ "$probe_exit" -eq 0 ] && return 1
 
         case "''${probe_output,,}" in
-        *"tag failed verification"* | *"bad message"*) return 0 ;;
+        *"tag failed verification"* | *"bad message"*)
+          FSS_DIVERGED_FUTURE_TAG_US=$(fss_max_future_tag_epoch_us "$probe_output")
+          return 0
+          ;;
         *) return 1 ;;
         esac
       }
@@ -1022,8 +1027,12 @@ let
 
       verify_live_sealing_after_activation() {
         local verify_key verify_output verify_exit marker probe_scope
+        local guard_real1 guard_up1 guard_real2 guard_up2 guard_drift
 
         [ "$ACTIVATION_ENABLED" = 1 ] || return 0
+
+        guard_real1="$(date +%s)"
+        guard_up1="$(cut -d' ' -f1 /proc/uptime)"
 
         if [ "$ACTIVATION_RESTARTED_THIS_RUN" = 1 ]; then
           # Activation boundary, once per boot: verify everything, as before.
@@ -1054,6 +1063,18 @@ let
         fi
         fss_classify_verify_output "$verify_output"
 
+        # The verify calls take real time; a clock step inside them poisons the verdict.
+        # Defer instead: recover's dependency, the verify timer and the next boot re-check.
+        guard_real2="$(date +%s)"
+        guard_up2="$(cut -d' ' -f1 /proc/uptime)"
+        guard_drift="$(fss_clock_drift_abs "$guard_real1" "$guard_up1" "$guard_real2" "$guard_up2")"
+        if awk -v d="$guard_drift" -v t="$RECOVERY_CLOCK_THRESHOLD_SECONDS" \
+          'BEGIN{t=(t<1)?1:t; exit !(d>=t)}'; then
+          fss_log warn "Clock moved during live sealing verification; deferring this verdict rather than trusting evidence gathered across two clock readings"
+          write_live_probe_state unclean
+          return 0
+        fi
+
         if [ -n "$FSS_ACTIVE_SYSTEM_FAILURES" ] \
           || [ -n "$FSS_OTHER_FAILURES" ] \
           || [ "$FSS_KEY_PARSE_ERROR" = 1 ] \
@@ -1064,7 +1085,8 @@ let
           # re-execs the setup script and does not return.
           recover_from_time_poisoned_sealing "$verify_output" || true
           if [ -n "$FSS_ACTIVE_SYSTEM_FAILURES" ] \
-            && verification_key_diverged_from_sealing_key "$verify_key"; then
+            && verification_key_diverged_from_sealing_key "$verify_key" \
+            && [ -z "$FSS_DIVERGED_FUTURE_TAG_US" ]; then
             fss_log fail "FSS verification key does not match the sealing key in use"
             fss_log fail "  verification key: $VERIFY_KEY_FILE"
             fss_log fail "  sealing key:      $FSS_KEY_FILE"
@@ -1073,6 +1095,10 @@ let
             fss_log fail "FSS state is re-provisioned by hand."
             fss_log fail "Recovery discards sealed history: archive and clear the journal,"
             fss_log fail "remove both keys above, then reboot so setup regenerates the pair."
+          elif [ -n "$FSS_ACTIVE_SYSTEM_FAILURES" ] && [ -n "$FSS_DIVERGED_FUTURE_TAG_US" ]; then
+            # Sub-margin future tag: recover declined by design and the divergence probe
+            # would misreport it -- same "Bad message" from journalctl.
+            fss_log fail "Active journal has entries older than its sealing tag (epoch starts $(date -u -d "@$(( FSS_DIVERGED_FUTURE_TAG_US / 1000000 ))" +%FT%TZ)); self-heals once this journal rotates"
           else
             fss_log fail "Live active-journal verification failed after FSS activation"
           fi
