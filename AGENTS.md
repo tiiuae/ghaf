@@ -56,10 +56,41 @@ flatten a branch that genuinely does several separable things into one commit. S
 
 Do not commit or push unless you were asked to.
 
+## Code changes
+
+Binding as written on every change; `.claude/skills/karpathy-guidelines/SKILL.md` holds the
+full text.
+
+**Think before coding.** State assumptions explicitly and ask when uncertain. If several
+interpretations exist, present them instead of silently picking one. If a simpler approach
+exists, say so.
+
+**Simplicity first.** Minimum code that solves the problem. No speculative features, no
+abstractions for single-use code, no unrequested configurability, no error handling for
+impossible states. If 200 lines could be 50, rewrite it.
+
+**Surgical changes.** Every changed line traces to the request. Don't improve adjacent code,
+comments, or formatting. Match existing style. Remove only the orphans your own change
+created; mention pre-existing dead code rather than deleting it.
+
+**Goal-driven execution.** Turn the task into a verifiable goal ("fix the bug" → "write a
+test that reproduces it, then make it pass") and name the verification step for each step of
+a multi-step plan.
+
 ## Code comments
 
-Comments are concise and limited to what is absolutely necessary: the non-obvious why, a
-constraint, a workaround. Code that explains itself gets no comment.
+Default to none. A comment must earn its line.
+
+- Comment only the *why*: a non-obvious constraint, a workaround and its cause, an invariant
+  the reader cannot infer, a spec or issue reference. Never the *what*.
+- One line, two at most. An explanation needing a paragraph belongs in a commit message or a
+  docs file — or the code needs restructuring.
+- No prose blocks above functions, no section banners, no decorative separators.
+- No narration of the edit ("changed X to Y", "new helper", "as requested"). That is the
+  diff's job.
+- Docstrings only where the language or the file already uses them, and then one line unless
+  the neighbours are longer.
+- Match the file's existing comment density. A file with no comments gets no new ones.
 
 When a change exists only because a fix is pending upstream (an open PR, an unreleased
 release, a patch waiting in nixpkgs or microvm.nix), mark it with a `TODO` naming what is
@@ -165,9 +196,16 @@ Operator` means the board reset normally and is not in RCM -- that id is the deb
 
 ## Where the depth is
 
-- `.claude/skills/ghaf-*/SKILL.md` — build, deploy, connect, logs, test, and the full
-  development loop. Claude Code loads these automatically; other agents should read them as
-  documentation when the task matches.
+- `.claude/skills/ghaf-*/SKILL.md` — `ghaf-target`, `ghaf-connect`, `ghaf-logs`,
+  `ghaf-build`, `ghaf-deploy`, `ghaf-test`, `ghaf-dev-loop`: build, deploy, connect, logs,
+  test, and the full development loop. Claude Code loads one on demand when a task matches
+  its description; other agents should read them as documentation when the task matches.
+- `.claude/skills/karpathy-guidelines/SKILL.md` — the full text behind [Code
+  changes](#code-changes), vendored from
+  <https://github.com/multica-ai/andrej-karpathy-skills> (MIT). Not situational like the
+  others: it binds every change whether or not anything loads it.
+- `.claude/agents/ghaf-log-triage.md` — reads a log snapshot in its own context and returns
+  ranked findings, which is the right way to handle journals from a full fleet of VMs.
 - `.github/skills/ghaf-hw-test/` — the hardware test CLI, discovered by Copilot CLI.
 - `docs/src/content/docs/ghaf/` — user and developer documentation (Astro Starlight).
 

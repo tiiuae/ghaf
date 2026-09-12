@@ -168,3 +168,10 @@ SPDX-FileCopyrightText = [
   "2022-2026 TII (SSRC) and the Ghaf contributors"
 ]
 path = "overlays/jetpack-nvdisplay/*.patch"
+
+# Vendored verbatim from https://github.com/multica-ai/andrej-karpathy-skills, so this
+# overrides the blanket Apache-2.0 annotation on `.claude/skills/**/SKILL.md` above.
+[[annotations]]
+SPDX-License-Identifier = "MIT"
+SPDX-FileCopyrightText = "andrej-karpathy-skills contributors"
+path = ".claude/skills/karpathy-guidelines/SKILL.md"
