@@ -21,6 +21,11 @@ let
   # Effective time-sync wait before FSS activation; only applies when the
   # activation boundary is enabled. Computed once and reused below.
   effectiveSyncWaitSeconds = if fssActivationEnabled then fssActivationCfg.syncWaitSeconds else 0;
+  # FIFO shared by the OnClockChange oneshot and the watcher's read loop.
+  clockStepFifo = "/run/ghaf-clock-jump-watcher/step.fifo";
+  # Independent of the watcher's RuntimeDirectory, so a step stays on
+  # record for the FSS live-probe guard even with the watcher down.
+  clockStepEventsFile = "/run/ghaf-clock-step-events";
 
   ghafClockReady = pkgs.writeShellApplication {
     name = "ghaf-clock-ready";
@@ -258,6 +263,16 @@ let
     '';
   };
 
+  # FIFO, not a signal: back-to-back signals coalesce, FIFO writes do not.
+  ghafClockStepNotify = pkgs.writeShellApplication {
+    name = "ghaf-clock-step-notify";
+    runtimeInputs = [ pkgs.coreutils ];
+    text = ''
+      printf 'step\n' | timeout 2 tee ${clockStepFifo} >/dev/null || true
+      ( umask 022; printf '%s\n' "$(date +%s%6N)" >> ${clockStepEventsFile} ) 2>/dev/null || true
+    '';
+  };
+
   ghafClockJumpWatcher = pkgs.writeShellApplication {
     name = "ghaf-clock-jump-watcher";
     runtimeInputs = with pkgs; [
@@ -272,6 +287,14 @@ let
     excludeShellChecks = [ "SC1091" ];
     text = ''
       source /etc/fss-verify-classifier.sh
+
+      step_fd=""
+
+      # Read-write open: never blocks, and the oneshot's write never lacks a reader.
+      rm -f ${clockStepFifo}
+      mkfifo -m 600 ${clockStepFifo}
+      exec {step_fd}<>${clockStepFifo}
+      trap 'exec {step_fd}<&-' EXIT
 
       threshold="${toString recCfg.thresholdSeconds}"
       interval="${toString recCfg.intervalSeconds}"
@@ -349,8 +372,43 @@ let
       seen_cursor="$(cursor_from_output "$raw")"
       [ -z "$seen_cursor" ] || cursor="$seen_cursor"
 
+      # Same cooldown shape as setup_restart_due, its own stamp: a bare
+      # step-with-no-evidence recheck must not out-race the verify timer.
+      verify_recheck_stamp="/run/ghaf-clock-jump-watcher.verify-recheck"
+      verify_recheck_due() {
+        local now last
+
+        now=$(awk '{printf "%d\n", $1}' /proc/uptime)
+        last=$(cat "$verify_recheck_stamp" 2>/dev/null || true)
+        case "$last" in "" | *[!0-9]*) last="" ;; esac
+        if [ -n "$last" ] && [ "$(( now - last ))" -lt "$restart_cooldown" ]; then
+          return 1
+        fi
+        printf '%s\n' "$now" > "$verify_recheck_stamp" 2>/dev/null || true
+      }
+
+      pending_setup_restart=0
+      pending_verify_recheck=0
+
       while true; do
-        sleep "$interval"
+        # A cooldown-deferred action from an earlier tick, retried before
+        # this tick's own evidence is evaluated.
+        if [ "$pending_setup_restart" = 1 ] && setup_restart_due; then
+          systemctl restart --no-block journal-fss-setup.service 2>/dev/null || true
+          pending_setup_restart=0
+        fi
+        if [ "$pending_verify_recheck" = 1 ] && verify_recheck_due; then
+          systemctl start --no-block journal-fss-verify.service 2>/dev/null || true
+          pending_verify_recheck=0
+        fi
+
+        # Woken early by a step or by the poll interval; event=1 iff the
+        # FIFO delivered one, not a timeout.
+        if read -r -t "$interval" -u "$step_fd" _line; then
+          event=1
+        else
+          event=0
+        fi
         real="$(date +%s)"
         up="$(cut -d' ' -f1 /proc/uptime)"
 
@@ -372,6 +430,18 @@ let
           # re-key (see recover_from_time_poisoned_sealing in fss.nix).
           if setup_restart_due; then
             systemctl restart --no-block journal-fss-setup.service 2>/dev/null || true
+          else
+            pending_setup_restart=1
+          fi
+        elif [ "$event" = 1 ]; then
+          # A step with no drift or journald evidence yet (e.g. an
+          # opposite-sign pair settled before this tick): a non-destructive
+          # recheck, never an attestation -- a re-key needs real evidence.
+          echo "clock step notified"
+          if verify_recheck_due; then
+            systemctl start --no-block journal-fss-verify.service 2>/dev/null || true
+          else
+            pending_verify_recheck=1
           fi
         fi
 
@@ -778,7 +848,22 @@ in
           Type = "simple";
           Restart = "always";
           RestartSec = 2;
+          RuntimeDirectory = "ghaf-clock-jump-watcher";
           ExecStart = lib.getExe ghafClockJumpWatcher;
+        };
+      };
+
+      # No After= on the watcher: that orders unit start, not the FIFO setup.
+      timers.ghaf-clock-step-notify = {
+        wantedBy = [ "multi-user.target" ];
+        timerConfig.OnClockChange = true;
+      };
+      services.ghaf-clock-step-notify = {
+        description = "Notify ghaf-clock-jump-watcher of a realtime step";
+        serviceConfig = {
+          Type = "oneshot";
+          TimeoutStartSec = "5";
+          ExecStart = lib.getExe ghafClockStepNotify;
         };
       };
 

@@ -333,6 +333,211 @@ _: ''
         '
       """)
 
+  with subtest("A clock step notifies journal-fss-verify even with the watcher stopped"):
+      # SIGSTOP, not disabling the unit: the FIFO and RuntimeDirectory stay up,
+      # so this proves the events file works without the read loop running.
+      machine.succeed("""
+        bash -lc '
+          set -euo pipefail
+          # Assert on the recheck stamp, not on an invocation id: the step also
+          # fires systemd TimeChange units, which start journal-fss-verify
+          # directly -- observed starting 4ms BEFORE the watcher is resumed. The
+          # watcher start is then a no-op on an already-active unit, so the id
+          # never changes while the branch under test worked correctly. The
+          # stamp is written only inside verify_recheck_due.
+          rm -f /run/ghaf-clock-jump-watcher.verify-recheck
+          BEFORE_TS=$(date "+%Y-%m-%d %H:%M:%S")
+          ATTESTED_BEFORE=$(cat /var/log/journal/*/fss-clock-jump-attested 2>/dev/null || true)
+
+          systemctl kill -s STOP ghaf-clock-jump-watcher.service
+          date -s "+10 seconds"   # forward, below thresholdSeconds (30s default): no journald backward-jump line either
+          systemctl kill -s CONT ghaf-clock-jump-watcher.service
+
+          for _ in $(seq 1 20); do
+            [ -f /run/ghaf-clock-jump-watcher.verify-recheck ] && break
+            sleep 1
+          done
+          if [ ! -f /run/ghaf-clock-jump-watcher.verify-recheck ]; then
+            echo "clock step produced no verify recheck" >&2
+            journalctl -u ghaf-clock-jump-watcher.service --since "$BEFORE_TS" --no-pager >&2
+            exit 1
+          fi
+          journalctl -u ghaf-clock-jump-watcher.service --since "$BEFORE_TS" --no-pager | grep -F "clock step notified"
+
+          ATTESTED_AFTER=$(cat /var/log/journal/*/fss-clock-jump-attested 2>/dev/null || true)
+          [ "$ATTESTED_AFTER" = "$ATTESTED_BEFORE" ]
+        '
+      """)
+
+  with subtest("Queued steps with zero net drift and no journald evidence still recheck"):
+      # The forward-only case above leaves 10s of drift the watcher could have
+      # keyed on instead, so it does not isolate the event-alone branch. Here
+      # the clock never moves and journald logs no jump: the queued events are
+      # the only input, which is the case net drift cannot see.
+      machine.succeed("""
+        bash -lc '
+          set -euo pipefail
+          # Assert on the watcher own record, not on the verify service
+          # invocation id: the verify timer starts runs of its own, so an id
+          # comparison measures whoever won the race, not this decision. The
+          # recheck stamp is written only inside verify_recheck_due, which is
+          # reached only from the event-alone branch.
+          rm -f /run/ghaf-clock-jump-watcher.verify-recheck
+          BEFORE_TS=$(date "+%Y-%m-%d %H:%M:%S")
+          ATTESTED_BEFORE=$(cat /var/log/journal/*/fss-clock-jump-attested 2>/dev/null || true)
+          REAL_BEFORE=$(date +%s)
+
+          systemctl kill -s STOP ghaf-clock-jump-watcher.service
+          # Both opposite steps have already settled: queue what they left
+          # behind, with the clock itself untouched.
+          printf "step\\nstep\\n" | timeout 5 tee /run/ghaf-clock-jump-watcher/step.fifo >/dev/null
+          systemctl kill -s CONT ghaf-clock-jump-watcher.service
+
+          for _ in $(seq 1 20); do
+            [ -f /run/ghaf-clock-jump-watcher.verify-recheck ] && break
+            sleep 1
+          done
+          if [ ! -f /run/ghaf-clock-jump-watcher.verify-recheck ]; then
+            echo "queued step events produced no verify recheck" >&2
+            journalctl -u ghaf-clock-jump-watcher.service --since "$BEFORE_TS" --no-pager >&2
+            exit 1
+          fi
+          journalctl -u ghaf-clock-jump-watcher.service --since "$BEFORE_TS" --no-pager | grep -F "clock step notified"
+
+          # Net drift really was ~zero, so the recheck cannot be credited to it.
+          REAL_AFTER=$(date +%s)
+          [ "$(( REAL_AFTER - REAL_BEFORE ))" -lt 60 ]
+
+          # A recheck, never an attestation: a re-key needs real evidence.
+          ATTESTED_AFTER=$(cat /var/log/journal/*/fss-clock-jump-attested 2>/dev/null || true)
+          [ "$ATTESTED_AFTER" = "$ATTESTED_BEFORE" ]
+        '
+      """)
+
+  with subtest("A real opposite-sign round trip is not lost to cancelling drift"):
+      # The same shape with real clock steps, on both sides of
+      # thresholdSeconds (30s): 20s legs are the harder sub-threshold case
+      # the queued-event branch exists for, 1200s legs are the regime the
+      # B7 hardware row used. Which branch handles each depends on whether
+      # journald logged the backward leg, so this asserts only what holds
+      # either way -- the pair must not settle into silence.
+      for leg in ("20", "1200"):
+          machine.succeed("""
+            bash -lc '
+              set -euo pipefail
+              LEG=""" + leg + """
+              # Both watcher-owned stamps, for the same reason as above: the
+              # verify timer runs on its own schedule, so an invocation id
+              # tells us who won a race rather than what the watcher decided.
+              rm -f /run/ghaf-clock-jump-watcher.verify-recheck
+              rm -f /run/ghaf-clock-jump-watcher.setup-restart
+              BEFORE_TS=$(date "+%Y-%m-%d %H:%M:%S")
+
+              systemctl kill -s STOP ghaf-clock-jump-watcher.service
+              T0=$(date +%s)
+              date -s "-$LEG seconds" >/dev/null
+              date -s "+$LEG seconds" >/dev/null
+              T1=$(date +%s)
+              # Net drift across the pair is the elapsed wall time alone,
+              # under thresholdSeconds whatever the leg size: drift cannot be
+              # what triggers recovery here.
+              [ "$(( T1 - T0 ))" -ge 0 ] && [ "$(( T1 - T0 ))" -lt 30 ]
+              systemctl kill -s CONT ghaf-clock-jump-watcher.service
+
+              ACTED=0
+              for _ in $(seq 1 30); do
+                if [ -f /run/ghaf-clock-jump-watcher.verify-recheck ] \\
+                  || [ -f /run/ghaf-clock-jump-watcher.setup-restart ]; then
+                  ACTED=1; break
+                fi
+                sleep 1
+              done
+              if [ "$ACTED" != 1 ]; then
+                echo "round trip with $LEG second legs produced neither a verify recheck nor a setup restart" >&2
+                journalctl -u ghaf-clock-jump-watcher.service --since "$BEFORE_TS" --no-pager >&2
+                exit 1
+              fi
+              # Record which branch handled it, for the PR evidence.
+              if journalctl -u ghaf-clock-jump-watcher.service --since "$BEFORE_TS" --no-pager \\
+                | grep -Fq "clock step notified"; then
+                echo "ROUNDTRIP-BRANCH $LEG s: event-alone"
+              else
+                echo "ROUNDTRIP-BRANCH $LEG s: journald evidence"
+              fi
+            '
+          """)
+
+  with subtest("A clock step during live verification invalidates that verdict"):
+      # The guard samples the step-event counter either side of its verify
+      # call and must discard evidence gathered across a step. Driven through
+      # the counter itself rather than a real step, so the injection is
+      # certain to land inside the window instead of racing it.
+      machine.succeed("""
+        bash -lc '
+          set -euo pipefail
+          MID=$(cat /etc/machine-id)
+          STATE=/var/log/journal/$MID
+          for _ in $(seq 1 60); do
+            systemctl is-active --quiet journal-fss-verify.service || break
+            sleep 1
+          done
+          # Make the re-entrant live probe warranted (live_probe_warranted).
+          printf "%s\\t%s\\t%s\\n" "$(date +%s)" "$(cat /proc/sys/kernel/random/boot_id)" "0" \\
+            > "$STATE/fss-clock-jump-attested"
+          rm -f "$STATE/fss-live-probe-state"
+
+          # 0.01s, not 0.2s: the live probe can complete in ~200ms, so a slower
+          # bumper misses the sample window entirely and the guard never sees a step.
+          ( while :; do echo step >> /run/ghaf-clock-step-events; sleep 0.01; done ) &
+          BUMPER=$!
+          trap "kill $BUMPER 2>/dev/null || true" EXIT
+
+          systemctl restart journal-fss-setup.service || true
+          kill "$BUMPER" 2>/dev/null || true
+
+          # Scope to THIS invocation. A tail of the unit log carries earlier
+          # runs from other subtests, so a plain grep would pass on history
+          # and prove nothing about the run we just drove.
+          INVID=$(systemctl show journal-fss-setup.service -p InvocationID --value)
+          journalctl _SYSTEMD_INVOCATION_ID="$INVID" --no-pager > /tmp/guard-invalidate.log 2>&1 || true
+          grep -F "Clock moved during live sealing verification" /tmp/guard-invalidate.log
+          grep -F "unclean" "$STATE/fss-live-probe-state"
+        '
+      """)
+
+  with subtest("Live verification is not invalidated when the clock holds still"):
+      # Negative control for the guard: same path, no counter movement, so
+      # the deferral must not fire and the probe must settle clean.
+      machine.succeed("""
+        bash -lc '
+          set -euo pipefail
+          MID=$(cat /etc/machine-id)
+          STATE=/var/log/journal/$MID
+          for _ in $(seq 1 60); do
+            systemctl is-active --quiet journal-fss-verify.service || break
+            sleep 1
+          done
+          printf "%s\\t%s\\t%s\\n" "$(date +%s)" "$(cat /proc/sys/kernel/random/boot_id)" "0" \\
+            > "$STATE/fss-clock-jump-attested"
+          rm -f "$STATE/fss-live-probe-state"
+          EV_BEFORE=$(wc -l < /run/ghaf-clock-step-events 2>/dev/null || echo 0)
+
+          systemctl restart journal-fss-setup.service || true
+
+          EV_AFTER=$(wc -l < /run/ghaf-clock-step-events 2>/dev/null || echo 0)
+          [ "$EV_BEFORE" = "$EV_AFTER" ]
+          # Same scoping as the positive case: the preceding subtest just
+          # drove a deferral on purpose, and a tail would still show it.
+          INVID=$(systemctl show journal-fss-setup.service -p InvocationID --value)
+          journalctl _SYSTEMD_INVOCATION_ID="$INVID" --no-pager > /tmp/guard-clean.log 2>&1 || true
+          if grep -Fq "Clock moved during live sealing verification" /tmp/guard-clean.log; then
+            echo "unexpected: verdict deferred with no step during verification" >&2
+            cat /tmp/guard-clean.log >&2
+            exit 1
+          fi
+        '
+      """)
+
   with subtest("Journal files are created"):
       mid = machine.succeed("cat /etc/machine-id").strip()
       exit_code, files = machine.execute(f"ls /var/log/journal/{mid}/*.journal 2>/dev/null || ls /run/log/journal/{mid}/*.journal 2>/dev/null")
