@@ -188,6 +188,90 @@ fss_unique_fail_paths_from_output() {
   printf '%s' "$unique"
 }
 
+# Drop the "FAIL: <path> ..." lines whose path is in drop_paths (one path per
+# line) from a classified failure block, keeping every other line. Used to
+# withdraw archives that a later check (e.g. a retained-key retry) has excused.
+fss_drop_fail_lines_for_paths() {
+  local block="$1" drop_paths="$2" line path kept=""
+
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+    FAIL:\ *)
+      path="${line#FAIL: }"
+      path="${path%% *}"
+      if grep -Fxq -- "$path" <<<"$drop_paths"; then
+        continue
+      fi
+      ;;
+    esac
+    kept=$(fss_append_line "$kept" "$line")
+  done <<<"$block"
+
+  printf '%s' "$kept"
+}
+
+# Superseded verification keys (verification-key.<epoch>), newest-created
+# first. Ordered by mtime, NOT the filename epoch: under backward clock
+# corrections each re-key's epoch is *lower* than the last, so a filename
+# sort would rank the newest key oldest.
+fss_list_retained_verification_keys() {
+  local key_dir="$1"
+
+  [ -n "$key_dir" ] || return 0
+  find "$key_dir" -maxdepth 1 -type f -name 'verification-key.*' -printf '%T@\t%p\n' 2>/dev/null |
+    sort -k1,1nr |
+    cut -f2-
+}
+
+# The authoritative newest-created-first ordering: the rekey-history file
+# (append-only, oldest first, field 2 = key path) when present, then any
+# on-disk key it doesn't name, by mtime. History order breaks mtime ties
+# and stays correct under backward corrections.
+fss_retained_keys_newest_first() {
+  local key_dir="$1" history_file="${2-}"
+  local ranked="" line hpath extra
+
+  [ -n "$key_dir" ] || return 0
+  if [ -n "$history_file" ] && [ -s "$history_file" ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+      hpath=${line#*$'\t'}
+      hpath=${hpath%%$'\t'*}
+      { [ -n "$hpath" ] && [ -f "$hpath" ]; } || continue
+      # Here-string avoids a pipefail/SIGPIPE misreport from grep -q's early exit.
+      if grep -Fxq -- "$hpath" <<<"$ranked"; then continue; fi
+      ranked=$(fss_append_line "$ranked" "$hpath")
+    done < <(tac -- "$history_file" 2>/dev/null)
+  fi
+  while IFS= read -r extra || [ -n "$extra" ]; do
+    [ -n "$extra" ] || continue
+    if grep -Fxq -- "$extra" <<<"$ranked"; then continue; fi
+    ranked=$(fss_append_line "$ranked" "$extra")
+  done < <(fss_list_retained_verification_keys "$key_dir")
+
+  printf '%s' "$ranked"
+}
+
+# True if an archived journal verifies under some retained key: proof it
+# belongs to a lineage sealed before a re-key. A journal tampered with
+# beforehand fails under the old key too, so is not excused. Never call this
+# on a live journal -- a live file seals under the current key and must verify
+# under it.
+fss_archive_verifies_under_retained_key() {
+  local archive_path="$1" key_dir="$2" key_file key
+
+  [ -n "$archive_path" ] && [ -n "$key_dir" ] || return 1
+  while IFS= read -r key_file || [ -n "$key_file" ]; do
+    [ -n "$key_file" ] || continue
+    [ -s "$key_file" ] && [ -r "$key_file" ] || continue
+    key=$(tr -d '[:space:]' <"$key_file")
+    if journalctl --verify --verify-key="$key" --file="$archive_path" >/dev/null 2>&1; then
+      return 0
+    fi
+  done < <(fss_list_retained_verification_keys "$key_dir")
+
+  return 1
+}
+
 # Clock-jump and FSS re-key predicates. Pure, so they are testable: see
 # tests/logging/test_scripts/fss-classifier-cases.nix.
 
@@ -779,6 +863,12 @@ fss_classification_tags() {
 #   $3 = pre-activation receipt records (TSV, newline-separated, optional)
 #   $4 = current boot_id (optional; distinguishes this boot's boundary from stale)
 #   $5 = journalctl --verify exit code (optional; nonzero unclassified exits fail)
+#   $6 = unclean-shutdown receipt records (TSV, newline-separated, optional)
+#   $7 = 1 if an attested re-key has retained superseded verification keys on
+#        disk (optional, default 0). When set, a leftover archived-system
+#        failure that neither a retained key nor a receipt covers is treated as
+#        re-key transition collateral (warning) rather than tamper (fail), so
+#        the verdict does not depend on journald vacuum timing across VMs.
 # Outputs (as globals):
 #   FSS_VERDICT        = verified | warning | fail
 #   FSS_VERDICT_REASON = short human-readable reason
@@ -795,7 +885,7 @@ fss_classification_tags() {
 #               backstop (see fss.mdx "does not protect against").
 #   fail      - active-system failure, key defect, unclassified failure, or an
 #               archived failure with no matching receipt (unrecorded or
-#               content-substituted).
+#               content-substituted) and no attested re-key to account for it.
 # Receipt matching is content-bound: callers should pass receipts already filtered
 # against disk (see fss_filter_valid_receipts) so a substituted archive presents
 # as unmatched and fails closed. Requires fss_classify_verify_output first.
@@ -806,6 +896,7 @@ fss_verify_policy_decision() {
   local current_boot="${4-}"
   local verify_exit="${5:-0}"
   local unclean_shutdown_receipts="${6-}"
+  local rekey_attested="${7:-0}"
   local allowed_list="" recovery_paths pre_activation_paths unclean_paths archived_paths path boot
   local recovery_seen=0 recovery_stale=0
   local pre_activation_seen=0 pre_activation_stale=0 exception_seen=0
@@ -917,6 +1008,16 @@ fss_verify_policy_decision() {
           fi
         fi
       done <<<"$archived_paths"
+    elif [ "$rekey_attested" = 1 ]; then
+      # The retained-key retry already excused every archive that verifies
+      # under one; what's left is a re-key recovery-window archive under a
+      # transient FSPRG state no retained key covers -- collateral of the
+      # re-key, not tamper. Downgrade to warning so the verdict doesn't
+      # hinge on journald's vacuum timing.
+      FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "REKEY_TRANSITION_ARCHIVE")
+      FSS_VERDICT=warning
+      FSS_VERDICT_REASON="archived system journal from an attested re-key transition"
+      return 0
     else
       FSS_VERDICT=fail
       FSS_VERDICT_REASON="archived system journal failures outside allowlist"

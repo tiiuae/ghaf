@@ -842,13 +842,76 @@ let
       # discard the poisoned key pair, and re-run key setup from the current
       # clock. Bounded to one attempt per invocation chain, and only when the
       # future tag sits beyond any plausible in-flight sealing interval.
-      # Superseded keys, newest first. Sorted on the epoch suffix, not the whole
-      # path, so a dot in cfg.keyPath cannot reorder them.
-      list_retained_verification_keys() {
-        find "$KEY_DIR" -maxdepth 1 -type f -name 'verification-key.*' -print 2>/dev/null \
-          | awk -F'verification-key.' '{ printf "%s\t%s\n", $NF, $0 }' \
-          | sort -k1,1nr \
-          | cut -f2-
+      # Force a file + its parent dir entry durable. $KEY_DIR is virtiofs on
+      # guests; without an fsync, a re-key write can sit in guest writeback
+      # and be lost on reboot. Per-file sync, not "sync -f": syncfs would
+      # also flush every other VM's key dir on the shared source.
+      durable_write() {
+        local target="$1"
+        [ -e "$target" ] || return 0
+        sync "$target" 2>/dev/null || true
+        sync "$(dirname "$target")" 2>/dev/null || true
+      }
+
+      # journalctl --setup-keys, then install both halves durably: sealing key
+      # fsync'd in place, verification key via temp -> fsync -> atomic rename
+      # -> fsync dir, so a reader never sees a torn or mismatched pair. --force
+      # overwrites an existing sealing key (the re-key path); on failure the
+      # previous verification key (or none) survives, never a partial.
+      generate_fss_key_pair() {
+        local so_tmp vk_tmp
+        so_tmp="$KEY_DIR/.setup-output.$$"
+
+        if [ "''${1:-}" = "--force" ]; then
+          journalctl --setup-keys --force --interval="${cfg.sealInterval}" > "$so_tmp" 2>&1 || {
+            fss_log fail "journalctl --setup-keys --force failed"
+            cat "$so_tmp" 2>/dev/null || true
+            shred -u "$so_tmp" 2>/dev/null || rm -f "$so_tmp"
+            return 1
+          }
+        else
+          journalctl --setup-keys --interval="${cfg.sealInterval}" > "$so_tmp" 2>&1 || {
+            fss_log fail "journalctl --setup-keys failed"
+            cat "$so_tmp" 2>/dev/null || true
+            shred -u "$so_tmp" 2>/dev/null || rm -f "$so_tmp"
+            return 1
+          }
+        fi
+
+        # --setup-keys may place the sealing key at the volatile path.
+        FSS_KEY_FILE=$(fss_resolve_key_file "$MACHINE_ID")
+        if [ ! -f "$FSS_KEY_FILE" ]; then
+          fss_log fail "FSS key generation failed - sealing key not found at $FSS_KEY_FILE"
+          shred -u "$so_tmp" 2>/dev/null || rm -f "$so_tmp"
+          return 1
+        fi
+        harden_sealing_key "$FSS_KEY_FILE"
+        # Flush the new sealing key before touching the verification key: a
+        # reboot must see a complete new fss, or one truncated by --force (which
+        # journald rejects at startup -> fresh keygen next boot), never a valid
+        # OLD fss beside the new verification key.
+        sync "$FSS_KEY_FILE" 2>/dev/null || true
+
+        # Verification key = last line of the setup output.
+        vk_tmp="$KEY_DIR/.verification-key.new.$$"
+        if ! tail -1 "$so_tmp" | tr -d '[:space:]' > "$vk_tmp" || [ ! -s "$vk_tmp" ]; then
+          fss_log fail "Could not extract a non-empty verification key from --setup-keys output"
+          rm -f "$vk_tmp"
+          shred -u "$so_tmp" 2>/dev/null || rm -f "$so_tmp"
+          return 1
+        fi
+        shred -u "$so_tmp" 2>/dev/null || rm -f "$so_tmp"
+        chmod 0400 "$vk_tmp"
+        sync "$vk_tmp" 2>/dev/null || true
+        if ! mv -f "$vk_tmp" "$VERIFY_KEY_FILE"; then
+          fss_log fail "Could not install the new verification key at $VERIFY_KEY_FILE"
+          rm -f "$vk_tmp"
+          return 1
+        fi
+        durable_write "$VERIFY_KEY_FILE"
+        fss_log pass "FSS verification key extracted successfully"
+        fss_log info "IMPORTANT: Store verification key off-host in a secure vault"
+        return 0
       }
 
       # Keep the outgoing verification key: a re-key regenerates seed and
@@ -871,52 +934,75 @@ let
         fi
         chown root:root "$retained" 2>/dev/null || true
         chmod 0400 "$retained" 2>/dev/null || true
+        # fsync the retained key and $KEY_DIR now: the dir fsync also makes the
+        # removal of the bare verification-key (the mv above) durable, so a
+        # reboot cannot resurrect it paired with a new sealing key.
+        durable_write "$retained"
         fss_log warn "Retained the superseded FSS verification key at $retained"
         return 0
       }
 
+      # Keep the REKEY_RETAINED_KEYS most recently *created* keys, delete the
+      # rest. Recency comes from fss_retained_keys_newest_first (rekey-history
+      # order, mtime fallback) -- never the epoch in the filename, which runs
+      # backwards under backward clock corrections and would keep the earliest
+      # corrections' keys while dropping the latest one just created.
       prune_retained_verification_keys() {
-        local kept=0 path
+        local budget="$REKEY_RETAINED_KEYS" kept=0 path
+        [ "$budget" -ge 0 ] 2>/dev/null || budget=0
 
         while IFS= read -r path || [ -n "$path" ]; do
           [ -n "$path" ] || continue
+          # Only ever delete a numbered retained key. rekey-history is an
+          # un-fsync'd append; a torn line could yield a path that resolves to
+          # the bare verification-key or something outside $KEY_DIR -- never rm
+          # that.
+          case "$path" in
+          "$KEY_DIR"/verification-key.[0-9]*) ;;
+          *)
+            fss_log warn "Retention sweep: refusing to prune unexpected path '$path'"
+            continue
+            ;;
+          esac
           kept=$(( kept + 1 ))
-          [ "$kept" -gt "$REKEY_RETAINED_KEYS" ] || continue
+          [ "$kept" -le "$budget" ] && continue
           rm -f "$path"
-          fss_log info "Pruned superseded verification key $path (keeping newest $REKEY_RETAINED_KEYS)"
-        done < <(list_retained_verification_keys)
+          fss_log info "Pruned superseded verification key $path (keeping newest $budget by creation order)"
+        done < <(fss_retained_keys_newest_first "$KEY_DIR" "$REKEY_HISTORY_FILE")
       }
 
-      # Append-only re-key log. A silent re-key invalidates the off-host copy of
-      # the verification key that the keyPath docs tell operators to keep.
+      # Append-only re-key log, used to order retained keys by recency.
+      # Rewritten atomically (copy -> append -> fsync -> rename -> fsync dir):
+      # an un-fsync'd append could be lost or torn on a re-key reboot and
+      # mislead the retention sweep. Call only once the new pair is durable,
+      # so a surviving line never names a missing key.
       record_rekey_history() {
-        local rekey_epoch="$1" retained="$2" attestation="$3" retained_sha
+        local rekey_epoch="$1" retained="$2" attestation="$3" retained_sha rh_tmp
 
         retained_sha=$(sha256sum "$retained" 2>/dev/null | cut -d' ' -f1 || true)
+        rh_tmp="$KEY_DIR/.rekey-history.new.$$"
+        if [ -f "$REKEY_HISTORY_FILE" ]; then
+          cat "$REKEY_HISTORY_FILE" > "$rh_tmp" 2>/dev/null || : > "$rh_tmp"
+        else
+          : > "$rh_tmp"
+        fi
         printf '%s\t%s\t%s\t%s\n' \
-          "$rekey_epoch" "$retained" "''${retained_sha:--}" "''${attestation:--}" \
-          >> "$REKEY_HISTORY_FILE" 2>/dev/null || true
-        chmod 0600 "$REKEY_HISTORY_FILE" 2>/dev/null || true
+          "$rekey_epoch" "$retained" "''${retained_sha:--}" "''${attestation:--}" >> "$rh_tmp"
+        chmod 0600 "$rh_tmp" 2>/dev/null || true
+        sync "$rh_tmp" 2>/dev/null || true
+        if ! mv -f "$rh_tmp" "$REKEY_HISTORY_FILE"; then
+          rm -f "$rh_tmp"
+          fss_log warn "Could not update rekey-history"
+        fi
+        durable_write "$REKEY_HISTORY_FILE"
         printf '%s\n' \
           "AUDIT_LOG_FSS_REKEY: FSS re-keyed after an attested backward clock step at $rekey_epoch; superseded verification key retained at $retained" \
           | systemd-cat -t journal-fss -p crit 2>/dev/null || true
       }
 
-      # Proof an archive belongs to a lineage sealed before the re-key. One
-      # tampered with beforehand fails under the old key too, so is not excused.
+      # Shared with journal-fss-verify via the classifier lib.
       archive_verifies_under_retained_key() {
-        local archive_path="$1" key_file key
-
-        while IFS= read -r key_file || [ -n "$key_file" ]; do
-          [ -n "$key_file" ] || continue
-          [ -s "$key_file" ] && [ -r "$key_file" ] || continue
-          key=$(tr -d '[:space:]' < "$key_file")
-          if journalctl --verify --verify-key="$key" --file="$archive_path" >/dev/null 2>&1; then
-            return 0
-          fi
-        done < <(list_retained_verification_keys)
-
-        return 1
+        fss_archive_verifies_under_retained_key "$1" "$KEY_DIR"
       }
 
       recover_from_time_poisoned_sealing() {
@@ -982,9 +1068,23 @@ let
           fss_log warn "Re-key receipted no archives; the freeze rotation may not have taken effect"
         fi
         prune_recovery_receipts
-        rm -f "$FSS_KEY_FILE"
+
+        # generate_fss_key_pair --force keeps a valid sealing key in place
+        # throughout (no bare "rm fss"), so a reboot mid-swap lands on the old
+        # pair or a complete new one -- never mismatched/torn.
+        if ! generate_fss_key_pair --force; then
+          fss_log fail "Re-key failed: could not regenerate the FSS key pair; verification stays failed"
+          return 1
+        fi
+
+        # Only now that the new pair is durable: record the re-key. rekey-history
+        # is itself written atomically, so a surviving line never names a key
+        # that is not on disk.
         record_rekey_history "$rekey_epoch" "$retained" "$attestation_epoch"
-        prune_retained_verification_keys
+
+        # Retention pruning is deferred to finish_setup (after the re-exec's
+        # activation confirms the new pair): not time-critical, and running it
+        # here -- mid-re-key -- only widened the reboot window.
         clear_initialized_state
         rm -f "$STATE_DIR/fss-rotated" "$ACTIVATION_STATE_FILE" "$FSS_BOOT_BASELINE_FILE"
         # Consume the attestation: it authorises exactly one re-key. Kept out of
@@ -1177,6 +1277,13 @@ let
       # silently passing.
       finish_setup() {
         receipt_rekey_transition_remainder
+        # Prune superseded verification keys here, once the current pair is
+        # regenerated and durable -- not in recover_from_time_poisoned_sealing
+        # where it ran while fss was deleted. Only after a clean activation and
+        # only if re-keys have ever happened.
+        if [ "$ACTIVATION_FAILED" = 0 ] && [ -s "$REKEY_HISTORY_FILE" ]; then
+          prune_retained_verification_keys
+        fi
         if [ "$ACTIVATION_FAILED" = 1 ]; then
           fss_log fail "FSS setup finished but sealing activation failed; logs are unsealed"
           exit 1
@@ -1238,7 +1345,10 @@ let
       SETUP_ARCHIVES_BEFORE=$(mktemp)
       # shellcheck disable=SC2329  # invoked indirectly via the EXIT trap below
       cleanup_setup_tmp() {
-        rm -f "$SETUP_ARCHIVES_BEFORE"
+        rm -f "$SETUP_ARCHIVES_BEFORE" \
+          "$KEY_DIR"/.verification-key.new.* \
+          "$KEY_DIR"/.rekey-history.new.* \
+          "$KEY_DIR"/.setup-output.*
       }
       trap cleanup_setup_tmp EXIT
       # Broad list: the jump-receipt path gates on membership here, and a
@@ -1280,45 +1390,23 @@ let
         finish_setup
       fi
 
-      # Generate new FSS keys
+      # Generate new FSS keys. generate_fss_key_pair does the whole job durably:
+      # journalctl --setup-keys, sealing-key fsync, and an atomic fsync'd write
+      # of the verification key.
       fss_log info "Setting up Forward Secure Sealing keys..."
       clear_initialized_state
-      if ! journalctl --setup-keys --interval="${cfg.sealInterval}" > "$KEY_DIR/setup-output.txt" 2>&1; then
-        fss_log fail "journalctl --setup-keys failed"
-        cat "$KEY_DIR/setup-output.txt"
-        exit 1
-      fi
-
-      # Extract verification key robustly (locale-independent)
-      # The verification key is the last line of output
-      # Format: seed-hex-with-hyphens/start-hex-interval-hex
-      # Example: f90032-d54bd1-57dd7a-d09e1b/190250-35a4e900
-      if tail -1 "$KEY_DIR/setup-output.txt" | tr -d '[:space:]' > "$KEY_DIR/verification-key"; then
-        if [ -s "$KEY_DIR/verification-key" ]; then
-          chmod 0400 "$KEY_DIR/verification-key"
-          fss_log pass "FSS verification key extracted successfully"
-          fss_log info "IMPORTANT: Store verification key off-host in a secure vault"
-        else
-          fss_log warn "Verification key file is empty"
+      if ! generate_fss_key_pair; then
+        # --setup-keys itself failed (no sealing key) -> nothing to activate.
+        # A sealing key with no verification key falls through to
+        # ensure_verification_key_ready below, which activates + alerts.
+        FSS_KEY_FILE=$(fss_resolve_key_file "$MACHINE_ID")
+        if [ ! -f "$FSS_KEY_FILE" ]; then
+          clear_initialized_state
+          fss_log fail "FSS key generation failed - no sealing key was created"
+          exit 1
         fi
-      else
-        fss_log warn "Could not extract verification key from output"
+        fss_log fail "FSS key generation did not complete cleanly; verification key may be missing"
       fi
-
-      # Securely remove setup output (contains sensitive key material)
-      shred -u "$KEY_DIR/setup-output.txt" 2>/dev/null || rm -f "$KEY_DIR/setup-output.txt"
-
-      # Re-resolve: --setup-keys may have placed it somewhere the
-      # pre-generation guess above didn't anticipate.
-      FSS_KEY_FILE=$(fss_resolve_key_file "$MACHINE_ID")
-
-      # Verify sealing key was created
-      if [ ! -f "$FSS_KEY_FILE" ]; then
-        clear_initialized_state
-        fss_log fail "FSS key generation failed - key file not found at $FSS_KEY_FILE"
-        exit 1
-      fi
-      harden_sealing_key "$FSS_KEY_FILE"
 
       if ! ensure_verification_key_ready; then
         # The sealing key exists now, so keep verify enabled to emit KEY_MISSING
@@ -1365,6 +1453,7 @@ let
       util-linux
       gnugrep
       gawk
+      findutils
     ];
     # /etc/fss-verify-classifier.sh is populated at runtime (see environment.etc
     # above); shellcheck cannot follow it statically.
@@ -1499,13 +1588,54 @@ let
             UNCLEAN_RECEIPTS=$(fss_filter_valid_receipts "$RAW_UNCLEAN_RECEIPTS")
 
             fss_classify_verify_output "$VERIFY_OUTPUT"
+
+            # Retained-key rescue: a re-key reseals under a new key, so
+            # pre-re-key archives fail the current key even though intact.
+            # Retry failing archives against retained keys; a tampered
+            # archive still fails under every key. REKEY_ATTESTED also
+            # downgrades a leftover unreceipted archive to warning in
+            # fss_verify_policy_decision, instead of failing.
+            REKEY_ATTESTED=0
+            if [ -n "$(fss_list_retained_verification_keys "${cfg.keyPath}")" ]; then
+              REKEY_ATTESTED=1
+            fi
+            RESCUED_ARCHIVES=""
+            if [ -n "$FSS_ARCHIVED_SYSTEM_FAILURES$FSS_USER_FAILURES" ] \
+              && [ "$REKEY_ATTESTED" = 1 ]; then
+              while IFS= read -r RESCUE_PATH || [ -n "$RESCUE_PATH" ]; do
+                [ -n "$RESCUE_PATH" ] || continue
+                case "$RESCUE_PATH" in
+                *@*.journal | *@*.journal~) ;;
+                *) continue ;;
+                esac
+                if fss_archive_verifies_under_retained_key "$RESCUE_PATH" "${cfg.keyPath}"; then
+                  RESCUED_ARCHIVES=$(fss_append_line "$RESCUED_ARCHIVES" "$RESCUE_PATH")
+                fi
+              done <<<"$(fss_unique_fail_paths_from_output "$(printf '%s\n%s\n' "$FSS_ARCHIVED_SYSTEM_FAILURES" "$FSS_USER_FAILURES")")"
+            fi
+
+            if [ -n "$RESCUED_ARCHIVES" ]; then
+              fss_log warn "Retained-key rescue: archived journals verify under a superseded verification key (pre-re-key lineage), excusing:"
+              printf '%s\n' "$RESCUED_ARCHIVES" | fss_log_block
+              VERIFY_OUTPUT=$(fss_drop_fail_lines_for_paths "$VERIFY_OUTPUT" "$RESCUED_ARCHIVES")
+              # No failing lines left => every journal verifies under the
+              # current or a retained key; mirror journalctl's clean exit so
+              # the policy decision does not trip its nonzero-exit backstop.
+              # Here-string avoids a pipefail/SIGPIPE misreport (see fss-verify-classifier.sh).
+              if ! grep -q '^FAIL: ' <<<"$VERIFY_OUTPUT"; then
+                VERIFY_EXIT=0
+              fi
+              fss_classify_verify_output "$VERIFY_OUTPUT"
+            fi
+
             fss_verify_policy_decision \
               "$(fss_read_recorded_pre_fss_archive "$PRE_FSS_ARCHIVE_FILE")" \
               "$RECOVERY_RECEIPTS" \
               "$PRE_ACTIVATION_RECEIPTS" \
               "$CURRENT_BOOT_ID" \
               "$VERIFY_EXIT" \
-              "$UNCLEAN_RECEIPTS"
+              "$UNCLEAN_RECEIPTS" \
+              "$REKEY_ATTESTED"
 
             case "$FSS_VERDICT" in
             fail)
@@ -1760,15 +1890,21 @@ in
 
       retainedKeys = mkOption {
         type = types.int;
-        default = 2;
+        default = 3;
         description = ''
           How many superseded verification keys to keep alongside the live one.
 
           A re-key regenerates the seed and start_usec, so journals sealed
           before it can never be verified with the new key. Retaining the
-          outgoing key keeps that history auditable offline, and lets the
+          outgoing key keeps that history auditable offline, lets the
           transition sweep prove an archive belongs to a pre-re-key lineage
-          cryptographically instead of inferring it from timestamps.
+          cryptographically instead of inferring it from timestamps, and lets
+          journal-fss-verify excuse pre-re-key archives instead of degrading.
+
+          The default of 3 covers two attested backward corrections close
+          enough together that the second re-keys before the first's archives
+          have aged out of journald retention -- the second correction then
+          needs both the pre-first and post-first keys still on disk.
 
           The cost is exposure: an FSS verification key is seed + start +
           interval, so possession allows forging entries from that epoch
