@@ -262,12 +262,27 @@ in
   # to be discoverable via mDNS, so turn publishing off on both sides.
   systemd.network.networks."10-ethint0".networkConfig.MulticastDNS = false;
   networking.networkmanager.connectionConfig."connection.mdns" = 0;
+  ghaf.virtualization.microvm.trafficMirror.sender = {
+    enable = globalConfig.idsvm.passiveMonitor.enable or false;
+    mirrorExternalInterfaces = globalConfig.idsvm.passiveMonitor.external or false;
+    snaplen = globalConfig.idsvm.passiveMonitor.snaplen or null;
+  }
+  # Only set netem when a device profile actually provides one, so
+  # targets that don't (yet) validate their own value fall through to
+  # trafficMirror.sender.netem's own default instead of silently
+  # duplicating that default string here too. `? netem` alone would not
+  # do this: it's a declared option with a default, so the attribute is
+  # always present in globalConfig -- checking the value against null is
+  # what actually distinguishes "a profile set it" from "still unset".
+  // lib.optionalAttrs (globalConfig.idsvm.passiveMonitor.netem or null != null) {
+    netem = globalConfig.idsvm.passiveMonitor.netem;
+  };
 
   systemd.tmpfiles.rules = [ "d /persist/sysupdate 0755 ghaf root -" ]; # Set permissions for mountpoint
   microvm = {
     # Optimize is disabled because when it is enabled, qemu is built without libusb
     optimize.enable = false;
-    vcpu = lib.mkDefault 2;
+    vcpu = lib.mkDefault 3;
     mem = lib.mkDefault 1024;
     shares = [
       {
@@ -298,4 +313,10 @@ in
       ];
     };
   };
+
+  # Renaming usb-ethernet interfaces to a stable name based on the interface index.
+  services.udev.extraRules = ''
+    SUBSYSTEM=="net", ACTION=="add", DRIVERS=="usb", \
+      NAME="${hostConfig.common.hardware.usbEthernetPrefix}%E{IFINDEX}"
+  '';
 }
