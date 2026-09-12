@@ -7,12 +7,7 @@
 {
   _file = ./orin-agx.nix;
 
-  imports = [
-    ../../../../common/services/hwinfo
-    # Host keeps the real DCE R5 and loads dce-host-proxy so the guest drives
-    # the panel through it. Shared by AGX and NX.
-    ../nvidia-jetson-orin/virtualization/common/dce-virt-common/dce-probe-host.nix
-  ];
+  imports = [ ../../../../common/services/hwinfo ];
 
   ghaf = {
     # Enable hardware info generation on host
