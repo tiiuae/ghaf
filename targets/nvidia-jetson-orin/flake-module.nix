@@ -183,6 +183,20 @@ let
       };
     })
 
+    # Same board as above, plus the extras trial profile - the only Orin
+    # target that turns on idsvm.passiveMonitor (see modules/profiles/orin.nix).
+    (ghaf-configuration {
+      name = "nvidia-jetson-orin-agx-extras";
+      inherit system;
+      profile = "orin";
+      hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx;
+      variant = "debug";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-orinuser-trial-extras.enable = true;
+      };
+    })
+
     (ghaf-configuration {
       name = "nvidia-jetson-orin-agx-accelerated-guivm";
       inherit system;

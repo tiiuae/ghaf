@@ -409,18 +409,10 @@ in
             # wifi is now controlled via ghaf.global-config.features.wifi
             # Use evaluatedConfig pattern - extend netvmBase with vmConfig modules
             evaluatedConfig = config.ghaf.profiles.orin.netvmBase.extendModules {
-              modules =
-                (lib.ghaf.vm.applyVmConfig {
-                  inherit config;
-                  vmName = "netvm";
-                })
-                ++ [
-                  # RPS steering across mirrored external interfaces is
-                  # disabled on Orin - see
-                  # modules/microvm/common/traffic-mirror.nix (defaults to
-                  # enabled elsewhere, e.g. laptop-x86).
-                  { ghaf.virtualization.microvm.trafficMirror.sender.rps.enable = false; }
-                ];
+              modules = lib.ghaf.vm.applyVmConfig {
+                inherit config;
+                vmName = "netvm";
+              };
             };
           };
 
@@ -464,18 +456,27 @@ in
           };
 
           idsvm = {
-            enable = true;
+            # Off by default on the base Orin profile - only the *-extras
+            # trial images (mvp-orinuser-trial-extras.nix) turn ids-vm on.
+            enable = false;
             evaluatedConfig = cfg.idsvmBase;
             passiveMonitor = {
-              enable = true;
+              # Off by default on the base Orin profile - only the *-extras
+              # trial images (mvp-orinuser-trial-extras.nix) turn this on.
+              enable = false;
               external = true;
+              # Validated on Orin AGX via ghaf-mirror-bench across 50M-1G:
+              # cuts host CPU overhead from mirroring by roughly two thirds
+              # vs. trafficMirror.sender.netem's own default (9.26% -> 2.67-3.00%
+              # delta at the same throughput), with zero packet loss at every
+              # tested rate. The wider batching window trades away mirror-path
+              # latency for that CPU headroom, which is the right trade here
+              # since ids-vm is a passive monitor, not inline on live traffic
+              # (see modules/microvm/common/traffic-mirror.nix). Takes effect
+              # only where passiveMonitor.enable is turned on.
+              netem = "slot 400ms 600ms packets 49152 limit 65536";
             };
           };
-
-          # RPS steering on the host-side receive taps is disabled on Orin -
-          # see modules/microvm/host/traffic-mirror.nix for what this
-          # otherwise does (defaults to enabled elsewhere, e.g. laptop-x86).
-          host.trafficMirror.rps.enable = false;
 
           guivm = {
             enable = lib.mkDefault false;
