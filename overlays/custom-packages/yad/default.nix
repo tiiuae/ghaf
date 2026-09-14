@@ -5,7 +5,7 @@
 # enables all of them. They cost 536 MB of closure on every ghaf image:
 #
 #   --enable-html          webkitgtk_4_1   (the bulk of it, and built from source)
-#   --enable-sourceview    gtksourceview
+#   --enable-sourceview    gtksourceview3
 #   --enable-spell         gspell
 #   --enable-appindicator  libappindicator
 #
