@@ -153,5 +153,14 @@ in
     # Sensible defaults - can be overridden via vmConfig
     vcpu = lib.mkDefault 1;
     mem = lib.mkDefault 512;
+
+    shares = [
+      {
+        tag = "ghaf-common";
+        source = "/persist/common";
+        mountPoint = "/etc/common";
+        proto = "virtiofs";
+      }
+    ];
   };
 }

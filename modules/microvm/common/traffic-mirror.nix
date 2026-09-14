@@ -96,9 +96,9 @@ let
           || { echo "ids-mirror: ERROR: failed to add truncate filter on mirror" >&2; exit 1; }
       ''}
 
-      mirrored=0
-
       ${lib.optionalString cfg.sender.mirrorExternalInterfaces ''
+        mirrored=0
+
         ${lib.optionalString cfg.sender.rps.enable ''
           sysctl -w net.core.rps_sock_flow_entries=32768 >/dev/null 2>&1 || true
         ''}
@@ -193,8 +193,17 @@ let
         done
       ''}
 
-      [ "$mirrored" -gt 0 ] || { echo "ids-mirror: no interfaces configured for mirroring" >&2; exit 1; }
-      echo "ids-mirror: mirroring $mirrored interface(s) to mirror"
+      ${
+        if cfg.sender.mirrorExternalInterfaces then
+          ''
+            [ "$mirrored" -gt 0 ] || { echo "ids-mirror: ERROR: mirrorExternalInterfaces is on but no eligible interfaces were found to mirror" >&2; exit 1; }
+            echo "ids-mirror: mirroring $mirrored interface(s) to mirror"
+          ''
+        else
+          ''
+            echo "ids-mirror: mirrorExternalInterfaces is off - external interface mirroring not configured (internal-only monitoring, or netem/truncation setup only)"
+          ''
+      }
     '';
   };
 
