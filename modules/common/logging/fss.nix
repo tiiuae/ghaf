@@ -852,27 +852,6 @@ let
       # discard the poisoned key pair, and re-run key setup from the current
       # clock. Bounded to one attempt per invocation chain, and only when the
       # future tag sits beyond any plausible in-flight sealing interval.
-      # Force a file and its parent directory entry to durable storage. On a
-      # guest $KEY_DIR is a virtiofs share from the host; without an explicit
-      # fsync a re-key write sits in guest writeback and is lost if the VM
-      # reboots right after (observed on net-vm, the reboot initiator, after a
-      # -9h correction: new verification-key/rekey-history never reached the
-      # host mount, diverging from the new sealing key on local storage). Uses
-      # per-file sync, not "sync -f": syncfs here would also flush every other
-      # VM's key dir on the shared source.
-      durable_write() {
-        local target="$1"
-        [ -e "$target" ] || return 0
-        if ! sync "$target"; then
-          fss_log fail "Could not flush $target to durable storage"
-          return 1
-        fi
-        if ! sync "$(dirname "$target")"; then
-          fss_log fail "Could not flush $(dirname "$target") to durable storage"
-          return 1
-        fi
-      }
-
       # Run journalctl --setup-keys and install BOTH halves of the new pair
       # durably before returning. The sealing key ($FSS_KEY_FILE, local storage)
       # is fsync'd in place; the verification key is written to $KEY_DIR (a

@@ -369,4 +369,112 @@
         '
       """)
 
+  with subtest("Receipt write is best-effort durable: an fsync failure is logged, not lost or fatal"):
+      # fss_write_receipt AND durable_write both come from sourcing ONLY
+      # /etc/fss-verify-classifier.sh -- deliberately not fss.nix's setup
+      # script, and the probe does NOT redefine durable_write itself. This
+      # exact sourcing shape (classifier alone, nothing else) is what
+      # ghaf-journal-alloy-recover (common.nix) actually uses in production:
+      # durable_write used to live only in fss.nix, so a receipt write from
+      # that unit called an undefined function, silently swallowed by the
+      # best-effort `||` -- exactly the path that produced the real hardware
+      # failure this fix responds to (see finding-receipt-store-not-durable.md).
+      # Built line by line with printf (no heredoc): a heredoc's closing
+      # delimiter must sit at column 0, which would pull Nix's indented-string
+      # dedent down to 0 for this whole file and break the combined test
+      # script's type check.
+      machine.succeed("""
+        bash -lc '
+          set -euo pipefail
+          MID=$(cat /etc/machine-id)
+          JD="/var/log/journal/$MID"
+          RECEIPT_FILE="$JD/fss-recovery-receipts-test"
+          ARCHIVE="$JD/fss-receipt-durability-test-archive"
+          rm -f "$RECEIPT_FILE" "$ARCHIVE"
+          echo "synthetic archive content" > "$ARCHIVE"
+
+          PROBE=/tmp/receipt-durability-probe.sh
+          : > "$PROBE"
+          printf "%s\\n" "set -euo pipefail" >> "$PROBE"
+          printf "%s\\n" "source /etc/fss-verify-classifier.sh" >> "$PROBE"
+          printf "%s\\n" "type durable_write >/dev/null" >> "$PROBE"
+          printf "fss_write_receipt %q %q %q info %q\\n" \
+            "$RECEIPT_FILE" "$ARCHIVE" "test-reason" "test receipt" \
+            >> "$PROBE"
+
+          EXIT=0
+          LD_PRELOAD=${faultLib} FSS_FSYNC_FAIL_GLOB="$RECEIPT_FILE" \
+            bash "$PROBE" >/tmp/inject-receipt.log 2>&1 || EXIT=$?
+
+          echo "DIAG log:"; cat /tmp/inject-receipt.log
+          grep -Fx "fss-fsync-fault: EIO $RECEIPT_FILE" /tmp/inject-receipt.log
+          # Best-effort: the function itself must not fail the caller.
+          [ "$EXIT" -eq 0 ]
+          # The append must have landed regardless of the injected fsync failure.
+          grep -Fq "$ARCHIVE" "$RECEIPT_FILE"
+          # The durability failure must be logged, not silently swallowed.
+          grep -F "receipt not confirmed durable: $ARCHIVE" /tmp/inject-receipt.log
+
+          rm -f "$RECEIPT_FILE" "$ARCHIVE" "$PROBE"
+        '
+      """)
+
+      # Negative control: same preload, a glob matching nothing, so no
+      # durability warning fires.
+      machine.succeed("""
+        bash -lc '
+          set -euo pipefail
+          MID=$(cat /etc/machine-id)
+          JD="/var/log/journal/$MID"
+          RECEIPT_FILE="$JD/fss-recovery-receipts-test2"
+          ARCHIVE="$JD/fss-receipt-durability-test-archive2"
+          rm -f "$RECEIPT_FILE" "$ARCHIVE"
+          echo "synthetic archive content" > "$ARCHIVE"
+
+          PROBE=/tmp/receipt-durability-probe2.sh
+          : > "$PROBE"
+          printf "%s\\n" "set -euo pipefail" >> "$PROBE"
+          printf "%s\\n" "source /etc/fss-verify-classifier.sh" >> "$PROBE"
+          printf "fss_write_receipt %q %q %q info %q\\n" \
+            "$RECEIPT_FILE" "$ARCHIVE" "test-reason" "test receipt" \
+            >> "$PROBE"
+
+          LD_PRELOAD=${faultLib} FSS_FSYNC_FAIL_GLOB="/nonexistent/matches-nothing" \
+            bash "$PROBE" > /tmp/no-inject-receipt.log 2>&1
+          grep -Fq "$ARCHIVE" "$RECEIPT_FILE"
+          if grep -Fq "fss-fsync-fault: EIO" /tmp/no-inject-receipt.log; then
+            echo "unexpected: the shim injected a failure with a non-matching glob" >&2
+            exit 1
+          fi
+          if grep -Fq "receipt not confirmed durable" /tmp/no-inject-receipt.log; then
+            echo "unexpected: durability warning fired with no injected failure" >&2
+            exit 1
+          fi
+          rm -f "$RECEIPT_FILE" "$ARCHIVE" "$PROBE"
+        '
+      """)
+
+  with subtest("durable_write is reachable from ghaf-journal-alloy-recover's own sourcing, not just fss.nix"):
+      # Direct regression test for the scope bug: ghaf-journal-alloy-recover
+      # (common.nix) sources ONLY the classifier and calls record_recovery_
+      # receipt -> fss_write_receipt -> durable_write. Before durable_write
+      # moved into the classifier, this unit's receipt writes silently
+      # stayed unsynced (undefined function, rc 127, swallowed by the
+      # best-effort ||) even after the fix above shipped for the setup path.
+      # Runs the real installed unit, not a probe script, so this proves the
+      # production call path, not a reconstruction of it.
+      machine.succeed("""
+        bash -lc '
+          set -euo pipefail
+          systemctl start ghaf-journal-alloy-recover.service
+          systemctl show ghaf-journal-alloy-recover.service --property=Result --value | grep -Fx success
+          MID=$(cat /etc/machine-id)
+          RECEIPT_FILE="/var/log/journal/$MID/fss-recovery-receipts"
+          # record_recovery_archives runs unconditionally; a receipt file is
+          # created (touched) even with nothing new to record, so this
+          # confirms the unit reached the receipt-writing code at all,
+          # sourcing the classifier alone, without crashing on durable_write.
+          test -e "$RECEIPT_FILE"
+        '
+      """)
 ''

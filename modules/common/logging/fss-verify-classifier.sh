@@ -513,6 +513,32 @@ fss_sealing_active_in_config() {
   [ "$(fss_journald_effective_seal)" = "yes" ]
 }
 
+# Force a file and its parent directory entry to durable storage. On a
+# guest, $KEY_DIR/the journal directory is a virtiofs or storagevm share
+# from the host; without an explicit fsync a write sits in guest writeback
+# and is lost if the VM reboots right after (observed on net-vm, the reboot
+# initiator, after a -9h correction: new verification-key/rekey-history
+# never reached the host mount; and on gui-vm, an unsynced recovery receipt
+# lost across a clock-step reboot -- fss-recovery-receipts corrupted twice
+# identically, see finding-receipt-store-not-durable.md). Uses per-file
+# sync, not "sync -f": syncfs here would also flush every other VM's key
+# dir on the shared source. Lives here, not in fss.nix, because every
+# consumer that sources this classifier must be able to call it --
+# ghaf-journal-alloy-recover (common.nix) writes receipts too and never
+# sources fss.nix's own setup/verify scripts.
+durable_write() {
+  local target="$1"
+  [ -e "$target" ] || return 0
+  if ! sync "$target"; then
+    fss_log fail "Could not flush $target to durable storage"
+    return 1
+  fi
+  if ! sync "$(dirname "$target")"; then
+    fss_log fail "Could not flush $(dirname "$target") to durable storage"
+    return 1
+  fi
+}
+
 # Bound a receipt store by capping it to the newest max_lines records (the
 # file is append-ordered oldest-first). A receipt is NOT dropped merely
 # because its archive is currently absent: a receipt for a vanished archive
@@ -536,6 +562,7 @@ fss_prune_receipt_file() {
   tail -n "$max_lines" "$receipt_file" >"$tmp"
   mv "$tmp" "$receipt_file"
   chmod 0644 "$receipt_file"
+  durable_write "$receipt_file" || fss_log warn "$label receipts rewrite not confirmed durable"
   fss_log warn "$label receipts exceeded $max_lines; evicted $excess oldest record(s)"
 }
 
@@ -578,6 +605,7 @@ fss_write_receipt() {
     "$boot" "$mtime" "$sha" "$reason" "$event" \
     >>"$receipt_file"
   chmod 0644 "$receipt_file"
+  durable_write "$receipt_file" || fss_log warn "receipt not confirmed durable: $archive_path"
   [ -n "$log_level" ] && [ -n "$log_message" ] && fss_log "$log_level" "$log_message: $archive_path"
 }
 
