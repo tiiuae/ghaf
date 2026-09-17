@@ -508,7 +508,7 @@ let
       # construction. Each extra fixpoint is a full re-evaluation -- see
       # `extendModules` in nixpkgs lib/modules.nix, which shares nothing.
       innerName = noSBCfg.config.hardware.nvidia-jetpack.name;
-      noSB = noSBCfg.pkgs.nvidia-jetpack.signedFlashScript;
+      noSB = noSBCfg.pkgs.nvidia-jetpack;
       # Targets that already enable secureboot unconditionally get the identical
       # derivation back from `mkForce true`, so skip the second fixpoint entirely.
       withSB =
@@ -525,59 +525,40 @@ let
                 // nxDiskOverrides
               )
             ];
-          }).pkgs.nvidia-jetpack.signedFlashScript;
+          }).pkgs.nvidia-jetpack;
     in
-    # Single `*-flash-script` entrypoint that picks between two
-    # pre-built QSPI firmware variants at flash time.
-    #
-    # Why two variants instead of one profile-level toggle:
-    #
-    # `ghaf.hardware.nvidia.orin.secureboot.enable` is evaluated at Nix
-    # build time. When true, it bakes the `UefiDefaultSecurityKeys`
-    # device-tree overlay and PK/KEK/db ESLs into the QSPI firmware, so
-    # the device enrolls keys and turns Secure Boot on at first boot.
-    # Flipping it on unconditionally in the Orin profile would brick the
-    # default unsigned flash path: the QSPI carries enrollment material
-    # but BOOTAA64.EFI is unsigned, leaving the board in the UEFI
-    # Interactive Shell with no recoverable boot entry.
-    #
-    # The QSPI variant has to be selected *before* the inner script runs
-    # (it cannot be influenced at run time), which is what the wrapper
-    # does on its own `--secure-boot` flag:
-    #
-    #   - default        → unsigned QSPI (no DTBO, no ESLs)
-    #   - --secure-boot  → SB-enabled QSPI (DTBO + ESLs); pair it with a
-    #                      *signed* sd-image via `-s`, or the enrolled
-    #                      firmware will refuse the unsigned BOOTAA64.EFI
-    #                      and fall through to PXE/UEFI shell.
-    #
-    # `-s/--signed-sd-image` itself is deliberately NOT the selector:
-    # with `appPartitionSizeBytes` set the flash script carries no
-    # embedded image and `-s` is how *every* flash (signed or not)
-    # supplies one, so keying Secure Boot off it bricked all unsigned
-    # flashes.
-    #
-    # Use the `-u` flag if the image contains a UKI.
-    #
-    # Both variants share substituted store paths (jetpack-nixos
-    # `flashScript` is a thin wrapper around the same per-target
-    # derivations), so the second build is mostly a Nix-eval cost.
+    # Signed overrides select enrollment firmware; the bundled image uses the
+    # plain flasher so encrypted roots and UKIs need no artifact extraction.
     pkgsX86.writeShellApplication {
       name = "flash-ghaf-host";
       text = ''
-        sb=0
         args=()
-        for arg in "$@"; do
-          case "$arg" in
-            --secure-boot) sb=1 ;;
-            *) args+=("$arg") ;;
+        signed_args=()
+        uki_args=()
+        while [ "$#" -gt 0 ]; do
+          case "$1" in
+            -s|--signed-sd-image)
+              if [ "$#" -lt 2 ]; then
+                echo "Missing argument for $1" >&2
+                exit 1
+              fi
+              signed_args=("$1" "$2")
+              shift 2
+              ;;
+            -u|--uki) uki_args=(-u); shift ;;
+            -h|--help) exec ${noSB.signedFlashScript}/bin/flash-signed-${innerName} --help ;;
+            --) shift; args+=("$@"); break ;;
+            *) args+=("$1"); shift ;;
           esac
         done
-        if [ "$sb" = 1 ]; then
-          exec ${withSB}/bin/flash-signed-${innerName} "''${args[@]}"
-        else
-          exec ${noSB}/bin/flash-signed-${innerName} "''${args[@]}"
+        if [ "''${#signed_args[@]}" -gt 0 ]; then
+          exec ${withSB.signedFlashScript}/bin/flash-signed-${innerName} "''${signed_args[@]}" "''${uki_args[@]}" -- "''${args[@]}"
         fi
+        unset SIGNED_ARTIFACTS_DIR SIGNED_SD_IMAGE_DIR
+        ${lib.optionalString (!qspiOnly && !isVerityTarget t) ''
+          export SIGNED_SD_IMAGE_DIR=${t.package}
+        ''}
+        exec ${noSB.legacyFlashScript}/bin/flash-${innerName} "''${args[@]}"
       '';
     };
 
@@ -586,19 +567,8 @@ let
   isVerityTarget = t: t.isVerity or false;
   verityCrossTargets = builtins.filter isVerityTarget crossTargets;
 
-  # Targets that get their own flash attributes.
-  #
-  # `nodemoapps` only removes demo applications from the *image*, and no flash
-  # script embeds an image any more: every Orin board pins
-  # `appPartitionSizeBytes`, so flash.xml carries static ESP/APP sizes and the
-  # image is supplied at run time with `-s`. The variant therefore cannot change
-  # the flash script, and a census over all 125 flash attributes confirmed it --
-  # 63 distinct derivations, and all 62 duplicates were exactly an
-  # `X` / `X-nodemoapps` pair.
-  #
-  # Each duplicate cost a full Jetson derivation-graph construction during CI
-  # eval, which is where the eval memory goes. Flash a `nodemoapps` image with the
-  # base target's script and `-s <image>`.
+  # Signed nodemoapps images use the base target's script with an explicit -s
+  # override, avoiding a separate firmware evaluation for each image variant.
   flashCrossTargets = builtins.filter (t: !(t.isNoDemoApps or false)) crossTargets;
 in
 {

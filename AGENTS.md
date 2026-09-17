@@ -162,16 +162,14 @@ asking or guessing; if a field is null in both, ask once and offer to write it t
   JetPack-configured module, as `gpu-vm-load` does, to avoid breaking x86_64 evaluation.
 - **The image you flash is always `result/ghaf-image.raw.zst`** (plus `ghaf-image.bmap`,
   used automatically). No target emits `result/<target>.img` any more.
-- **A Jetson flash script no longer embeds an image; pass it with `-s`.** Every Orin board
-  pins `appPartitionSizeBytes`, so one flash script serves every image variant and
-  `*-flash-script` builds only the flasher. Running it bare fails with "this flash script was
-  built without an embedded sdImage". Build the image target too and pass the _result
-  directory_, not a file:
+- **A Jetson flash script includes its matching image.** Build `*-flash-script` and run
+  it without `-s` for the default image. Use `-s <signed-sd-image>` to override it with an
+  externally signed image's _result directory_, not a file, and enable Secure Boot
+  enrollment:
 
   ```bash
   nix build .#nvidia-jetson-orin-agx-debug-from-x86_64-flash-script -o flasher
-  nix build .#nvidia-jetson-orin-agx-debug-from-x86_64             -o image
-  sudo ./flasher/bin/flash-ghaf-host -s "$(readlink -f image)"
+  sudo ./flasher/bin/flash-ghaf-host
   ```
 
 - **A Jetson only accepts a flash in RCM mode, which needs hands on the board.** On the AGX
