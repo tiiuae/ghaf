@@ -34,7 +34,7 @@ jobs:
           persist-credentials: false
 
       - name: Scan intel-laptop-debug
-        uses: tiiuae/flakevuln@05c7746d37e90a4ae5ba76f2bbb9a711ad2a43c0
+        uses: tiiuae/flakevuln@98d752b7cde225023c378ef3a92bb9b628034ee0
         with:
           targets: |
             packages.x86_64-linux.intel-laptop-debug
