@@ -581,11 +581,15 @@ fss_write_receipt() {
   [ -n "$log_level" ] && [ -n "$log_message" ] && fss_log "$log_level" "$log_message: $archive_path"
 }
 
-# Read receipt records from a state file, dropping blank lines.
+# Read receipt records from a state file, dropping blank lines. -a forces text
+# mode: a store carrying even one NUL byte anywhere (a torn write leaving a
+# zero-filled hole) is otherwise detected as binary and grep returns nothing
+# for the WHOLE file, voiding every intact receipt in it, not just the
+# damaged one.
 fss_read_receipts() {
   local state_file="$1"
   [ -r "$state_file" ] && [ -s "$state_file" ] || return 0
-  grep -v '^[[:space:]]*$' "$state_file" || true
+  grep -a -v '^[[:space:]]*$' "$state_file" || true
 }
 
 # Emit the deduplicated archive paths referenced by a set of receipt records.

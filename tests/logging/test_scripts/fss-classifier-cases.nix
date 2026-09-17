@@ -370,6 +370,57 @@ writeShellApplication {
     [ -z "$(fss_pre_activation_receipt_mismatches "$good")" ]
     [ -z "$(fss_filter_valid_receipts "$good")" ]
 
+    # fss_read_receipts must not let one NUL-damaged record void the whole
+    # store: plain grep's binary-file detection returns NOTHING for the
+    # whole file the moment it contains even one NUL byte anywhere. Observed
+    # on hardware: a single 1223-byte hole from a torn write cost 44/44
+    # receipts, not 1 (2251-review-20260916/finding-receipt-store-read-not-binary-safe.md).
+    fakesha() { printf '%s' "$1" | sha256sum | cut -d' ' -f1; }
+    a_sha=$(fakesha a)
+    b_sha=$(fakesha b)
+    store=$(mktemp)
+    r1=$(printf "v1\t/a\t1\t1\t%s\t1\t%s\tpre-activation-rotation\tevtA" "$CURBOOT" "$a_sha")
+    r3=$(printf "v1\t/b\t1\t1\t%s\t1\t%s\tpre-activation-rotation\tevtB" "$CURBOOT" "$b_sha")
+    {
+      printf '%s\n' "$r1"
+      # A NUL landing INSIDE the sha field genuinely corrupts that record: the
+      # tab after it is preserved (so the field COUNT survives), but the
+      # field's own content is destroyed.
+      printf 'v1\t/c\t1\t1\t%s\t1\t\x00\x00\x00\x00\tpre-activation-rotation\tevtC\n' "$CURBOOT"
+      printf '%s\n' "$r3"
+    } >"$store"
+    read_back=$(fss_read_receipts "$store")
+    [ "$(fss_count_nonempty_lines "$read_back")" -eq 3 ]
+    printf '%s' "$read_back" | grep -Fq "$r1"
+    printf '%s' "$read_back" | grep -Fq "$r3"
+    # `read` strips the embedded NULs, leaving the sha field empty: it must
+    # not validate.
+    damaged_rec=$(printf '%s\n' "$read_back" | grep -F '/c')
+    damaged_sha=$(printf '%s' "$damaged_rec" | awk -F'\t' '{ print $7 }')
+    refute fss_valid_sha256 "$damaged_sha"
+    rm -f "$store"
+
+    # Real-world shape: the NUL run sits as a pure PREFIX before an otherwise
+    # untouched record (no field of the surviving record is itself damaged) --
+    # this is exactly what the hardware specimen showed (record 42: 1223 NUL
+    # bytes then a complete, valid 312-byte record). Once read, this record
+    # must recover in full, not be dropped: only genuinely lost bytes should
+    # cost a receipt, never a merely-preceded-by-a-hole one.
+    store2=$(mktemp)
+    {
+      printf '%s\n' "$r1"
+      # shellcheck disable=SC2183 # deliberate: printf with a NUL, not padding
+      printf '%01023d' 0 | tr '0' '\0'
+      printf '%s\n' "$r3"
+    } >"$store2"
+    read_back2=$(fss_read_receipts "$store2")
+    [ "$(fss_count_nonempty_lines "$read_back2")" -eq 2 ]
+    recovered=$(printf '%s\n' "$read_back2" | grep -F '/b')
+    recovered_sha=$(printf '%s' "$recovered" | awk -F'\t' '{ print $7 }')
+    [ "$recovered_sha" = "$b_sha" ]
+    fss_valid_sha256 "$recovered_sha"
+    rm -f "$store2"
+
     # Bucket classification and dedup of unique fail paths
     MIXED=$(printf "FAIL: %s (Bad message)\nFAIL: %s (Bad message)\nFAIL: %s (Bad message)\nFAIL: %s (Bad message)\nFAIL: %s (Bad message)\nFAIL: %s (Bad message)" \
       "$ACTIVE" "$ACTIVE" "$ALLOWED_ARCHIVE" "$USER_JOURNAL" "$TEMP_JOURNAL" "$OTHER")
