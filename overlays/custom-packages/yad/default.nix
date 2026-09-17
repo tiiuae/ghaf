@@ -15,7 +15,8 @@
 # use yad.
 { prev }:
 (prev.yad.override {
-  gtksourceview = null;
+  ${if prev.yad.override.__functionArgs ? gtksourceview3 then "gtksourceview3" else "gtksourceview"} =
+    null;
   gspell = null;
   libappindicator = null;
   webkitgtk_4_1 = null;
