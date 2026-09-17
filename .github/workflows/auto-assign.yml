@@ -1,0 +1,25 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+
+name: Auto-assign PR author
+
+on:
+  # pull_request_target so PRs from forks get a token that can assign; no PR code is checked out.
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  auto-assign-pr:
+    # skips bots and assigns only members of tiiuae
+    # makes it so unassigned PRs stand out
+    if: github.event.pull_request.author_association == 'MEMBER'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: pozil/auto-assign-issue@af6beea6bdf1e8eb373f061c5bc168681fc6d011 # v4.0.1
+        with:
+          assignees: ${{ github.event.pull_request.user.login }}
