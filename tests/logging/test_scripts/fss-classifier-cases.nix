@@ -592,6 +592,34 @@ writeShellApplication {
       "FAIL: $ACTIVE (Bad message)")"
     fss_active_failure_retryable "$OBSERVED" "$ACT"
 
+    # The race's other shape: a dangling data-object reference, not a counter
+    # mismatch. Also observed on hardware, activation-boundary probes on B5
+    # and B6, promoted into a genuine "logs are unsealed" state before this
+    # fix. Both lines are required to match -- see the two refutes below.
+    RACE_OBSERVED="$(printf '%s\n%s\n%s' \
+      "000110: Data object references invalid entry" \
+      "File corruption detected at /var/log/journal/mid/system.journal:272 (of 8388608 bytes, 0%)." \
+      "FAIL: $ACTIVE (Bad message)")"
+    fss_output_has_active_read_race "$RACE_OBSERVED" \
+      || { echo "active read race not recognised" >&2; exit 1; }
+    fss_active_failure_retryable "$RACE_OBSERVED" "$ACT" \
+      || { echo "active read race should be retryable" >&2; exit 1; }
+
+    # Neither line alone is enough: "File corruption detected" also appears
+    # on genuine corruption (see OBSERVED above and the tamper loop below),
+    # and a bare dangling-reference line with no corruption report is not
+    # the signature actually seen.
+    refute fss_output_has_active_read_race \
+      "File corruption detected at /var/log/journal/mid/system.journal:272 (of 8388608 bytes, 0%)."
+    refute fss_output_has_active_read_race "000110: Data object references invalid entry"
+    refute fss_active_failure_retryable "$RACE_OBSERVED" ""
+
+    # A real tamper signature alongside the race text must still win: the
+    # race recognising its own shape does not get to override
+    # fss_output_has_tamper_signature.
+    refute fss_active_failure_retryable \
+      "$(printf '%s\n%s' "$RACE_OBSERVED" "2cb2e0: Tag failed verification")" "$ACT"
+
     # Nothing else is retryable: no counter mismatch, no active failure, or a
     # signature that indicts the content.
     refute fss_output_has_counter_mismatch "FAIL: $ACTIVE (Bad message)"

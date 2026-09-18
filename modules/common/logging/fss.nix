@@ -1157,7 +1157,7 @@ let
       }
 
       verify_live_sealing_after_activation() {
-        local verify_key verify_output verify_exit marker probe_scope
+        local verify_key verify_output verify_exit marker probe_scope attempt
         local guard_real1 guard_up1 guard_real2 guard_up2 guard_drift
         local guard_events1 guard_events2
 
@@ -1187,14 +1187,36 @@ let
         journalctl --sync 2>/dev/null || true
 
         verify_key=$(tr -d '[:space:]' < "$VERIFY_KEY_FILE")
-        verify_exit=0
-        if [ "$probe_scope" = live ]; then
-          verify_output=$(journalctl --verify --verify-key="$verify_key" \
-            --file="$JOURNAL_DIR/system.journal" 2>&1) || verify_exit=$?
-        else
-          verify_output=$(journalctl --verify --verify-key="$verify_key" 2>&1) || verify_exit=$?
-        fi
-        fss_classify_verify_output "$verify_output"
+        # journald has just been restarted for activation and is actively
+        # appending while this probe reads -- the same live-journal read
+        # race the verify service already retries via fss_active_failure_
+        # retryable. Without the same retry here, a transient counter
+        # mismatch or dangling read on a perfectly healthy guest is
+        # promoted straight into a real "logs are unsealed" state instead
+        # of clearing on its own the way the verify service already does.
+        attempt=1
+        while :; do
+          verify_exit=0
+          if [ "$probe_scope" = live ]; then
+            verify_output=$(journalctl --verify --verify-key="$verify_key" \
+              --file="$JOURNAL_DIR/system.journal" 2>&1) || verify_exit=$?
+          else
+            verify_output=$(journalctl --verify --verify-key="$verify_key" 2>&1) || verify_exit=$?
+          fi
+          fss_classify_verify_output "$verify_output"
+
+          if ! fss_active_failure_retryable "$verify_output" "$FSS_ACTIVE_SYSTEM_FAILURES"; then
+            break
+          fi
+          if [ "$attempt" -ge "${toString cfg.verifyRetries}" ]; then
+            fss_log warn "Active-journal failure persisted across ${toString cfg.verifyRetries} verifies; reporting it"
+            break
+          fi
+          fss_log info "Active-journal failure on attempt $attempt; journald was appending during the walk, re-verifying"
+          attempt=$((attempt + 1))
+          sleep 2
+          journalctl --sync 2>/dev/null || true
+        done
 
         # The verify calls take real time; a clock step inside them poisons the verdict.
         # Defer instead: recover's dependency, the verify timer and the next boot re-check.

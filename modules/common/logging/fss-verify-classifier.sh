@@ -425,14 +425,25 @@ fss_output_has_tamper_signature() {
   grep -qE 'Tag failed verification|Hash value mismatch|Older entry after newer tag|Epoch sequence|realtime timestamp out of synchronization' <<<"$1"
 }
 
+# The other shape journald's live-append race takes, alongside a counter
+# mismatch: the verifier follows an entry pointing at a data object journald
+# has not committed yet. Both lines are required -- "File corruption
+# detected" alone also appears on genuine corruption, and a bare "Bad
+# message" is not enough to tell the two apart, so this only matches the
+# specific dangling-reference message paired with it.
+fss_output_has_active_read_race() {
+  grep -qE 'Data object references invalid entry' <<<"$1" &&
+    grep -qE 'File corruption detected' <<<"$1"
+}
+
 # Whether an active-journal failure is worth re-verifying rather than believing
-# outright: a counter mismatch and nothing that indicts the content. A real
-# defect survives the re-verify; a live-write race does not.
+# outright: a live-write-race signature and nothing that indicts the content.
+# A real defect survives the re-verify; a live-write race does not.
 fss_active_failure_retryable() {
   local output="$1" active_failures="$2"
 
   [ -n "$active_failures" ] || return 1
-  fss_output_has_counter_mismatch "$output" || return 1
+  fss_output_has_counter_mismatch "$output" || fss_output_has_active_read_race "$output" || return 1
   ! fss_output_has_tamper_signature "$output"
 }
 
