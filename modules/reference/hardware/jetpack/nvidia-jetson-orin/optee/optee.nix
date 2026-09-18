@@ -56,6 +56,23 @@ in
       '';
     };
 
+    ftpm = {
+      enable = mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          Enable the fTPM trusted applications and driver.
+          Changing this option requires reflashing the platform firmware.
+        '';
+      };
+
+      unsecureInjectEPS.enable = lib.mkEnableOption ''
+        insecure Endorsement Primary Seed injection for internal testing only.
+        This permits replacing the TPM seed from userspace and must not be
+        enabled in production. Changing it requires reflashing the firmware
+      '';
+    };
+
     pkcs11 = {
       enable = mkOption {
         type = types.bool;
@@ -112,6 +129,7 @@ in
   config = mkIf cfg.enable {
 
     hardware.nvidia-jetpack.firmware.optee = {
+      inherit (cfg) ftpm;
       pkcs11Support = cfg.pkcs11.enable;
       extraMakeFlags =
         (lib.optionals cfg.pkcs11.enable [
