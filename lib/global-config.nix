@@ -483,7 +483,7 @@ rec {
         server.endpoint = defaultLoggingEndpoint;
       };
 
-      security.audit.enable = false;
+      security.audit.enable = true;
       security.ssh.debug.enable = true;
 
       givc = {

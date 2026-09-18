@@ -211,7 +211,7 @@ in
       };
 
       # Enable audit
-      security.audit.enable = false;
+      security.audit.enable = true;
 
       services = {
         # Enable kill switch
