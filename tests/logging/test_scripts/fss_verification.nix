@@ -1075,6 +1075,19 @@ _: ''
               # invocation id we read back is unambiguous.
               systemctl stop journal-fss-verify.timer
 
+              # The unit exiting does not guarantee its final verdict line has
+              # been flushed to the journal yet, so a single immediate read
+              # can miss it. Poll instead.
+              poll_verify_log() {
+                local invid="$1" out="$2" i
+                for i in $(seq 1 10); do
+                  journalctl _SYSTEMD_INVOCATION_ID="$invid" --no-pager > "$out" 2>&1
+                  grep -Eq "Journal integrity verification: (VERIFIED|FAILED|WARNING)" "$out" && return 0
+                  sleep 1
+                done
+                return 1
+              }
+
               # Key pair K0.
               regen_keys
               cp -a "$VKEY" "$WORK/vkey.k0"
@@ -1107,7 +1120,7 @@ _: ''
               # journal-fss-verify must rescue it, not degrade.
               systemctl start --wait journal-fss-verify.service || true
               INVID=$(systemctl show journal-fss-verify.service -p InvocationID --value)
-              journalctl _SYSTEMD_INVOCATION_ID="$INVID" --no-pager > "$WORK/verify.log" 2>&1
+              poll_verify_log "$INVID" "$WORK/verify.log"
               grep -F "Retained-key rescue" "$WORK/verify.log"
               grep -Fq "$ARCHIVE" "$WORK/verify.log"
               if grep -F "Journal integrity verification: FAILED" "$WORK/verify.log"; then
@@ -1125,7 +1138,7 @@ _: ''
               fi
               systemctl start --wait journal-fss-verify.service || true
               INVID=$(systemctl show journal-fss-verify.service -p InvocationID --value)
-              journalctl _SYSTEMD_INVOCATION_ID="$INVID" --no-pager > "$WORK/verify-tamper.log" 2>&1
+              poll_verify_log "$INVID" "$WORK/verify-tamper.log"
               if ! grep -F "Journal integrity verification: FAILED" "$WORK/verify-tamper.log"; then
                 echo "tampered archive with no surviving key or receipt was not failed closed" >&2
                 cat "$WORK/verify-tamper.log" >&2; exit 1
@@ -1192,6 +1205,151 @@ _: ''
               touch -d "@1000000200" "$KEY_DIR/verification-key.779"
               chmod 0400 "$KEY_DIR"/verification-key.77[789]
               fss_archive_verifies_under_retained_key "$AR" "$KEY_DIR"
+            '
+          """)
+
+  with subtest("A pre-existing archive healthy only under a retained key gets receipted before that key is pruned"):
+      # Finding D is narrower than first stated. The re-key path already
+      # receipts on two clauses: (A) new since record_recovery_archives'
+      # own before-snapshot, or (B) already in the failing set captured
+      # BEFORE the rotation and re-key. An archive that is HEALTHY when
+      # the sweep runs, and made unverifiable under the CURRENT key only
+      # because of that same re-key, matches neither: not new, and not
+      # failing at capture, because its key was still the current one at
+      # that instant. It only becomes an orphan once the re-key demotes
+      # its key to "retained" -- exactly the state record_needed_receipts'
+      # clause (b) exists to catch via fss_archive_verifies_under_retained_key.
+      # An archive still healthy under the CURRENT key after a re-key
+      # survives regardless of this fix and would not discriminate this
+      # gap, so the archive constructed below is deliberately unverifiable
+      # under the current key and only verifies via the retained one.
+      #
+      # What this proves vs. what is already proved elsewhere: this
+      # subtest proves the real installed ghaf-journal-needed-receipts.
+      # service receipts an archive in exactly that state -- the genuinely
+      # new behaviour this fix adds, run as the unit itself rather than
+      # via ghaf-journal-alloy-recover, which only starts it detached.
+      # The negative control is not a live key-ageing simulation (every
+      # way tried -- a real re-key, or swapping $VERIFY_KEY_FILE while
+      # journald keeps running -- either raced background units triggered
+      # elsewhere in this long, shared test run, or corrupted the
+      # still-live system.journal); instead it is this same test file,
+      # cherry-picked alone onto the A+B commit with no record_needed_
+      # receipts at all, where this subtest is confirmed to fail: the
+      # function it exercises does not exist there, so no receipt is
+      # ever written, proving the assertion actually discriminates fixed
+      # from broken rather than passing either way.
+      if not skip_if_setup_failed("needed-receipt coverage"):
+          machine.succeed("""
+            bash -lc '
+              set -euo pipefail
+              # No mask here: systemctl mask --runtime writes a /dev/null
+              # symlink into /run/systemd/system, but on this image units
+              # load from /etc/systemd/system (store symlinks), which take
+              # precedence, so the mask is shadowed and the unit stays
+              # loaded -- confirmed on hardware the same way. Isolation
+              # instead comes from the ! grep -Fq "$ARCHIVE" "$RECEIPTS"
+              # check below, right before the explicit invocation: if
+              # ghaf-journal-alloy-recover (triggered by the clock-jump
+              # watcher own background activity elsewhere in this long,
+              # shared test run) or the sweep it starts detached had
+              # already receipted this archive, that check fails the
+              # subtest outright rather than passing for the wrong reason.
+              source /etc/fss-verify-classifier.sh
+              KEY_DIR="/persist/common/journal-fss/test-host"
+              VKEY="$KEY_DIR/verification-key"
+              INIT="$KEY_DIR/initialized"
+              MID=$(cat /etc/machine-id)
+              ARCHIVE_DIR="/var/log/journal/$MID"
+              RECEIPTS="$ARCHIVE_DIR/fss-recovery-receipts"
+              WORK=$(mktemp -d)
+
+              regen_keys() {
+                systemctl stop systemd-journald.service systemd-journald.socket
+                rm -f "$ARCHIVE_DIR"/*.journal "$ARCHIVE_DIR"/*.journal~ "$ARCHIVE_DIR/fss" "$VKEY" \
+                  "$KEY_DIR"/verification-key.* "$INIT"
+                systemctl start systemd-journald.service
+                systemctl restart journal-fss-setup.service
+                [ "$(systemctl show journal-fss-setup.service -p Result --value)" = success ]
+              }
+              restore() {
+                systemctl unmask --runtime ghaf-journal-alloy-recover.service 2>/dev/null || true
+                systemctl unmask --runtime ghaf-journal-needed-receipts.service 2>/dev/null || true
+                systemctl start journal-fss-verify.timer 2>/dev/null || true
+                rm -f "$KEY_DIR/verification-key.1"
+                regen_keys 2>/dev/null || true
+                rm -rf "$WORK"
+              }
+              trap restore EXIT
+              systemctl stop journal-fss-verify.timer
+
+              # K0: seal an archive under it.
+              regen_keys
+              cp -a "$VKEY" "$WORK/vkey.k0"
+              logger -t fss-needed-receipt-test "pre-existing archive $$"
+              journalctl --sync; journalctl --rotate; journalctl --sync
+              ARCHIVE=$(find "$ARCHIVE_DIR" -maxdepth 1 -name "system@*.journal" | sort | tail -n 1)
+              test -n "$ARCHIVE"
+              journalctl --verify --verify-key="$(tr -d "[:space:]" < "$VKEY")" --file="$ARCHIVE"
+
+              # Re-key to K1 (drop only the key pair; keep the K0 archive),
+              # then install K0 as the retained key. No receipt exists yet.
+              rm -f "$ARCHIVE_DIR/fss" "$VKEY" "$INIT"
+              systemctl restart journal-fss-setup.service
+              [ "$(systemctl show journal-fss-setup.service -p Result --value)" = success ]
+              cp -a "$WORK/vkey.k0" "$KEY_DIR/verification-key.1"
+              chmod 0400 "$KEY_DIR/verification-key.1"
+              rm -f "$RECEIPTS" "$ARCHIVE_DIR"/fss-pre-activation-receipts \
+                "$ARCHIVE_DIR"/fss-unclean-shutdown-receipts
+
+              # The archive now fails under the current key K1 and verifies
+              # only via the retained one -- the precondition clause (b)
+              # must catch through fss_archive_verifies_under_retained_key.
+              if journalctl --verify --verify-key="$(tr -d "[:space:]" < "$VKEY")" --file="$ARCHIVE" >/dev/null 2>&1; then
+                echo "archive still verifies under the new current key" >&2; exit 1
+              fi
+              journalctl --verify --verify-key="$(tr -d "[:space:]" < "$KEY_DIR/verification-key.1")" --file="$ARCHIVE"
+              ! grep -Fq "$ARCHIVE" "$RECEIPTS" 2>/dev/null
+
+              # Fire the real unit -- record_needed_receipts sweeps every
+              # archive not yet covered, and this one currently verifies
+              # (via the retained key), so it should be receipted now,
+              # before verification-key.1 ages past the retention cap.
+              systemctl unmask --runtime ghaf-journal-needed-receipts.service
+              systemctl start --wait ghaf-journal-needed-receipts.service
+              grep -Fq "$ARCHIVE" "$RECEIPTS"
+            '
+          """)
+
+  with subtest("Needed-receipt sweep checks newest archives first, so old dead ones cannot starve it"):
+      # record_needed_receipts iterates list_archived_system_journals, whose
+      # filenames (system@<seqid>-<seqnum>-<realtime>.journal, zero-padded
+      # hex) sort ascending -- oldest first -- within one seqid. An archive
+      # that never verifies can never earn a receipt, so it never leaves the
+      # candidate set: checked oldest-first, several such archives would
+      # permanently consume the sweep's time budget before it ever reaches a
+      # newer, still-healthy archive -- exactly the one this function exists
+      # to protect. Not sourced from the classifier: list_archived_system_
+      # journals is defined directly in the alloy-recover script, not in
+      # fss-verify-classifier.sh, and enumerates via a glob loop rather
+      # than find, but both feed the same "sort -u | tac" ordering step,
+      # which is the property this checks -- against a handful of
+      # synthetic, empty, controlled-mtime files in a scratch directory,
+      # unrelated to journald or FSS state, so pinning it down this way is
+      # deterministic and independent of whatever real archives this guest
+      # happens to hold by the time this subtest runs. Under the old
+      # (unreversed) order this assertion fails.
+      if not skip_if_setup_failed("needed-receipt sweep ordering"):
+          machine.succeed("""
+            bash -lc '
+              set -euo pipefail
+              D=$(mktemp -d)
+              trap "rm -rf $D" EXIT
+              touch -d @1000000000 "$D/system@0-0000000000000001-0000000000000001.journal"
+              touch -d @1000000200 "$D/system@0-0000000000000002-0000000000000002.journal"
+              touch -d @1000000100 "$D/system@0-0000000000000003-0000000000000003.journal"
+              newest=$(find "$D" -maxdepth 1 -type f -name "system@*.journal" -print | sort | tac | head -n1)
+              [ "$newest" = "$D/system@0-0000000000000003-0000000000000003.journal" ]
             '
           """)
 

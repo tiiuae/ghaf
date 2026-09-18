@@ -567,6 +567,11 @@ let
       journalctl --rotate 2>/dev/null || true
       journalctl --sync 2>/dev/null || true
       record_recovery_archives
+      # Own unit, started detached: nothing downstream waits on its result,
+      # and its own verify passes were adding latency to this unit's own
+      # completion, perturbing units and tests that assume it finishes
+      # promptly after a recovery event.
+      systemctl start --no-block ghaf-journal-needed-receipts.service || true
 
       restart_if_installed() {
         local unit="$1"
@@ -580,6 +585,128 @@ let
 
       restart_if_installed systemd-journal-upload.service
       restart_if_installed alloy.service
+    '';
+  };
+
+  ghafJournalNeededReceipts = pkgs.writeShellApplication {
+    name = "ghaf-journal-needed-receipts";
+    # Must cover everything fss-verify-classifier.sh calls, not just this
+    # script's own body: it sources that classifier, and a missing tool
+    # there (e.g. awk) degrades silently rather than failing the build --
+    # fss_write_receipt's dedup check just goes false and skips deduping.
+    runtimeInputs = with pkgs; [
+      coreutils
+      gawk
+      gnugrep
+      systemd
+    ];
+    # /etc/fss-verify-classifier.sh is populated at runtime by fss.nix
+    # (unconditionally, since this consumer runs even when FSS is disabled);
+    # shellcheck cannot follow it statically.
+    excludeShellChecks = [ "SC1091" ];
+    text = ''
+      source /etc/fss-verify-classifier.sh
+
+      machine_id="$(cat /etc/machine-id)"
+      state_dir="/var/log/journal/$machine_id"
+      recovery_receipts_file="$state_dir/fss-recovery-receipts"
+      pre_activation_receipts_file="$state_dir/fss-pre-activation-receipts"
+      unclean_shutdown_receipts_file="$state_dir/fss-unclean-shutdown-receipts"
+      max_recovery_receipts="${toString recCfg.maxReceipts}"
+      # From the unit's own config, not a glob of /etc/common/journal-fss:
+      # that directory holds every VM's keys, and verifying an archive
+      # against the wrong guest's key gives a confident, wrong answer.
+      fss_key_dir="${config.ghaf.logging.fss.keyPath}"
+
+      list_archived_system_journals() {
+        local journal_dir
+        local archive_path
+
+        for journal_dir in \
+          "/var/log/journal/$machine_id" \
+          "/run/log/journal/$machine_id"; do
+          for archive_path in "$journal_dir"/system@*.journal; do
+            [ -f "$archive_path" ] || continue
+            printf '%s\n' "$archive_path"
+          done
+        done | sort -u
+      }
+
+      # ghaf-journal-alloy-recover's own record_recovery_archives only
+      # receipts an archive that is NEW since its own before-snapshot -- so
+      # an archive that already existed when the event began, however
+      # healthy, never gets one. It sits fine under a retained key until a
+      # later re-key prunes that key past retainedKeys, at which point it
+      # fails every key with no receipt to excuse it: a permanent hard FAIL
+      # under the classifier's F1 fix that nothing clears (finding: receipt
+      # coverage gated on novelty, not need).
+      #
+      # This sweep gates on the two things that actually matter instead:
+      # (a) not already covered by ANY of the three receipt stores -- keeps
+      #     the candidate set small (idempotent, so re-running costs nothing)
+      #     and bounds the verify cost below to what's actually uncovered,
+      #     not every archive on the guest; (b) currently verifies under the
+      #     current key or a retained one -- captures it BEFORE its key ages
+      #     out, and never receipts an archive that's already unverifiable,
+      #     which would blunt F1 for a genuinely corrupt one.
+      #
+      # An archive that fails (b) -- genuinely tampered, or its lineage
+      # already gone -- can NEVER earn a receipt, so it never leaves the
+      # candidate set: without a bound, every future invocation re-verifies
+      # it again, forever, and the cost grows without limit as such archives
+      # accumulate over the guest's lifetime. Cap this sweep's own wall-clock
+      # cost per invocation instead (same pattern as the exposure-metric
+      # budget elsewhere in this codebase); an archive not reached this time
+      # is still a candidate next time, nothing is lost, only deferred.
+      #
+      # Its own unit, started detached by ghaf-journal-alloy-recover rather
+      # than run inline: nothing downstream waits on its result, and running
+      # it inline was adding this sweep's own verify latency to the recovery
+      # unit's completion, perturbing units and tests that assume it
+      # finishes promptly.
+      record_needed_receipts() {
+        local current_verify_key_file="$fss_key_dir/verification-key"
+        local archive_path covered current_key sweep_deadline
+
+        [ -s "$current_verify_key_file" ] && [ -r "$current_verify_key_file" ] || return 0
+        current_key="$(tr -d '[:space:]' < "$current_verify_key_file")"
+
+        covered="$(fss_receipt_paths "$(fss_read_receipts "$recovery_receipts_file")")"
+        covered="$(fss_merge_path_lists "$covered" \
+          "$(fss_pre_activation_receipt_paths "$(fss_read_pre_activation_receipts "$pre_activation_receipts_file")")")"
+        covered="$(fss_merge_path_lists "$covered" \
+          "$(fss_unclean_shutdown_receipt_paths "$(fss_read_unclean_shutdown_receipts "$unclean_shutdown_receipts_file")")")"
+
+        # Newest first: list_archived_system_journals sorts its filenames
+        # (system@<seqid>-<seqnum>-<realtime>.journal, zero-padded hex)
+        # ascending, i.e. oldest first. An archive that never passes (b)
+        # stays in the candidate set forever and, checked in oldest-first
+        # order, would sit at the front of every future sweep, permanently
+        # consuming the budget before it ever reaches a newer archive whose
+        # key is still retained -- exactly the archive this function exists
+        # to protect. An old, already-unverifiable archive has nothing left
+        # to lose from being starved; a newer one does, so it goes first.
+        # Read from fd 3, not stdin: every command in this loop body
+        # inherits stdin, which would otherwise be the archive list itself,
+        # and it only takes one future edit adding a stdin-reading command
+        # here to silently truncate the sweep to one archive.
+        sweep_deadline=$(( $(date +%s) + 20 ))
+        while IFS= read -r archive_path <&3 || [ -n "$archive_path" ]; do
+          [ -n "$archive_path" ] || continue
+          [ "$(date +%s)" -lt "$sweep_deadline" ] || break
+          fss_path_list_contains "$covered" "$archive_path" && continue
+
+          if timeout 10 journalctl --verify --file="$archive_path" --verify-key="$current_key" >/dev/null 2>&1 \
+            || fss_archive_verifies_under_retained_key "$archive_path" "$fss_key_dir"; then
+            fss_write_receipt "$recovery_receipts_file" "$archive_path" "clock-jump-recovery-needed" \
+              info "Recorded FSS recovery archive receipt (needed before key expiry)"
+          fi
+        done 3< <(list_archived_system_journals | tac)
+
+        fss_prune_receipt_file "$recovery_receipts_file" "$max_recovery_receipts" "Recovery"
+      }
+
+      record_needed_receipts
     '';
   };
 in
@@ -880,6 +1007,64 @@ in
         serviceConfig = {
           Type = "oneshot";
           ExecStart = lib.getExe ghafJournalAlloyRecover;
+        };
+      };
+
+      # Started detached (systemctl start --no-block) by
+      # ghaf-journal-alloy-recover rather than run inline: a plain oneshot
+      # already gives free serialisation (a start while one is running joins
+      # the existing job rather than starting a second, which matters since
+      # its covered-check-then-append is not concurrency-safe) and its own
+      # journal identity, so its cost is attributable rather than smeared
+      # into the recovery unit's own timing.
+      services.ghaf-journal-needed-receipts = {
+        description = "Receipt archives that need it before their key ages out";
+        after =
+          lib.optionals clockReadyEnabled [ "ghaf-clock-ready.service" ]
+          ++ lib.optionals fssActivationEnabled [ "journal-fss-setup.service" ];
+        wants =
+          lib.optionals clockReadyEnabled [ "ghaf-clock-ready.service" ]
+          ++ lib.optionals fssActivationEnabled [ "journal-fss-setup.service" ];
+
+        unitConfig = {
+          StartLimitIntervalSec = "0";
+        };
+
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = lib.getExe ghafJournalNeededReceipts;
+          # Best-effort background work started right alongside a clock-jump
+          # recovery event, the most timing-sensitive window this guest has:
+          # deprioritised so its own journalctl --verify passes do not
+          # compete for CPU/IO with journald's own activity in that window.
+          Nice = 19;
+          IOSchedulingClass = "idle";
+        };
+      };
+
+      # Not belt-and-braces: the event trigger has a real gap on the most
+      # ordinary path there is, and this timer is the only thing that
+      # closes it. journal-fss-setup's own live-sealing check (fss.nix,
+      # recover_from_time_poisoned_sealing) can re-key during a normal
+      # boot if the sealing key looks future-dated against an already-
+      # correct clock -- no realtime jump happens that boot, so
+      # ghaf-clock-jump-watcher never fires, and neither does
+      # ghaf-journal-alloy-recover nor the sweep it starts. OnBootSec is
+      # short because that IS the gap: a boot that re-keys and then the
+      # machine is used for under an hour -- normal on a laptop -- would
+      # otherwise leave the sweep never having run at all that boot.
+      # OnUnitActiveSec can stay an hour: a key is not pruned until several
+      # subsequent re-keys (retainedKeys, default 3), and automatic re-keys
+      # are capped at rekey.maxAttempts (default 3) per attemptWindowSeconds
+      # (default 86400s), so steady state has slack the boot case does not. If a later change
+      # gives the boot re-key path its own event trigger, this timer's
+      # job shrinks to steady-state backstop, but until then removing it
+      # reopens the boot-time gap this fix exists to close.
+      timers.ghaf-journal-needed-receipts = {
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnBootSec = "2min";
+          OnUnitActiveSec = "1h";
         };
       };
 

@@ -570,6 +570,9 @@ fss_prune_receipt_file() {
 # above) for archive_path to receipt_file, deduped on physical archive
 # identity (path + inode + size). log_level/log_message are passed to
 # fss_log on a successful write; callers pass "" for either to stay silent.
+# Field order (both here and in every reader): version, path, INODE, SIZE,
+# boot, mtime, sha256, reason, event -- field 3 is the inode, field 4 the
+# byte size, not the other way round. Misread twice on hardware already.
 fss_write_receipt() {
   local receipt_file="$1"
   local archive_path="$2"
