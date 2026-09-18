@@ -64,6 +64,8 @@ in
       debug.tools.enable = lib.mkDefault (globalConfig.development.debug.tools.enable or false);
     };
 
+    security.audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
+
     # Debug SSH (unprotected)
     security.ssh.debug.enable = lib.mkDefault (globalConfig.security.ssh.debug.enable or false);
 

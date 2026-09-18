@@ -481,6 +481,13 @@ state. A signed boundary commits to earlier history but does not archive it or
 prove that a longer prefix was not removed. An independently retained recent
 checkpoint/reference is needed to detect rollback and some truncations.
 
+## Auditing
+
+The standard laptop and Orin profiles enable auditing independently of FSS.
+Debug and release global profiles enable it for guests, including app VMs and
+the IDS VM. Minimal profiles retain their audit-disabled default. Disabling FSS
+does not disable auditing in standard builds. Platform overrides can still
+change this policy.
 ## Related Reading
 
 - [System Logs](/ghaf/overview/arch/system-logs-encryption/)
