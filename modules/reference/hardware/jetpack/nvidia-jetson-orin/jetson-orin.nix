@@ -11,6 +11,7 @@
 }:
 let
   cfg = config.ghaf.hardware.nvidia.orin;
+  ftpmEnabled = config.hardware.nvidia-jetpack.firmware.optee.ftpm.enable;
 
   # verity-volume.nix owns fileSystems."/" (tmpfs overlay) when enabled, so the
   # diskEncryption ext4 root override below must stand down to avoid a
@@ -206,41 +207,6 @@ let
       cp "$BUNDLE_TMP" "$BUNDLE"
       chmod 0644 "$BUNDLE"
       echo "Wrote endorsement bundle to $BUNDLE"
-    '';
-  };
-
-  loadFtpmModuleApp = pkgs.writeShellApplication {
-    name = "ghaf-load-ftpm-module";
-    runtimeInputs = [
-      pkgs.coreutils
-      pkgs.kmod
-      pkgs.systemd
-    ];
-    text = ''
-      set -euo pipefail
-
-      if [ -e /dev/tpmrm0 ]; then
-        echo "fTPM device already present, skipping"
-        exit 0
-      fi
-
-      if ! systemctl is-active --quiet tee-supplicant.service; then
-        echo "tee-supplicant is not active" >&2
-        exit 1
-      fi
-
-      if ! timeout 20s modprobe tpm_ftpm_tee; then
-        echo "Failed to load tpm_ftpm_tee" >&2
-        exit 1
-      fi
-
-      udevadm settle --timeout=5 || true
-      if [ ! -e /dev/tpmrm0 ]; then
-        echo "tpm_ftpm_tee loaded but /dev/tpmrm0 is missing" >&2
-        exit 1
-      fi
-
-      echo "Loaded tpm_ftpm_tee"
     '';
   };
 
@@ -904,10 +870,6 @@ in
 
       modprobeConfig.enable = true;
 
-      # Prevent early autoload; load in stage-2 after local filesystems
-      # and tee-supplicant are up.
-      blacklistedKernelModules = [ "tpm_ftpm_tee" ];
-
       kernelPatches = [
         {
           name = "vsock-config";
@@ -928,17 +890,6 @@ in
           patch = null;
           structuredExtraConfig = with lib.kernel; {
             RTC_HCTOSYS = lib.mkForce no;
-          };
-        }
-        {
-          name = "ftpm-config";
-          patch = null;
-          structuredExtraConfig = with lib.kernel; {
-            EXPERT = yes;
-            TCG_FTPM_TEE = module;
-            # Disable TPM hwrng to prevent constant fTPM polling pressure
-            # that can saturate the OP-TEE single-lane fTPM TA under load.
-            HW_RANDOM_TPM = no;
           };
         }
         {
@@ -1155,41 +1106,11 @@ in
       };
     };
 
-    systemd.services.ghaf-load-ftpm-module = {
-      description = "Load fTPM module after stage-2 OP-TEE readiness";
-      wantedBy = [ "multi-user.target" ];
-      wants = [
-        "local-fs.target"
-        "tee-supplicant.service"
-      ];
-      after = [
-        "local-fs.target"
-        "systemd-modules-load.service"
-        "tee-supplicant.service"
-      ];
-      before = [
-        "ghaf-provision-ek-certs.service"
-        "ghaf-export-ek-endorsement-bundle.service"
-      ];
-      unitConfig.ConditionPathExists = "!/dev/tpmrm0";
-
-      serviceConfig = {
-        Type = "oneshot";
-        TimeoutStartSec = "80s";
-        ExecStart = lib.getExe loadFtpmModuleApp;
-      };
-    };
-
-    systemd.services.ghaf-provision-ek-certs = mkIf cfg.runtimeEkProvision.enable {
+    systemd.services.ghaf-provision-ek-certs = mkIf (ftpmEnabled && cfg.runtimeEkProvision.enable) {
       description = "Provision fTPM EK certificates into standard NV indices";
       wantedBy = [ "multi-user.target" ];
-      wants = [ "tee-supplicant.service" ];
-      after = [
-        "local-fs.target"
-        "systemd-modules-load.service"
-        "tee-supplicant.service"
-        "ghaf-load-ftpm-module.service"
-      ];
+      wants = [ "ftpm-driver.service" ];
+      after = [ "ftpm-driver.service" ];
       unitConfig.ConditionPathExists = "/dev/tpmrm0";
       unitConfig.OnSuccess = [ "ghaf-export-ek-endorsement-bundle.service" ];
 
@@ -1202,15 +1123,12 @@ in
       };
     };
 
-    systemd.services.ghaf-export-ek-endorsement-bundle = {
+    systemd.services.ghaf-export-ek-endorsement-bundle = mkIf ftpmEnabled {
       description = "Export EK certs and build endorsement CA bundle";
       wantedBy = [ "multi-user.target" ];
-      wants = [ "tee-supplicant.service" ];
+      wants = [ "ftpm-driver.service" ];
       after = [
-        "local-fs.target"
-        "systemd-modules-load.service"
-        "tee-supplicant.service"
-        "ghaf-load-ftpm-module.service"
+        "ftpm-driver.service"
       ]
       ++ lib.optionals cfg.runtimeEkProvision.enable [
         "ghaf-provision-ek-certs.service"
