@@ -4,6 +4,13 @@
 # Saves approx 900 MB
 { prev }:
 prev.cosmic-reader.overrideAttrs (oldAttrs: {
+  postFixup = (oldAttrs.postFixup or "") + ''
+    wrapProgram $out/bin/cosmic-reader \
+      --set RUST_LOG "cosmic_reader=trace" \
+      --set WAYLAND_DEBUG "1" \
+      --set WGPU_LOG_LEVEL "debug"
+  '';
+
   buildInputs = builtins.filter (
     p: (p.pname or "") != "tesseract" && (p.pname or "") != "leptonica"
   ) (oldAttrs.buildInputs or [ ]);
