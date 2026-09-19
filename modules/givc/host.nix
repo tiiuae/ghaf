@@ -73,14 +73,9 @@ in
           "poweroff.target"
           "suspend.target"
         ]
-        ++ optionals config.ghaf.services.performance.host.tuned.enable [
-          "host-powersave.service"
-          "host-balanced.service"
-          "host-performance.service"
-          "host-powersave-battery.service"
-          "host-balanced-battery.service"
-          "host-performance-battery.service"
-        ]
+        ++ optionals config.ghaf.services.performance.host.tuned.enable (
+          map (profile: "${profile}.service") config.ghaf.services.performance.host.tuned.profileNames
+        )
         ++ optionals config.ghaf.services.orbit.host.enable [
           "${config.ghaf.services.orbit.host.wipeService}.service"
         ];

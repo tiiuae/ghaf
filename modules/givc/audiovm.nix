@@ -54,7 +54,10 @@ in
           ++ optionals config.ghaf.services.power-manager.vm.enable [
             "suspend.target"
             "systemd-suspend.service"
-          ];
+          ]
+          ++ optionals (
+            config.ghaf.services.performance.audio.enable && config.ghaf.services.performance.audio.tuned.enable
+          ) (map (profile: "${profile}.service") config.ghaf.services.performance.audio.tuned.profileNames);
         socketProxy = {
           enable = true;
           sockets =
