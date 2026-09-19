@@ -44,6 +44,7 @@ in
     inputs.self.nixosModules.hardware-x86_64-host-kernel
     inputs.self.nixosModules.mem-manager
     inputs.self.nixosModules.theming
+    ./crosvm-dax.nix
     ./networking.nix
     ./shared-mem.nix
     ./boot.nix
@@ -449,6 +450,14 @@ in
       services.udev.extraRules = ''
         ACTION=="add", SUBSYSTEM=="backlight", ATTR{brightness}="$attr{max_brightness}"
       '';
+    }
+    {
+      # crosvm backs guest RAM with memfd, so the MADV_HUGEPAGE it issues under
+      # --hugepages is governed by shmem_enabled rather than enabled. The default
+      # "never" ignores that advice, leaving guest RAM entirely 4 KiB-backed.
+      systemd.tmpfiles.rules = [
+        "w /sys/kernel/mm/transparent_hugepage/shmem_enabled - - - - advise"
+      ];
     }
   ]);
 }
