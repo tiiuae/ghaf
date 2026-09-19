@@ -23,51 +23,70 @@ let
     --ccastvm-mac ${chromecastVmMac} \
     --ccastvm-ip ${chromecastVmIpAddr}/24
   '';
-  # Seconds to wait for externalNic before giving up. Bounded on purpose: an
-  # unbounded wait here logged "Waiting for IPv4 address on interface ..." every
-  # 10s forever while the unit reported "active". Failing loudly once is more useful than
-  # succeeding quietly at nothing.
-  externalNicTimeout = 60;
-  nw-pckt-fwd-launcher = pkgs.writeShellScriptBin "nw-pckt-fwd" (
-    if cfg.uplink.enable then
-      # The resolver has already established that this interface exists and
-      # holds the default route, and ConditionPathExists gates the unit on that,
-      # so there is nothing to wait for -- just read it and go.
-      ''
-        # shellcheck disable=SC1090
-        . ${cfg.uplink.stateFile}
-        if [ -z "''${uplink_iface:-}" ]; then
-          echo "nw-pckt-fwd: ${cfg.uplink.stateFile} names no uplink; refusing to forward on a guess." >&2
-          exit 1
-        fi
-        echo "nw-pckt-fwd: forwarding between $uplink_iface and ${cfg.internalNic}"
-        exec ${pkgs.ghaf-nw-packet-forwarder}/bin/nw-pckt-fwd \
-        --external-iface "$uplink_iface" \
-        --internal-iface ${cfg.internalNic} \
-        --internal-ip ${cfg.internalIp} ${chromecastFlags}
-      ''
-    else
-      # Legacy path for a build-time externalNic, unchanged from the
-      # bounded-wait fix.
-      ''
-        # Wait until the external interface has an IPv4 address (e.g. Wi-Fi connected).
-        deadline=$(( $(${pkgs.coreutils}/bin/date +%s) + ${toString externalNicTimeout} ))
-        while [ -z "$(${pkgs.iproute2}/bin/ip -4 -o addr show dev ${cfg.externalNic} scope global 2>/dev/null)" ]; do
-          if [ "$(${pkgs.coreutils}/bin/date +%s)" -ge "$deadline" ]; then
-            echo "nw-pckt-fwd: '${cfg.externalNic}' has no global IPv4 address after ${toString externalNicTimeout}s - giving up." >&2
-            echo "nw-pckt-fwd: set services.nw-packet-forwarder.uplink.enable to resolve the interface at runtime instead." >&2
-            exit 1
-          fi
-          echo "Waiting for IPv4 address on interface ${cfg.externalNic}..."
-          sleep 10
-        done
 
-        exec ${pkgs.ghaf-nw-packet-forwarder}/bin/nw-pckt-fwd \
-        --external-iface ${cfg.externalNic} \
-        --internal-iface ${cfg.internalNic} \
-        --internal-ip ${cfg.internalIp} ${chromecastFlags}
-      ''
-  );
+  # One forwarder process per resolved uplink, run from a template unit so a
+  # device with several simultaneous uplinks (Wi-Fi and a docked Ethernet,
+  # say) forwards on all of them instead of only the lowest-metric one. `%I`
+  # carries the external interface name; it is passed as an argv element
+  # rather than spliced into this string so it can't collide with the
+  # `chromecastFlags` backslash-continuations below.
+  nw-pckt-fwd-instance = pkgs.writeShellScriptBin "nw-pckt-fwd-instance" ''
+    external_iface="$1"
+    echo "nw-pckt-fwd: forwarding between $external_iface and ${cfg.internalNic}"
+    exec ${pkgs.ghaf-nw-packet-forwarder}/bin/nw-pckt-fwd \
+    --external-iface "$external_iface" \
+    --internal-iface ${cfg.internalNic} \
+    --internal-ip ${cfg.internalIp} ${chromecastFlags}
+  '';
+
+  # Starts/stops nw-packet-forwarder@<iface> instances to match
+  # uplink_ifaces. Deliberately not gated on the ready flag (unlike the
+  # forwarder instances themselves): it must still run when there is no
+  # uplink at all, so it can stop every instance left over from one that just
+  # disappeared -- its own start/stop diff already reduces to "stop
+  # everything" when the desired set is empty.
+  nw-packet-forwarder-reconcile-script = pkgs.writeShellApplication {
+    name = "nw-packet-forwarder-reconcile";
+    runtimeInputs = [
+      pkgs.systemd
+      pkgs.gawk
+      pkgs.gnused
+    ];
+    text = ''
+      uplink_ifaces=""
+      if [ -r ${cfg.stateFile} ]; then
+        # shellcheck disable=SC1090,SC1091
+        . ${cfg.stateFile}
+      fi
+      read -ra desired <<< "''${uplink_ifaces:-}"
+
+      readarray -t running < <(systemctl list-units --plain --no-legend --state=active,activating \
+        'nw-packet-forwarder@*.service' 2>/dev/null | awk '{print $1}' \
+        | sed -e 's/^nw-packet-forwarder@//' -e 's/\.service$//')
+
+      for iface in "''${desired[@]}"; do
+        if ! systemctl is-active --quiet "nw-packet-forwarder@$iface.service"; then
+          echo "nw-packet-forwarder-reconcile: starting forwarder on $iface"
+          systemctl start --no-block "nw-packet-forwarder@$iface.service"
+        fi
+      done
+
+      for iface in "''${running[@]}"; do
+        wanted=0
+        for d in "''${desired[@]}"; do
+          if [ "$d" = "$iface" ]; then
+            wanted=1
+            break
+          fi
+        done
+        if [ "$wanted" -eq 1 ]; then
+          continue
+        fi
+        echo "nw-packet-forwarder-reconcile: stopping forwarder on $iface (no longer an uplink)"
+        systemctl stop --no-block "nw-packet-forwarder@$iface.service"
+      done
+    '';
+  };
 in
 {
   _file = ./nw-packet-forwarder.nix;
@@ -79,15 +98,6 @@ in
       example = "/var/lib/nw-packet-forwarder/nw-packet-forwarder.conf";
       description = ''
         Ignore all other nw-packet-forwarder options and load configuration from this file.
-      '';
-    };
-
-    externalNic = mkOption {
-      type = types.str;
-      default = "";
-      example = "";
-      description = ''
-        External NIC
       '';
     };
 
@@ -124,37 +134,40 @@ in
       };
     };
 
-    uplink = {
-      enable = mkEnableOption ''
-        taking the external interface from the runtime uplink resolver instead
-        of `externalNic`
+    stateFile = mkOption {
+      type = types.path;
+      default = "/run/ghaf-uplink-state";
+      description = "Where the uplink resolver publishes the current uplink.";
+    };
+
+    readyFlag = mkOption {
+      type = types.path;
+      default = "/run/ghaf-uplink-ready";
+      description = ''
+        Gate for the reconciler and forwarder instances. Absent means there
+        is no uplink, and instances are stopped rather than left running for
+        a stale interface.
       '';
-
-      stateFile = mkOption {
-        type = types.path;
-        default = "/run/ghaf-uplink-state";
-        description = "Where the uplink resolver publishes the current uplink.";
-      };
-
-      readyFlag = mkOption {
-        type = types.path;
-        default = "/run/ghaf-uplink-ready";
-        description = ''
-          Gate for the unit. Absent means there is no uplink, and the unit is
-          skipped rather than failed.
-        '';
-      };
     };
   };
   config = mkIf cfg.enable {
     assertions = [
       {
-        assertion = cfg.uplink.enable || cfg.externalNic != "";
-        message = "External Nic must be set, or services.nw-packet-forwarder.uplink.enable used";
-      }
-      {
         assertion = cfg.internalNic != "";
         message = "Internal Nic must be set";
+      }
+      {
+        # No build-time fallback any more: every forwarder instance is
+        # started by the reconciler off the resolver's state file. Without
+        # the resolver actually running, the reconciler would never see any
+        # uplink and no instance would ever start -- silently, not a failure.
+        assertion = config.ghaf.networking.uplinkResolver.enable;
+        message = ''
+          services.nw-packet-forwarder.enable requires
+          ghaf.networking.uplinkResolver.enable -- every forwarder instance is
+          started off the resolved uplink, and without the resolver running
+          no instance would ever start.
+        '';
       }
     ];
 
@@ -164,52 +177,49 @@ in
       ''
     );
 
-    systemd.services."nw-packet-forwarder" = {
-      description = "Network packet forwarder daemon";
+    systemd.services = {
+      # One instance per resolved uplink, started and stopped by the
+      # reconciler below rather than by a static wantedBy/bindsTo -- a
+      # template can't bindsTo a .device unit whose interface name isn't
+      # known until the resolver runs.
+      "nw-packet-forwarder@" = {
+        description = "Network packet forwarder daemon (%i)";
 
-      # Restart=always below has no natural end, so bounding the wait in the
-      # launcher is not enough on its own -- without a start limit it would
-      # simply trade a 10s log-spam loop for a 75s restart loop. Give up after
-      # a few attempts so the unit lands in "failed" where it is visible.
-      unitConfig = {
-        StartLimitIntervalSec = 600;
-        StartLimitBurst = 3;
-      }
-      // lib.optionalAttrs cfg.uplink.enable {
-        # No uplink => skipped and visibly so, rather than failed (an unplugged
-        # dock is not a defect) or silently active-doing-nothing (which is what
-        # the unbounded wait amounted to).
-        ConditionPathExists = cfg.uplink.readyFlag;
+        # No start rate limit: the reconciler starts/stops a specific
+        # instance whenever its interface enters or leaves uplink_ifaces,
+        # and NetworkManager can fire several dispatcher events for one
+        # transition -- an interface flapping a few times in quick
+        # succession would otherwise hit the limit and leave that instance
+        # refusing to start for the rest of the window.
+        unitConfig.StartLimitIntervalSec = 0;
+
+        bindsTo = [ "sys-subsystem-net-devices-${cfg.internalNic}.device" ];
+        after = [
+          "sys-subsystem-net-devices-${cfg.internalNic}.device"
+          "ghaf-uplink-resolver.service"
+        ];
+        serviceConfig = {
+          Type = "simple";
+          ExecStart = "${nw-pckt-fwd-instance}/bin/nw-pckt-fwd-instance %I";
+          TimeoutStartSec = "0";
+          Restart = "always";
+          RestartSec = "15s";
+        };
       };
 
-      # The device units below bake an interface name into a *unit* name, which
-      # cannot survive an interface resolved at runtime -- and a bindsTo on a
-      # .device that never appears makes the unit unstartable. Under uplink.enable
-      # the resolver plays that role instead: it only publishes an interface that
-      # exists and holds the default route, and restarts this unit when that
-      # changes. The internal NIC is static, so it keeps its device dependency.
-      bindsTo =
-        lib.optional (!cfg.uplink.enable) "sys-subsystem-net-devices-${cfg.externalNic}.device"
-        ++ [ "sys-subsystem-net-devices-${cfg.internalNic}.device" ];
-      after =
-        lib.optional (!cfg.uplink.enable) "sys-subsystem-net-devices-${cfg.externalNic}.device"
-        ++ [ "sys-subsystem-net-devices-${cfg.internalNic}.device" ]
-        ++ lib.optional cfg.uplink.enable "ghaf-uplink-resolver.service";
-
-      wantedBy = [
-        "multi-user.target"
-      ]
-      ++ lib.optional (!cfg.uplink.enable) "sys-subsystem-net-devices-${cfg.externalNic}.device"
-      ++ [ "sys-subsystem-net-devices-${cfg.internalNic}.device" ];
-      serviceConfig = {
-        Type = "simple";
-        ExecStart = "${nw-pckt-fwd-launcher}/bin/nw-pckt-fwd";
-        TimeoutStartSec = "0";
-        Restart = "always";
-        RestartSec = "15s";
+      nw-packet-forwarder-reconcile = {
+        description = "Reconcile nw-packet-forwarder instances with the resolved uplinks";
+        after = [ "ghaf-uplink-resolver.service" ];
+        # Restarted by the resolver's dependentUnits, potentially several
+        # times per transition -- same reasoning as the template unit above.
+        unitConfig.StartLimitIntervalSec = 0;
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = lib.getExe nw-packet-forwarder-reconcile-script;
+          ProtectSystem = "strict";
+          NoNewPrivileges = true;
+        };
       };
     };
-
   };
-
 }
