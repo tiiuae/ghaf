@@ -10,26 +10,12 @@ import sys
 import time
 from typing import Any
 
-# nix-eval-jobs otherwise defaults to one worker per core, each capped at 4 GiB.
-# On the 4-vCPU/16 GB `ubuntu-24.04-arm` runner that commits 4 x 4 GiB = the whole
-# machine, and it SIGKILLs any attribute needing more than 4 GiB.
-#
-# `--max-memory-size` is a *restart threshold*, not a ceiling: a worker keeps
-# accumulating heap across the attributes it evaluates and is only recycled once
-# it crosses the limit. So the limit must leave room for the whole runner, not
-# merely fit the single largest attribute -- setting it to 12288 here took the
-# runner down entirely ("the runner has received a shutdown signal") on targets
-# as ordinary as demo-tower-mk1-release, because one worker was allowed to grow
-# to within 4 GiB of physical RAM before being recycled.
-#
-# 7168 with one worker leaves ~9 GiB of the 16 GiB free. The heaviest attribute
-# measured after the Jetson flash-script fixes is ~5.8 GiB (the AGX verity flash
-# scripts, which still pull `verityImages` into their eval closure), so it fits
-# with room to spare. If something exceeds this again, reduce the attribute's
-# eval cost rather than raising the threshold -- there is not much headroom left
-# on a 16 GiB runner.
+# One worker: the default is one per core, which commits the whole 4-vCPU/16 GB
+# `ubuntu-24.04-arm` runner. nix-eval-jobs 2.35.3 made --max-memory-size a real
+# budget, so it has to clear the heaviest attribute -- the `-installer` images
+# measure 9.5-10.2 GiB each under nix-eval-jobs (`nix eval` understates by ~3 GiB).
 EVAL_WORKERS = 1
-EVAL_MAX_MEMORY_MB = 7168
+EVAL_MAX_MEMORY_MB = 12288
 
 SELECT_EXPR = """
 flake: let
