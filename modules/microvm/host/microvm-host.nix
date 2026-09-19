@@ -46,6 +46,7 @@ in
     inputs.self.nixosModules.theming
     ./networking.nix
     ./shared-mem.nix
+    ./crosvm-shutdown.nix
     ./boot.nix
     ./vtpm-proxy.nix
   ];
@@ -237,7 +238,7 @@ in
           ) xdgDirs;
         in
         [
-          "d /persist/common 0755 root root -"
+          "z /persist/common 0775 root kvm -"
           "d /persist/sysupdate 0755 root root -"
           "d /persist/storagevm 0755 root root -"
           "d /persist/storagevm/img 0700 microvm kvm -"

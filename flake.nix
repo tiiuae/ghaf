@@ -102,7 +102,7 @@
     # Crosvm with Ghaf's swtpm backend. This is a non-flake source input
     # because nixpkgs supplies the package expression and Rust dependencies.
     ghaf-crosvm = {
-      url = "git+https://github.com/tiiuae/ghaf-crosvm?submodules=1";
+      url = "git+https://github.com/tiiuae/ghaf-crosvm?ref=refs/heads/feat/protected-guivm-r3&rev=8a01aeb570283b2122e50bf6c3ee45ca02f3d5e7&submodules=1";
       flake = false;
     };
 
@@ -155,13 +155,22 @@
     # Nvidia Orin support for NixOS
     jetpack-nixos = {
       #url = "github:anduril/jetpack-nixos";
-      url = "github:tiiuae/jetpack-nixos/august-rebase";
+      # TODO: restore august-rebase after jetpack-nixos#22 merges.
+      url = "github:tiiuae/jetpack-nixos/278ebc4004ca89bbeb6d217db137026cb31fc63d";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # Validated Linux 7.1 pKVM source for the AGX host and protected guests.
+    # flake.lock pins this non-flake input to an immutable integration commit.
+    linux-pkvm = {
+      url = "github:tiiuae/linux-pkvm/7a290b85d63207794ed5c469527bbcc75f074590";
+      flake = false;
     };
 
     # For building and managing VMs
     microvm = {
-      url = "github:microvm-nix/microvm.nix";
+      # TODO: restore the upstream input after microvm.nix#589 merges.
+      url = "github:vadika/microvm.nix/37184b96454b97b789fc97839d6234780c11d751";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

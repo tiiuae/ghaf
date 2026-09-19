@@ -1,0 +1,84 @@
+From c82013aa9be03dc19e2b8451826f8fe9785597eb Mon Sep 17 00:00:00 2001
+From: Viktor Rosendahl <viktor.rosendahl@tii.ae>
+Date: Tue, 19 Aug 2025 15:18:55 +0300
+Subject: [PATCH] tegra: t234: save and restore timer, virtualization, and
+ IRQ-related registers
+
+Booting the Linux kernel in nVHE mode (kvm-arm.mode=nvhe) or pKVM
+(kvm-arm.mode=protected) currently causes the system to hang in a livelock
+during boot. After returning from the PSCI CPU idle path, each CPU stops
+processing timer interrupts, and the kernel cannot make forward progress.
+
+The root cause is that the EL2/EL1 state required by nVHE/pKVM (timer,
+virtualization, and interrupt control registers) is not preserved across
+PSCI CPU suspend and is effectively lost on warm boot. As a result, the
+kernel loses access to timers/interrupts and expected virtualization
+behavior.
+
+This change saves the relevant per-CPU registers on entry to PSCI CPU
+suspend and restores them on resume, instead of relying on default values
+after warm boot. With this in place, Linux boots correctly both with nVHE
+and pKVM enabled.
+
+Signed-off-by: Viktor Rosendahl <viktor.rosendahl@tii.ae>
+---
+ .../nvidia/tegra/soc/t234/plat_psci_handlers.c     | 28 +++++++++++++++++-----
+ 1 file changed, 22 insertions(+), 6 deletions(-)
+
+diff --git a/arm-trusted-firmware/plat/nvidia/tegra/soc/t234/plat_psci_handlers.c b/arm-trusted-firmware/plat/nvidia/tegra/soc/t234/plat_psci_handlers.c
+index 5e4e480..9d3034e 100644
+--- a/arm-trusted-firmware/plat/nvidia/tegra/soc/t234/plat_psci_handlers.c
++++ b/arm-trusted-firmware/plat/nvidia/tegra/soc/t234/plat_psci_handlers.c
+@@ -46,7 +46,10 @@ extern bool tegra234_fake_system_suspend;
+ 
+ static struct t234_psci_percpu_data {
+ 	uint32_t wake_time;
+-	uint32_t cnthp_ctl_el2_val;
++	uint64_t hcr_el2;
++	uint64_t cnthctl_el2;
++	uint64_t cnthp_ctl_el2;
++	uint64_t cntp_ctl_el0;
+ } __aligned(CACHE_WRITEBACK_GRANULE) t234_percpu_data[PLATFORM_CORE_COUNT];
+ 
+ int32_t tegra_soc_validate_power_state(uint32_t power_state,
+@@ -112,9 +115,16 @@ int32_t tegra_soc_pwr_domain_suspend(const psci_power_state_t *target_state)
+ 		TEGRA234_STATE_ID_MASK;
+ 
+ 	if (stateid_afflvl0 == PSTATE_ID_CORE_POWERDN) {
+-
+-		/* save cnthp_ctl_el2 before core powerdown */
+-		t234_percpu_data[cpu].cnthp_ctl_el2_val = read_cnthp_ctl_el2();
++		/*
++		 * Save these EL2 system registers related to virtualization,
++		 * interrupt routing, and timer access control before CPU
++		 * power-down. These four must be saved here when running the
++		 * kernel in nVHE mode, e.g. when using pKVM.
++		 */
++		t234_percpu_data[cpu].hcr_el2 = read_hcr_el2();
++		t234_percpu_data[cpu].cnthctl_el2 = read_cnthctl_el2();
++		t234_percpu_data[cpu].cnthp_ctl_el2 = read_cnthp_ctl_el2();
++		t234_percpu_data[cpu].cntp_ctl_el0 = read_cntp_ctl_el0();
+ 
+ 		/* Enter CPU powerdown */
+ 		(void)mce_command_handler((uint64_t)MCE_CMD_ENTER_CSTATE,
+@@ -386,9 +396,15 @@ int32_t tegra_soc_pwr_domain_on_finish(const psci_power_state_t *target_state)
+ 		tegra_enable_cluster_pmu_writes();
+ 	}
+ 
+-	/* if resume from core powerdown , restore cnthp_ctl_el2*/
++	/*
++	 * if resume from core powerdown , restore those EL2 registers related
++	 * to virtualization, interrupt routing, and timer access control
++	 */
+ 	if (stateid_afflvl0 == PSTATE_ID_CORE_POWERDN) {
+-		write_cnthp_ctl_el2(t234_percpu_data[cpu].cnthp_ctl_el2_val);
++		write_hcr_el2(t234_percpu_data[cpu].hcr_el2);
++		write_cnthctl_el2(t234_percpu_data[cpu].cnthctl_el2);
++		write_cnthp_ctl_el2(t234_percpu_data[cpu].cnthp_ctl_el2);
++		write_cntp_ctl_el0(t234_percpu_data[cpu].cntp_ctl_el0);
+ 	}
+ 
+ 	/*
+-- 
+2.47.3
+

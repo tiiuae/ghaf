@@ -157,6 +157,7 @@ def create_esp_contents(
     device_tree: str | None,
 ) -> None:
     mkdir_p(output)
+    write_file(os.path.join(output, "startup.nsh"), "\\EFI\\BOOT\\BOOTAA64.EFI\r\n")
     boot = read_bootspec_file(toplevel)
     system = boot["system"]
     selected_loader = LOADERS.get(system)

@@ -1,0 +1,25 @@
+// SPDX-FileCopyrightText: 2026 TII (SSRC) and the Ghaf contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "nvidia,tegra234";
+
+	fragment@0 {
+		target-path = "/";
+
+		__overlay__ {
+			pkvm-pci-device-assignment {
+				compatible = "pkvm,pci-device-assignment";
+				pci-domain = <1>;
+				pci-bus = <1>;
+				pci-devfn = <0>;
+				vendor-id = <0x10ec>;
+				device-id = <0xc822>;
+				group-id = <2>;
+			};
+		};
+	};
+};
