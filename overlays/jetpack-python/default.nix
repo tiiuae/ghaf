@@ -19,7 +19,6 @@
 # `-from-x86_64` variants.
 (_final: prev: {
   pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
-    (import ./pygount)
     (import ./setuptools-pkg-resources)
     (import ./threadpoolctl-no-check)
   ];
