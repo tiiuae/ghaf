@@ -25,6 +25,16 @@
 let
   fssSetupTest = import ./test_scripts/fss_setup.nix;
   fssVerificationTest = import ./test_scripts/fss_verification.nix;
+
+  # Same journal-verify.c tolerance as modules/common/systemd/base.nix.
+  patchedSystemd = pkgs.systemd.overrideAttrs (prev: {
+    postPatch = (prev.postPatch or "") + ''
+      substituteInPlace src/libsystemd/sd-journal/journal-verify.c \
+        --replace-fail \
+          'if (!(n_tags == 0 || (n_tags == 1 && le64toh(o->tag.epoch) == last_epoch)' \
+          'if (!(n_tags == 0 || le64toh(o->tag.epoch) == last_epoch'
+    '';
+  });
 in
 pkgs.testers.nixosTest {
   name = "logging-fss";
@@ -59,6 +69,8 @@ pkgs.testers.nixosTest {
       };
 
       config = {
+        systemd.package = patchedSystemd;
+
         # Enable FSS with short seal interval for testing
         ghaf.logging.enable = true;
         ghaf.logging.fss = {
@@ -82,14 +94,14 @@ pkgs.testers.nixosTest {
           "d /persist/common/journal-fss/test-host 0700 root root - -"
         ];
 
-        # Test utilities
+        # fss-test/fss-triage must verify with the same patched systemd as the node.
         environment.systemPackages = with pkgs; [
           coreutils
           gnugrep
           util-linux
-          (callPackage ./test_scripts/fss-test.nix { })
+          (callPackage ./test_scripts/fss-test.nix { systemd = patchedSystemd; })
           (callPackage ./test_scripts/fss-classifier-cases.nix { })
-          (callPackage ../../packages/pkgs-by-name/fss-triage/package.nix { })
+          (callPackage ../../packages/pkgs-by-name/fss-triage/package.nix { systemd = patchedSystemd; })
         ];
       };
     };

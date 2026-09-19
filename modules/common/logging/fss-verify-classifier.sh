@@ -54,11 +54,8 @@ fss_log() {
 
 fss_log_block() { cat; }
 
-# journald's Storage=persistent falls back to volatile at its own startup
-# (journald.conf(5)) and never re-evaluates -- resolve where it actually
-# landed via its open fd, not by guessing from file existence.
-# Falls back to the caller's default on any resolution failure; must not
-# abort the caller under errexit.
+# journald's persistent->volatile fallback (journald.conf(5)) is decided once
+# at its own startup; resolve where it actually landed via its open fd.
 fss_resolve_live_journal_dir() {
   local default_dir="$1" journald_pid journald_comm fd_target
 
@@ -70,8 +67,7 @@ fss_resolve_live_journal_dir() {
     ;;
   esac
 
-  # Guards against PID reuse between the lookup above and the fd walk below.
-  # comm is kernel-truncated to 15 chars, hence "systemd-journal" not "...ld".
+  # Guards against PID reuse; comm is truncated to "systemd-journal".
   journald_comm=$(cat "/proc/$journald_pid/comm" 2>/dev/null) || true
   if [ "$journald_comm" != "systemd-journal" ]; then
     printf '%s' "$default_dir"
@@ -92,10 +88,9 @@ fss_resolve_live_journal_dir() {
   fi
 }
 
-# Resolve the FSS key file by which candidate path actually has one.
-# Deliberately NOT derived from fss_resolve_live_journal_dir: `journalctl
-# --setup-keys` places the key independently of journald's live journal.
-# Defaults to persistent when neither exists, matching --setup-keys itself.
+# Resolve the FSS key file by which candidate path actually has one -- NOT
+# derived from fss_resolve_live_journal_dir: --setup-keys places it
+# independently of journald's live journal.
 fss_resolve_key_file() {
   local machine_id="$1"
   local persistent="/var/log/journal/$machine_id/fss"
@@ -116,7 +111,7 @@ fss_append_tag() {
 
   if [ -z "$current" ]; then
     printf '%s' "$tag"
-  elif printf '%s\n' ",$current," | grep -Fq ",$tag,"; then
+  elif grep -Fq -- ",$tag," <<<",$current,"; then
     printf '%s' "$current"
   else
     printf '%s,%s' "$current" "$tag"
@@ -140,7 +135,7 @@ fss_append_unique_line() {
 
   if [ -z "$line" ]; then
     printf '%s' "$current"
-  elif printf '%s\n' "$current" | grep -Fxq "$line"; then
+  elif grep -Fxq -- "$line" <<<"$current"; then
     printf '%s' "$current"
   else
     fss_append_line "$current" "$line"
@@ -178,7 +173,7 @@ fss_unique_fail_paths_from_output() {
     FAIL:\ *)
       failure_path="${line#FAIL: }"
       failure_path="${failure_path%% *}"
-      if [ -n "$failure_path" ] && ! printf '%s\n' "$unique" | grep -Fxq "$failure_path"; then
+      if [ -n "$failure_path" ] && ! grep -Fxq -- "$failure_path" <<<"$unique"; then
         unique=$(fss_append_line "$unique" "$failure_path")
       fi
       ;;
@@ -188,8 +183,105 @@ fss_unique_fail_paths_from_output() {
   printf '%s' "$unique"
 }
 
+# Drop the "FAIL: <path> ..." lines whose path is in drop_paths (one path per
+# line) from a classified failure block, keeping every other line. Used to
+# withdraw archives that a later check (e.g. a retained-key retry) has excused.
+fss_drop_fail_lines_for_paths() {
+  local block="$1" drop_paths="$2" line path kept=""
+
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+    FAIL:\ *)
+      path="${line#FAIL: }"
+      path="${path%% *}"
+      if grep -Fxq -- "$path" <<<"$drop_paths"; then
+        continue
+      fi
+      ;;
+    esac
+    kept=$(fss_append_line "$kept" "$line")
+  done <<<"$block"
+
+  printf '%s' "$kept"
+}
+
+# Superseded FSS verification keys in a key directory, newest-created first. A
+# re-key regenerates seed and start_usec, so journals sealed before it verify
+# only under the key that was live when they were sealed;
+# retain_previous_verification_key keeps those as verification-key.<epoch>.
+# Ordered by mtime, NOT the epoch parsed from the filename: under backward clock
+# corrections each re-key's epoch is *lower* than the last, so a filename-epoch
+# sort would rank the newest key oldest. Not pure (touches the filesystem) --
+# kept above the pure predicate section.
+fss_list_retained_verification_keys() {
+  local key_dir="$1"
+
+  [ -n "$key_dir" ] || return 0
+  find "$key_dir" -maxdepth 1 -type f -name 'verification-key.*' -printf '%T@\t%p\n' 2>/dev/null |
+    sort -k1,1nr |
+    cut -f2-
+}
+
+# The authoritative newest-created-first ordering of the retained keys: the
+# rekey-history file (append-only, one line per retained key, oldest first --
+# field 2 is the key path) when present, then any on-disk key it does not name,
+# ordered by mtime. History order breaks mtime ties and is correct even under
+# backward corrections. prune_retained_verification_keys keeps the first N of
+# this list and deletes the rest.
+fss_retained_keys_newest_first() {
+  local key_dir="$1" history_file="${2-}"
+  local ranked="" line hpath extra
+
+  [ -n "$key_dir" ] || return 0
+  if [ -n "$history_file" ] && [ -s "$history_file" ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+      hpath=${line#*$'\t'}
+      hpath=${hpath%%$'\t'*}
+      { [ -n "$hpath" ] && [ -f "$hpath" ]; } || continue
+      # Here-string avoids a pipefail/SIGPIPE misreport from grep -q's early exit.
+      if grep -Fxq -- "$hpath" <<<"$ranked"; then continue; fi
+      ranked=$(fss_append_line "$ranked" "$hpath")
+    done < <(tac -- "$history_file" 2>/dev/null)
+  fi
+  while IFS= read -r extra || [ -n "$extra" ]; do
+    [ -n "$extra" ] || continue
+    if grep -Fxq -- "$extra" <<<"$ranked"; then continue; fi
+    ranked=$(fss_append_line "$ranked" "$extra")
+  done < <(fss_list_retained_verification_keys "$key_dir")
+
+  printf '%s' "$ranked"
+}
+
+# True if an archived journal verifies under some retained key: proof it
+# belongs to a lineage sealed before a re-key. A journal tampered with
+# beforehand fails under the old key too, so is not excused. Never call this
+# on a live journal -- a live file seals under the current key and must verify
+# under it.
+fss_archive_verifies_under_retained_key() {
+  local archive_path="$1" key_dir="$2" key_file key
+
+  [ -n "$archive_path" ] && [ -n "$key_dir" ] || return 1
+  while IFS= read -r key_file || [ -n "$key_file" ]; do
+    [ -n "$key_file" ] || continue
+    [ -s "$key_file" ] && [ -r "$key_file" ] || continue
+    key=$(tr -d '[:space:]' <"$key_file")
+    if journalctl --verify --verify-key="$key" --file="$archive_path" >/dev/null 2>&1; then
+      return 0
+    fi
+  done < <(fss_list_retained_verification_keys "$key_dir")
+
+  return 1
+}
+
 # Clock-jump and FSS re-key predicates. Pure, so they are testable: see
 # tests/logging/test_scripts/fss-classifier-cases.nix.
+
+# |d(realtime) - d(monotonic)| between two samples, in seconds: the amount the wall
+# clock was set. Shared by the watcher and the setup script's guard.
+fss_clock_drift_abs() {
+  awk -v r1="$1" -v u1="$2" -v r2="$3" -v u2="$4" \
+    'BEGIN{d=(r2-r1)-(u2-u1); print (d<0)?-d:d}'
+}
 
 # Epochs of journald's backward-jump attestations, from --output=short-unix
 # lines on stdin. Excludes the monotonic variant, which does not move realtime
@@ -310,15 +402,16 @@ fss_clock_jump_stamp_state() {
 # that have moved since. systemd emits six variants of this
 # (journal-verify.c:1266-1315). On the LIVE journal it is an artefact of the
 # file being open for append, not evidence of tampering.
+# Here-string avoids a pipefail/SIGPIPE misreport from grep -q's early exit.
 fss_output_has_counter_mismatch() {
-  printf '%s\n' "$1" |
-    grep -qE '(Object|Entry|Data|Field|Tag|Entry array) number mismatch \([0-9]+ != [0-9]+\)'
+  grep -qE '(Object|Entry|Data|Field|Tag|Entry array) number mismatch \([0-9]+ != [0-9]+\)' <<<"$1"
 }
 
 # Signatures that mean the content itself is wrong. Never retried away.
+# Here-string: a SIGPIPE-confused false negative here would let tampered
+# content through instead of failing closed.
 fss_output_has_tamper_signature() {
-  printf '%s\n' "$1" |
-    grep -qE 'Tag failed verification|Hash value mismatch|Older entry after newer tag|Epoch sequence|realtime timestamp out of synchronization'
+  grep -qE 'Tag failed verification|Hash value mismatch|Older entry after newer tag|Epoch sequence|realtime timestamp out of synchronization' <<<"$1"
 }
 
 # Whether an active-journal failure is worth re-verifying rather than believing
@@ -335,7 +428,7 @@ fss_active_failure_retryable() {
 fss_path_list_contains() {
   local path_list="$1"
   local needle="$2"
-  [ -n "$needle" ] && printf '%s\n' "$path_list" | grep -Fxq "$needle"
+  [ -n "$needle" ] && grep -Fxq -- "$needle" <<<"$path_list"
 }
 
 fss_merge_path_lists() {
@@ -381,7 +474,7 @@ fss_read_recorded_archive_list() {
 FSS_RECEIPT_SCHEMA_VERSION="v1"
 
 fss_valid_sha256() {
-  printf '%s' "$1" | grep -Eq '^[0-9a-f]{64}$'
+  grep -Eq '^[0-9a-f]{64}$' <<<"$1"
 }
 
 fss_current_boot_id() {
@@ -779,6 +872,12 @@ fss_classification_tags() {
 #   $3 = pre-activation receipt records (TSV, newline-separated, optional)
 #   $4 = current boot_id (optional; distinguishes this boot's boundary from stale)
 #   $5 = journalctl --verify exit code (optional; nonzero unclassified exits fail)
+#   $6 = unclean-shutdown receipt records (TSV, newline-separated, optional)
+#   $7 = 1 if an attested re-key has retained superseded verification keys on
+#        disk (optional, default 0). When set, a leftover archived-system
+#        failure that neither a retained key nor a receipt covers is treated as
+#        re-key transition collateral (warning) rather than tamper (fail), so
+#        the verdict does not depend on journald vacuum timing across VMs.
 # Outputs (as globals):
 #   FSS_VERDICT        = verified | warning | fail
 #   FSS_VERDICT_REASON = short human-readable reason
@@ -795,7 +894,7 @@ fss_classification_tags() {
 #               backstop (see fss.mdx "does not protect against").
 #   fail      - active-system failure, key defect, unclassified failure, or an
 #               archived failure with no matching receipt (unrecorded or
-#               content-substituted).
+#               content-substituted) and no attested re-key to account for it.
 # Receipt matching is content-bound: callers should pass receipts already filtered
 # against disk (see fss_filter_valid_receipts) so a substituted archive presents
 # as unmatched and fails closed. Requires fss_classify_verify_output first.
@@ -806,6 +905,7 @@ fss_verify_policy_decision() {
   local current_boot="${4-}"
   local verify_exit="${5:-0}"
   local unclean_shutdown_receipts="${6-}"
+  local rekey_attested="${7:-0}"
   local allowed_list="" recovery_paths pre_activation_paths unclean_paths archived_paths path boot
   local recovery_seen=0 recovery_stale=0
   local pre_activation_seen=0 pre_activation_stale=0 exception_seen=0
@@ -917,6 +1017,21 @@ fss_verify_policy_decision() {
           fi
         fi
       done <<<"$archived_paths"
+    elif [ "$rekey_attested" = 1 ]; then
+      # An attested backward-clock re-key retains the superseded verification
+      # keys on disk; the caller's retained-key retry already excused every
+      # archive that verifies under one. What is left is a re-key
+      # recovery-window archive sealed under a transient FSPRG state that no
+      # retained key covers -- collateral of the re-key, not tamper. Downgrade
+      # to warning so the verdict does not hinge on whether journald retention
+      # has yet vacuumed the receipted sibling (which made the same archive set
+      # warn on some VMs and fail on others). Active-system failures and key
+      # defects above still fail closed; offline verification against the
+      # off-host key stays the authoritative backstop.
+      FSS_VERDICT_TAGS=$(fss_append_tag "$FSS_VERDICT_TAGS" "REKEY_TRANSITION_ARCHIVE")
+      FSS_VERDICT=warning
+      FSS_VERDICT_REASON="archived system journal from an attested re-key transition"
+      return 0
     else
       FSS_VERDICT=fail
       FSS_VERDICT_REASON="archived system journal failures outside allowlist"

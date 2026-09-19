@@ -64,6 +64,164 @@ _: ''
               raise Exception(f"Journal verification found critical failures: {output}")
           print(f"Journal verification completed (exit code: {exit_code})")
 
+  with subtest("Forward clock correction leaves sealed journals raw-verifiable"):
+      # Without the vendored patch, a forward step + activation churn piles up
+      # same-epoch TAGs and the archive fails permanently. Bar: raw
+      # journalctl --verify has no FAIL lines and no corruption signature.
+      if not skip_if_setup_failed("verify-side raw-verify"):
+          vkey = machine.succeed(f"tr -d '[:space:]' < {verify_key_path}").strip()
+          machine.succeed("""
+            bash -lc '
+              set -euo pipefail
+              timedatectl set-ntp false 2>/dev/null || true
+              journalctl --rotate; journalctl --sync
+              date -s "@$(( $(date +%s) + 200 ))" >/dev/null
+              logger -t fss-test "vs 1"; logger -t fss-test "vs 2"; journalctl --sync
+              journalctl --rotate; journalctl --sync
+              journalctl --rotate; journalctl --sync
+              systemctl restart systemd-journald; sleep 1; journalctl --sync
+            '
+          """)
+          exit_code, output = machine.execute(
+              "journalctl --verify --verify-key=" + vkey + " 2>&1"
+          )
+          machine.succeed("timedatectl set-ntp true 2>/dev/null || true")
+          bad = [
+              ln
+              for ln in output.splitlines()
+              if ("FAIL:" in ln)
+              or ("Epoch sequence not continuous" in ln)
+              or ("Epoch sequence out of synchronization" in ln)
+              or ("Tag failed verification" in ln)
+              or ("Bad message" in ln)
+              or ("Hash value mismatch" in ln)
+              or ("references invalid" in ln)
+              or ("File corruption detected" in ln)
+              or ("Invalid object" in ln)
+          ]
+          if bad:
+              raise Exception(
+                  "raw journalctl --verify not clean after forward correction:\n"
+                  + "\n".join(bad)
+                  + "\n--- full ---\n"
+                  + output
+              )
+          print("verify-side: raw journalctl --verify clean after a forward correction")
+
+  with subtest("Verify still rejects tampered sealed archives"):
+      # The relaxation must not blind --verify to real tampering: pick a genuine
+      # sealed TAG-tail archive, mutate copies, assert --verify still rejects
+      # each (epoch rollback, tag seqnum, tag HMAC, sealed-region flip,
+      # tail-tag header, truncation).
+      if not skip_if_setup_failed("verify-side adversarial"):
+          vkey = machine.succeed(f"tr -d '[:space:]' < {verify_key_path}").strip()
+          mid = machine.succeed("cat /etc/machine-id").strip()
+          machine.succeed(f"""
+            bash -lc '
+              set -euo pipefail
+              work=/root/fss-adversarial
+              rm -rf "$work"; mkdir -p "$work"
+              key={vkey}
+
+              archives() {{ ls -t /var/log/journal/{mid}/system@*.journal 2>/dev/null || true; }}
+              # journal Header: compatible_flags = LE u32 @ 8; bit0 = HEADER_COMPATIBLE_SEALED.
+              sealed_flag() {{ od -An -tu4 -j8 -N4 "$1" | tr -d " "; }}
+              # tail_object_offset = LE u64 @ 136; object type byte is the first byte of the object.
+              # OBJECT_TAG = 7 (UNUSED0 DATA1 FIELD2 ENTRY3 DATA_HT4 FIELD_HT5 ENTRY_ARRAY6 TAG7).
+              tail_off() {{ od -An -tu8 -j136 -N8 "$1" | tr -d " "; }}
+              type_at() {{ od -An -tu1 -j"$2" -N1 "$1" | tr -d " "; }}
+
+              pick_sealed_tag_archive() {{
+                local x fl t
+                for x in $(archives); do
+                  fl=$(sealed_flag "$x"); [ -n "$fl" ] || continue
+                  [ $(( fl & 1 )) -eq 1 ] || continue          # HEADER_COMPATIBLE_SEALED
+                  t=$(tail_off "$x"); [ -n "$t" ] && [ "$t" -gt 0 ] || continue
+                  [ "$(type_at "$x" "$t")" = 7 ] || continue    # tail object is OBJECT_TAG
+                  journalctl --file="$x" --verify --verify-key="$key" >"$work/probe.out" 2>&1 || continue
+                  printf "%s" "$x"; return 0
+                done
+                return 1
+              }}
+
+              timedatectl set-ntp false 2>/dev/null || true
+              src=""
+              for attempt in 1 2 3; do
+                for i in $(seq 1 60); do logger -t fss-adv "seed $attempt $i"; done
+                journalctl --sync; journalctl --rotate; journalctl --sync
+                src=$(pick_sealed_tag_archive || true)
+                [ -n "$src" ] && break
+              done
+              timedatectl set-ntp true 2>/dev/null || true
+              if [ -z "$src" ]; then
+                echo "ADVERSARIAL SETUP FAIL: no sealed archive with a TAG tail to tamper with" >&2
+                for x in $(archives); do
+                  echo "  $x sealed_flag=$(sealed_flag "$x") tail_off=$(tail_off "$x") tail_type=$(type_at "$x" "$(tail_off "$x")")" >&2
+                  journalctl --file="$x" --verify --verify-key="$key" 2>&1 | sed "s/^/    /" >&2 || true
+                done
+                exit 1
+              fi
+              echo "adversarial source: $src ($(stat -c %s "$src") bytes)"
+              toff=$(tail_off "$src")
+
+              expect_reject() {{
+                # exit 0 from --verify = PASSED (bad for us); non-zero = rejected (good)
+                local f="$1" label="$2"
+                if journalctl --file="$f" --verify --verify-key="$key" >"$f.out" 2>&1; then
+                  echo "ADVERSARIAL FAIL [$label]: journalctl --verify accepted a tampered archive" >&2
+                  cat "$f.out" >&2
+                  exit 1
+                fi
+                if ! grep -qE "FAIL:|Bad message|Epoch sequence|Tag failed verification|Hash value mismatch|Invalid object|File corruption|corrupt|truncated|invalid|Failed to open|No data available|references (invalid|a bad)" "$f.out"; then
+                  echo "ADVERSARIAL FAIL [$label]: rejected but with no corruption signature" >&2
+                  cat "$f.out" >&2
+                  exit 1
+                fi
+                echo "adversarial ok [$label]: $(grep -m1 -oE \"FAIL:.*|Bad message|Epoch sequence[^\\)]*\\)|Tag failed verification|Hash value mismatch\" \"$f.out\" || true)"
+              }}
+
+              # (1) tag epoch field (toff+24) -> zero. Rejects via epoch-gate or HMAC;
+              #     skip if already 0.
+              cur_epoch=$(od -An -tu8 -j$((toff + 24)) -N8 "$src" | tr -d " ")
+              if [ -n "$cur_epoch" ] && [ "$cur_epoch" -gt 0 ]; then
+                f="$work/rollback.journal"; cp "$src" "$f"
+                dd if=/dev/zero of="$f" bs=1 seek=$((toff + 24)) count=8 conv=notrunc status=none
+                expect_reject "$f" "epoch-rollback"
+              else
+                echo "adversarial skip [epoch-rollback]: tail tag epoch already 0"
+              fi
+
+              # (2) tag seqnum field (toff+16) -> zero. Rejects.
+              f="$work/seqnum.journal"; cp "$src" "$f"
+              dd if=/dev/zero of="$f" bs=1 seek=$((toff + 16)) count=8 conv=notrunc status=none
+              expect_reject "$f" "tag-seqnum"
+
+              # (3) tag HMAC (toff+40, 8B) -> randomize. Rejects.
+              f="$work/hmac.journal"; cp "$src" "$f"
+              dd if=/dev/urandom of="$f" bs=1 seek=$((toff + 40)) count=8 conv=notrunc status=none
+              expect_reject "$f" "tag-hmac-flip"
+
+              # (4) sealed region before the tag (toff-24, 24B) -> randomize. Rejects.
+              f="$work/regionflip.journal"; cp "$src" "$f"
+              off=$(( toff > 24 ? toff - 24 : 0 ))
+              dd if=/dev/urandom of="$f" bs=1 seek=$off count=24 conv=notrunc status=none
+              expect_reject "$f" "sealed-region-flip"
+
+              # (5) tail tag ObjectHeader (toff, 16B) -> zero. Rejects.
+              f="$work/badhdr.journal"; cp "$src" "$f"
+              dd if=/dev/zero of="$f" bs=1 seek=$toff count=16 conv=notrunc status=none
+              expect_reject "$f" "tail-tag-bad-header"
+
+              # (6) truncate 40B off EOF. Rejects.
+              f="$work/truncated.journal"; cp "$src" "$f"
+              truncate -s -40 "$f"
+              expect_reject "$f" "truncation"
+
+              rm -rf "$work"
+              echo "verify-side: all adversarial tamper cases still rejected"
+            '
+          """)
+
   with subtest("Classifier + policy cover all failure branches"):
       # The case table lives in tests/logging/test_scripts/fss-classifier-cases.nix
       # so the same assertions also run VM-free as
@@ -672,6 +830,244 @@ _: ''
               [ "$(systemctl show systemd-journald.service -p InvocationID --value)" != "$before" ]
 
               rm -rf "$VKEY"; mv "$BACKUP" "$VKEY"
+            '
+          """)
+
+  with subtest("Backward re-key: verify excuses pre-re-key archives via a retained key"):
+      if not skip_if_setup_failed("retained-key rescue"):
+          machine.succeed("""
+            bash -lc '
+              set -euo pipefail
+              KEY_DIR="/persist/common/journal-fss/test-host"
+              VKEY="$KEY_DIR/verification-key"
+              INIT="$KEY_DIR/initialized"
+              MID=$(cat /etc/machine-id)
+              DIR="/var/log/journal/$MID"
+              WORK=$(mktemp -d)
+
+              # Regenerate a clean FSS key pair via journal-fss-setup, which owns
+              # the journald restart. (A journal dir wipe + regen also clears the
+              # assorted stale journals/keys earlier subtests leave behind.)
+              regen_keys() {
+                systemctl stop systemd-journald.service systemd-journald.socket
+                rm -f "$DIR"/*.journal "$DIR"/*.journal~ "$DIR/fss" "$VKEY" \
+                  "$KEY_DIR"/verification-key.* "$INIT"
+                systemctl start systemd-journald.service
+                systemctl restart journal-fss-setup.service
+                [ "$(systemctl show journal-fss-setup.service -p Result --value)" = success ]
+                test -s "$VKEY" && test -s "$DIR/fss"
+              }
+
+              restore() {
+                systemctl start journal-fss-verify.timer 2>/dev/null || true
+                rm -f "$KEY_DIR/verification-key.1"
+                regen_keys 2>/dev/null || true
+                rm -rf "$WORK"
+              }
+              trap restore EXIT
+
+              # Stop the periodic verify so only our explicit runs fire, and the
+              # invocation id we read back is unambiguous.
+              systemctl stop journal-fss-verify.timer
+
+              # Key pair K0.
+              regen_keys
+              cp -a "$VKEY" "$WORK/vkey.k0"
+
+              # Seal an archive under K0.
+              logger -t fss-rescue-test "pre-rekey marker $$"
+              journalctl --sync; journalctl --rotate; journalctl --sync
+              ARCHIVE=$(find "$DIR" -maxdepth 1 -name "system@*.journal" | sort | tail -n 1)
+              test -n "$ARCHIVE"
+              journalctl --verify --verify-key="$(tr -d "[:space:]" < "$VKEY")" --file="$ARCHIVE"
+
+              # Re-key to K1 (drop only the key pair; keep the K0 archive). Then
+              # install K0 as the retained key and drop any receipt store so the
+              # archive can only be excused by the retained-key retry, not an
+              # allowlist.
+              rm -f "$DIR/fss" "$VKEY" "$INIT"
+              systemctl restart journal-fss-setup.service
+              [ "$(systemctl show journal-fss-setup.service -p Result --value)" = success ]
+              cp -a "$WORK/vkey.k0" "$KEY_DIR/verification-key.1"
+              chmod 0400 "$KEY_DIR/verification-key.1"
+              rm -f "$DIR"/fss-pre-activation-receipts "$DIR"/fss-recovery-receipts \
+                "$DIR"/fss-unclean-shutdown-receipts "$DIR"/fss-pre-fss-archive
+
+              # The K0 archive now fails under K1 and verifies under the retained key.
+              if journalctl --verify --verify-key="$(tr -d "[:space:]" < "$VKEY")" --file="$ARCHIVE" >/dev/null 2>&1; then
+                echo "archive still verifies under the new key" >&2; exit 1
+              fi
+              journalctl --verify --verify-key="$(tr -d "[:space:]" < "$KEY_DIR/verification-key.1")" --file="$ARCHIVE"
+
+              # journal-fss-verify must rescue it, not degrade.
+              systemctl start --wait journal-fss-verify.service || true
+              INVID=$(systemctl show journal-fss-verify.service -p InvocationID --value)
+              journalctl _SYSTEMD_INVOCATION_ID="$INVID" --no-pager > "$WORK/verify.log" 2>&1
+              grep -F "Retained-key rescue" "$WORK/verify.log"
+              grep -Fq "$ARCHIVE" "$WORK/verify.log"
+              if grep -F "Journal integrity verification: FAILED" "$WORK/verify.log"; then
+                echo "verify degraded despite a valid retained key" >&2
+                cat "$WORK/verify.log" >&2
+                exit 1
+              fi
+
+              # Tamper the pre-re-key archive. It now fails under every key, so
+              # C cannot rescue it. Because a re-key is attested (retained keys
+              # on disk), the A tidy-up buckets an unreceipted archived-system
+              # failure as a re-key transition WARNING -- not a hard FAIL -- so
+              # the verdict is the same on every VM regardless of vacuum timing.
+              # (Archived-journal integrity is backstopped by offline
+              # verification against the off-host key, per fss.mdx.)
+              test -f "$ARCHIVE"
+              dd if=/dev/urandom of="$ARCHIVE" bs=1 count=512 seek=16384 conv=notrunc status=none
+              if journalctl --verify --verify-key="$(tr -d "[:space:]" < "$KEY_DIR/verification-key.1")" --file="$ARCHIVE" >/dev/null 2>&1; then
+                echo "tampered archive still verifies under the retained key" >&2; exit 1
+              fi
+              systemctl start --wait journal-fss-verify.service || true
+              INVID=$(systemctl show journal-fss-verify.service -p InvocationID --value)
+              journalctl _SYSTEMD_INVOCATION_ID="$INVID" --no-pager > "$WORK/verify-tamper.log" 2>&1
+              grep -F "REKEY_TRANSITION_ARCHIVE" "$WORK/verify-tamper.log"
+              grep -F "archived system journal from an attested re-key transition" "$WORK/verify-tamper.log"
+              if grep -F "Journal integrity verification: FAILED" "$WORK/verify-tamper.log"; then
+                echo "unexpected hard FAIL for a re-key transition archive" >&2
+                cat "$WORK/verify-tamper.log" >&2; exit 1
+              fi
+              # (A not blunting an *active*-system failure -- which it must
+              # not, rekey_attested or otherwise -- is covered deterministically
+              # by fss-classifier-unit: "active-system failure still fails
+              # closed even with retained keys". Corrupting the live journal
+              # here is non-deterministic: journald notices and rotates the
+              # corrupted file to an archive before journal-fss-verify runs, so
+              # it presents as an archived failure -- which A does downgrade.)
+            '
+          """)
+
+  with subtest("FSS key retention keeps the newest generations by creation order, not epoch"):
+      if not skip_if_setup_failed("retained-key retention order"):
+          machine.succeed("""
+            bash -lc '
+              set -euo pipefail
+              source /etc/fss-verify-classifier.sh
+              KEY_DIR="/persist/common/journal-fss/test-host"
+              WORK=$(mktemp -d)
+              SC="$WORK/keys"
+              mkdir "$SC"
+              cleanup() { rm -rf "$WORK" "$KEY_DIR"/verification-key.77[789]; }
+              trap cleanup EXIT
+
+              # Four backward clock corrections: each re-key epoch is LOWER than
+              # the last, but each key is created LATER. rekey-history is
+              # append-only, oldest first; field 2 is the key path.
+              : > "$SC/rekey-history"
+              i=0
+              for epoch in 4000 3000 2000 1000; do
+                printf "gen-%s" "$epoch" > "$SC/verification-key.$epoch"
+                touch -d "@$(( 1000000000 + i * 60 ))" "$SC/verification-key.$epoch"
+                printf "%s\t%s\t-\t-\n" "$epoch" "$SC/verification-key.$epoch" >> "$SC/rekey-history"
+                i=$(( i + 1 ))
+              done
+
+              want=$(printf "%s\n%s\n%s\n%s" \
+                "$SC/verification-key.1000" "$SC/verification-key.2000" \
+                "$SC/verification-key.3000" "$SC/verification-key.4000")
+
+              # History order and mtime order both give newest-created first --
+              # verification-key.1000 (latest correction, LOWEST epoch) leads,
+              # verification-key.4000 (earliest, HIGHEST epoch) trails. The
+              # pre-fix filename-epoch sort produced the exact reverse.
+              [ "$(fss_retained_keys_newest_first "$SC" "$SC/rekey-history")" = "$want" ]
+              [ "$(fss_list_retained_verification_keys "$SC")" = "$want" ]
+
+              # A budget-3 prune keeps 1000/2000/3000 and drops 4000.
+              order=$(fss_retained_keys_newest_first "$SC" "$SC/rekey-history")
+              [ "$(printf "%s" "$order" | tail -n +4)" = "$SC/verification-key.4000" ]
+              printf "%s\n" "$order" | head -n 3 | grep -Fxq "$SC/verification-key.1000"
+
+              # The retained-key retry scans every retained generation: seal an
+              # archive under the current key, park that verification key as the
+              # OLDEST retained generation behind two newer non-matching ones,
+              # and it is still found.
+              MID=$(cat /etc/machine-id)
+              DIR="/var/log/journal/$MID"
+              logger -t fss-retain-test "seal under current gen $$"
+              journalctl --sync; journalctl --rotate; journalctl --sync
+              AR=$(find "$DIR" -maxdepth 1 -name "system@*.journal" | sort | tail -n 1)
+              test -n "$AR"
+              cp -a "$KEY_DIR/verification-key" "$KEY_DIR/verification-key.777"
+              touch -d "@1000000000" "$KEY_DIR/verification-key.777"
+              printf "not-a-key-a" > "$KEY_DIR/verification-key.778"
+              touch -d "@1000000100" "$KEY_DIR/verification-key.778"
+              printf "not-a-key-b" > "$KEY_DIR/verification-key.779"
+              touch -d "@1000000200" "$KEY_DIR/verification-key.779"
+              chmod 0400 "$KEY_DIR"/verification-key.77[789]
+              fss_archive_verifies_under_retained_key "$AR" "$KEY_DIR"
+            '
+          """)
+
+  with subtest("Re-key key-swap: an interrupted swap recovers, never diverges"):
+      if not skip_if_setup_failed("re-key swap crash safety"):
+          machine.succeed("""
+            bash -lc '
+              set -euo pipefail
+              KEY_DIR="/persist/common/journal-fss/test-host"
+              VKEY="$KEY_DIR/verification-key"
+              MID=$(cat /etc/machine-id)
+              DIR="/var/log/journal/$MID"
+
+              # A oneshot re-run: reset any prior failed state first, then let
+              # systemctl block on ExecStart. No journald stop/start dance --
+              # that is what wedged an earlier revision of this subtest.
+              restart_setup() {
+                systemctl reset-failed journal-fss-setup.service 2>/dev/null || true
+                systemctl restart journal-fss-setup.service 2>/dev/null || true
+              }
+              inv() { systemctl show journal-fss-setup.service -p InvocationID --value; }
+              assert_no_diverge() {
+                if journalctl _SYSTEMD_INVOCATION_ID="$1" --no-pager 2>&1 |
+                     grep -qE "does not match the sealing key|key pair has diverged"; then
+                  echo "DIVERGED on an interrupted re-key swap" >&2
+                  journalctl _SYSTEMD_INVOCATION_ID="$1" --no-pager >&2
+                  exit 1
+                fi
+              }
+              cleanup() {
+                rm -f "$KEY_DIR"/verification-key.9999
+                restart_setup
+              }
+              trap cleanup EXIT
+
+              # Start from a working matched pair (the preceding subtests
+              # re-seal cleanly, so a plain re-run lands on success).
+              restart_setup
+              test -s "$VKEY" && test -s "$DIR/fss"
+
+              # State A: the retain step ran -- bare verification-key moved
+              # aside -- but the old sealing key is still present and the new
+              # pair was never written. This is the window a mid-re-key reboot
+              # lands in. Setup must report the recoverable "verification key
+              # missing", never "diverged", and must not half-write a new key.
+              mv -f "$VKEY" "$KEY_DIR/verification-key.9999"
+              restart_setup
+              assert_no_diverge "$(inv)"
+              journalctl -u journal-fss-setup.service -n 40 --no-pager |
+                grep -F "Verification key missing but sealing key present"
+              test ! -s "$VKEY"
+
+              # State B: the sealing key is gone too (reboot before
+              # --setup-keys ran). Setup must fresh-keygen a complete, paired
+              # key pair and never report a divergence.
+              rm -f "$DIR/fss"
+              restart_setup
+              [ "$(systemctl show journal-fss-setup.service -p Result --value)" = success ]
+              assert_no_diverge "$(inv)"
+              test -s "$VKEY" && test -s "$DIR/fss"
+
+              # The recovered pair really seals and verifies.
+              logger -t fss-swap-test "seal under the recovered pair $$"
+              journalctl --sync; journalctl --rotate; journalctl --sync
+              NEWAR=$(find "$DIR" -maxdepth 1 -name "system@*.journal" | sort | tail -n 1)
+              test -n "$NEWAR"
+              journalctl --verify --verify-key="$(tr -d "[:space:]" < "$VKEY")" --file="$NEWAR"
             '
           """)
 ''
