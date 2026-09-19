@@ -36,10 +36,16 @@ in
         vtpm.enable = lib.mkDefault true;
         extraModules = [
           {
-            # Keep application/user state ephemeral while preserving the
-            # machine-id, journals, and FSS sealing state required for logging.
+            # Keep logseald evidence while application/user state stays ephemeral.
             ghaf.storagevm = {
-              directories = lib.mkForce [ ];
+              directories = lib.mkForce [
+                {
+                  directory = "/var/lib/logseald";
+                  user = "root";
+                  group = "root";
+                  mode = "0711";
+                }
+              ];
               users = lib.mkForce { };
             };
 

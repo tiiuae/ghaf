@@ -90,8 +90,20 @@ Set options directly without using a profile:
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `logging.enable` | bool | false | Enable centralized logging |
+| `logging.fss.enable` | bool | false | Enable systemd journal Forward Secure Sealing on every logged component |
+| `logging.logseald.enable` | bool | true | Enable clock-independent log sealing on every logged component |
+| `logging.logseald.port` | port | 59631 | Admin VM logseald mTLS listener port |
 | `logging.listener.address` | string | "" | Logging listener address |
+| `logging.listener.serverName` | null or string | null | Optional TLS name for the Admin VM logging listener |
+| `logging.listener.port` | port | 9999 | Logging listener port |
+| `logging.server.enable` | bool | true | Forward aggregated logs from the Admin VM to the remote endpoint |
 | `logging.server.endpoint` | string | "" | Remote logging server endpoint |
+
+Logseald starts only on components for which global logging is enabled and
+requires GIVC with TLS credentials. See [Clock-Independent Log
+Sealing](/ghaf/scs/logseald/) for the architecture, operational checks, and
+security properties. Systemd journal FSS remains available as a separate,
+optional mechanism; see [Forward Secure Sealing](/ghaf/scs/fss/).
 
 ### Security Settings
 

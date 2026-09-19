@@ -152,6 +152,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    logseald = {
+      url = "github:tiiuae/ghaf-logseald";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Nvidia Orin support for NixOS
     jetpack-nixos = {
       #url = "github:anduril/jetpack-nixos";

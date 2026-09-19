@@ -53,7 +53,7 @@ Release SSH answers on every machine with a hardened, certificate/key-only sshd.
 | CIS SSH Server Configuration (L2) | Hardened `services.openssh.settings` on every machine: no root, password, or keyboard-interactive auth; `MaxAuthTries 3`, `LoginGraceTime 30`, `ClientAlive*`, forwarding off (net-vm excepted), `AllowUsers ghaf`; modern crypto inherited from nixpkgs (not hand-rolled). Continuously checked by an `ssh-audit` policy gate. |
 | AC-17 (remote access) | One external entry (net-vm), reached only via ProxyJump; no Ghaf machine runs an SSH client to another; a separate sshd per machine; brute-force banning at the edge (`fail2ban` on net-vm). |
 | IA-2 / IA-5(2) (identification & PKI auth) | Certificate auth via a user CA (`TrustedUserCAKeys`) and/or hardware-token keys (FIDO2/YubiKey, `verify-required`); no passwords; login as `ghaf` only; fails closed at build time if no key or CA is configured. |
-| AU-2 / AU-3 / AU-12 (audit) | `LogLevel VERBOSE` records the key/cert fingerprint of every login, forwarded to central logging (journald → Alloy → Loki on admin-vm) with Forward-Secure Sealing for tamper evidence. |
+| AU-2 / AU-3 / AU-12 (audit) | `LogLevel VERBOSE` records the key/cert fingerprint of every login. The event enters the central logging pipeline (journald → Alloy → Loki on admin-vm), while [logseald](/ghaf/scs/logseald/) provides tamper evidence for the local journal chain. |
 
 ### What "hardened" means
 

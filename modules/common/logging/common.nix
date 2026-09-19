@@ -433,7 +433,6 @@ let
         local baseline_boot=""
         local boot
 
-        [ "$fss_activation_enabled" = 1 ] || return 0
         [ -r "$activation_state_file" ] || return 1
         [ -r "$activation_baseline_file" ] || return 1
 
@@ -473,12 +472,31 @@ let
         fss_prune_receipt_file "$recovery_receipts_file" "$max_recovery_receipts" "Recovery"
       }
 
+      restart_if_installed() {
+        local unit="$1"
+
+        if systemctl cat "$unit" >/dev/null 2>&1; then
+          systemctl restart "$unit"
+        else
+          echo "$unit not installed, skipping restart"
+        fi
+      }
+
+      restart_if_active() {
+        local unit="$1"
+
+        if systemctl is-active --quiet "$unit"; then
+          systemctl restart "$unit"
+        else
+          echo "$unit not active, skipping restart"
+        fi
+      }
+
       trap cleanup EXIT
-      if ! fss_activation_complete_current_boot; then
+      if [ "$fss_activation_enabled" = 1 ] && ! fss_activation_complete_current_boot; then
         echo "FSS activation is not complete for the current boot; skipping journal recovery"
         exit 0
       fi
-      list_archived_system_journals > "$before_file"
 
       if [ -e "$stamp" ]; then
         last="$(cat "$stamp" 2>/dev/null || echo 0)"
@@ -494,22 +512,21 @@ let
       fi
       echo "$now_ms" > "$stamp"
 
-      systemd-tmpfiles --create --prefix /var/log/journal
-      systemctl restart systemd-journald.service
-      record_recovery_archives
-      journalctl --rotate 2>/dev/null || true
-      journalctl --sync 2>/dev/null || true
-      record_recovery_archives
+      if [ "$fss_activation_enabled" = 1 ]; then
+        list_archived_system_journals > "$before_file"
+        systemd-tmpfiles --create --prefix /var/log/journal
+        systemctl restart systemd-journald.service
+        record_recovery_archives
+        journalctl --rotate 2>/dev/null || true
+        journalctl --sync 2>/dev/null || true
+        record_recovery_archives
 
-      restart_if_installed() {
-        local unit="$1"
-
-        if systemctl cat "$unit" >/dev/null 2>&1; then
-          systemctl restart "$unit"
-        else
-          echo "$unit not installed, skipping restart"
-        fi
-      }
+        # Refresh Fail2Ban's invalidated journal reader after the final rotation,
+        # without starting a service that was intentionally stopped.
+        restart_if_active fail2ban.service
+      else
+        echo "FSS disabled; skipping FSS journal restart, rotation, and receipts"
+      fi
 
       restart_if_installed systemd-journal-upload.service
       restart_if_installed alloy.service
@@ -815,8 +832,7 @@ in
       tmpfiles.rules = [
         # Create persistent journal dir with the standard perms/group.
         "d /var/log/journal 2755 root systemd-journal - -"
-        # Repair perms recursively if something messes them up.
-        "Z /var/log/journal 2755 root systemd-journal - -"
+        "z /var/log/journal/%m 2755 root systemd-journal - -"
       ];
     };
   };

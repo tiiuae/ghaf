@@ -154,12 +154,25 @@ _: ''
       """)
 
   with subtest("Clock-jump recovery tolerates missing alloy service"):
+      machine.wait_for_unit("fail2ban.service")
+      fail2ban_invocation = machine.succeed(
+          "systemctl show fail2ban.service --property=InvocationID --value"
+      ).strip()
+      machine.succeed("rm -f /run/ghaf-journal-alloy-recover.stamp")
       exit_code, output = machine.execute("systemctl start ghaf-journal-alloy-recover.service 2>&1")
       if exit_code != 0:
           raise Exception(f"Clock-jump recovery service failed without alloy: {output}")
       status = machine.succeed("systemctl show ghaf-journal-alloy-recover.service --property=Result,ExecMainStatus")
       if "Result=success" not in status:
           raise Exception(f"Clock-jump recovery did not complete: {status}")
+      new_fail2ban_invocation = machine.succeed(
+          "systemctl show fail2ban.service --property=InvocationID --value"
+      ).strip()
+      if new_fail2ban_invocation == fail2ban_invocation:
+          raise Exception("Clock-jump recovery did not refresh Fail2Ban's journal reader")
+      machine.succeed("fail2ban-client status sshd | grep -F 'Status for the jail: sshd'")
+      machine.succeed("journalctl -u fail2ban.service -n 40 --no-pager | grep -F \"Jail is in operation now\"")
+      machine.fail("journalctl -u fail2ban.service -n 40 --no-pager | grep -F \"NoneType\"")
 
   with subtest("Clock-jump recovery ignores future wallclock-style cooldown stamps"):
       machine.succeed("""

@@ -25,6 +25,11 @@
 let
   vmName = "admin-vm";
   timezoneEnabled = lib.ghaf.features.isEnabledFor globalConfig "timezone" vmName;
+  networkHosts = hostConfig.networking.hosts or { };
+  adminVmAddress = networkHosts.${vmName}.ipv4 or "";
+  logsealdProducerAddresses = lib.unique (
+    lib.filter builtins.isString (lib.mapAttrsToList (_: host: host.ipv4 or null) networkHosts)
+  );
 in
 {
   _file = ./adminvm-base.nix;
@@ -138,6 +143,15 @@ in
       inherit (globalConfig.logging) enable listener;
       journalServer = {
         inherit (globalConfig.logging) enable;
+      };
+
+      logseald = {
+        sealer = {
+          enable = (globalConfig.logging.logseald.enable or false) && globalConfig.logging.enable;
+          address = adminVmAddress;
+          allowedProducerAddresses = logsealdProducerAddresses;
+        };
+        endpoint.port = globalConfig.logging.logseald.port or 59631;
       };
 
       server = {

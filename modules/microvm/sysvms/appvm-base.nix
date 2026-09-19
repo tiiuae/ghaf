@@ -327,6 +327,7 @@ in
 
         # Security
         security = {
+          audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
           fail2ban.enable = globalConfig.security.ssh.debug.enable or false;
 
           # Debug SSH (unprotected)
