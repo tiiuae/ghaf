@@ -7,9 +7,8 @@
 # to minimize flash image size (~5.5 GiB instead of ~16 GiB). On first
 # boot this service:
 #
-#   1. Resizes the GPT and APP partition to fill the eMMC
-#   2. Expands the LVM PV to match
-#   3. Creates swap and persist LVs from the free space, reserving
+#   1. Expands the LVM PV after initrd has grown APP and the open LUKS mapping
+#   2. Creates swap and persist LVs from the free space, reserving
 #      enough room for a future B-slot root+verity pair (OTA updates)
 #
 # Every step is idempotent — the service can be interrupted and re-run
@@ -35,36 +34,22 @@ let
     runtimeInputs = with pkgs; [
       gnugrep
       gawk
-      util-linux
-      gptfdisk
-      parted
       lvm2
       coreutils
       btrfs-progs
+      util-linux
     ];
     text = ''
       set -euo pipefail
       echo "firstboot-persist: starting at $(date)"
 
-      # --- Resize APP partition to fill the eMMC (idempotent) ---
+      # Initrd grows APP and the open LUKS mapping while the OP-TEE DUK is
+      # still available in its shared keyring.  Only the PV and new LVs are
+      # safe to grow here after switch-root.
 
       PV_PATH=$(pvdisplay -C -o pv_name --noheadings -S vg_name=pool | head -n1 | tr -d '[:space:]')
-      P_DEVPATH=$(readlink -f "$PV_PATH")
-      echo "PV: $PV_PATH -> $P_DEVPATH"
-
-      if [[ "$P_DEVPATH" =~ [0-9]+$ ]]; then
-        PARTNUM=$(echo "$P_DEVPATH" | grep -o '[0-9]*$')
-        PARENT_DISK=/dev/$(lsblk --nodeps --noheadings -o pkname "$P_DEVPATH")
-      else
-        echo "ERROR: cannot determine partition number from $P_DEVPATH"
-        exit 1
-      fi
-
-      echo "Fixing GPT and resizing partition $PARTNUM on $PARENT_DISK..."
-      sgdisk "$PARENT_DISK" -e || true
-      # parted resizepart updates the kernel's partition size synchronously
-      # via BLKPG_RESIZE_PARTITION ioctl, so no partprobe/udevadm needed.
-      parted -s -a opt "$PARENT_DISK" "resizepart $PARTNUM 100%" || true
+      [[ -n "$PV_PATH" ]] || { echo "ERROR: pool PV not found"; exit 1; }
+      echo "PV: $PV_PATH -> $(readlink -f "$PV_PATH")"
 
       # pvresize is idempotent — no-op if PV already matches partition
       echo "Resizing PV..."
@@ -89,7 +74,7 @@ let
         echo "swap LV already exists, skipping."
       fi
 
-      # --- Create persist LV (skip if already exists) ---
+      # --- Create persist LV and finish an interrupted format if needed ---
 
       if [ ! -e /dev/pool/persist ]; then
         VG_FREE_MIB=$(vgs --noheadings -o vg_free --nosuffix --units m pool | tr -d '[:space:]')
@@ -104,11 +89,24 @@ let
         echo "Creating persist LV: $PERSIST_MIB MiB (leaving $RESERVE_MIB MiB for B-slot)"
         lvcreate -L "''${PERSIST_MIB}M" -n persist pool
 
-        echo "Formatting persist as btrfs..."
-        mkfs.btrfs -L persist /dev/pool/persist
       else
-        echo "persist LV already exists, skipping."
+        echo "persist LV already exists."
       fi
+
+      PERSIST_TYPE=$(blkid -o value -s TYPE /dev/pool/persist 2>/dev/null || true)
+      case "$PERSIST_TYPE" in
+        "")
+          echo "Formatting uninitialized persist LV as btrfs..."
+          mkfs.btrfs -L persist /dev/pool/persist
+          ;;
+        btrfs)
+          echo "persist LV already contains btrfs, retaining it."
+          ;;
+        *)
+          echo "ERROR: persist LV has unexpected filesystem type: $PERSIST_TYPE"
+          exit 1
+          ;;
+      esac
 
       echo "firstboot-persist: done."
     '';
