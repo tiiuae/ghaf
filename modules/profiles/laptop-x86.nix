@@ -318,8 +318,27 @@ in
           };
 
           idsvm = {
-            enable = false;
-            mitmproxy.enable = false;
+            enable = true;
+            evaluatedConfig = lib.mkDefault (
+              cfg.idsvmBase.extendModules {
+                modules = lib.ghaf.vm.applyVmConfig {
+                  inherit config;
+                  vmName = "idsvm";
+                };
+              }
+            );
+            passiveMonitor = {
+              # Off by default on the base laptop-x86 profile - only the
+              # *-extras trial images (mvp-user-trial-extras.nix) turn this on.
+              enable = false;
+              external = true;
+              # Validated on Darter Pro's builtin ethernet across 50M-1G with
+              # zero netem drops. Not validated for USB-attached interfaces
+              # on this or other targets - see
+              # modules/microvm/common/traffic-mirror.nix sender.netem.
+              # Takes effect only where passiveMonitor.enable is turned on.
+              netem = "slot 10ms 20ms packets 300 limit 2000";
+            };
           };
 
           guivm = {

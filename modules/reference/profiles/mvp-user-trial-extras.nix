@@ -40,28 +40,25 @@ in
         host-hardening.enable = true;
       };
 
-      # The ids-vm MiTM tooling uses a committed development CA and a fixed web
-      # UI password: it must never ship in a release image.
-      #
-      # global-config carries the signal to every guest: idsvm-base turns it
-      # into the ids-vm's own mitmproxy.enable, and appvm-base uses it to put
-      # the mitm CA in each app VM's trust store. Setting the guest option
-      # directly here would instead collide with idsvm-base's definition.
-      global-config.idsvm.mitmproxy.enable = lib.mkForce config.ghaf.profiles.debug.enable;
-
+      # mitmproxy is deliberately left off. It intercepts by REDIRECTing :80/:443
+      # arriving on the ids-vm's own interface, which only ever fires when app
+      # traffic is *routed through* ids-vm. Under passive GRE mirroring the VM is
+      # not a gateway (idsvm-base sets isGateway = false), so it sees copies of
+      # packets rather than carrying them, and those rules can never match.
+      # Turning it on would install the committed development CA in every app
+      # VM's trust store for an interception that cannot happen.
       virtualization.microvm = {
         idsvm = {
           enable = lib.mkForce config.ghaf.profiles.debug.enable;
-          # Mirrors the signal for the host-side readers (givc's idsExtraArgs,
-          # the chrome MitmWebUI shortcut). The proxy service itself is gated on
-          # being the ids-vm, so this does not materialize it on the host.
-          mitmproxy.enable = lib.mkForce config.ghaf.profiles.debug.enable;
           evaluatedConfig = config.ghaf.profiles.laptop-x86.idsvmBase.extendModules {
             modules = lib.ghaf.vm.applyVmConfig {
               inherit config;
               vmName = "idsvm";
             };
           };
+          # Base laptop-x86 profile leaves this off; only the extras/trial
+          # image turns passive monitoring on.
+          passiveMonitor.enable = lib.mkForce true;
         };
       };
 
