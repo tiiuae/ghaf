@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "trust": "external",
+  "generation": 1,
+  "inject_boot_health_failure": false
+}
