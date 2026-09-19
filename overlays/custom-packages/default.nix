@@ -11,7 +11,6 @@
   chromium = import ./chromium { inherit prev; };
   cosmic-applets = import ./cosmic/cosmic-applets { inherit prev; };
   cosmic-comp = import ./cosmic/cosmic-comp { inherit prev; };
-  cosmic-ext-calculator = import ./cosmic/cosmic-ext-calculator { inherit prev; };
   cosmic-greeter = import ./cosmic/cosmic-greeter { inherit prev; };
   cosmic-initial-setup = import ./cosmic/cosmic-initial-setup { inherit prev; };
   cosmic-osd = import ./cosmic/cosmic-osd { inherit prev; };
@@ -26,7 +25,6 @@
   mbrola-voices = import ./mbrola-voices { inherit prev; };
   osquery-with-hostname = import ./osquery-with-hostname { inherit prev; };
   papirus-icon-theme = import ./papirus-icon-theme { inherit prev; };
-  pipewire = import ./pipewire { inherit prev; };
   qt6Packages = import ./qt6Packages { inherit prev; };
   spire4ghaf = import ./spire4ghaf { inherit prev; };
   tuned = import ./tuned { inherit prev; };

@@ -13,11 +13,10 @@
   ];
 
   # jetpack-nixos' EDK2/UEFI firmware build needs a setuptools that still ships
-  # pkg_resources, and a relaxed chardet pin for pygount. Both act on
-  # pythonPackagesExtensions, i.e. on every Python package in the instance, so
-  # they are scoped to the Jetson targets rather than living in overlays.default
-  # -- globally they break packages that need a newer setuptools (see
-  # overlays/jetpack-python/default.nix).
+  # pkg_resources. That acts on pythonPackagesExtensions, i.e. on every Python
+  # package in the instance, so it is scoped to the Jetson targets rather than
+  # living in overlays.default -- globally it breaks packages that need a newer
+  # setuptools (see overlays/jetpack-python/default.nix).
   # jetpack-nvdisplay patches the R36.5 nvdisplay tree for the pci_resize_resource()
   # signature change in kernels >= 6.12.97; the guest VMs build the OOT modules
   # against vanilla linuxPackages_6_12, and inherit these overlays from the host
