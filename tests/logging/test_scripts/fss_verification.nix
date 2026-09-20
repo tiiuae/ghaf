@@ -64,6 +64,174 @@ _: ''
               raise Exception(f"Journal verification found critical failures: {output}")
           print(f"Journal verification completed (exit code: {exit_code})")
 
+  with subtest("Activation live-probe retry does not mask a genuine tamper: sealing still fails closed"):
+      # Finding: verify_live_sealing_after_activation ran journalctl --verify
+      # exactly once, with no retry, while the verify SERVICE already retries
+      # the same class of failure up to verifyRetries. journald has just
+      # restarted for activation and is actively appending while this probe
+      # reads -- a live-journal read race, not a real defect -- so a
+      # transient failure here was promoted straight into a genuine "logs
+      # are unsealed" state (confirmed on hardware, B5 and B6, ~65-105s of
+      # real unsealed logging before the next run self-recovered).
+      #
+      # Fix: fss_active_failure_retryable also recognises the race's other
+      # shape (a dangling data-object reference alongside "File corruption
+      # detected", not just a counter mismatch), and the activation probe
+      # now retries through it exactly like the verify service does.
+      #
+      # THIS is the subtest that matters most: a retry that fires on every
+      # active-journal failure would mask a real one, which is worse than
+      # the bug it fixes.
+      #
+      # Not a live-journal byte tamper: dd-ing the active file directly was
+      # tried and dropped. journald owns that file while it is running and
+      # can notice the corruption itself and auto-rotate it away
+      # ("Journal file corrupted, rotating" observed in this VM), racing
+      # this subtest's own window and erasing the tamper before the probe
+      # ever saw it -- a worse test for this claim, not a better one, and
+      # nothing to do with the retry logic under test.
+      #
+      # Installing a verification key that does not match the sealing key
+      # produces the same class of genuine, non-retryable active-journal
+      # failure deterministically instead, with nothing for journald to
+      # notice or self-heal: a real cryptographic mismatch, not a
+      # malformed string -- ensure_verification_key_ready requires a "/"
+      # in the key, so a bare garbage string fails setup earlier, before
+      # ever reaching the code under test. A second, throwaway key pair
+      # (journalctl --setup-keys --force, same extraction generate_fss_
+      # key_pair uses: verification key = last line of its output) gives
+      # a well-formed but genuinely wrong key; the real sealing key is
+      # restored immediately after so only the verification half is wrong.
+      if not skip_if_setup_failed("activation retry negative control"):
+          machine.succeed("""
+            bash -lc '
+              set -euo pipefail
+              MID=$(cat /etc/machine-id)
+              DIR="/var/log/journal/$MID"
+              FSS_KEY="$DIR/fss"
+              KEY_DIR="/persist/common/journal-fss/test-host"
+              VKEY="$KEY_DIR/verification-key"
+
+              regen_keys() {
+                systemctl stop systemd-journald.service systemd-journald.socket
+                # -rf, not -f, for $VKEY: a leftover directory there survives
+                # -f silently, and the generate_fss_key_pair rename-into-a-
+                # directory then leaves it a directory forever, failing every
+                # later "tr ... < $VKEY" with "Is a directory" several
+                # assertions downstream of the real cause.
+                rm -rf "$VKEY"
+                rm -f "$DIR"/*.journal "$DIR"/*.journal~ "$FSS_KEY" \
+                  "$KEY_DIR"/verification-key.* "$KEY_DIR/initialized" "$DIR/fss-rekey-epoch"
+                # This far into a long, cumulative suite, enough journald
+                # stop/starts have already happened that its own start-rate
+                # limit can trip on a perfectly ordinary restart; reset-failed
+                # clears that counter, not just any failed-unit state.
+                systemctl reset-failed systemd-journald.service systemd-journald.socket \
+                  systemd-journald-dev-log.socket systemd-journald-audit.socket >/dev/null 2>&1 || true
+                systemctl start systemd-journald.service
+                systemctl restart journal-fss-setup.service
+                [ "$(systemctl show journal-fss-setup.service -p Result --value)" = success ]
+                [ -f "$VKEY" ]
+              }
+              trap "regen_keys 2>/dev/null || true" EXIT
+
+              regen_keys
+
+              # Force the live-probe path on the next re-entrant run
+              # (activation already current, no fresh restart) rather than
+              # a boundary restart -- live_probe_warranted checks for this
+              # file directly.
+              touch "$DIR/fss-rekey-epoch"
+
+              # A second, unrelated key pair, only to harvest a
+              # well-formed verification key that cannot match the real
+              # sealing key. Overwrites $FSS_KEY as a side effect --
+              # restored immediately after.
+              cp -a "$FSS_KEY" /tmp/negctrl-real-fss-key
+              WRONG_VKEY=$(journalctl --setup-keys --force --interval=1s 2>/dev/null | tail -n1)
+              test -n "$WRONG_VKEY"
+              cp -a /tmp/negctrl-real-fss-key "$FSS_KEY"
+              printf "%s" "$WRONG_VKEY" > "$VKEY"
+              chmod 0400 "$VKEY"
+              rm -f /tmp/negctrl-real-fss-key
+
+              systemctl reset-failed journal-fss-setup.service >/dev/null 2>&1 || true
+              if systemctl restart journal-fss-setup.service >/tmp/activation-retry-negctrl.log 2>&1; then
+                echo "setup unexpectedly succeeded with a mismatched verification key" >&2
+                cat /tmp/activation-retry-negctrl.log >&2
+                exit 1
+              fi
+              journalctl -u journal-fss-setup.service -n 60 --no-pager |
+                grep -F "FSS setup finished but sealing activation failed; logs are unsealed"
+              [ "$(awk -F "\t" "NR == 1 { print \\$1 }" "$DIR/fss-activation-state")" = failed ]
+            '
+          """)
+
+  with subtest("Activation live-probe retries through a live-write race instead of failing closed on it"):
+      # Best-effort reproduction of the race itself, not a synthetic one:
+      # journald restarted for activation, actively appending while the
+      # probe walks the same file. A concurrent writer raises the odds of
+      # landing an append mid-walk, the same mechanism that hit hardware
+      # naturally without any intentional forcing. Genuinely timing-
+      # dependent -- the assertion is that activation still succeeds
+      # despite concurrent writes, which holds whether or not this
+      # particular run happens to exercise a retry; the negative control
+      # above is what proves the retry logic itself is sound.
+      if not skip_if_setup_failed("activation retry recovery"):
+          machine.succeed("""
+            bash -lc '
+              set -euo pipefail
+              MID=$(cat /etc/machine-id)
+              DIR="/var/log/journal/$MID"
+              KEY_DIR="/persist/common/journal-fss/test-host"
+
+              # Fresh, self-contained key/journal state, not whatever the
+              # previous subtest left behind: that one deliberately installs
+              # a mismatched verification key, and depending on its own
+              # cleanup timing is not a safe precondition to inherit here.
+              regen_keys() {
+                systemctl stop systemd-journald.service systemd-journald.socket
+                # -rf, not -f, for verification-key itself: a leftover
+                # directory there (seen once, from an earlier subtest in
+                # this file) survives -f silently, and generate_fss_key_
+                # pair rename-into-a-directory then leaves it a directory
+                # forever -- every later "tr ... < verification-key" then
+                # fails "Is a directory" several assertions downstream of
+                # the real cause, which is exactly what happened here once.
+                rm -rf "$KEY_DIR/verification-key"
+                rm -f "$DIR"/*.journal "$DIR"/*.journal~ "$DIR/fss" \
+                  "$KEY_DIR"/verification-key.* "$KEY_DIR/initialized" "$DIR/fss-rekey-epoch"
+                systemctl reset-failed systemd-journald.service systemd-journald.socket \
+                  systemd-journald-dev-log.socket systemd-journald-audit.socket >/dev/null 2>&1 || true
+                systemctl start systemd-journald.service
+                systemctl restart journal-fss-setup.service
+                [ "$(systemctl show journal-fss-setup.service -p Result --value)" = success ]
+                [ -f "$KEY_DIR/verification-key" ]
+              }
+              regen_keys
+
+              touch "$DIR/fss-rekey-epoch"
+              ( while :; do logger -t activation-race-writer "keep appending"; done ) &
+              WRITER_PID=$!
+              cleanup() {
+                kill "$WRITER_PID" 2>/dev/null || true
+                wait "$WRITER_PID" 2>/dev/null || true
+                rm -f "$DIR/fss-rekey-epoch"
+              }
+              trap cleanup EXIT
+
+              systemctl reset-failed journal-fss-setup.service >/dev/null 2>&1 || true
+              systemctl restart journal-fss-setup.service >/tmp/activation-retry-recovery.log 2>&1
+              # Result=success already rules out the ACTIVATION_FAILED exit-1
+              # path for this specific invocation -- finish_setup cannot both
+              # exit 0 and have taken that branch -- so this is sufficient on
+              # its own without also grepping the unit log, which is not
+              # scoped to this run and could carry a stale failure line from
+              # the subtest above.
+              systemctl show journal-fss-setup.service -p Result --value | grep -Fx success
+            '
+          """)
+
   with subtest("Forward clock correction leaves sealed journals raw-verifiable"):
       # Without the vendored patch, a forward step + activation churn piles up
       # same-epoch TAGs and the archive fails permanently. Bar: raw
@@ -1361,174 +1529,6 @@ _: ''
               touch -d @1000000100 "$D/system@0-0000000000000003-0000000000000003.journal"
               newest=$(find "$D" -maxdepth 1 -type f -name "system@*.journal" -print | sort | tac | head -n1)
               [ "$newest" = "$D/system@0-0000000000000003-0000000000000003.journal" ]
-            '
-          """)
-
-  with subtest("Activation live-probe retry does not mask a genuine tamper: sealing still fails closed"):
-      # Finding: verify_live_sealing_after_activation ran journalctl --verify
-      # exactly once, with no retry, while the verify SERVICE already retries
-      # the same class of failure up to verifyRetries. journald has just
-      # restarted for activation and is actively appending while this probe
-      # reads -- a live-journal read race, not a real defect -- so a
-      # transient failure here was promoted straight into a genuine "logs
-      # are unsealed" state (confirmed on hardware, B5 and B6, ~65-105s of
-      # real unsealed logging before the next run self-recovered).
-      #
-      # Fix: fss_active_failure_retryable also recognises the race's other
-      # shape (a dangling data-object reference alongside "File corruption
-      # detected", not just a counter mismatch), and the activation probe
-      # now retries through it exactly like the verify service does.
-      #
-      # THIS is the subtest that matters most: a retry that fires on every
-      # active-journal failure would mask a real one, which is worse than
-      # the bug it fixes.
-      #
-      # Not a live-journal byte tamper: dd-ing the active file directly was
-      # tried and dropped. journald owns that file while it is running and
-      # can notice the corruption itself and auto-rotate it away
-      # ("Journal file corrupted, rotating" observed in this VM), racing
-      # this subtest's own window and erasing the tamper before the probe
-      # ever saw it -- a worse test for this claim, not a better one, and
-      # nothing to do with the retry logic under test.
-      #
-      # Installing a verification key that does not match the sealing key
-      # produces the same class of genuine, non-retryable active-journal
-      # failure deterministically instead, with nothing for journald to
-      # notice or self-heal: a real cryptographic mismatch, not a
-      # malformed string -- ensure_verification_key_ready requires a "/"
-      # in the key, so a bare garbage string fails setup earlier, before
-      # ever reaching the code under test. A second, throwaway key pair
-      # (journalctl --setup-keys --force, same extraction generate_fss_
-      # key_pair uses: verification key = last line of its output) gives
-      # a well-formed but genuinely wrong key; the real sealing key is
-      # restored immediately after so only the verification half is wrong.
-      if not skip_if_setup_failed("activation retry negative control"):
-          machine.succeed("""
-            bash -lc '
-              set -euo pipefail
-              MID=$(cat /etc/machine-id)
-              DIR="/var/log/journal/$MID"
-              FSS_KEY="$DIR/fss"
-              KEY_DIR="/persist/common/journal-fss/test-host"
-              VKEY="$KEY_DIR/verification-key"
-
-              regen_keys() {
-                systemctl stop systemd-journald.service systemd-journald.socket
-                # -rf, not -f, for $VKEY: a leftover directory there survives
-                # -f silently, and generate_fss_key_pair's rename-into-a-
-                # directory then leaves it a directory forever, failing every
-                # later "tr ... < $VKEY" with "Is a directory" several
-                # assertions downstream of the real cause.
-                rm -rf "$VKEY"
-                rm -f "$DIR"/*.journal "$DIR"/*.journal~ "$FSS_KEY" \
-                  "$KEY_DIR"/verification-key.* "$KEY_DIR/initialized" "$DIR/fss-rekey-epoch"
-                # This far into a long, cumulative suite, enough journald
-                # stop/starts have already happened that its own start-rate
-                # limit can trip on a perfectly ordinary restart; reset-failed
-                # clears that counter, not just any failed-unit state.
-                systemctl reset-failed systemd-journald.service systemd-journald.socket \
-                  systemd-journald-dev-log.socket systemd-journald-audit.socket >/dev/null 2>&1 || true
-                systemctl start systemd-journald.service
-                systemctl restart journal-fss-setup.service
-                [ "$(systemctl show journal-fss-setup.service -p Result --value)" = success ]
-                [ -f "$VKEY" ]
-              }
-              trap "regen_keys 2>/dev/null || true" EXIT
-
-              regen_keys
-
-              # Force the live-probe path on the next re-entrant run
-              # (activation already current, no fresh restart) rather than
-              # a boundary restart -- live_probe_warranted checks for this
-              # file directly.
-              touch "$DIR/fss-rekey-epoch"
-
-              # A second, unrelated key pair, only to harvest a
-              # well-formed verification key that cannot match the real
-              # sealing key. Overwrites $FSS_KEY as a side effect --
-              # restored immediately after.
-              cp -a "$FSS_KEY" /tmp/negctrl-real-fss-key
-              WRONG_VKEY=$(journalctl --setup-keys --force --interval=1s 2>/dev/null | tail -n1)
-              test -n "$WRONG_VKEY"
-              cp -a /tmp/negctrl-real-fss-key "$FSS_KEY"
-              printf "%s" "$WRONG_VKEY" > "$VKEY"
-              chmod 0400 "$VKEY"
-              rm -f /tmp/negctrl-real-fss-key
-
-              systemctl reset-failed journal-fss-setup.service >/dev/null 2>&1 || true
-              if systemctl restart journal-fss-setup.service >/tmp/activation-retry-negctrl.log 2>&1; then
-                echo "setup unexpectedly succeeded with a mismatched verification key" >&2
-                cat /tmp/activation-retry-negctrl.log >&2
-                exit 1
-              fi
-              journalctl -u journal-fss-setup.service -n 60 --no-pager |
-                grep -F "FSS setup finished but sealing activation failed; logs are unsealed"
-              [ "$(awk -F "\t" "NR == 1 { print \\$1 }" "$DIR/fss-activation-state")" = failed ]
-            '
-          """)
-
-  with subtest("Activation live-probe retries through a live-write race instead of failing closed on it"):
-      # Best-effort reproduction of the race itself, not a synthetic one:
-      # journald restarted for activation, actively appending while the
-      # probe walks the same file. A concurrent writer raises the odds of
-      # landing an append mid-walk, the same mechanism that hit hardware
-      # naturally without any intentional forcing. Genuinely timing-
-      # dependent -- the assertion is that activation still succeeds
-      # despite concurrent writes, which holds whether or not this
-      # particular run happens to exercise a retry; the negative control
-      # above is what proves the retry logic itself is sound.
-      if not skip_if_setup_failed("activation retry recovery"):
-          machine.succeed("""
-            bash -lc '
-              set -euo pipefail
-              MID=$(cat /etc/machine-id)
-              DIR="/var/log/journal/$MID"
-              KEY_DIR="/persist/common/journal-fss/test-host"
-
-              # Fresh, self-contained key/journal state, not whatever the
-              # previous subtest left behind: that one deliberately installs
-              # a mismatched verification key, and depending on its own
-              # cleanup timing is not a safe precondition to inherit here.
-              regen_keys() {
-                systemctl stop systemd-journald.service systemd-journald.socket
-                # -rf, not -f, for verification-key itself: a leftover
-                # directory there (seen once, from an earlier subtest in
-                # this file) survives -f silently, and generate_fss_key_
-                # pair's rename-into-a-directory then leaves it a directory
-                # forever -- every later "tr ... < verification-key" then
-                # fails "Is a directory" several assertions downstream of
-                # the real cause, which is exactly what happened here once.
-                rm -rf "$KEY_DIR/verification-key"
-                rm -f "$DIR"/*.journal "$DIR"/*.journal~ "$DIR/fss" \
-                  "$KEY_DIR"/verification-key.* "$KEY_DIR/initialized" "$DIR/fss-rekey-epoch"
-                systemctl reset-failed systemd-journald.service systemd-journald.socket \
-                  systemd-journald-dev-log.socket systemd-journald-audit.socket >/dev/null 2>&1 || true
-                systemctl start systemd-journald.service
-                systemctl restart journal-fss-setup.service
-                [ "$(systemctl show journal-fss-setup.service -p Result --value)" = success ]
-                [ -f "$KEY_DIR/verification-key" ]
-              }
-              regen_keys
-
-              touch "$DIR/fss-rekey-epoch"
-              ( while :; do logger -t activation-race-writer "keep appending"; done ) &
-              WRITER_PID=$!
-              cleanup() {
-                kill "$WRITER_PID" 2>/dev/null || true
-                wait "$WRITER_PID" 2>/dev/null || true
-                rm -f "$DIR/fss-rekey-epoch"
-              }
-              trap cleanup EXIT
-
-              systemctl reset-failed journal-fss-setup.service >/dev/null 2>&1 || true
-              systemctl restart journal-fss-setup.service >/tmp/activation-retry-recovery.log 2>&1
-              # Result=success already rules out the ACTIVATION_FAILED exit-1
-              # path for this specific invocation -- finish_setup cannot both
-              # exit 0 and have taken that branch -- so this is sufficient on
-              # its own without also grepping the unit log, which is not
-              # scoped to this run and could carry a stale failure line from
-              # the subtest above.
-              systemctl show journal-fss-setup.service -p Result --value | grep -Fx success
             '
           """)
 
