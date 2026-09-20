@@ -22,8 +22,13 @@ in
         rm "$runner"
         mv "$runner.fixed" "$runner"
         chmod +x "$runner"
-        substituteInPlace "$runner" \
-          --replace-fail "-r ${storeDisk}" "--block ${storeDisk},ro=true"
+        if grep -Fq -- "-r ${storeDisk}" "$runner"; then
+          substituteInPlace "$runner" \
+            --replace-fail "-r ${storeDisk}" "--block ${storeDisk},ro=true"
+        elif ! grep -Fq -- "${storeDisk},ro=true" "$runner"; then
+          echo "Crosvm runner does not contain the expected store-disk argument" >&2
+          exit 1
+        fi
       '';
     })
   );

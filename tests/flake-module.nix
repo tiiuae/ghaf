@@ -40,6 +40,7 @@
           cosmic-shortcuts = pkgs.callPackage ./cosmic/shortcuts.nix { inherit self; };
           flatpak-options = pkgs.callPackage ./flatpak/options.nix { inherit self; };
           microvm-tpm-vmm-parity = pkgs.callPackage ./microvm/tpm-vmm-parity.nix { inherit self; };
+          orin-crosvm-targets = pkgs.callPackage ./orin-crosvm-targets.nix { inherit self; };
           uplink-resolver = pkgs.callPackage ./uplink-resolver { };
           logging-fss = pkgs.callPackage ./logging { inherit self; };
           fss-classifier-unit = pkgs.callPackage ./logging/classifier-unit.nix { };
