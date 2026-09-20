@@ -118,13 +118,16 @@ jobs:
           # longer materialises that path, so the copy fails with "no
           # substituter that can build it". Drop this once nix-fast-build
           # handles unmaterialised flake sources.
+          #
+          # --eval-max-memory-size matches .github/eval.py: an image attribute
+          # needs ~10 GiB, and nix-eval-jobs enforces the budget since 2.35.3.
           nix run --inputs-from .# nixpkgs#nix-fast-build -- \
             --flake .#${{ matrix.target }} \
             --remote "$BUILDER" \
             --always-upload-source \
             --option accept-flake-config true \
             --eval-workers 1 \
-            --eval-max-memory-size 4096 \
+            --eval-max-memory-size 12288 \
             --no-download --skip-cached --no-nom
         env:
           BUILDER_X86: ${{ vars.BUILDER_X86 }}
