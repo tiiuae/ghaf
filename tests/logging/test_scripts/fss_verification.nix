@@ -1055,12 +1055,19 @@ _: ''
               # assorted stale journals/keys earlier subtests leave behind.)
               regen_keys() {
                 systemctl stop systemd-journald.service systemd-journald.socket
-                rm -f "$DIR"/*.journal "$DIR"/*.journal~ "$DIR/fss" "$VKEY" \
+                # -rf, not -f, for $VKEY specifically: a leftover directory
+                # there (seen once from an earlier subtest in this file) is
+                # silently NOT removed by -f, and generate_fss_key_pair
+                # rename-into-a-directory then leaves it a directory forever,
+                # failing every later "tr ... < $VKEY" with "Is a directory"
+                # several assertions downstream of the real cause.
+                rm -rf "$VKEY"
+                rm -f "$DIR"/*.journal "$DIR"/*.journal~ "$DIR/fss" \
                   "$KEY_DIR"/verification-key.* "$INIT"
                 systemctl start systemd-journald.service
                 systemctl restart journal-fss-setup.service
                 [ "$(systemctl show journal-fss-setup.service -p Result --value)" = success ]
-                test -s "$VKEY" && test -s "$DIR/fss"
+                [ -f "$VKEY" ] && test -s "$VKEY" && test -s "$DIR/fss"
               }
 
               restore() {
@@ -1266,11 +1273,15 @@ _: ''
 
               regen_keys() {
                 systemctl stop systemd-journald.service systemd-journald.socket
-                rm -f "$ARCHIVE_DIR"/*.journal "$ARCHIVE_DIR"/*.journal~ "$ARCHIVE_DIR/fss" "$VKEY" \
+                # -rf, not -f, for $VKEY: see the same fix comment above in
+                # "Backward re-key" -- a leftover directory there survives -f.
+                rm -rf "$VKEY"
+                rm -f "$ARCHIVE_DIR"/*.journal "$ARCHIVE_DIR"/*.journal~ "$ARCHIVE_DIR/fss" \
                   "$KEY_DIR"/verification-key.* "$INIT"
                 systemctl start systemd-journald.service
                 systemctl restart journal-fss-setup.service
                 [ "$(systemctl show journal-fss-setup.service -p Result --value)" = success ]
+                [ -f "$VKEY" ]
               }
               restore() {
                 systemctl unmask --runtime ghaf-journal-alloy-recover.service 2>/dev/null || true
@@ -1403,7 +1414,13 @@ _: ''
 
               regen_keys() {
                 systemctl stop systemd-journald.service systemd-journald.socket
-                rm -f "$DIR"/*.journal "$DIR"/*.journal~ "$FSS_KEY" "$VKEY" \
+                # -rf, not -f, for $VKEY: a leftover directory there survives
+                # -f silently, and generate_fss_key_pair's rename-into-a-
+                # directory then leaves it a directory forever, failing every
+                # later "tr ... < $VKEY" with "Is a directory" several
+                # assertions downstream of the real cause.
+                rm -rf "$VKEY"
+                rm -f "$DIR"/*.journal "$DIR"/*.journal~ "$FSS_KEY" \
                   "$KEY_DIR"/verification-key.* "$KEY_DIR/initialized" "$DIR/fss-rekey-epoch"
                 # This far into a long, cumulative suite, enough journald
                 # stop/starts have already happened that its own start-rate
@@ -1414,6 +1431,7 @@ _: ''
                 systemctl start systemd-journald.service
                 systemctl restart journal-fss-setup.service
                 [ "$(systemctl show journal-fss-setup.service -p Result --value)" = success ]
+                [ -f "$VKEY" ]
               }
               trap "regen_keys 2>/dev/null || true" EXIT
 
@@ -1473,13 +1491,22 @@ _: ''
               # cleanup timing is not a safe precondition to inherit here.
               regen_keys() {
                 systemctl stop systemd-journald.service systemd-journald.socket
-                rm -f "$DIR"/*.journal "$DIR"/*.journal~ "$DIR/fss" "$KEY_DIR/verification-key" \
+                # -rf, not -f, for verification-key itself: a leftover
+                # directory there (seen once, from an earlier subtest in
+                # this file) survives -f silently, and generate_fss_key_
+                # pair's rename-into-a-directory then leaves it a directory
+                # forever -- every later "tr ... < verification-key" then
+                # fails "Is a directory" several assertions downstream of
+                # the real cause, which is exactly what happened here once.
+                rm -rf "$KEY_DIR/verification-key"
+                rm -f "$DIR"/*.journal "$DIR"/*.journal~ "$DIR/fss" \
                   "$KEY_DIR"/verification-key.* "$KEY_DIR/initialized" "$DIR/fss-rekey-epoch"
                 systemctl reset-failed systemd-journald.service systemd-journald.socket \
                   systemd-journald-dev-log.socket systemd-journald-audit.socket >/dev/null 2>&1 || true
                 systemctl start systemd-journald.service
                 systemctl restart journal-fss-setup.service
                 [ "$(systemctl show journal-fss-setup.service -p Result --value)" = success ]
+                [ -f "$KEY_DIR/verification-key" ]
               }
               regen_keys
 
