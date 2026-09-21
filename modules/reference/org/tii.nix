@@ -24,6 +24,7 @@ in
         };
       };
       management.fleet.url = "https://fleetdm.vedenemo.dev";
+      network.firewallRulesUrl = "https://raw.githubusercontent.com/tiiuae/ghaf-policies/deploy/vm-policies/firewall-rules/iptables.rules";
 
       # TII development AD test domain (formerly hardcoded in ad-users.nix). Realm,
       # KDC servers and LDAP URIs derive from domain and controllers (active-directory/options.nix).
