@@ -60,6 +60,10 @@ in
             Source URL of the firewall rules policy, polled on-device by the
             admin-vm policy updater; null leaves the updater inactive.
           '';
+          ntpServers = mkOptionEntry (types.listOf types.str) ''
+            Upstream NTP servers for the fleet's time server (net-vm); null keeps
+            the default public pool.
+          '';
         };
         identity = {
           ssh = {
@@ -100,8 +104,8 @@ in
       ghaf.services.github.owner = fwd org.telemetry.bugReport.owner;
       ghaf.services.github.repo = fwd org.telemetry.bugReport.repo;
       ghaf.services.orbit.fleetUrl = fwd org.management.fleet.url;
-
       ghaf.firewall.updater.url = fwd org.network.firewallRulesUrl;
+      ghaf.time.upstreamServers = fwd org.network.ntpServers;
 
       ghaf.security.ssh.debug.authorizedKeys = fwd org.identity.ssh.debugKeys;
       ghaf.security.ssh.release.authorizedKeys = fwd org.identity.ssh.releaseKeys;

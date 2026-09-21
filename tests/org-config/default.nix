@@ -63,6 +63,7 @@ let
             telemetry.logging.endpoint = lib.mkForce overridden;
             telemetry.logging.logseald.revokedPeerKeys = [ revokedPeerKey ];
             identity.ssh.trustedUserCAKeys = [ caTestKey ];
+            network.ntpServers = [ "ntp.org-config-test" ];
           };
           # Rosters merge: this must land alongside the org dev keys, not
           # replace them.
@@ -218,6 +219,14 @@ let
       ok =
         org.network.firewallRulesUrl != null
         && host.ghaf.firewall.updater.url == org.network.firewallRulesUrl;
+    }
+    {
+      name = "an unset org value leaves the module default intact";
+      ok = org.network.ntpServers == null && host.ghaf.time.upstreamServers != [ ];
+    }
+    {
+      name = "org NTP servers replace the default pool in a sysvm";
+      ok = shadowAdminVm.ghaf.time.upstreamServers == [ "ntp.org-config-test" ];
     }
   ];
 
