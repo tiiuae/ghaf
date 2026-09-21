@@ -30,14 +30,18 @@ in
     enable = mkEnableOption "Github configurations";
     owner = mkOption {
       type = types.str;
+      default = "";
       description = ''
-        Github owner account of the bug reporter issue
+        Github owner account of the bug reporter issue.
+        Normally org-supplied via ghaf.org.telemetry.bugReport.owner.
       '';
     };
     repo = mkOption {
       type = types.str;
+      default = "";
       description = ''
-        Github repo of the bug reporter issue
+        Github repo of the bug reporter issue.
+        Normally org-supplied via ghaf.org.telemetry.bugReport.repo.
       '';
     };
     tokenFile = mkOption {
@@ -62,6 +66,15 @@ in
   };
 
   config = mkIf cfg.enable {
+
+    assertions = [
+      {
+        assertion = cfg.owner != "" && cfg.repo != "";
+        message =
+          "ghaf.services.github.enable needs a bug-report repository. "
+          + "Set ghaf.org.telemetry.bugReport.{owner,repo} (or ghaf.services.github.{owner,repo}).";
+      }
+    ];
 
     environment.sessionVariables = {
       GITHUB_CONFIG = "$HOME/.config/ctrl-panel/config.toml";

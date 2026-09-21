@@ -49,6 +49,10 @@ in
               every producer and sealer; null revokes none.
             '';
           };
+          bugReport = {
+            owner = mkOptionEntry types.str "GitHub owner of the bug-report repository; null disables bug reporting.";
+            repo = mkOptionEntry types.str "GitHub bug-report repository name; null disables bug reporting.";
+          };
         };
       };
     };
@@ -62,6 +66,8 @@ in
       ghaf.logging.server.endpoint = fwd org.telemetry.logging.endpoint;
       ghaf.logging.server.tls.serverName = fwd org.telemetry.logging.serverName;
       ghaf.logging.logseald.tls.revokedPeerKeys = fwd org.telemetry.logging.logseald.revokedPeerKeys;
+      ghaf.services.github.owner = fwd org.telemetry.bugReport.owner;
+      ghaf.services.github.repo = fwd org.telemetry.bugReport.repo;
     }
   ];
 }

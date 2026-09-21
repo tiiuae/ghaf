@@ -18,6 +18,10 @@ in
           endpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
           serverName = "loki.ghaflogs.vedenemo.dev";
         };
+        bugReport = {
+          owner = "tiiuae";
+          repo = "ghaf-bugreports";
+        };
       };
     };
   };
