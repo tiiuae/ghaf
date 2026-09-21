@@ -55,6 +55,22 @@ in
           };
         };
         management.fleet.url = mkOptionEntry types.str "Fleet MDM server base URL; null disables Orbit enrollment.";
+        identity = {
+          ssh = {
+            debugKeys = mkOptionEntry (types.listOf types.str) ''
+              Development SSH key roster. Forwarded unconditionally, inert unless that stack is enabled
+            '';
+            releaseKeys = mkOptionEntry (types.listOf types.str) ''
+              Static SSH keys for the hardened release stack, inert unless that stack is enabled.
+            '';
+            trustedUserCAKeys = mkOptionEntry (types.listOf types.str) "SSH user-CA public keys for release SSH certificate auth.";
+            allowedPrincipals = mkOptionEntry (types.listOf types.str) "Accepted certificate principals (null = module default: the admin user).";
+            authorizedKeysOptions = mkOptionEntry types.str ''
+              authorized_keys per-key options prefix (null = module default, which
+              requires hardware-backed keys via verify-required).
+            '';
+          };
+        };
       };
     };
     default = { };
@@ -67,9 +83,16 @@ in
       ghaf.logging.server.endpoint = fwd org.telemetry.logging.endpoint;
       ghaf.logging.server.tls.serverName = fwd org.telemetry.logging.serverName;
       ghaf.logging.logseald.tls.revokedPeerKeys = fwd org.telemetry.logging.logseald.revokedPeerKeys;
+
       ghaf.services.github.owner = fwd org.telemetry.bugReport.owner;
       ghaf.services.github.repo = fwd org.telemetry.bugReport.repo;
       ghaf.services.orbit.fleetUrl = fwd org.management.fleet.url;
+
+      ghaf.security.ssh.debug.authorizedKeys = fwd org.identity.ssh.debugKeys;
+      ghaf.security.ssh.release.authorizedKeys = fwd org.identity.ssh.releaseKeys;
+      ghaf.security.ssh.release.trustedUserCAKeys = fwd org.identity.ssh.trustedUserCAKeys;
+      ghaf.security.ssh.release.allowedPrincipals = fwd org.identity.ssh.allowedPrincipals;
+      ghaf.security.ssh.release.authorizedKeysOptions = fwd org.identity.ssh.authorizedKeysOptions;
     }
   ];
 }

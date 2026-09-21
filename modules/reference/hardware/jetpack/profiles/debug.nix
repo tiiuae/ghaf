@@ -9,11 +9,9 @@ in
   _file = ./debug.nix;
 
   config = lib.mkIf cfg.enable {
-    # Enable default accounts and passwords
     ghaf.hardware.nvidia.orin.optee = {
       xtest = true;
       pkcs11-tool = true;
     };
-    ghaf.reference.personalize.keys.enable = true;
   };
 }

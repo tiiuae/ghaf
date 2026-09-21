@@ -26,7 +26,8 @@ peer. An assertion forbids enabling both modes at once.
 
 The unprotected posture used on **debug** images for developer convenience: a plain sshd with
 **password authentication** and the shared development authorized-key list
-(`ghaf.reference.personalize.keys`), with root reachable by key (`prohibit-password`).
+(`ghaf.security.ssh.debug.authorizedKeys`, org-supplied via
+`ghaf.org.identity.ssh.debugKeys`), with root reachable by key (`prohibit-password`).
 
 ```nix
 ghaf.security.ssh.debug.enable = true;   # normally set by the debug profile

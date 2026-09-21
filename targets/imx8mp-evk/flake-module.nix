@@ -31,7 +31,6 @@ let
           nixos-hardware.nixosModules.nxp-imx8mp-evk
           self.nixosModules.microvm
           self.nixosModules.imx8
-          self.nixosModules.reference-personalize
           self.nixosModules.reference-org-tii
           self.nixosModules.profiles
           {
@@ -56,9 +55,11 @@ let
               development = {
                 debug.tools.enable = variant == "debug";
               };
+              # Debug SSH stays on for both variants on this dev board; the
+              # org dev-key roster is installed by ghaf.security.ssh.debug on
+              # the debug variant only (gated on the debug profile).
               security.ssh.debug.enable = true;
-              reference.personalize.keys.enable = variant == "debug";
-              # In-tree dev board: TII org values.
+              # In-tree dev board: TII org values (incl. the dev-key roster).
               reference.org.tii.enable = true;
             };
 

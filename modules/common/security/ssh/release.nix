@@ -73,18 +73,16 @@ in
         assertion = hasKeys || hasCA;
         message = "ghaf.security.ssh.release is enabled but neither authorizedKeys nor trustedUserCAKeys is set - the device would be reachable by no one.";
       }
+      # This also keeps the dev-key roster out: ghaf.security.ssh.debug is the
+      # only module that installs it, so the mutual exclusion covers the keys.
       {
         assertion = !(config.ghaf.security.ssh.debug.enable or false);
         message = "Release SSH and debug SSH (ghaf.security.ssh.debug) must not both be enabled.";
       }
-      {
-        assertion = !(config.ghaf.reference.personalize.keys.enable or false);
-        message = "Release SSH must not ship the hard-coded development authorizedSshKeys list (ghaf.reference.personalize.keys.enable).";
-      }
       # Root login must be impossible in a release image, not merely absent
       # because no module happened to add a key. PermitRootLogin = "no" below is
       # the sshd-side half; these are the config-side half, and they catch any
-      # future module that grants root a key without going through the dev-keys
+      # future module that grants root a key without going through the debug-SSH
       # module the assertion above covers.
       {
         assertion = config.users.users.root.openssh.authorizedKeys.keys == [ ];

@@ -37,9 +37,7 @@ in
           modules = [
             ../services
             ../programs
-            ../personalize
             {
-              ghaf.reference.personalize.keys.enable = true;
               ghaf.reference.services = {
                 inherit (config.ghaf.reference.services)
                   enable
@@ -67,12 +65,6 @@ in
         # Hardware-specific modules should go in hardware.definition.netvm.extraModules
         vmConfig.sysvms.netvm.extraModules = [
           ../services
-          ../personalize
-          # Developer SSH access is a DEBUG-build affordance: this option's
-          # default is the ghaf developer key list
-          # (../personalize/authorizedSshKeys.nix), and enabling it grants every
-          # one of those keys a shell as root and as the admin user.
-          { ghaf.reference.personalize.keys.enable = config.ghaf.profiles.debug.enable; }
           # Forward host reference services config to netvm
           {
             ghaf.reference.services = {
@@ -90,11 +82,6 @@ in
         services = {
           enable = true;
           dendrite = false;
-        };
-
-        personalize = {
-          # Debug-only; see the net-vm block above.
-          keys.enable = config.ghaf.profiles.debug.enable;
         };
 
         desktop.applications.enable = false;

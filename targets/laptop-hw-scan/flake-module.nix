@@ -26,13 +26,14 @@ let
                 "${toString modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
                 inputs.self.nixosModules.common
                 inputs.self.nixosModules.development
-                inputs.self.nixosModules.reference-personalize
                 inputs.self.nixosModules.reference-org-tii
                 inputs.self.nixosModules.givc
               ];
-              users.users.nixos.openssh.authorizedKeys.keys =
-                config.ghaf.reference.personalize.keys.authorizedSshKeys;
+              # The dev-key roster is org data: enabling the TII org module
+              # fills security.ssh.debug.authorizedKeys via the ghaf.org
               ghaf.reference.org.tii.enable = true;
+              ghaf.global-config.debug.enable = true;
+              users.users.nixos.openssh.authorizedKeys.keys = config.ghaf.security.ssh.debug.authorizedKeys;
               systemd.services.wpa_supplicant.wantedBy = lib.mkForce [ "multi-user.target" ];
               systemd.services.sshd.wantedBy = lib.mkForce [ "multi-user.target" ];
               image.baseName = lib.mkForce "ghaf";

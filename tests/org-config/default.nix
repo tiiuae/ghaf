@@ -8,6 +8,9 @@
 #  2. be forwarded into the canonical module options at plain priority, so
 #     rosters merge with a direct definition and a scalar collides with one.
 #
+# Forwarding never gates on image posture; the consuming modules do. The
+# dev-key assertions below pin both halves of that: the roster reaches the
+# option on every image, and only a debug image installs it.
 #
 # Uses intel-laptop-debug as-is: the laptop target family enables
 # reference.org.tii (targets/laptop/flake-module.nix), so the host's ghaf.org
@@ -20,6 +23,7 @@
 }:
 let
   host = self.nixosConfigurations.intel-laptop-debug.config;
+  releaseHost = self.nixosConfigurations.intel-laptop-release.config;
 
   adminVm = host.microvm.vms."admin-vm".evaluatedConfig.config;
   appVm = host.microvm.vms."flatpak-vm".evaluatedConfig.config;
@@ -30,6 +34,7 @@ let
   orgServerName = org.telemetry.logging.serverName;
   orgBugReport = org.telemetry.bugReport;
   orgFleetUrl = org.management.fleet.url;
+  orgDevKeys = org.identity.ssh.debugKeys;
 
   # An override through ghaf.org must reach the host and every VM. mkForce
   # because the value overridden here is one tii.nix already sets; an org value
@@ -40,6 +45,9 @@ let
   # domain to prove submodule-valued org data merges leaf-wise.
   overridden = "https://override.example/loki/api/v1/push";
   revokedPeerKey = "spki-sha256:0000000000000000000000000000000000000000000000000000000000000000";
+  caTestKey = "ssh-ed25519 AAAATESTKEY org-config-test";
+  extraDevKey = "ssh-ed25519 AAAAEXTRAKEY org-config-test-extra";
+
   shadowHost =
     (self.nixosConfigurations.intel-laptop-debug.extendModules {
       modules = [
@@ -48,7 +56,11 @@ let
           ghaf.org = {
             telemetry.logging.endpoint = lib.mkForce overridden;
             telemetry.logging.logseald.revokedPeerKeys = [ revokedPeerKey ];
+            identity.ssh.trustedUserCAKeys = [ caTestKey ];
           };
+          # Rosters merge: this must land alongside the org dev keys, not
+          # replace them.
+          ghaf.security.ssh.debug.authorizedKeys = [ extraDevKey ];
         }
       ];
     }).config;
@@ -123,6 +135,41 @@ let
     {
       name = "orbit follows the platform enable once an org fleet url is present";
       ok = guiVm.ghaf.services.orbit.enable == host.ghaf.global-config.orbit.enable;
+    }
+    {
+      name = "org dev-key roster is forwarded into debug SSH on the host";
+      ok = orgDevKeys != [ ] && host.ghaf.security.ssh.debug.authorizedKeys == orgDevKeys;
+    }
+    {
+      name = "org user-CA key is forwarded into release SSH on the host";
+      ok = shadowHost.ghaf.security.ssh.release.trustedUserCAKeys == [ caTestKey ];
+    }
+    {
+      name = "org user-CA key crosses the wire into a sysvm";
+      ok = shadowAdminVm.ghaf.security.ssh.release.trustedUserCAKeys == [ caTestKey ];
+    }
+    {
+      # The forward does not gate on posture, so the option carries the roster
+      # everywhere -- this is what keeps the installer ISO reachable.
+      name = "the dev-key roster reaches the option on a release image too";
+      ok = releaseHost.ghaf.security.ssh.debug.authorizedKeys == orgDevKeys;
+    }
+    {
+      # ...and the consuming module is what keeps it off a release image.
+      name = "a release image installs no dev keys for root";
+      ok =
+        releaseHost.users.users.root.openssh.authorizedKeys.keys == [ ]
+        && host.users.users.root.openssh.authorizedKeys.keys == orgDevKeys;
+    }
+    {
+      name = "a direct dev-key definition merges with the org roster";
+      ok =
+        let
+          merged = shadowHost.ghaf.security.ssh.debug.authorizedKeys;
+        in
+        lib.all (k: lib.elem k merged) orgDevKeys
+        && lib.elem extraDevKey merged
+        && lib.length merged == lib.length orgDevKeys + 1;
     }
   ];
 
