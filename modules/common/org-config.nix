@@ -17,6 +17,7 @@
 {
   config,
   lib,
+  options,
   ...
 }@args:
 let
@@ -65,6 +66,11 @@ in
             the default public pool.
           '';
         };
+        pki.secureBootKeysSource = mkOptionEntry types.path ''
+          Directory of Secure Boot public enrollment keys (PK/KEK/db .auth and
+          .crt), baked into the image for UEFI enrollment. Public material only;
+          signing keys stay in release infrastructure. Null installs no keys.
+        '';
         identity = {
           ssh = {
             debugKeys = mkOptionEntry (types.listOf types.str) ''
@@ -115,5 +121,14 @@ in
 
       ghaf.users.active-directory.domains = fwd org.identity.activeDirectory.domains;
     }
+
+    (lib.optionalAttrs (options ? ghaf.host.secureboot.keysSource) {
+      ghaf.host.secureboot.keysSource = fwd org.pki.secureBootKeysSource;
+    })
+
+    # Declared only in Jetson evaluations, which use their own secureboot module.
+    (lib.optionalAttrs (options ? ghaf.hardware.nvidia.orin.secureboot.keysSource) {
+      ghaf.hardware.nvidia.orin.secureboot.keysSource = fwd org.pki.secureBootKeysSource;
+    })
   ];
 }

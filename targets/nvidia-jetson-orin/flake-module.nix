@@ -386,10 +386,11 @@ let
             ) ../../modules/secureboot/dev-keys;
             hardware.nvidia.orin.secureboot.enable = true;
             # Debug builds enroll the dev certs so they match the dev signing
-            # keys; release builds keep the production certs from keysSource.
-            hardware.nvidia.orin.secureboot.keysSource = lib.mkIf (
-              variant == "debug"
-            ) ../../modules/secureboot/dev-keys;
+            # keys, outranking the org's production certs; release builds keep
+            # the org value.
+            hardware.nvidia.orin.secureboot.keysSource = lib.mkIf (variant == "debug") (
+              lib.mkForce ../../modules/secureboot/dev-keys
+            );
           };
         })
         // {
