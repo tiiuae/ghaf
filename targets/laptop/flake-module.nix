@@ -48,16 +48,15 @@ let
         self.nixosModules.common
         self.nixosModules.givc
         self.nixosModules.development
-        self.nixosModules.reference-personalize
         self.nixosModules.reference-org-tii
       ];
 
       ghaf.host.secureboot.enable = true;
 
+      # The dev-key roster is org data: without the TII org module the debug
+      # authorizedKeys list is empty and the installer is reachable by no one.
       ghaf.reference.org.tii.enable = true;
-
-      users.users.nixos.openssh.authorizedKeys.keys =
-        config.ghaf.reference.personalize.keys.authorizedSshKeys;
+      users.users.nixos.openssh.authorizedKeys.keys = config.ghaf.security.ssh.debug.authorizedKeys;
     };
 
   installerModules = [ installerModule ];

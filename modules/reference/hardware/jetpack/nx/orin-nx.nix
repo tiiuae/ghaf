@@ -4,7 +4,6 @@
 # Reference hardware modules
 #
 {
-  config,
   pkgs,
   ...
 }:
@@ -86,10 +85,6 @@
             "name=opt/com.ghaf.hwinfo,file=/var/lib/ghaf-hwinfo/hwinfo.json"
           ];
         }
-        ../../../personalize
-        # Developer SSH access is a DEBUG-build affordance: this option defaults to
-        # the ghaf developer key list and grants each of those keys a shell.
-        { ghaf.reference.personalize.keys.enable = config.ghaf.profiles.debug.enable; }
       ];
     };
   };

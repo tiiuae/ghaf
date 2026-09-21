@@ -117,30 +117,7 @@ rec {
       security.audit.enable = mkEnableOption "security auditing globally";
 
       security.ssh.debug.enable = mkEnableOption "unprotected debug SSH globally (host and all VMs)";
-
-      security.ssh.release = {
-        enable = mkEnableOption "hardened release SSH globally (host and all VMs)";
-        authorizedKeys = mkOption {
-          type = types.listOf types.str;
-          default = [ ];
-          description = "Static authorized keys for release SSH (hardware-backed recommended).";
-        };
-        trustedUserCAKeys = mkOption {
-          type = types.listOf types.str;
-          default = [ ];
-          description = "SSH user-CA public keys for release SSH certificate auth.";
-        };
-        allowedPrincipals = mkOption {
-          type = types.listOf types.str;
-          default = [ ];
-          description = "Accepted certificate principals (empty = module default: the admin user).";
-        };
-        authorizedKeysOptions = mkOption {
-          type = types.str;
-          default = "restrict,pty,port-forwarding,verify-required";
-          description = "authorized_keys options prefix for static release keys (port-forwarding is required for the net-vm ProxyJump).";
-        };
-      };
+      security.ssh.release.enable = mkEnableOption "hardened release SSH globally (host and all VMs)";
 
       givc = {
         enable = mkEnableOption "GIVC (Ghaf Inter-VM Communication) globally";

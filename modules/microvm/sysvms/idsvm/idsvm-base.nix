@@ -69,18 +69,9 @@ in
     # Debug SSH (unprotected)
     security.ssh.debug.enable = lib.mkDefault (globalConfig.security.ssh.debug.enable or false);
 
-    # Release SSH
-    security.ssh.release = {
-      enable = lib.mkDefault (globalConfig.security.ssh.release.enable or false);
-      inherit (globalConfig.security.ssh.release)
-        authorizedKeys
-        trustedUserCAKeys
-        authorizedKeysOptions
-        ;
-      allowedPrincipals = lib.mkIf (
-        (globalConfig.security.ssh.release.allowedPrincipals or [ ]) != [ ]
-      ) globalConfig.security.ssh.release.allowedPrincipals;
-    };
+    # Release SSH: posture owns the enable; keys/principals/options come from
+    # the ghaf.org translation layer, not from this base.
+    security.ssh.release.enable = lib.mkDefault (globalConfig.security.ssh.release.enable or false);
 
     virtualization.microvm.swap.enable = true;
 

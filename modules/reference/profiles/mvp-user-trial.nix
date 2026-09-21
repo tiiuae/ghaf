@@ -66,18 +66,7 @@ in
             # Reference services and personalization
             ../services
             ../programs
-            ../personalize
             {
-              # Developer SSH access is a DEBUG-build affordance.
-              #
-              # This option's default is the ghaf developer key list
-              # (../personalize/authorizedSshKeys.nix), and enabling it grants
-              # every one of those keys a shell as root and as the admin user.
-              # Enabling it unconditionally put them on release images too.
-              #
-              # Same gate as targets/imx8mp-evk/flake-module.nix and
-              # ../hardware/jetpack/profiles/debug.nix already use.
-              ghaf.reference.personalize.keys.enable = config.ghaf.profiles.debug.enable;
               # Forward host reference services config to guivm
               ghaf.reference.services = {
                 inherit (config.ghaf.reference.services)
@@ -89,14 +78,10 @@ in
           ];
 
           netvm.extraModules = [
-            # Reference services and personalization
             ../services
-            ../personalize
             # Forward host reference services config to netvm
             {
               ghaf.reference = {
-                # Debug-only; see the gui-vm block above.
-                personalize.keys.enable = config.ghaf.profiles.debug.enable;
                 services = {
                   inherit (config.ghaf.reference.services)
                     enable
@@ -187,9 +172,6 @@ in
           };
           wireguard-gui = true;
         };
-
-        # Debug-only; see the gui-vm block above.
-        personalize.keys.enable = config.ghaf.profiles.debug.enable;
 
         desktop.applications.enable = true;
         desktop.ghaf-intro.enable = true;
