@@ -43,10 +43,7 @@ lib.ghaf.profiles.debug = {
   };
   security.ssh.debug.enable = true;
 
-  logging = {
-    enable = true;
-    server.endpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
-  };
+  logging.enable = true;
 
   security.audit.enable = false;
 
@@ -106,7 +103,7 @@ lib.ghaf.profiles.release = {
   };
   security.ssh.debug.enable = false;
 
-  logging.enable = false;
+  logging.enable = true;
 
   security.audit.enable = true;
 
@@ -218,7 +215,7 @@ ghaf.global-config = lib.ghaf.profiles.minimal;
 | `security.ssh.debug.enable` | true | false | false |
 | `development.debug.tools.enable` | true | false | false |
 | `development.nix-setup.enable` | true | false | false |
-| `logging.enable` | true | false | false |
+| `logging.enable` | true | true | false |
 | `security.audit.enable` | false | true | false |
 | `givc.enable` | true | true | false |
 | `givc.debug` | false | false | false |
@@ -359,13 +356,9 @@ For reference, here's the full schema of values in globalConfig:
   # See the SSH Access reference (/ghaf/dev/ref/ssh) for the full mechanism and hardening.
   security.ssh = {
     debug.enable = bool;               # Default: false  (unprotected: password + dev keys)
-    release = {                        # hardened, certificate/key-only sshd
-      enable = bool;                   # Default: false
-      authorizedKeys = [ str ];        # Default: []      (hardware-backed / YubiKey recommended)
-      trustedUserCAKeys = [ str ];     # Default: []      (SSH user-CA public keys)
-      allowedPrincipals = [ str ];     # Default: []      (empty => module default: admin user)
-      authorizedKeysOptions = str;     # Default: "restrict,pty,port-forwarding,verify-required"
-    };
+    release.enable = bool;             # Default: false  (hardened, certificate/key-only sshd)
+    # Posture only. The key material is deployment data and is written through
+    # ghaf.org.identity.ssh (see /ghaf/dev/org-config).
   };
 
   # Development tools
@@ -381,7 +374,7 @@ For reference, here's the full schema of values in globalConfig:
       address = str;           # Default: "" (auto-populated from admin-vm IP)
       port = port;             # Default: 9999
     };
-    server.endpoint = str;     # Default: ""
+    server.enable = bool;      # Default: true (endpoint comes from ghaf.org)
   };
 
   # Security

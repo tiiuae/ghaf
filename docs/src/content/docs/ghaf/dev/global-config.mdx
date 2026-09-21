@@ -97,7 +97,9 @@ Set options directly without using a profile:
 | `logging.listener.serverName` | null or string | null | Optional TLS name for the Admin VM logging listener |
 | `logging.listener.port` | port | 9999 | Logging listener port |
 | `logging.server.enable` | bool | true | Forward aggregated logs from the Admin VM to the remote endpoint |
-| `logging.server.endpoint` | string | "" | Remote logging server endpoint |
+
+Whether to log is a platform decision and lives here; *where* the logs go is deployment data
+and lives in [`ghaf.org.telemetry.logging`](/ghaf/dev/org-config/).
 
 Logseald starts only on components for which global logging is enabled and
 requires GIVC with TLS credentials. See [Clock-Independent Log
@@ -112,15 +114,33 @@ optional mechanism; see [Forward Secure Sealing](/ghaf/scs/fss/).
 | `security.audit.enable` | bool | false | Enable security auditing |
 | `security.ssh.debug.enable` | bool | false | Enable unprotected debug SSH on all machines (password + dev keys; debug images) |
 | `security.ssh.release.enable` | bool | false | Enable hardened, certificate/key-only release SSH on all machines |
-| `security.ssh.release.authorizedKeys` | list of str | `[]` | Static authorized public keys (hardware-backed / YubiKey recommended) |
-| `security.ssh.release.trustedUserCAKeys` | list of str | `[]` | SSH user-CA public keys for certificate auth |
-| `security.ssh.release.allowedPrincipals` | list of str | `[]` | Certificate principals accepted for login (empty ⇒ module default: the admin user) |
-| `security.ssh.release.authorizedKeysOptions` | str | `restrict,pty,port-forwarding,verify-required` | `authorized_keys` option prefix for static keys (`port-forwarding` is required for the net-vm ProxyJump) |
+
+Posture owns the switches; the key material itself is deployment data and lives in
+[`ghaf.org.identity.ssh`](/ghaf/dev/org-config/).
 
 `security.ssh.debug` and `security.ssh.release` are mutually exclusive — an assertion forbids
 enabling both. Release SSH ships **off**; a downstream enables it and supplies the key material.
 See the [SSH Access](/ghaf/dev/ref/ssh/) reference for the full mechanism, hardening rationale,
 YubiKey enrolment, and the connect/recovery workflow.
+
+### Values that moved to `ghaf.org`
+
+These six were global config until the organization layer landed. They are deployment data,
+not platform posture, and carrying them in both places gave one value two entry points with
+different merge behaviour. They are now set through [`ghaf.org`](/ghaf/dev/org-config/), which
+reaches the host and every VM:
+
+| Removed from `ghaf.global-config` | Now set through |
+| --- | --- |
+| `logging.server.endpoint` | `ghaf.org.telemetry.logging.endpoint` |
+| `logging.logseald.revokedPeerKeys` | `ghaf.org.telemetry.logging.logseald.revokedPeerKeys` |
+| `security.ssh.release.authorizedKeys` | `ghaf.org.identity.ssh.releaseKeys` |
+| `security.ssh.release.trustedUserCAKeys` | `ghaf.org.identity.ssh.trustedUserCAKeys` |
+| `security.ssh.release.allowedPrincipals` | `ghaf.org.identity.ssh.allowedPrincipals` |
+| `security.ssh.release.authorizedKeysOptions` | `ghaf.org.identity.ssh.authorizedKeysOptions` |
+
+Setting one of the old paths is a hard evaluation error (`The option … does not exist`). That
+is deliberate: a silent fallback on key material is worse than a build that stops.
 
 ### GIVC Settings
 

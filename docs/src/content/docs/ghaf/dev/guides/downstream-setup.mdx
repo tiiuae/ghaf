@@ -38,8 +38,9 @@ my-ghaf-product/
 │   │   └── my-vm-base.nix
 │   ├── services/             # Product-specific services
 │   │   └── my-service.nix
-│   └── hardware/             # Custom hardware support
-│       └── my-device.nix
+│   ├── hardware/             # Custom hardware support
+│   │   └── my-device.nix
+│   └── my-org.nix            # Your organization's values (ghaf.org)
 ├── targets/
 │   └── my-product/
 │       └── flake-module.nix  # Product configurations
@@ -84,6 +85,7 @@ my-ghaf-product/
 
       # Expose custom modules
       flake.nixosModules = {
+        my-org = ./modules/my-org.nix;
         my-service = ./modules/services/my-service.nix;
         my-vm-base = ./modules/custom-vm/my-vm-base.nix;
         my-hardware = ./modules/hardware/my-device.nix;
@@ -143,6 +145,11 @@ in
 
       # Additional modules
       extraModules = [
+        # Your organization's own values -- logging endpoint, SSH rosters,
+        # Secure Boot keys, admin account. See Organization Configuration
+        # (/ghaf/dev/org-config). Ghaf's images enable the TII reference org
+        # module instead; a downstream supplies its own here.
+        inputs.self.nixosModules.my-org
         inputs.self.nixosModules.my-service
         {
           # Inline configuration

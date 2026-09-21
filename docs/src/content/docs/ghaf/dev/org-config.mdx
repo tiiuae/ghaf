@@ -1,0 +1,185 @@
+---
+title: "Organization Configuration"
+---
+
+{/*
+SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+*/}
+
+# Organization Configuration
+
+`ghaf.org` is where deployment-owned values live, grouped by what each one is for: `telemetry`
+(where diagnostics are sent), `management` (which server owns the fleet), `network` (which
+upstreams the fleet trusts), `locale`, `pki` (platform trust anchors) and `identity` (who may
+log in, and with what). Ghaf ships TII's values as a *reference* org module; a downstream
+supplies its own and keeps the rest of the platform untouched.
+
+There is one name per value. You write `ghaf.org.<something>`; the org layer forwards it into
+the canonical module option that owns it. No capability module reads `ghaf.org` —
+they read their own options, exactly as they would if no org layer existed.
+
+## What belongs here
+
+Org data is anything that identifies *your deployment* rather than the platform. The test is
+whether a different organization shipping the same Ghaf release would need a different value.
+A Loki URL is org data; whether logging is switched on at all is not — that is a platform
+decision and lives in [`ghaf.global-config`](/ghaf/dev/global-config/).
+
+## Supplying your own values
+
+Write one module and hand it to the builder through `extraModules`. There is no enable flag:
+importing the module *is* the intent.
+
+```nix
+# my-org.nix
+{
+  ghaf.org = {
+    telemetry.logging = {
+      endpoint = "https://loki.example.com/loki/api/v1/push";
+      serverName = "loki.example.com";
+    };
+    management.fleet.url = "https://fleet.example.com";
+    network.ntpServers = [ "ntp1.example.com" "ntp2.example.com" ];
+    locale.timeZone = "Europe/Helsinki";
+    pki.secureBootKeysSource = ./secureboot-keys;
+    identity = {
+      admin.name = "operator";
+      ssh.releaseKeys = [ "sk-ssh-ed25519@openssh.com AAAA… operator-yubikey" ];
+    };
+  };
+}
+```
+
+Ghaf's own images enable the TII reference module instead:
+
+```nix
+ghaf.reference.org.tii.enable = true;
+```
+
+It is also exported standalone as `nixosModules.reference-org-tii`, for targets built outside
+the reference profile sets. The mvp profiles deliberately do **not** enable it, so a downstream
+can reuse them with its own org module.
+
+## The schema
+
+Every value defaults to `null`, which means *unset* — the consuming module keeps its own
+default. `null` is the only unset marker, so an empty list or attrset means "explicitly none"
+and is forwarded as such: `identity.ssh.releaseKeys = [ ]` says *this posture admits no keys*,
+which is not the same as leaving it out.
+
+| `ghaf.org` value | Canonical option |
+| --- | --- |
+| `telemetry.logging.endpoint` | `ghaf.logging.server.endpoint` |
+| `telemetry.logging.serverName` | `ghaf.logging.server.tls.serverName` |
+| `telemetry.logging.logseald.revokedPeerKeys` | `ghaf.logging.logseald.tls.revokedPeerKeys` |
+| `telemetry.bugReport.owner` | `ghaf.services.github.owner` |
+| `telemetry.bugReport.repo` | `ghaf.services.github.repo` |
+| `management.fleet.url` | `ghaf.services.orbit.fleetUrl` |
+| `network.firewallRulesUrl` | `ghaf.firewall.updater.url` |
+| `network.ntpServers` | `ghaf.time.upstreamServers` |
+| `locale.defaultLocale` | `i18n.defaultLocale` |
+| `locale.timeZone` | `time.timeZone` |
+| `pki.secureBootKeysSource` | `ghaf.host.secureboot.keysSource` |
+| `pki.secureBootKeysSource` | `ghaf.hardware.nvidia.orin.secureboot.keysSource` |
+| `identity.admin.name` | `ghaf.users.admin.name` |
+| `identity.admin.hashedPassword` | `ghaf.users.admin.hashedPassword` |
+| `identity.ssh.debugKeys` | `ghaf.security.ssh.debug.authorizedKeys` |
+| `identity.ssh.releaseKeys` | `ghaf.security.ssh.release.authorizedKeys` |
+| `identity.ssh.trustedUserCAKeys` | `ghaf.security.ssh.release.trustedUserCAKeys` |
+| `identity.ssh.allowedPrincipals` | `ghaf.security.ssh.release.allowedPrincipals` |
+| `identity.ssh.authorizedKeysOptions` | `ghaf.security.ssh.release.authorizedKeysOptions` |
+| `identity.activeDirectory.domains` | `ghaf.users.active-directory.domains` |
+
+Every value is forwarded at plain priority, so the option's own type decides what a *direct*
+definition of the same option does. A list or attrset merges with the org value — a machine
+adding one SSH key does not silently drop the other twenty. A scalar collides with it, and the
+evaluation fails naming both files. Either way `ghaf.org` is the override point; see below.
+
+## How it reaches the VMs
+
+Each microVM is its own NixOS evaluation, so nothing crosses the boundary except
+`globalConfig`, which every VM receives as a special argument. The host publishes its whole
+`ghaf.org` onto one transport field, `ghaf.global-config.org`; each guest assigns that copy
+back into its own `ghaf.org` and runs the same forwarding table the host ran.
+
+```
+your org module ──▶ ghaf.org ──▶ ghaf.global-config.org ──▶ globalConfig (specialArg)
+   (host only)          │                                          │
+                        ▼                                          ▼
+                 canonical options                          ghaf.org (each VM)
+                     (host)                                        │
+                                                                   ▼
+                                                            canonical options
+                                                                (each VM)
+```
+
+The transport field is a plain carrier; the typing lives on `ghaf.org` itself, at both ends.
+A misspelt org path fails where you wrote it, with a suggestion, rather than being carried
+along and silently ignored.
+
+A value set on the host therefore applies in every VM, including appvms, which do not
+otherwise inherit host-side settings.
+
+## `ghaf.org` is the override point
+
+Because each VM forwards from its own hydrated copy, defining a canonical option **directly**
+would change only the evaluation you defined it in: set `ghaf.logging.server.endpoint` in a
+host-level module and the host would take your value while every VM kept forwarding the org
+one. Nothing about that divergence is visible at runtime, so the forward does not allow it —
+it is a plain definition, and a second one is an ordinary conflict:
+
+```
+The option `ghaf.logging.server.endpoint' has conflicting definition values:
+- In `/nix/store/…-source/modules/common/org-config.nix': "https://loki.example/…"
+- In `/nix/store/…-source/my-target.nix': "https://direct.example/…"
+```
+
+So `ghaf.org` is the place to override a deployment value, not the canonical option. A module
+that must win regardless — one VM's own module making a deliberate per-VM exception, or a
+debug variant pinning its own Secure Boot certificates — says so with `lib.mkForce`.
+
+## Posture is not decided here
+
+The org layer does **not** gate on whether an image is debug or release. Forwarding is
+unconditional, and the consuming module enforces its own posture — for example
+`modules/common/security/ssh/debug.nix` installs the development roster only when
+`ghaf.profiles.debug.enable` is set, so `identity.ssh.debugKeys` is populated on a release
+image but never installed there.
+
+This is deliberate. A check that lives beside the risk cannot be bypassed by an evaluation that
+forgets to declare its posture.
+
+## Options that only some evaluations declare
+
+A few forward targets do not exist everywhere: `ghaf.hardware.nvidia.orin.secureboot.keysSource`
+is declared only in Jetson evaluations, and `ghaf.host.secureboot.keysSource` only where the
+Secure Boot module is imported. Defining a nonexistent option is a hard evaluation error, so
+those forwards are guarded:
+
+```nix
+(lib.optionalAttrs (options ? ghaf.hardware.nvidia.orin.secureboot.keysSource) {
+  ghaf.hardware.nvidia.orin.secureboot.keysSource = fwd org.pki.secureBootKeysSource;
+})
+```
+
+The guard reads `options`, never `config`, so it cannot force the configuration fixpoint. It
+must be a plain-Nix conditional: `lib.mkIf` cannot suppress an undeclared option, because the
+module system collects definition paths before it discharges any properties.
+
+## Adding a value
+
+Two edits, both in `modules/common/org-config.nix`:
+
+1. Declare the field in `orgOptions`, defaulted to `null`.
+2. Add one line to the forwarding table in `config`, wrapped in `fwd`.
+
+Then move the consuming module off its hardcoded literal and onto its own canonical option, and
+extend `tests/org-config` so the value is proven to arrive. That check is evaluation-only:
+
+```bash
+nix eval .#checks.x86_64-linux.org-config.drvPath
+```
+
+It asserts that an org value hydrates into every guest kind and lands in the canonical option,
+and that a direct definition of a forwarded scalar fails to evaluate.

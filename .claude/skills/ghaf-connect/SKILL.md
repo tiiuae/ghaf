@@ -92,7 +92,7 @@ a device that flashed or netbooted successfully and then failed to start net-vm 
 identical from outside to one that never booted, and only the console separates the two.
 
 It logs in with the debug image's account (`ghaf`/`ghaf`, from
-`modules/reference/personalize/accounts.nix`; override with `GHAF_SERIAL_USER` /
+`modules/common/users/admin.nix`; override with `GHAF_SERIAL_USER` /
 `GHAF_SERIAL_PASSWORD`). A release image will refuse them.
 
 Two limits before you trust the output. It uses **fixed sleeps, not prompt detection** — a
