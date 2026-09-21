@@ -23,10 +23,12 @@ let
 
   adminVm = host.microvm.vms."admin-vm".evaluatedConfig.config;
   appVm = host.microvm.vms."flatpak-vm".evaluatedConfig.config;
+  guiVm = host.microvm.vms."gui-vm".evaluatedConfig.config;
 
   org = host.ghaf.org;
   orgEndpoint = org.telemetry.logging.endpoint;
   orgServerName = org.telemetry.logging.serverName;
+  orgBugReport = org.telemetry.bugReport;
 
   # An override through ghaf.org must reach the host and every VM. mkForce
   # because the value overridden here is one tii.nix already sets; an org value
@@ -101,6 +103,17 @@ let
       # definition instead of letting the host and the VMs disagree.
       name = "a direct definition of a forwarded scalar fails to evaluate";
       ok = !(builtins.tryEval conflictHost.ghaf.logging.server.endpoint).success;
+    }
+    {
+      name = "org bug-report repo is forwarded into ghaf.services.github in gui-vm";
+      ok =
+        orgBugReport.repo != null
+        && guiVm.ghaf.services.github.owner == orgBugReport.owner
+        && guiVm.ghaf.services.github.repo == orgBugReport.repo;
+    }
+    {
+      name = "bug reporter is enabled when an org repo is present";
+      ok = guiVm.ghaf.services.github.enable;
     }
   ];
 

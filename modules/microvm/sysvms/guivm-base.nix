@@ -48,6 +48,11 @@ let
   localeEnabled = lib.ghaf.features.isEnabledFor globalConfig "locale" vmName;
   timezoneEnabled = lib.ghaf.features.isEnabledFor globalConfig "timezone" vmName;
   isCrosvm = config.microvm.hypervisor == "crosvm";
+
+  # The bug-report repo is an org-supplied value. With no value configured
+  # there is no repo to file against, so the capability stays off.
+  bugReportConfigured =
+    config.ghaf.services.github.owner != "" && config.ghaf.services.github.repo != "";
   deviceManagerPackage =
     if hostConfig.passthrough.deviceManagerBackend == "ghaf-device-manager" then
       pkgs.ghaf-device-manager
@@ -253,11 +258,9 @@ in
         gui.enable = true;
       };
 
-      github = {
-        enable = true;
-        owner = "tiiuae";
-        repo = "ghaf-bugreports";
-      };
+      # The owner/repo values come from the ghaf.org translation layer, not
+      # from this base.
+      github.enable = bugReportConfigured;
 
       timezone = {
         enable = lib.mkDefault (timezoneEnabled && globalConfig.platform.timeZone == null);
