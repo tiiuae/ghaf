@@ -82,6 +82,18 @@ in
           signing keys stay in release infrastructure. Null installs no keys.
         '';
         identity = {
+          admin = {
+            name = mkOptionEntry types.str ''
+              Admin account name; null keeps the default ("ghaf"). Every consumer
+              reads the canonical option, so the rename applies to host and all VMs
+              uniformly.
+            '';
+            hashedPassword = mkOptionEntry types.str ''
+              Hashed admin password (mkpasswd -m yescrypt); null keeps the module
+              default credential. Setting it also clears initialPassword, so no
+              plaintext password is derived alongside the hash.
+            '';
+          };
           ssh = {
             debugKeys = mkOptionEntry (types.listOf types.str) ''
               Development SSH key roster. Forwarded unconditionally, inert unless that stack is enabled
@@ -124,6 +136,10 @@ in
       ghaf.time.upstreamServers = fwd org.network.ntpServers;
       i18n.defaultLocale = fwd org.locale.defaultLocale;
       time.timeZone = fwd org.locale.timeZone;
+
+      ghaf.users.admin.name = fwd org.identity.admin.name;
+      ghaf.users.admin.hashedPassword = fwd org.identity.admin.hashedPassword;
+      ghaf.users.admin.initialPassword = lib.mkIf (org.identity.admin.hashedPassword != null) null;
 
       ghaf.security.ssh.debug.authorizedKeys = fwd org.identity.ssh.debugKeys;
       ghaf.security.ssh.release.authorizedKeys = fwd org.identity.ssh.releaseKeys;

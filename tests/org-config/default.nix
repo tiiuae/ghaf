@@ -68,6 +68,10 @@ let
               defaultLocale = "de_DE.UTF-8";
               timeZone = "Asia/Dubai";
             };
+            identity.admin = {
+              name = "orgadmin";
+              hashedPassword = "org-config-test-hash";
+            };
           };
           # Rosters merge: this must land alongside the org dev keys, not
           # replace them.
@@ -239,6 +243,27 @@ let
     {
       name = "org timezone reaches a sysvm";
       ok = shadowAdminVm.time.timeZone == "Asia/Dubai";
+    }
+    {
+      name = "org admin name and credential are forwarded on the host";
+      ok =
+        shadowHost.ghaf.users.admin.name == "orgadmin"
+        && shadowHost.users.users ? orgadmin
+        && shadowHost.ghaf.users.admin.hashedPassword == "org-config-test-hash";
+    }
+    {
+      # userborn prefers hashedPassword, so the org hash already wins; the
+      # point of clearing initialPassword is that no plaintext `password` is
+      # derived alongside it.
+      name = "an org credential leaves no plaintext password beside it";
+      ok =
+        shadowHost.ghaf.users.admin.initialPassword == null
+        && shadowHost.users.users.orgadmin.password == null
+        && shadowHost.users.users.orgadmin.hashedPassword == "org-config-test-hash";
+    }
+    {
+      name = "org admin rename crosses the wire into a sysvm";
+      ok = shadowAdminVm.ghaf.users.admin.name == "orgadmin" && shadowAdminVm.users.users ? orgadmin;
     }
   ];
 
