@@ -311,8 +311,9 @@ in
       "/share/iso-codes"
     ];
 
+    # defaultLocale stays on the NixOS default (en_US.UTF-8); an org
+    # overrides it via ghaf.org locale.defaultLocale.
     i18n = {
-      defaultLocale = "en_US.UTF-8";
       imperativeLocale = true;
       extraLocales = lib.mkIf config.ghaf.locales.enable "all";
     };

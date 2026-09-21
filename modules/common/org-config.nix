@@ -66,6 +66,16 @@ in
             the default public pool.
           '';
         };
+        locale = {
+          defaultLocale = mkOptionEntry types.str ''
+            System locale for every image; null keeps the NixOS default
+            (en_US.UTF-8).
+          '';
+          timeZone = mkOptionEntry types.str ''
+            First-boot timezone; null keeps UTC. VMs with runtime timezone
+            management let the user change it afterwards.
+          '';
+        };
         pki.secureBootKeysSource = mkOptionEntry types.path ''
           Directory of Secure Boot public enrollment keys (PK/KEK/db .auth and
           .crt), baked into the image for UEFI enrollment. Public material only;
@@ -112,6 +122,8 @@ in
       ghaf.services.orbit.fleetUrl = fwd org.management.fleet.url;
       ghaf.firewall.updater.url = fwd org.network.firewallRulesUrl;
       ghaf.time.upstreamServers = fwd org.network.ntpServers;
+      i18n.defaultLocale = fwd org.locale.defaultLocale;
+      time.timeZone = fwd org.locale.timeZone;
 
       ghaf.security.ssh.debug.authorizedKeys = fwd org.identity.ssh.debugKeys;
       ghaf.security.ssh.release.authorizedKeys = fwd org.identity.ssh.releaseKeys;
