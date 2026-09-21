@@ -10,6 +10,7 @@
 let
   inherit (lib)
     mkEnableOption
+    mkForce
     mkIf
     mkMerge
     getExe
@@ -63,8 +64,9 @@ in
         }
       ];
 
-      # Allow runtime timezone management
-      time.timeZone = null;
+      # Allow runtime timezone management: outranks any static timezone,
+      # including the one ghaf.org forwards.
+      time.timeZone = mkForce null;
     }
 
     (mkIf cfg.propagate {

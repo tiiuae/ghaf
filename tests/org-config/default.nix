@@ -64,6 +64,10 @@ let
             telemetry.logging.logseald.revokedPeerKeys = [ revokedPeerKey ];
             identity.ssh.trustedUserCAKeys = [ caTestKey ];
             network.ntpServers = [ "ntp.org-config-test" ];
+            locale = {
+              defaultLocale = "de_DE.UTF-8";
+              timeZone = "Asia/Dubai";
+            };
           };
           # Rosters merge: this must land alongside the org dev keys, not
           # replace them.
@@ -227,6 +231,14 @@ let
     {
       name = "org NTP servers replace the default pool in a sysvm";
       ok = shadowAdminVm.ghaf.time.upstreamServers == [ "ntp.org-config-test" ];
+    }
+    {
+      name = "org locale and timezone are forwarded on the host";
+      ok = shadowHost.i18n.defaultLocale == "de_DE.UTF-8" && shadowHost.time.timeZone == "Asia/Dubai";
+    }
+    {
+      name = "org timezone reaches a sysvm";
+      ok = shadowAdminVm.time.timeZone == "Asia/Dubai";
     }
   ];
 
