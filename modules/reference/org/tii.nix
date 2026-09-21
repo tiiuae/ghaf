@@ -23,6 +23,7 @@ in
           repo = "ghaf-bugreports";
         };
       };
+      management.fleet.url = "https://fleetdm.vedenemo.dev";
     };
   };
 }

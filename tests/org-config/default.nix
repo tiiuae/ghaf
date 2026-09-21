@@ -29,6 +29,7 @@ let
   orgEndpoint = org.telemetry.logging.endpoint;
   orgServerName = org.telemetry.logging.serverName;
   orgBugReport = org.telemetry.bugReport;
+  orgFleetUrl = org.management.fleet.url;
 
   # An override through ghaf.org must reach the host and every VM. mkForce
   # because the value overridden here is one tii.nix already sets; an org value
@@ -114,6 +115,14 @@ let
     {
       name = "bug reporter is enabled when an org repo is present";
       ok = guiVm.ghaf.services.github.enable;
+    }
+    {
+      name = "org fleet url is forwarded into ghaf.services.orbit.fleetUrl in gui-vm";
+      ok = orgFleetUrl != null && guiVm.ghaf.services.orbit.fleetUrl == orgFleetUrl;
+    }
+    {
+      name = "orbit follows the platform enable once an org fleet url is present";
+      ok = guiVm.ghaf.services.orbit.enable == host.ghaf.global-config.orbit.enable;
     }
   ];
 
