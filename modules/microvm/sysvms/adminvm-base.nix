@@ -154,15 +154,8 @@ in
         endpoint.port = globalConfig.logging.logseald.port or 59631;
       };
 
-      server = {
-        # logging can be enabled without forwarding to a server
-        enable = globalConfig.logging.enable && globalConfig.logging.server.enable;
-        endpoint = globalConfig.logging.server.endpoint or "";
-
-        tls = {
-          serverName = "loki.ghaflogs.vedenemo.dev";
-        };
-      };
+      # logging can be enabled without forwarding to a server
+      server.enable = globalConfig.logging.enable && globalConfig.logging.server.enable;
 
       recovery.enable = true;
     };

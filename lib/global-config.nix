@@ -27,7 +27,6 @@
 { lib }:
 let
   inherit (lib) mkOption mkEnableOption types;
-  defaultLoggingEndpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
 in
 rec {
   # Type definition for global config options
@@ -56,11 +55,6 @@ rec {
         enable = mkEnableOption "logging globally";
 
         logseald = {
-          revokedPeerKeys = lib.mkOption {
-            type = lib.types.listOf (lib.types.strMatching "spki-sha256:[0-9a-f]{64}");
-            default = [ ];
-            description = "Offline logseald peer leaf-key revocation list, deployed to every producer and sealer.";
-          };
           enable = mkOption {
             type = types.bool;
             default = true;
@@ -113,14 +107,9 @@ rec {
               that wants local, tamper-evident logs without shipping them
               anywhere.
 
-              Has no effect unless logging.enable is also true.
+              Has no effect unless logging.enable is also true. The endpoint
+              itself comes from ghaf.org.telemetry.logging, not from here.
             '';
-          };
-
-          endpoint = mkOption {
-            type = types.str;
-            default = "";
-            description = "Logging server endpoint";
           };
         };
       };
@@ -466,15 +455,7 @@ rec {
       };
 
       nix.enable = true;
-
-      # Logging enabled with Ghaf's central logging infrastructure
-      # Note: listener.address is auto-populated from admin-vm IP by
-      # modules/common/global-config.nix (no need to set it per profile).
-      logging = {
-        enable = true;
-        server.endpoint = defaultLoggingEndpoint;
-      };
-
+      logging.enable = true;
       security.audit.enable = true;
       security.ssh.debug.enable = true;
 
@@ -577,10 +558,7 @@ rec {
 
       nix.enable = false;
 
-      logging = {
-        enable = true;
-        server.endpoint = defaultLoggingEndpoint;
-      };
+      logging.enable = true;
       security.audit.enable = true;
       security.ssh.debug.enable = false;
       # Release SSH ships OFF by default; a downstream/operator enables it and supplies keys.
