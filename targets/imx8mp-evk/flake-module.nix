@@ -32,6 +32,7 @@ let
           self.nixosModules.microvm
           self.nixosModules.imx8
           self.nixosModules.reference-personalize
+          self.nixosModules.reference-org-tii
           self.nixosModules.profiles
           {
             boot = {
@@ -57,6 +58,8 @@ let
               };
               security.ssh.debug.enable = true;
               reference.personalize.keys.enable = variant == "debug";
+              # In-tree dev board: TII org values.
+              reference.org.tii.enable = true;
             };
 
             nixpkgs = {

@@ -252,6 +252,13 @@ rec {
         };
       };
 
+      # Transport copy of ghaf.org, carried untyped
+      org = mkOption {
+        type = types.raw;
+        default = { };
+        description = "Organization/deployment-specific configuration (set via ghaf.org).";
+      };
+
       # ═══════════════════════════════════════════════════════════════════════
       # FEATURES - Service Assignment Configuration
       # ═══════════════════════════════════════════════════════════════════════

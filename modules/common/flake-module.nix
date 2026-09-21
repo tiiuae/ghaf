@@ -17,6 +17,7 @@
       ./logging
       ./networking
       ./nix.nix
+      ./org-config.nix
       ./security
       ./services
       ./storage-persistence.nix

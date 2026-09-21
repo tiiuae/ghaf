@@ -39,6 +39,9 @@ let
     self.nixosModules.reference-host-demo-apps
     self.nixosModules.reference-profiles-orin
     self.nixosModules.profiles
+    # In-tree targets are TII's reference images; the profiles stay
+    # org-free so a downstream can reuse them with its own org module.
+    { ghaf.reference.org.tii.enable = true; }
   ];
 
   # Exercise the complete manager/CDI integration in an existing CI-built
@@ -101,6 +104,7 @@ let
     self.nixosModules.reference-host-demo-apps
     self.nixosModules.reference-profiles-orin
     self.nixosModules.profiles
+    { ghaf.reference.org.tii.enable = true; }
     ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/verity-image.nix
     ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/partition-template-verity.nix
     inputs.nix-store-veritysetup-generator.nixosModules.ghaf-store-veritysetup-generator

@@ -10,6 +10,7 @@
     reference-desktop.imports = [ ./desktop ];
     reference-host-demo-apps.imports = [ ./host-demo-apps ];
     reference-personalize.imports = [ ./personalize ];
+    reference-org-tii.imports = [ ./org/tii.nix ];
     reference-programs.imports = [ ./programs ];
     reference-services.imports = [ ./services ];
     reference-passthrough.imports = [ ./passthrough ];
@@ -18,6 +19,7 @@
       inputs.self.nixosModules.reference-programs
       inputs.self.nixosModules.reference-services
       inputs.self.nixosModules.reference-personalize
+      inputs.self.nixosModules.reference-org-tii
       inputs.self.nixosModules.reference-desktop
       inputs.self.nixosModules.reference-passthrough
       ./profiles/mvp-user-trial.nix
@@ -28,6 +30,7 @@
       inputs.self.nixosModules.reference-programs
       inputs.self.nixosModules.reference-services
       inputs.self.nixosModules.reference-personalize
+      inputs.self.nixosModules.reference-org-tii
       inputs.self.nixosModules.reference-desktop
       inputs.self.nixosModules.reference-passthrough
       ./profiles/mvp-orinuser-trial.nix
