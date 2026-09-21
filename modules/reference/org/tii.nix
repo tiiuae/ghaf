@@ -25,6 +25,32 @@ in
       };
       management.fleet.url = "https://fleetdm.vedenemo.dev";
 
+      # TII development AD test domain (formerly hardcoded in ad-users.nix). Realm,
+      # KDC servers and LDAP URIs derive from domain and controllers (active-directory/options.nix).
+      identity.activeDirectory.domains."ghaf-test.com" = {
+        ad = {
+          domain = "ghaf-test.com";
+          controllers = [ "vm-ghaf-dev-dc.ghaf-test.com" ];
+        };
+        dnsProvider = {
+          name = "vm-ghaf-dev-dc.ghaf-test.com";
+          ipAddress = "10.52.33.4";
+        };
+        ldap = {
+          schema = "ad";
+          # TII's AD publishes POSIX attributes; map them RFC2307-style
+          # (idMapping stays false, the shared type's default).
+          extraConfig = ''
+            # RFC2307 User and group attribute mappings
+            ldap_user_name = uid
+            ldap_user_uid_number = uidNumber
+            ldap_user_gid_number = gidNumber
+            ldap_user_home_directory = homeDirectory
+            ldap_user_shell = loginShell
+          '';
+        };
+      };
+
       # Release images admit no org SSH keys yet; an empty list means
       # exactly that, and release test keys land here when TII issues them.
       identity.ssh.releaseKeys = [ ];

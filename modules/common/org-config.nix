@@ -70,6 +70,13 @@ in
               requires hardware-backed keys via verify-required).
             '';
           };
+          activeDirectory.domains = mkOptionEntry (types.attrsOf types.deferredModule) ''
+            Active Directory domain configurations, keyed as in
+            ghaf.users.active-directory.domains and carrying the same options
+            (modules/common/users/active-directory/options.nix). Carried unevaluated, so the
+            canonical option applies the defaults and a direct definition of the
+            same domain refines the org value leaf by leaf.
+          '';
         };
       };
     };
@@ -93,6 +100,8 @@ in
       ghaf.security.ssh.release.trustedUserCAKeys = fwd org.identity.ssh.trustedUserCAKeys;
       ghaf.security.ssh.release.allowedPrincipals = fwd org.identity.ssh.allowedPrincipals;
       ghaf.security.ssh.release.authorizedKeysOptions = fwd org.identity.ssh.authorizedKeysOptions;
+
+      ghaf.users.active-directory.domains = fwd org.identity.activeDirectory.domains;
     }
   ];
 }
