@@ -130,6 +130,7 @@ export default defineConfig({
                       items: [
                         "ghaf/dev/library",
                         "ghaf/dev/global-config",
+                        "ghaf/dev/org-config",
                         "ghaf/dev/library/modules_options",
                         {
                           label: "Library API",

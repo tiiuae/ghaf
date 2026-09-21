@@ -21,7 +21,7 @@
 # needs longer than its slot, raise GHAF_SERIAL_STEP.
 #
 # Credentials default to the debug image's account (ghaf/ghaf - see
-# modules/reference/personalize/accounts.nix and the config's test.default_password).
+# modules/common/users/admin.nix and the config's test.default_password).
 # A release image will not accept them.
 #
 # Usage:

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Eval-only delivery check for the ghaf.org translation layer
-# (modules/common/org). An org value set on the host must:
+# (modules/common/org-config.nix). An org value set on the host must:
 #  1. hydrate config.ghaf.org inside every guest kind (sysvm and appvm) via the
 #     global-config wire, and
 #  2. be forwarded into the canonical module options at plain priority, so

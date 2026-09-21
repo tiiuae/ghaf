@@ -133,13 +133,14 @@ public key to paste into your configuration. Older tokens without `ed25519-sk` s
 
 ### Configure a release target
 
-Supply the material through `globalConfig` on your release target; it propagates to the host
-and every VM:
+Turn the posture on through `globalConfig`, and supply the key material through your
+[org module](/ghaf/dev/org-config/) — it reaches the host and every VM:
 
 ```nix
-ghaf.global-config.security.ssh.release = {
-  enable = true;
-  authorizedKeys = [
+ghaf.global-config.security.ssh.release.enable = true;
+
+ghaf.org.identity.ssh = {
+  releaseKeys = [
     "sk-ssh-ed25519@openssh.com AAAA… operator-yubikey-1"
     "sk-ssh-ed25519@openssh.com AAAA… operator-yubikey-2"   # enroll ≥2 per operator
   ];
@@ -148,15 +149,17 @@ ghaf.global-config.security.ssh.release = {
 };
 ```
 
-Options (`ghaf.security.ssh.release.*`, mirrored under `ghaf.global-config.security.ssh.release`):
+Options (`ghaf.security.ssh.release.*`). The key material is normally written through
+`ghaf.org.identity.ssh.*`, where one name differs; `enable` is posture and stays in
+`globalConfig`:
 
-| Option | Default | Meaning |
-| --- | --- | --- |
-| `enable` | `false` | Turn release SSH on. Off ⇒ no release sshd anywhere. |
-| `authorizedKeys` | `[]` | Static public keys (hardware-backed recommended). |
-| `trustedUserCAKeys` | `[]` | User-CA public keys for certificate auth. |
-| `allowedPrincipals` | `[ "ghaf" ]` | Certificate principals accepted for login. |
-| `authorizedKeysOptions` | `restrict,pty,port-forwarding,verify-required` | `authorized_keys` option prefix for static keys. |
+| Option | Written through | Default | Meaning |
+| --- | --- | --- | --- |
+| `enable` | `globalConfig`, not `ghaf.org` | `false` | Turn release SSH on. Off ⇒ no release sshd anywhere. |
+| `authorizedKeys` | `releaseKeys` | `[]` | Static public keys (hardware-backed recommended). |
+| `trustedUserCAKeys` | `trustedUserCAKeys` | `[]` | User-CA public keys for certificate auth. |
+| `allowedPrincipals` | `allowedPrincipals` | the admin user (`ghaf.users.admin.name`, default `ghaf`) | Certificate principals accepted for login. |
+| `authorizedKeysOptions` | `authorizedKeysOptions` | `restrict,pty,port-forwarding,verify-required` | `authorized_keys` option prefix for static keys. |
 
 :::caution
 `authorizedKeysOptions` keeps `port-forwarding` deliberately: `restrict` alone forbids the
