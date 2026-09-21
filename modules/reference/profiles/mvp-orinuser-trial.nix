@@ -20,6 +20,7 @@ in
 
   config = lib.mkIf cfg.enable {
     ghaf = {
+
       virtualization = {
         # Enable shared directories for the selected VMs
         microvm-host.sharedVmDirectory.vms = [

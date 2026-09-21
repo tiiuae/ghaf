@@ -15,18 +15,41 @@
 # is forwarded as such. To add an org value, declare it as a new option and
 # forward it.
 {
+  config,
   lib,
   ...
 }@args:
 let
+  inherit (lib) types;
+
   globalConfig = args.globalConfig or null;
+  org = config.ghaf.org;
+  fwd = v: lib.mkIf (v != null) v;
+
+  mkOptionEntry =
+    type: description:
+    lib.mkOption {
+      type = types.nullOr type;
+      default = null;
+      inherit description;
+    };
 in
 {
   _file = ./org-config.nix;
 
   options.ghaf.org = lib.mkOption {
-    type = lib.types.submodule {
+    type = types.submodule {
       options = {
+        telemetry = {
+          logging = {
+            endpoint = mkOptionEntry types.str "Loki push endpoint URL; null disables log forwarding.";
+            serverName = mkOptionEntry types.str "Expected TLS server name (SNI) for the logging endpoint.";
+            logseald.revokedPeerKeys = mkOptionEntry (types.listOf (types.strMatching "spki-sha256:[0-9a-f]{64}")) ''
+              Revoked logseald peer leaf keys (SPKI SHA-256), enforced offline by
+              every producer and sealer; null revokes none.
+            '';
+          };
+        };
       };
     };
     default = { };
@@ -35,5 +58,10 @@ in
 
   config = lib.mkMerge [
     (lib.mkIf (globalConfig != null) { ghaf.org = globalConfig.org; })
+    {
+      ghaf.logging.server.endpoint = fwd org.telemetry.logging.endpoint;
+      ghaf.logging.server.tls.serverName = fwd org.telemetry.logging.serverName;
+      ghaf.logging.logseald.tls.revokedPeerKeys = fwd org.telemetry.logging.logseald.revokedPeerKeys;
+    }
   ];
 }

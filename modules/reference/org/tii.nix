@@ -13,6 +13,12 @@ in
 
   config = lib.mkIf cfg.enable {
     ghaf.org = {
+      telemetry = {
+        logging = {
+          endpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
+          serverName = "loki.ghaflogs.vedenemo.dev";
+        };
+      };
     };
   };
 }

@@ -40,6 +40,7 @@
           cosmic-shortcuts = pkgs.callPackage ./cosmic/shortcuts.nix { inherit self; };
           flatpak-options = pkgs.callPackage ./flatpak/options.nix { inherit self; };
           microvm-tpm-vmm-parity = pkgs.callPackage ./microvm/tpm-vmm-parity.nix { inherit self; };
+          org-config = pkgs.callPackage ./org-config { inherit self; };
           uplink-resolver = pkgs.callPackage ./uplink-resolver { };
           logging-fss = pkgs.callPackage ./logging { inherit self; };
           logging-logseald = pkgs.callPackage ./logseald { inherit self; };

@@ -15,6 +15,5 @@ in
   ghaf.logging.logseald = {
     producer.enable = lib.mkDefault (globallyEnabled && config.ghaf.logging.enable);
     endpoint.port = lib.mkDefault (globalConfig.logging.logseald.port or 59631);
-    tls.revokedPeerKeys = lib.mkDefault (globalConfig.logging.logseald.revokedPeerKeys or [ ]);
   };
 }

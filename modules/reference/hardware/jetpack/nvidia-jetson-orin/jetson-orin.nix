@@ -874,11 +874,8 @@ in
 
     ghaf.givc.enable = true;
     ghaf.givc.debug = false;
-    ghaf.logging.enable = true;
-    ghaf.logging.listener.address = config.ghaf.networking.hosts.admin-vm.ipv4;
 
     ghaf.global-config.givc.enable = true;
-    ghaf.global-config.logging.enable = true;
 
     environment.systemPackages = with pkgs; [
       gptfdisk

@@ -46,13 +46,9 @@
       # so fall back to the submodule's own defaults (storeOnDisk disabled).
       storage.storeOnDisk = config.ghaf.virtualization.microvm.storeOnDisk or { };
 
-      # Auto-populate logging listener address from admin-vm IP
-      # The logging listener always runs on admin-vm, so derive the address
-      # from hosts.nix rather than requiring each profile to set it manually.
       logging.listener.address = lib.mkIf (
         config.ghaf.global-config.logging.enable && config.ghaf.common.adminHost != null
       ) (lib.mkDefault config.ghaf.networking.hosts.admin-vm.ipv4);
-      # Auto-populate logging TLS server_name for producer-side certificate validation.
       logging.listener.serverName = lib.mkIf (
         config.ghaf.global-config.logging.enable && config.ghaf.common.adminHost != null
       ) (lib.mkDefault "admin-vm");

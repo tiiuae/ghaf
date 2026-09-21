@@ -197,13 +197,6 @@ in
 
       profiles.laptop-x86.enable = true;
 
-      # Enable logging
-      logging = {
-        enable = true;
-        server.endpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
-        listener.address = config.ghaf.networking.hosts.admin-vm.ipv4;
-      };
-
       # Disk encryption - deferred to first boot
       storage.encryption = {
         enable = true;
