@@ -55,6 +55,12 @@ in
           };
         };
         management.fleet.url = mkOptionEntry types.str "Fleet MDM server base URL; null disables Orbit enrollment.";
+        network = {
+          firewallRulesUrl = mkOptionEntry types.str ''
+            Source URL of the firewall rules policy, polled on-device by the
+            admin-vm policy updater; null leaves the updater inactive.
+          '';
+        };
         identity = {
           ssh = {
             debugKeys = mkOptionEntry (types.listOf types.str) ''
@@ -94,6 +100,8 @@ in
       ghaf.services.github.owner = fwd org.telemetry.bugReport.owner;
       ghaf.services.github.repo = fwd org.telemetry.bugReport.repo;
       ghaf.services.orbit.fleetUrl = fwd org.management.fleet.url;
+
+      ghaf.firewall.updater.url = fwd org.network.firewallRulesUrl;
 
       ghaf.security.ssh.debug.authorizedKeys = fwd org.identity.ssh.debugKeys;
       ghaf.security.ssh.release.authorizedKeys = fwd org.identity.ssh.releaseKeys;

@@ -557,6 +557,15 @@ in
     };
     filter-arp = mkEnableOption "static ARP and MAC/IP rules";
     updater.enable = mkEnableOption "live update firewall rules";
+    updater.url = mkOption {
+      type = types.str;
+      default = "";
+      description = ''
+        Source URL of the firewall rules policy. Normally org-supplied via
+        ghaf.org.network.firewallRulesUrl; empty leaves the updater
+        inactive.
+      '';
+    };
   };
 
   config = mkIf cfg.enable {
@@ -791,11 +800,13 @@ in
         }
       ];
 
-    ghaf.givc.policyClient.policies = mkIf cfg.updater.enable {
+    # No URL means nothing to poll: the updater stays inactive rather than
+    # asserting, so a downstream without a policy repo keeps building.
+    ghaf.givc.policyClient.policies = mkIf (cfg.updater.enable && cfg.updater.url != "") {
       firewall-rules = {
         dest = rulePath;
         updater = {
-          url = "https://raw.githubusercontent.com/tiiuae/ghaf-policies/deploy/vm-policies/firewall-rules/iptables.rules";
+          url = cfg.updater.url;
           poll_interval_secs = 300;
         };
       };

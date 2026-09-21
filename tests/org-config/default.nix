@@ -213,6 +213,12 @@ let
         && shadowAdDomain.ad.gpoAccessControl == "enforcing"
         && shadowAdDomain.ad.domain == orgAd.ad.domain;
     }
+    {
+      name = "org firewall-rules url is forwarded into ghaf.firewall.updater.url";
+      ok =
+        org.network.firewallRulesUrl != null
+        && host.ghaf.firewall.updater.url == org.network.firewallRulesUrl;
+    }
   ];
 
   failed = map (a: a.name) (lib.filter (a: !a.ok) assertions);
