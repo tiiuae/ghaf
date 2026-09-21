@@ -49,9 +49,12 @@ let
         self.nixosModules.givc
         self.nixosModules.development
         self.nixosModules.reference-personalize
+        self.nixosModules.reference-org-tii
       ];
 
       ghaf.host.secureboot.enable = true;
+
+      ghaf.reference.org.tii.enable = true;
 
       users.users.nixos.openssh.authorizedKeys.keys =
         config.ghaf.reference.personalize.keys.authorizedSshKeys;
@@ -95,6 +98,9 @@ let
       buildSysupdateImage = (machine.sysupdate or false) && picked == [ ];
       extraConfig = lib.recursiveUpdate {
         reference.profiles.${machine.product or "mvp-user-trial"}.enable = true;
+        # In-tree targets are TII's reference images; the profile stays
+        # org-free so a downstream can reuse it with its own org module.
+        reference.org.tii.enable = true;
         partitioning.disko.enable = true;
       } (merge "config");
       vmConfig = merge "vmConfig";

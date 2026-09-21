@@ -38,6 +38,9 @@
         timeZone = lib.mkDefault config.time.timeZone;
       };
 
+      # Carry ghaf.org into global-config for the guests
+      org = config.ghaf.org;
+
       # Propagate host storeOnDisk setting to global-config for VMs. The
       # microvm module isn't imported by non-VM configs (e.g. installers),
       # so fall back to the submodule's own defaults (storeOnDisk disabled).
