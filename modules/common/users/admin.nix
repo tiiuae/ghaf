@@ -25,7 +25,7 @@ in
       default = true;
     };
     name = mkOption {
-      description = "Admin account name. Defaults to 'ghaf'.";
+      description = "Admin account name. Defaults to 'ghaf'; normally org-supplied via ghaf.org identity.admin.name.";
       type = types.str;
       default = "ghaf";
     };
@@ -50,7 +50,7 @@ in
       default = null;
     };
     hashedPassword = mkOption {
-      description = "Hashed password for live updates.";
+      description = "Hashed password for live updates; normally org-supplied via ghaf.org identity.admin.hashedPassword.";
       type = types.nullOr types.str;
       default = null;
     };
