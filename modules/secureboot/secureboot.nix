@@ -26,8 +26,12 @@ in
 
     keysSource = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
-      default = ./keys;
-      description = "Source directory for Secure Boot public keys; set to null to skip installing keys.";
+      default = null;
+      description = ''
+        Source directory for Secure Boot public enrollment keys
+        (PK/KEK/db .auth and .crt). Normally org-supplied via
+        ghaf.org.pki.secureBootKeysSource; null installs no keys.
+      '';
     };
 
   };

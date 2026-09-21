@@ -48,9 +48,13 @@ in
     enable = lib.mkEnableOption "UEFI Secure Boot key enrollment for Jetson Orin";
 
     keysSource = lib.mkOption {
-      type = lib.types.path;
-      default = ../../../../secureboot/keys;
-      description = "Directory containing PK.crt, KEK.crt and db.crt used to generate ESLs.";
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = ''
+        Directory containing PK.crt, KEK.crt and db.crt used to generate ESLs.
+        Normally org-supplied via ghaf.org.pki.secureBootKeysSource; null
+        enrolls no keys.
+      '';
     };
 
     signingKeyDir = lib.mkOption {
@@ -69,12 +73,20 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    assertions = map (certFile: {
-      assertion = builtins.pathExists certFile;
-      message = "Missing UEFI secure boot certificate `${toString certFile}`. Set `ghaf.hardware.nvidia.orin.secureboot.keysSource` to a directory containing `PK.crt`, `KEK.crt`, and `db.crt`.";
-    }) requiredCertFiles;
+    assertions = [
+      {
+        assertion = cfg.keysSource != null;
+        message = "ghaf.hardware.nvidia.orin.secureboot is enabled but no enrollment keys are set. Supply them via `ghaf.org` pki.secureBootKeysSource, or set `ghaf.hardware.nvidia.orin.secureboot.keysSource` directly.";
+      }
+    ]
+    ++ lib.optionals (cfg.keysSource != null) (
+      map (certFile: {
+        assertion = builtins.pathExists certFile;
+        message = "Missing UEFI secure boot certificate `${toString certFile}`. Set `ghaf.hardware.nvidia.orin.secureboot.keysSource` to a directory containing `PK.crt`, `KEK.crt`, and `db.crt`.";
+      }) requiredCertFiles
+    );
 
-    hardware.nvidia-jetpack.firmware.uefi.secureBoot = {
+    hardware.nvidia-jetpack.firmware.uefi.secureBoot = lib.mkIf (cfg.keysSource != null) {
       enrollDefaultKeys = true;
       defaultPkEslFile = pkEsl;
       defaultKekEslFile = kekEsl;
