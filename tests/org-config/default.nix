@@ -36,6 +36,12 @@ let
   orgFleetUrl = org.management.fleet.url;
   orgDevKeys = org.identity.ssh.debugKeys;
 
+  # Org domains are deferred modules, so the org's own values are only readable
+  # once the canonical option has evaluated them.
+  adName = lib.head (lib.attrNames org.identity.activeDirectory.domains);
+  orgAd = host.ghaf.users.active-directory.domains.${adName};
+  guiAdDomain = guiVm.ghaf.users.active-directory.domains.${adName};
+
   # An override through ghaf.org must reach the host and every VM. mkForce
   # because the value overridden here is one tii.nix already sets; an org value
   # the reference leaves unset needs no priority. The same extended host carries
@@ -61,10 +67,15 @@ let
           # Rosters merge: this must land alongside the org dev keys, not
           # replace them.
           ghaf.security.ssh.debug.authorizedKeys = [ extraDevKey ];
+          ghaf.users.active-directory.domains.${adName} = {
+            ldap.baseDn = "dc=direct";
+            ad.gpoAccessControl = "enforcing";
+          };
         }
       ];
     }).config;
   shadowAdminVm = shadowHost.microvm.vms."admin-vm".evaluatedConfig.config;
+  shadowAdDomain = shadowHost.ghaf.users.active-directory.domains.${adName};
 
   conflictHost =
     (self.nixosConfigurations.intel-laptop-debug.extendModules {
@@ -170,6 +181,37 @@ let
         lib.all (k: lib.elem k merged) orgDevKeys
         && lib.elem extraDevKey merged
         && lib.length merged == lib.length orgDevKeys + 1;
+    }
+    {
+      name = "org AD domain materializes in gui-vm's active-directory config";
+      ok =
+        orgAd.ad.domain != null
+        && guiVm.ghaf.users.active-directory.domains ? ${adName}
+        && guiAdDomain.ad.controllers == orgAd.ad.controllers;
+    }
+    {
+      name = "AD realm and LDAP URIs derive from the org domain and controllers";
+      ok =
+        guiAdDomain.krb5.realm == lib.toUpper orgAd.ad.domain
+        && guiAdDomain.ldap.uri == map (c: "ldap://${c}") orgAd.ad.controllers;
+    }
+    {
+      name = "org AD dnsProvider crosses the wire into gui-vm";
+      ok = guiAdDomain.dnsProvider.ipAddress == orgAd.dnsProvider.ipAddress;
+    }
+    {
+      name = "the canonical enableSasl default survives the org forward";
+      ok = guiAdDomain.ldap.enableSasl;
+    }
+    {
+      # baseDn defaults to null, gpoAccessControl to "permissive": the org
+      # forward must leave both undefined, or refining the latter collides
+      # with a default the org never chose.
+      name = "a direct AD definition merges with the org domain leaf-wise";
+      ok =
+        shadowAdDomain.ldap.baseDn == "dc=direct"
+        && shadowAdDomain.ad.gpoAccessControl == "enforcing"
+        && shadowAdDomain.ad.domain == orgAd.ad.domain;
     }
   ];
 

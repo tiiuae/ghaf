@@ -4,7 +4,7 @@
   _file = ./default.nix;
 
   imports = [
-    ./active-directory.nix
+    ./active-directory
     ./admin.nix
     ./ad-users.nix
     ./auxiliary.nix
