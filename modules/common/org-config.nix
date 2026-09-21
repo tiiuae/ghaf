@@ -54,6 +54,7 @@ in
             repo = mkOptionEntry types.str "GitHub bug-report repository name; null disables bug reporting.";
           };
         };
+        management.fleet.url = mkOptionEntry types.str "Fleet MDM server base URL; null disables Orbit enrollment.";
       };
     };
     default = { };
@@ -68,6 +69,7 @@ in
       ghaf.logging.logseald.tls.revokedPeerKeys = fwd org.telemetry.logging.logseald.revokedPeerKeys;
       ghaf.services.github.owner = fwd org.telemetry.bugReport.owner;
       ghaf.services.github.repo = fwd org.telemetry.bugReport.repo;
+      ghaf.services.orbit.fleetUrl = fwd org.management.fleet.url;
     }
   ];
 }

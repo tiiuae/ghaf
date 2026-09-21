@@ -199,10 +199,13 @@ in
     };
 
     fleetUrl = lib.mkOption {
-      type = lib.types.nonEmptyStr;
-      default = "https://";
+      type = lib.types.str;
+      default = "";
       example = "https://your-fleet.example.com";
-      description = "The base URL of the Fleet server.";
+      description = ''
+        The base URL of the Fleet server. Normally org-supplied via
+        ghaf.org.management.fleet.url; empty means no server is configured.
+      '';
     };
 
     hostIdentifier = lib.mkOption {
@@ -246,8 +249,10 @@ in
       (lib.mkIf cfg.gui.enable {
         assertions = [
           {
-            assertion = lib.hasPrefix "https://" cfg.fleetUrl;
-            message = "services.orbit.fleetUrl must start with https://.";
+            assertion = lib.hasPrefix "https://" cfg.fleetUrl && cfg.fleetUrl != "https://";
+            message =
+              "ghaf.services.orbit needs an https:// Fleet server URL. "
+              + "Set ghaf.org.management.fleet.url (or ghaf.services.orbit.fleetUrl).";
           }
         ];
         systemd = {

@@ -53,6 +53,7 @@ let
   # there is no repo to file against, so the capability stays off.
   bugReportConfigured =
     config.ghaf.services.github.owner != "" && config.ghaf.services.github.repo != "";
+  fleetUrlConfigured = config.ghaf.services.orbit.fleetUrl != "";
   deviceManagerPackage =
     if hostConfig.passthrough.deviceManagerBackend == "ghaf-device-manager" then
       pkgs.ghaf-device-manager
@@ -276,12 +277,14 @@ in
       disks.enable = true;
 
       orbit = {
-        inherit (globalConfig.orbit) enable debug;
+        # Orbit is platform-enabled, but needs an org-supplied Fleet server to
+        # enroll to (the URL itself comes from the ghaf.org translation layer).
+        enable = globalConfig.orbit.enable && fleetUrlConfigured;
+        inherit (globalConfig.orbit) debug;
         gui.enable = true;
         desktopApp.enable = false;
         # CI/dev injects enroll secret via virtiofs to avoid baking secrets into images.
         enrollSecretPath = "/etc/common/ghaf/fleet/enroll";
-        fleetUrl = "https://fleetdm.vedenemo.dev";
         hostnameFile = "/etc/common/ghaf/hostname";
         rootDir = "/etc/common/ghaf/orbit";
         enableScripts = true;
