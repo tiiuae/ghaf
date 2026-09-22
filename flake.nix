@@ -106,6 +106,14 @@
       flake = false;
     };
 
+    # Public-only secure A/B build configuration. Development and release
+    # flakes can replace this input while retaining pure evaluation. Never
+    # put signing keys or recovery material in this input.
+    secure-ab-build-config = {
+      url = "path:./config/secure-ab-build-config";
+      flake = false;
+    };
+
     # To ensure that checks are run locally to enforce cleanliness
     git-hooks-nix = {
       url = "github:cachix/git-hooks.nix";
