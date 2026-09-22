@@ -1,150 +1,257 @@
 ---
-title: A/B Image Update
+title: Secure A/B Image Updates
 ---
 {/*
 SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 SPDX-License-Identifier: CC-BY-SA-4.0
 */}
 
-# A/B Image Update
+# Secure A/B image updates
 
-This page describes the Ghaf image-based A/B update model from three angles:
+This page explains the update architecture and the commands shared by both
+platforms. Use your platform's secure A/B testing guide for initial installation,
+building a signed update and hardware acceptance tests.
 
-1. high-level architecture,
-2. operational workflow on a target machine,
-3. implementation details in the build pipeline and manifest tooling.
+## Architecture
 
-## Intro and A/B architecture
+Ghaf keeps two system slots and shared persistent storage. An update writes only
+the inactive slot, then selects it for the next boot. The previous healthy slot
+remains the fallback until the new system passes its boot-health checks.
 
-Ghaf uses an image-based A/B update model for immutable systems with dm-verity.
-
-- The system keeps versioned **root** and **verity** volumes in LVM.
-- One slot is active (currently booted), and one slot is used as the update target.
-- UKI files are managed in the EFI partition and tied to the slot version/hash.
-
-An update payload is a small, self-contained artifact set:
-
-- root image,
-- verity image,
-- kernel/UKI image,
-- manifest.
-
-At a high level, update installation writes new images into a non-active slot, updates the corresponding UKI, and switches boot selection to the new slot. The previous slot remains available for rollback.
-
-The manifest is the contract between build-time artifacts and install-time execution. It identifies which files belong together and provides integrity metadata used by the updater.
-
-## Operational workflow (target machine)
-
-Operationally, image updates are handled by `ota-update image` subcommands.
-
-Typical workflow:
-
-1. Validate payload.
-2. Install payload into the selected non-active slot.
-3. Check resulting slot status.
-
-Example commands:
-
-```sh
-# Validate manifest and artifact checksums
-ota-update image validate --manifest /persist/sysupdate/ghaf_x.y.z_xxxxxxxx.manifest
-
-# Install image (optionally enable checksum validation explicitly)
-ota-update image install --manifest /persist/sysupdate/ghaf_x.y.z_xxxxxxxx.manifest --validate
-
-# Show slot/runtime status
-ota-update image status
+```text
+Build host: build → sign → publish
+net-vm:     fetch → /persist/sysupdate (shared with the host)
+Ghaf host:  validate → install inactive slot → reboot → accept or roll back
 ```
 
-`ota-update image` always requires an explicit manifest path. In practice, we place image payloads under `/persist/sysupdate` as an operational convention.
+Each slot contains a root image and its dm-verity tree. The signed Unified Kernel
+Image (UKI) on the EFI System Partition (ESP) binds the kernel to that root hash
+and generation. Persistent data is outside the slots and survives rollback.
 
-Note: this directory is reachable from Net VM, so artifacts can be uploaded with `ssh`/`scp` to the target host through the Net VM access path.
+The shared core handles signatures, generation policy, slot transactions and
+boot health. Platform adapters handle disk layout, encryption enrollment,
+firmware and initial installation. ESP and QSPI contents are not encrypted.
 
-Other operational commands:
+## Update an installed device
 
-- `ota-update image remove --version <version> [--hash <fragment>]` removes an installed non-active slot.
-- `--dry-run` (top-level image flag) prints the execution plan without applying changes.
+Start with the **signed update directory** produced by the platform guide.
+An initial disk image is a different artifact and cannot be installed as an
+update. The examples below use generation **2**; replace it throughout with an
+unused generation greater than the device's accepted generation.
 
-Runtime safety notes:
+Run commands in order and stop on any error. Paths on the build host do not
+exist on the device. Only `/persist/sysupdate` is shared between `net-vm` and
+the Ghaf host.
 
-- `ota-update` uses a global lock (`/run/ota-update.lock`) to prevent concurrent update execution.
-- Removing the active slot is rejected.
+### Static HTTP lab delivery
+
+**Build host, in `nix develop` at the checkout root.** The signed directory
+contains only public artifacts: one `*.manifest`, its `*.manifest.sig` and three
+payload files. Set `SIGNED_DIR` to the directory from your platform's signing
+step. This is the only value carried within this block:
+
+```bash
+SIGNED_DIR=/var/tmp/ghaf-x86-update-2
+cp "$SIGNED_DIR"/*.manifest "$SIGNED_DIR/manifest.json" &&
+cp "$SIGNED_DIR"/*.manifest.sig "$SIGNED_DIR/manifest.json.sig" &&
+python3 -m http.server 18080 --bind BUILD_HOST_IP --directory "$SIGNED_DIR"
+```
+
+Replace `BUILD_HOST_IP` with the build-host address reachable from `net-vm`
+(`ip -br -4 address` lists local addresses). Permit TCP port 18080 on that lab
+interface. The copies provide the names the fetcher expects without changing
+the signed bytes. Serve only the signed output directory, never a key directory
+or the checkout. Leave this terminal running until the fetch finishes.
+
+**net-vm.** Connect to the device's external address using the
+[SSH procedure](/ghaf/dev/ref/ssh#connect). The network VM's internal interface
+is `192.168.100.1`; its hostname is generated as `ghaf-…`. Check available space,
+then fetch from the build-host address used above:
+
+```bash
+df -h /persist/sysupdate
+ghaf-fetch-update http://BUILD_HOST_IP:18080 2
+```
+
+Output: `/persist/sysupdate/http-generation-2/manifest.json`, its signature,
+three artifacts and `fetch.complete`. The **same manifest path** is now available
+on the Ghaf host. Fetching does not authorize installation; the host validates
+it below. Stop the HTTP server with Ctrl+C and remove any temporary firewall
+opening after the fetch.
+
+The helper refuses to replace an existing published generation. An interrupted
+fetch must not produce a final directory or completion marker. Keep bundles
+used by an active operation; remove obsolete downloads after testing to avoid
+filling persistence. If the share is absent or unwritable, fix it before fetching.
+
+### Validate and install on the host
+
+**Ghaf host.** From `net-vm`, use the host hop in the SSH guide. Check `hostname`
+is `ghaf-host`, then run `sudo -i` to load the installed update trust and target
+policy. Repeat that login step after reconnecting; no manual trust arguments
+are needed.
+
+First authenticate the bundle and inspect the installation plan:
+
+```bash
+ota-update image validate --manifest /persist/sysupdate/http-generation-2/manifest.json &&
+ota-update image --dry-run install --manifest /persist/sysupdate/http-generation-2/manifest.json
+```
+
+Require success from both commands. The plan must write only the inactive pair
+and finish with `bootctl set-oneshot`, leaving the healthy default unchanged.
+Stop if it uses `set-default`: that updater must be upgraded before trial testing.
+`validate` checks signatures, target and artifacts; the installation dry-run also
+requires a writable FAT ESP mounted at `/boot`, checks storage and rejects an
+equal or older accepted generation. A missing ESP never permits writes into
+the underlying `/boot` directory.
+
+After reviewing the plan, stage the candidate:
+
+```bash
+ota-update image install --manifest /persist/sysupdate/http-generation-2/manifest.json
+```
+
+A successful install creates the complete trial UKI with a `+3.efi` suffix and
+returns without rebooting. Inspect `bootctl status --no-pager`, then reboot as a
+separate command:
+
+```bash
+systemctl reboot
+```
+
+Reconnect to the host, run `sudo -i`, and check acceptance:
+
+```bash
+ota-update image status
+cat /persist/common/ota/accepted-generation
+systemctl show ghaf-boot-health.service -p Result -p ExecMainStatus
+bootctl list --no-pager
+```
+
+Expect generation 2 running and accepted, `Result=success`, `ExecMainStatus=0`,
+and the new default entry with its attempt counter removed. A successful oneshot
+health service can be **inactive**. If the update failed, retain the journal and
+serial evidence before retrying; do not manually bless it.
+
+For acceptance testing, the platform guides add persistence checks, exact
+boot-default comparison and injected failures. These are test steps, not
+requirements for every ordinary update.
+
+### Registry delivery
+
+Managed delivery uses `ota-update registry` with authenticated HTTPS and
+read-only device credentials. Configure the registry CA and obtain the repository
+and credentials from its operator. The Orin testing guide includes the registry
+acceptance procedure; static HTTP above is for isolated development labs only.
+
+A registry pull places its bundle under `/persist/sysupdate` and prints the
+manifest path. Use that exact path in the host commands above. Registry
+`pull --validate` checks artifact integrity, not the detached signature, UKI
+trust or generation policy. Host validation is still required; registry
+`--install` is disabled for signed manifest v2.
 
 ## Implementation details
 
-### Build pipeline (`verity-volume.nix`)
+### Trust and signing
 
-The image build pipeline creates update artifacts in this order:
+The `secure-ab-build-config` input contains only `config.json`, `PK.crt`,
+`KEK.crt`, `db.crt` and `update.pub`. Its schema-1 JSON specifies external trust,
+a positive generation and an optional debug-only `inject_boot_health_failure`.
+Missing or inconsistent public trust fails evaluation; there is no unsigned
+fallback. Release wrapper flakes should lock this input. Do not edit a public
+input already used for a published image.
 
-1. Build root filesystem image.
-2. Generate verity image and dm-verity root hash.
-3. Build UKI and embed the verity hash into kernel cmdline.
-4. Compress root/verity payload images.
-5. Generate manifest.
+`ghaf-dev-keygen` creates development keys once. `ghaf-secure-ab-config` exports
+only public files for a generation. Private keys remain outside Git and the Nix
+store, and later generations use the same enrolled trust.
 
-This logic is implemented in `modules/partitioning/verity-volume.nix`.
+The platform guide supplies the build and signing commands. Sign only the
+trusted immutable Nix output, such as its `result-…` symlink. A mutable copy of
+both manifest and payload cannot establish build provenance. The signer checks
+key correspondence, safe artifact names and payload hashes, signs the verified
+UKI copy, updates its metadata, then signs the manifest last.
 
-The install-time utility used above, `ota-update`, lives in the `ghaf-givc`
-subproject (crate `ota-update`; flake input `givc`).
+### Signed manifest v2
 
-An important related component is `veritysetup-generator`, provided via flake
-input `nix-store-veritysetup-generator`
-(`github:tiiuae/ghaf-nix-store-veritysetup-generator/ghaf`) and integrated as
-`ghaf-store-veritysetup-generator` in `modules/partitioning/flake-module.nix`.
+A bundle contains `ghaf_<version>_<hash>.manifest`, its detached signature and
+three artifacts. The signature is raw 64-byte Ed25519 over the exact manifest
+bytes; the UEFI db key independently signs the UKI.
 
-### Manifest and artifact identity
+| Fields | Contract |
+| --- | --- |
+| `manifest_version` | 2 |
+| `system`, `build-system` | Target and native/cross-builder Nix systems |
+| `target`, `version`, `generation` | Exact authorized target, version and positive monotonic generation |
+| `meta`, `root_verity_hash` | Metadata object and 64-hex-character dm-verity root hash |
+| `root`, `verity`, `kernel` | Each has `file`, `sha256`, `packed_size`, `unpacked_size` |
+| Artifact names and sizes | Distinct safe basenames; positive sizes bound downloads and destination writes |
+| UKI binding | Embedded `ghaf.storehash` and `ghaf.generation` match the manifest |
 
-The manifest stores release identity and integrity metadata for root/verity/kernel artifacts. It ties together:
+The HTTP fetcher applies fixed metadata/artifact caps and declared packed-size
+limits before atomic publication. Downloads remain unauthenticated until host
+validation.
 
-- version + hash fragment naming,
-- dm-verity root hash,
-- file checksums and sizes.
+### Storage and transactions
 
-Install-time logic consumes this manifest to validate payload consistency and to produce an installation plan.
-
-Manifest format (current shape):
-
-```json
-{
-  "manifest_version": 0,
-  "system": "x86_64-linux",
-  "meta": {},
-  "version": "26.04.1",
-  "root_verity_hash": "<64-hex>",
-  "root": {
-    "file": "ghaf_root_<version>_<hash>.raw.zst",
-    "sha256": "<hex>",
-    "packed_size": 0,
-    "unpacked_size": 0
-  },
-  "verity": {
-    "file": "ghaf_verity_<version>_<hash>.raw.zst",
-    "sha256": "<hex>",
-    "packed_size": 0,
-    "unpacked_size": 0
-  },
-  "kernel": {
-    "file": "ghaf_kernel_<version>_<hash>.efi",
-    "sha256": "<hex>",
-    "unpacked_size": 0
-  }
-}
+```text
+ESP → signed UKI
+system partition → optional LUKS2 → VG pool
+  root_<version>_<hash-fragment> / verity_<version>_<hash-fragment>
+  second root/verity pair + persistent volumes
 ```
 
-All artifact file names in the manifest are interpreted relative to the manifest file location.
+Root/verity capacities are fixed. Oversized updates fail rather than consuming
+persistent storage. Under a lock, installation validates signatures and policy,
+discovers slots, snapshots and rechecks the network-writable UKI, then writes and
+verifies the inactive pair. It commits LV names, publishes the UKI atomically
+and changes boot selection last. Recognizable staging/partial transactions can
+be retried; ambiguous layouts stop. The active pair is never overwritten.
 
-The `meta` field is reserved for human-readable user information and/or structured metadata, including potential future GUI-facing usage.
+Initial images share their build-time GPT and LVM identifiers. Do not attach
+cloned Ghaf system disks simultaneously: volume-group discovery can be ambiguous.
+There is no per-device UUID migration.
 
-### `mk-manifest` utility (target design)
+Initial disk creation uses stock LUKS2/LVM tools in a disposable Nix build VM.
+The build host needs KVM, not access to its own storage devices. Platform
+adapters publish the compressed disk only after creation succeeds.
 
-`mk-manifest` is the build-time utility responsible for manifest lifecycle operations.
+A build-time LUKS volume key is shared by copies of that image. Provisioning must
+replace it through reencryption before storing sensitive data. Plain images
+instead create the volume key during on-device deferred encryption. Enrolling
+TPM, FIDO2, DUK or recovery credentials changes how a volume key is unlocked;
+it does not replace the volume key.
 
-- `build`: produce final artifact names and a manifest for a new payload.
-- `sign`: produce a signed kernel artifact and write an updated manifest.
-- `rehash`: recompute kernel integrity fields in an existing manifest.
+## Boot health and rollback
 
-In the current target design, the utility is packaged as `ghaf-mk-manifest`, and exposed for convenience via:
+Trials start as `ghaf-<version>-<hash>+3.efi` and use one-shot boot selection.
+The healthy default is preserved until acceptance. Boot health checks a writable
+ESP mount, LUKS, dm-verity, store/persist mounts, configured core VMM services and the running
+generation. It does not wait for interactive login or check guest applications.
 
-```sh
-nix run .#mk-manifest -- --help
-```
+On success it promotes the exact entry, atomically persists the accepted
+generation, then blesses it. A retry after persistence completes acceptance
+without lowering that generation. Rollback changes only the system pair;
+shared `/persist` remains intact.
+
+An unhealthy trial re-arms itself while attempts remain and reboots. Exhaustion
+returns to the healthy default. A failure **before** the health service can
+re-arm the trial returns to the fallback on the next boot; early corruption
+therefore need not consume all three attempts. Hard hangs require a proven
+platform reset mechanism. Manual recovery is not automatic rollback acceptance.
+
+Do not make a trial the persistent default: `LoaderEntryDefault` can select an
+exhausted entry, as described in the
+[systemd boot loader interface](https://systemd.io/BOOT_LOADER_INTERFACE/).
+
+### Source ownership
+
+| Concern | Source |
+| --- | --- |
+| Public trust/updater environment | `modules/partitioning/secure-update.nix` |
+| Payload/UKI/manifest build | `modules/partitioning/verity-volume.nix` |
+| Acceptance/blessing | `modules/partitioning/boot-health.nix` |
+| Manifest, keys, signing, HTTP fetch | `packages/pkgs-by-name/ghaf-*/` |
+| VM disk construction | `lib/image-builder-vm.nix`, `ghaf-initialize-verity-lvm` |
+| Transactions/OCI client | ghaf-givc `crates/ota-update/src/` |
+| Platform adapters | Orin APP/QSPI/DUK and x86 GPT/ESP/deferred encryption |
