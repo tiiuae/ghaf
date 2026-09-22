@@ -16,6 +16,7 @@
       ./adminvm.nix
       ./host.nix
       ./guivm.nix
+      ./dbus-proxy.nix
       ./netvm.nix
       ./audiovm.nix
       ./appvm.nix
