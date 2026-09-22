@@ -44,6 +44,8 @@
           uplink-resolver = pkgs.callPackage ./uplink-resolver { };
           logging-recovery = pkgs.callPackage ./logging { };
           logging-logseald = pkgs.callPackage ./logseald { inherit self; };
+          boot-health = pkgs.callPackage ./boot-health.nix { };
+          update-esp = pkgs.callPackage ./update-esp.nix { };
           access-control-tests = pkgs.callPackage ./access-control { inherit self; };
         };
     };

@@ -1,0 +1,27 @@
+SPDX-FileCopyrightText: 2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: Apache-2.0
+
+Subject: [PATCH] ota-update: require a mounted writable ESP before image installation
+
+A nofail ESP mount must not let an image transaction write into the root
+filesystem at /boot. Reject an absent, wrong-type or read-only mount before
+reading the manifest or modifying slots, including during a dry run.
+
+--- a/crates/ota-update/src/image/install.rs
++++ b/crates/ota-update/src/image/install.rs
+@@ -69,6 +69,15 @@
+     // Lock before reading runtime state. Otherwise two installers can both select
+     // the same inactive slot from a stale discovery snapshot.
+     let _lock = UpdateLock::acquire("/run/ota-update.lock", "image-install")?;
++    let esp = Command::new("findmnt")
++        .args(["--mountpoint", "/boot", "--types", "vfat", "--options", "rw"])
++        .output()
++        .await
++        .context("checking the ESP mount")?;
++    ensure!(
++        esp.status.success(),
++        "image installation requires a writable vfat ESP mounted at /boot"
++    );
+     let source_dir = manifest_path
+         .parent()
+         .context("manifest path has no parent directory")?;
