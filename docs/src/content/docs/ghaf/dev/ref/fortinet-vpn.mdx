@@ -1,0 +1,165 @@
+---
+title: Fortinet SSL VPN
+description: Configure and use a Fortinet SSL VPN through NetworkManager.
+---
+{/*
+SPDX-FileCopyrightText: 2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+*/}
+
+Ghaf supports Fortinet-compatible SSL VPN connections through the upstream NetworkManager
+OpenConnect plugin with `protocol=fortinet`. The **Fortinet VPN** application creates the native
+NetworkManager profile, including optional certificate authentication. To connect or disconnect,
+use the separate **COSMIC Settings** application: open **Network & Wireless** and find the profile
+in the **VPN** section.
+
+The unprivileged COSMIC interface runs in `gui-vm`. NetworkManager, the VPN tunnel, profile
+creation, the stored account password, certificate validation, and protected certificate storage
+remain in `net-vm`.
+
+The gateway must support the PPP-based Fortinet SSL VPN protocol. OpenConnect supports password,
+optional client-certificate, and challenge/response MFA authentication. Browser SAML/SSO, IPsec,
+and the newer non-PPP Fortinet tunnel protocol are not supported by this integration. Verify the
+required authentication and reconnect behavior on your gateway; see
+[OpenConnect's Fortinet support](https://www.infradead.org/openconnect/fortinet.html).
+
+## Adding a connection
+
+1. Open the application library and launch **Fortinet VPN**.
+2. Enter a connection name, gateway hostname, and port. Do not include `http://` or `https://` in
+   the gateway. For example, use `vpn.example.com` and port `443`.
+3. Enter the optional realm, username, and VPN account password.
+4. If the administrator supplied a trusted gateway certificate fingerprint, enter its 64-digit
+   SHA-256 value. Verify a fingerprint through a trusted administrative channel before using it.
+5. Select the required client-certificate mode:
+   - **No client certificate** for password-only authentication.
+   - **PKCS#12 / PFX bundle** for a `.p12` or `.pfx` file and its import password.
+   - **Certificate and private key** for a PEM or DER X.509 certificate and a PEM, DER, or PKCS#8
+     key. Enter the private-key password only when the key is encrypted.
+6. Optionally select a PEM or DER gateway CA certificate.
+7. Select **Add VPN**.
+
+The application validates the request in `net-vm` and creates a native, system-wide NetworkManager
+profile. No separate visit to **Advanced Network Configuration** is required.
+
+To use the newly created profile:
+
+1. Open the **COSMIC Settings** application on the Ghaf desktop.
+2. Select **Network & Wireless**, then locate the **VPN** section.
+3. Find the profile using the connection name you entered in **Fortinet VPN**.
+4. Use that profile's connection control to connect or disconnect the VPN.
+
+Authentication prompts appear when the gateway requests a password or MFA response, including
+when the profile-creation application is closed. Cancel the prompt to cancel that authentication.
+
+The **Fortinet VPN** application creates the profile; adding it does not connect the VPN.
+Connection management takes place in **COSMIC Settings**, not in the **Fortinet VPN** application.
+
+If the VPN was connected when you suspended the laptop, Ghaf tries to reconnect it once an uplink
+returns after wake. The gateway may ask for MFA again. A VPN you disconnected before suspend stays
+disconnected.
+
+### Password storage
+
+The VPN account password is stored in a root-owned mode `0600` `auth.json` file under
+`/var/lib/ghaf/fortivpn/<profile-UUID>/` in `net-vm`. The authentication service obtains a fresh
+session cookie through libopenconnect and passes it to NetworkManager's tunnel plugin. Cookies
+and private keys remain in `net-vm`. Credentials are never passed through command-line arguments,
+environment variables, or logs. Corrected account passwords are saved only after successful
+authentication; MFA responses are not retained as account passwords.
+
+PKCS#12 passwords and private-key passphrases are used only during import and are discarded. Secret
+buffers owned by the application and backend are zeroized after use, although D-Bus and
+NetworkManager may create transient internal copies while serializing a request.
+
+## Certificate storage
+
+A client certificate is optional when the FortiGate permits password-only authentication. When
+certificate material is selected, the application reads bounded files in `gui-vm` and sends their
+contents through the filtered Ghaf D-Bus transport. The service in `net-vm` parses them with
+OpenSSL, verifies certificate validity and the client certificate/private-key match, and rejects
+invalid or oversized inputs before creating the profile.
+
+Deleting a profile in COSMIC Settings also removes its saved password and imported certificates
+and keys from `net-vm`. If the backend was stopped, it cleans up when it next starts and can
+read NetworkManager's saved profiles. Disconnecting the VPN keeps the profile and its credentials.
+
+Cleanup and profile creation are serialized. The service rejects new profiles after the
+system-wide limit of 32 OpenConnect profiles using `protocol=fortinet` is reached. This bounds
+persistent certificate and NetworkManager state even if an authorized GUI process is compromised
+and repeatedly requests valid profiles.
+
+The service normalizes the client key to unencrypted PKCS#8 because libopenconnect must read it
+non-interactively during connection. The key is root-owned mode `0600`, and all imported files are
+stored below a root-only mode `0700` `/var/lib/ghaf/fortivpn/<profile-UUID>/` directory. Public
+certificate files are stored alongside it. This directory remains private to the root backend.
+
+Authentication settings are bound to the private credential record. Remove and recreate a profile
+with **Fortinet VPN** when its gateway, account, or certificate details must change. Routes and
+DNS settings can still be edited through NetworkManager.
+
+## Architecture and configuration
+
+The feature is enabled in the standard debug and release profiles. It can be enabled explicitly
+through a single global toggle:
+
+```nix
+ghaf.global-config.fortivpn.enable = true;
+```
+
+The toggle enables the integration in both VMs, which have fixed roles rather than configurable
+per-VM assignments. Both VMs and GIVC are required for the GUI workflow. `gui-vm` contains the
+unprivileged libcosmic application and the upstream profile editor plugin. `net-vm` contains the
+OpenConnect tunnel plugin and the root profile service. When NetworkManager starts a profile with
+a private Ghaf credential record, the plugin asks the backend to authenticate the applied profile.
+The backend returns a fresh cookie directly to the plugin inside `net-vm`. Other OpenConnect
+profiles follow the upstream plugin's normal authentication path.
+
+When the gateway needs input, the backend signals the desktop over the existing FortiVPN D-Bus
+proxy. The COSMIC settings daemon starts the prompt helper in the logged-in session. The helper
+exits after the pending prompts are answered, cancelled, or expire.
+
+With the storage VM enabled, the private profile directory and NetworkManager connections persist
+across reboots. Existing OpenConnect profiles are reused for subsequent connections.
+
+The application, OpenConnect patch, and COSMIC prompt listener are maintained together in
+[`tiiuae/ghaf-fortivpn`](https://github.com/tiiuae/ghaf-fortivpn). Reproducible Nix packaging and
+source pinning are maintained in [`tiiuae/ghafpkgs`](https://github.com/tiiuae/ghafpkgs). This Ghaf
+module owns the deployment policy and does not embed or independently fetch the application source.
+
+## Troubleshooting
+
+Inspect NetworkManager and the profile service from `net-vm`:
+
+```sh
+SYSTEMD_PAGER=cat systemctl status NetworkManager ghaf-fortivpn
+SYSTEMD_PAGER=cat journalctl -b -u NetworkManager -u ghaf-fortivpn
+nmcli -f NAME,UUID,TYPE connection show
+```
+
+Inspect both D-Bus proxies from `gui-vm`:
+
+```sh
+SYSTEMD_PAGER=cat systemctl status dbus-proxy-networkmanager dbus-proxy-fortivpn
+SYSTEMD_PAGER=cat journalctl -b -u dbus-proxy-networkmanager -u dbus-proxy-fortivpn
+busctl --system introspect org.ghaf.FortiVpn /org/ghaf/FortiVpn org.ghaf.FortiVpn1
+```
+
+From the desktop session in `gui-vm`, watch for an MFA notification while connecting:
+
+```sh
+busctl --system monitor --match="type='signal',interface='org.ghaf.FortiVpn1',member='AuthenticationPending'"
+```
+
+For a certificate-backed profile, verify its non-secret paths from `net-vm` without printing the
+account password:
+
+```sh
+nmcli -f vpn.data connection show uuid <profile-UUID>
+```
+
+The output must contain `protocol=fortinet`, and any imported `usercert=`, `userkey=`, and `cacert=`
+paths below `/var/lib/ghaf/fortivpn/<profile-UUID>/`.
+
+If the FortiGate gateway certificate changes, obtain and verify its new fingerprint through a
+trusted administrative channel before recreating the profile.
