@@ -160,67 +160,19 @@ in
       };
     };
 
-    systemd.services.dbus-proxy-networkmanager = mkIf (builtins.elem netvmName config.ghaf.common.vms) {
-      description = "DBus proxy for Network Manager ${guivmName}";
-      # Wait for GIVC to create the socket before starting
-      after = [ "givc-${guivmName}.service" ];
-      requires = [ "givc-${guivmName}.service" ];
-      serviceConfig = {
-        Type = "simple";
-        Restart = "always";
-        RestartSec = "1s";
-        # Wait up to 30 seconds for the socket to appear
-        ExecStartPre = [
-          "${pkgs.coreutils}/bin/timeout 30 ${pkgs.bash}/bin/bash -c 'until [ -S /tmp/dbusproxy_net.sock ]; do sleep 0.5; done'"
-        ];
-        Environment = [
-          "DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/dbusproxy_net.sock"
-        ];
-        ExecStart = [
-          ''
-            ${lib.getExe pkgs.dbus-proxy} \
-              --source-bus-name org.freedesktop.NetworkManager \
-              --source-object-path /org/freedesktop/NetworkManager \
-              --proxy-bus-name org.freedesktop.NetworkManager \
-              --source-bus-type session \
-              --target-bus-type system \
-              --log-level error
-          ''
-        ];
+    ghaf.givc.guivm.dbusProxies = {
+      networkmanager = mkIf (builtins.elem netvmName config.ghaf.common.vms) {
+        description = "DBus proxy for Network Manager ${guivmName}";
+        busName = "org.freedesktop.NetworkManager";
+        objectPath = "/org/freedesktop/NetworkManager";
+        socket = "/tmp/dbusproxy_net.sock";
       };
-      startLimitIntervalSec = 0;
-      wantedBy = [ "multi-user.target" ];
-    };
-    systemd.services.dbus-proxy-bluetooth = mkIf (builtins.elem audiovmName config.ghaf.common.vms) {
-      description = "DBus proxy for Bluetooth ${guivmName}";
-      # Wait for GIVC to create the socket before starting
-      after = [ "givc-${guivmName}.service" ];
-      requires = [ "givc-${guivmName}.service" ];
-      serviceConfig = {
-        Type = "simple";
-        Restart = "always";
-        RestartSec = "1s";
-        # Wait up to 30 seconds for the socket to appear
-        ExecStartPre = [
-          "${pkgs.coreutils}/bin/timeout 30 ${pkgs.bash}/bin/bash -c 'until [ -S /tmp/dbusproxy_snd.sock ]; do sleep 0.5; done'"
-        ];
-        Environment = [
-          "DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/dbusproxy_snd.sock"
-        ];
-        ExecStart = [
-          ''
-            ${lib.getExe pkgs.dbus-proxy} \
-              --source-bus-name org.bluez \
-              --source-object-path /org/bluez \
-              --proxy-bus-name org.bluez \
-              --source-bus-type session \
-              --target-bus-type system \
-              --log-level error
-          ''
-        ];
+      bluetooth = mkIf (builtins.elem audiovmName config.ghaf.common.vms) {
+        description = "DBus proxy for Bluetooth ${guivmName}";
+        busName = "org.bluez";
+        objectPath = "/org/bluez";
+        socket = "/tmp/dbusproxy_snd.sock";
       };
-      startLimitIntervalSec = 0;
-      wantedBy = [ "multi-user.target" ];
     };
     services.dbus.packages = [
       pkgs.bluez

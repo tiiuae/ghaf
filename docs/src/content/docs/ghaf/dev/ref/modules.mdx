@@ -153,6 +153,23 @@ See [Memory Wipe on Boot and Free](/ghaf/dev/ref/memory-wipe) for detailed docum
 - VM identity verification
 - Resource access control
 
+GUI VM D-Bus proxies are declared through `ghaf.givc.guivm.dbusProxies`.
+Each entry creates `systemd.services.dbus-proxy-<name>` when GIVC and its GUI VM module are enabled:
+
+```nix
+ghaf.givc.guivm.dbusProxies.networkmanager = {
+  description = "DBus proxy for Network Manager gui-vm";
+  busName = "org.freedesktop.NetworkManager";
+  objectPath = "/org/freedesktop/NetworkManager";
+  socket = "/tmp/dbusproxy_net.sock";
+};
+```
+
+The shared module owns startup ordering, socket readiness, and proxy invocation.
+Feature modules retain their enablement conditions and D-Bus access policies.
+The socket must already be configured in the GIVC socket transport.
+Apply service-specific hardening or restart overrides through `systemd.services.dbus-proxy-<name>`.
+
 #### profiles-laptop-x86
 **Location**: `modules/profiles/laptop-x86.nix` (was `profiles-workstation`, still available as an alias)
 **Purpose**: Secure workstation configuration profile
