@@ -66,8 +66,7 @@ complementary properties.
   logging-enabled host and VM creates chained blocks from the local journal.
   The central sealer in the Admin VM authenticates the producer, validates the
   complete block, and signs the accepted chain position. This operates without
-  relying on synchronized wall-clock time. Systemd journal [Forward Secure
-  Sealing](/ghaf/scs/fss/) remains available as a separate optional mechanism.
+  relying on synchronized wall-clock time.
 
 - **Retention** (Journal and Audit): Retention policies are treated as a first-class concern and are applied in a tiered manner: (i) per-VM retention for local journal/audit logs, (ii) retention at the Admin VM for aggregated logs, and (iii) retention at the remote backend for long-term storage. Explicit retention boundaries help balance forensic usefulness with storage constraints and reduce exposure from over-retaining sensitive telemetry.
 
@@ -76,6 +75,15 @@ complementary properties.
 - **Confidentiality in transit**: Protected channels cover the VM-to-Admin-VM
   path and the Admin-VM-to-remote-server path. They protect logs from passive
   observation and modification while the records cross trust boundaries.
+
+## Clock-jump recovery
+
+When logging and `ghaf.logging.recovery.enable` are enabled,
+`ghaf-clock-jump-watcher.service` detects changes in wall-clock time.
+`ghaf-journal-alloy-recover.service` restarts installed log forwarders with an
+uptime-based cooldown. It does not restart journald or Fail2Ban, rotate journals,
+or wait for clock synchronization. Logseald seals independently of this recovery
+path. Journald's built-in sealing is explicitly disabled with `Seal=no`.
 
 ## Encryption in Transit and at Rest
 
@@ -121,7 +129,6 @@ Operational benefits
 ## Related Reading
 
 - [Clock-Independent Log Sealing](/ghaf/scs/logseald/)
-- [Forward Secure Sealing](/ghaf/scs/fss/)
 - [Troubleshooting System Logs](/ghaf/dev/troubleshooting/systemd/system-log/)
 - [Hardening Overview](/ghaf/overview/arch/hardening/)
 - [Protecting Critical Services](/ghaf/overview/arch/critical-services-privilege-escalation/)

@@ -30,8 +30,6 @@ let
   rtcSeedMaxAheadSeconds = 180 * 24 * 60 * 60;
   rtcSeedMinEpochSeconds = 1704067200; # 2024-01-01T00:00:00Z
   # Absolute upper bound, used when there is no anchor to measure "ahead of" from.
-  # Matches ghaf.logging.recovery.clockReady.maxEpochSeconds so the two plausibility
-  # windows cannot disagree about what counts as a corrupt clock.
   rtcSeedMaxEpochSeconds = 2524608000; # 2050-01-01T00:00:00Z
   rtcSeedTimeFromRtc = pkgs.writeShellApplication {
     name = "ghaf-seed-time-from-rtc";
@@ -797,11 +795,6 @@ in
   };
 
   config = mkIf cfg.enable {
-    # The clock-readiness barrier gates systemd-journal-flush and with it the
-    # whole userspace boot. Tegra restores a sane RTC well within a few seconds,
-    # and post-release jumps are already handled by ghaf-clock-jump-watcher, so
-    # the default 20 s stability window only adds boot latency here.
-    ghaf.logging.recovery.clockReady.stableSeconds = lib.mkDefault 5;
     # Required by JetPack's 99-tegra-devices.rules.
     users.groups.debug = { };
 

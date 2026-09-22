@@ -6,7 +6,6 @@
   imports = [
     ./common.nix
     ./alloy-server.nix
-    ./fss.nix
     ./journal-client.nix
     ./journal-server.nix
     ./logseald.nix

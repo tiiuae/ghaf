@@ -80,7 +80,6 @@ let
       type = "system-vm";
       logging = {
         enable = true;
-        fss.enable = false;
         recovery.enable = false;
         listener.address = "admin";
         logseald = {

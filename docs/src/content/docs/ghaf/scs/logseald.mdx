@@ -204,7 +204,7 @@ ghaf.global-config.logging.logseald.enable = false;
 ```
 
 Disabling the service preserves producer and sealer state. It does not disable
-journald, Fail2Ban, journal forwarding, Grafana, or the FSS implementation.
+journald, Fail2Ban, journal forwarding, or Grafana.
 
 The central sealer listens on TCP port `59631`. Configure a different port with:
 
@@ -483,13 +483,12 @@ checkpoint/reference is needed to detect rollback and some truncations.
 
 ## Auditing
 
-The standard laptop and Orin profiles enable auditing independently of FSS.
+The standard laptop and Orin profiles enable auditing independently of logseald.
 Debug and release global profiles enable it for guests, including app VMs and
-the IDS VM. Minimal profiles retain their audit-disabled default. Disabling FSS
+the IDS VM. Minimal profiles retain their audit-disabled default. Disabling logseald
 does not disable auditing in standard builds. Platform overrides can still
 change this policy.
 ## Related Reading
 
 - [System Logs](/ghaf/overview/arch/system-logs-encryption/)
-- [Forward Secure Sealing](/ghaf/scs/fss/)
 - [Global Configuration System](/ghaf/dev/global-config/)

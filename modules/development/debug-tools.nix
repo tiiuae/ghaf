@@ -12,7 +12,6 @@ let
   sysbench-test-script = pkgs.callPackage ./scripts/sysbench_test.nix { };
   sysbench-fileio-test-script = pkgs.callPackage ./scripts/sysbench_fileio_test.nix { };
   nvpmodel-check = pkgs.callPackage ./scripts/nvpmodel_check.nix { };
-  fss-test = pkgs.callPackage ../../tests/logging/test_scripts/fss-test.nix { };
 
   inherit (lib) mkEnableOption mkIf rmDesktopEntries;
 in
@@ -37,9 +36,6 @@ in
       pkgs.sysbench
       sysbench-test-script
       sysbench-fileio-test-script
-
-      # FSS (Forward Secure Sealing) integrity test
-      fss-test
 
       # For debug complicated issues
       pkgs.strace
