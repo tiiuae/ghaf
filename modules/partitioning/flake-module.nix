@@ -5,6 +5,7 @@ let
   secureAbCoreModules = [
     inputs.nix-store-veritysetup-generator.nixosModules.ghaf-store-veritysetup-generator
     ./verity-volume.nix
+    ./secure-update.nix
     ./boot-health.nix
   ];
 in
