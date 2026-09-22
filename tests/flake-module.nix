@@ -41,11 +41,8 @@
           flatpak-options = pkgs.callPackage ./flatpak/options.nix { inherit self; };
           microvm-tpm-vmm-parity = pkgs.callPackage ./microvm/tpm-vmm-parity.nix { inherit self; };
           uplink-resolver = pkgs.callPackage ./uplink-resolver { };
-          logging-fss = pkgs.callPackage ./logging { inherit self; };
+          logging-recovery = pkgs.callPackage ./logging { };
           logging-logseald = pkgs.callPackage ./logseald { inherit self; };
-          fss-classifier-unit = pkgs.callPackage ./logging/classifier-unit.nix { };
-          fss-test = pkgs.callPackage ./logging/test_scripts/fss-test.nix { };
-          fss-triage = pkgs.callPackage ./logging/test_scripts/fss-triage.nix { };
           access-control-tests = pkgs.callPackage ./access-control { inherit self; };
         };
     };

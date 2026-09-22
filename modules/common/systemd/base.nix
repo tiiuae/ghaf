@@ -35,7 +35,8 @@ let
         inherit (cfg) withEfi;
         inherit (cfg) withBootloader;
         inherit (cfg) withFido2;
-        withGcrypt = cfg.withJournal; # Required for Forward Secure Sealing (FSS)
+        # Importd needs a crypto backend even when OpenSSL is disabled.
+        withGcrypt = (cfg.withMachines || cfg.withSysupdate) && !cfg.withOpenSSL;
         inherit (cfg) withHomed;
         inherit (cfg) withOpenSSL;
         inherit (cfg) withHostnamed;

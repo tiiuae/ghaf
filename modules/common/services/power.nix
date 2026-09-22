@@ -794,7 +794,7 @@ in
           )
         ))
         # Every other qemu VM: QMP system_powerdown, so the guest runs its own systemd
-        # poweroff (journald flush+seal) instead of being SIGTERMed mid-write.
+        # poweroff (journald flush) instead of being SIGTERMed mid-write.
         (lib.listToAttrs (
           map (
             vmName:

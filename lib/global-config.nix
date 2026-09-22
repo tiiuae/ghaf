@@ -55,20 +55,6 @@ rec {
       logging = {
         enable = mkEnableOption "logging globally";
 
-        fss.enable = mkOption {
-          type = types.bool;
-          default = false;
-          description = ''
-            Enable Ghaf's systemd journal Forward Secure Sealing implementation
-            on the host and every logged VM.
-
-            Set false to keep the logging pipeline enabled while disabling FSS
-            key setup, sealing, verification, and its supporting services. The
-            existing journals and FSS keys are preserved so the implementation
-            can be re-enabled later.
-          '';
-        };
-
         logseald = {
           revokedPeerKeys = lib.mkOption {
             type = lib.types.listOf (lib.types.strMatching "spki-sha256:[0-9a-f]{64}");
@@ -82,8 +68,7 @@ rec {
               Enable the clock-independent logseald producer on the host and
               every logged VM, with the sealer in admin-vm. This is enabled by
               default wherever global logging is enabled. Set false to disable
-              logseald without deleting its state or modifying the existing
-              FSS implementation.
+              logseald without deleting its state or changing log forwarding.
             '';
           };
 

@@ -162,11 +162,6 @@ in
             address = lib.mkDefault config.ghaf.global-config.logging.listener.address;
             port = lib.mkDefault config.ghaf.global-config.logging.listener.port;
           };
-          fss.enable =
-            if config.ghaf.global-config.logging.fss.enable then
-              lib.mkDefault config.ghaf.logging.enable
-            else
-              lib.mkForce false;
           logseald = {
             producer.enable =
               (config.ghaf.global-config.logging.logseald.enable or false) && config.ghaf.logging.enable;

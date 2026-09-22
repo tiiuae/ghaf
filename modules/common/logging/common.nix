@@ -14,250 +14,6 @@ let
     types
     ;
   recCfg = config.ghaf.logging.recovery;
-  loggingStackEnabled = config.ghaf.logging.enable || config.ghaf.logging.fss.enable;
-  clockReadyEnabled = config.ghaf.logging.fss.enable && recCfg.enable && recCfg.clockReady.enable;
-  fssActivationCfg = config.ghaf.logging.fss.activation;
-  fssActivationEnabled = config.ghaf.logging.fss.enable && fssActivationCfg.enable;
-  # Effective time-sync wait before FSS activation; only applies when the
-  # activation boundary is enabled. Computed once and reused below.
-  effectiveSyncWaitSeconds = if fssActivationEnabled then fssActivationCfg.syncWaitSeconds else 0;
-
-  ghafClockReady = pkgs.writeShellApplication {
-    name = "ghaf-clock-ready";
-    runtimeInputs = with pkgs; [
-      coreutils
-      gawk
-      systemd
-    ];
-    text = ''
-      stable_seconds="${toString recCfg.clockReady.stableSeconds}"
-      max_wait_seconds="${toString recCfg.clockReady.maxWaitSeconds}"
-      min_epoch="${toString recCfg.clockReady.minEpochSeconds}"
-      max_epoch="${toString recCfg.clockReady.maxEpochSeconds}"
-      ready_file="/run/ghaf-clock-ready"
-      state_file="/run/ghaf-clock-ready-state"
-      state_dir="/var/lib/ghaf/clock-ready"
-      anchor_file="$state_dir/last-good-realtime"
-
-      uptime_seconds() {
-        awk '{printf "%d\n", $1}' /proc/uptime
-      }
-
-      read_epoch_file() {
-        local path="$1"
-        local value=""
-
-        [ -r "$path" ] || return 0
-        value="$(tr -d '\n' < "$path" 2>/dev/null || true)"
-        case "$value" in
-        "" | *[!0-9]*) return 0 ;;
-        *) printf '%s\n' "$value" ;;
-        esac
-      }
-
-      write_state() {
-        local now_real now_up
-
-        now_real="$(date +%s)"
-        now_up="$(uptime_seconds)"
-        {
-          printf 'ready_established=%s\n' "$ready_established"
-          printf 'sync_result=%s\n' "$sync_result"
-          printf 'sync_value=%s\n' "$sync_value"
-          printf 'realtime=%s\n' "$now_real"
-          printf 'uptime_seconds=%s\n' "$now_up"
-          printf 'min_allowed=%s\n' "$min_allowed"
-          printf 'max_allowed=%s\n' "$max_epoch"
-          printf 'anchor_epoch=%s\n' "''${anchor_epoch:-}"
-          printf 'anchor_status=%s\n' "''${anchor_status:-unknown}"
-        } > "$state_file"
-        chmod 0644 "$state_file"
-      }
-
-      mkdir -p "$state_dir"
-
-      anchor_epoch="$(read_epoch_file "$anchor_file")"
-      anchor_status="missing"
-      min_allowed="$min_epoch"
-      if [ -n "$anchor_epoch" ] && [ "$anchor_epoch" -gt "$max_epoch" ]; then
-        echo "Clock readiness ignoring future-poisoned anchor $anchor_epoch above maximum $max_epoch"
-        anchor_status="ignored-future"
-        anchor_epoch=""
-      elif [ -n "$anchor_epoch" ] && [ "$anchor_epoch" -gt "$min_allowed" ]; then
-        min_allowed="$anchor_epoch"
-        anchor_status="accepted"
-      elif [ -n "$anchor_epoch" ]; then
-        anchor_status="below-minimum"
-      fi
-
-      start_up="$(uptime_seconds)"
-      last_real="$(date +%s)"
-      stable_since="$start_up"
-      ready_established=0
-      sync_result="not-started"
-      sync_value="unknown"
-
-      # Fast path. The observation window below exists to catch a clock that is
-      # still moving, but nothing that could move it is running yet: this unit is
-      # ordered before sysinit.target, so networking and timesyncd have not
-      # started -- that is precisely why the NTP wait was split out into
-      # ghaf-clock-sync (see the note further down). So when a previous good boot
-      # left an anchor and the current realtime already sits inside
-      # [anchor, max_epoch], every check the loop performs has already passed on
-      # the first sample, and repeating it for stable_seconds only delays the
-      # journal flush.
-      #
-      # Deliberately conditional on anchor_status=accepted: with no anchor, a
-      # corrupt one, or a realtime outside the window, there is no trustworthy
-      # floor to compare against and the full observation still applies.
-      now_real="$(date +%s)"
-      if [ "$anchor_status" = "accepted" ] &&
-        [ "$now_real" -ge "$min_allowed" ] &&
-        [ "$now_real" -le "$max_epoch" ]; then
-        echo "Clock readiness established immediately: realtime $now_real within [$min_allowed, $max_epoch] against an accepted anchor"
-        ready_established=1
-      fi
-
-      while [ "$ready_established" -eq 0 ]; do
-        sleep 1
-        now_up="$(uptime_seconds)"
-        now_real="$(date +%s)"
-
-        if [ "$now_real" -gt "$max_epoch" ]; then
-          stable_since=""
-          echo "Clock readiness waiting: realtime $now_real is above maximum $max_epoch"
-        elif [ "$now_real" -lt "$min_allowed" ]; then
-          stable_since=""
-          echo "Clock readiness waiting: realtime $now_real is below minimum $min_allowed"
-        elif [ "$now_real" -lt "$last_real" ]; then
-          stable_since=""
-          echo "Clock readiness waiting: realtime moved backwards from $last_real to $now_real"
-        else
-          if [ -z "$stable_since" ]; then
-            stable_since="$now_up"
-          fi
-
-          if [ "$((now_up - stable_since))" -ge "$stable_seconds" ]; then
-            echo "Clock readiness established after $stable_seconds stable seconds"
-            ready_established=1
-            break
-          fi
-        fi
-
-        last_real="$now_real"
-
-        if [ "$((now_up - start_up))" -ge "$max_wait_seconds" ]; then
-          echo "Clock readiness max wait reached; allowing boot to continue with realtime $now_real"
-          break
-        fi
-      done
-
-      # NTP synchronization is intentionally NOT awaited here. This barrier runs
-      # early (before systemd-journal-flush, which wants it, and before
-      # sysinit.target), so networking/timesyncd has not started yet and the NTP
-      # check could only ever hit its full timeout, stalling the journal flush on
-      # every boot. The sync wait is handled later by ghaf-clock-sync.service,
-      # which runs after networking and before journal-fss-setup.
-      sync_result="deferred"
-
-      now_real="$(date +%s)"
-      if [ "$now_real" -gt "$max_epoch" ]; then
-        echo "Clock readiness did not update last-good realtime: $now_real is above maximum $max_epoch"
-      elif [ "$now_real" -ge "$min_allowed" ]; then
-        printf '%s\n' "$now_real" > "$anchor_file"
-        chmod 0644 "$anchor_file"
-      elif [ "$ready_established" -eq 0 ]; then
-        echo "Clock readiness fallback did not update last-good realtime: $now_real is below $min_allowed"
-      fi
-
-      write_state
-      touch "$ready_file"
-      chmod 0644 "$ready_file"
-    '';
-  };
-
-  # Time-synchronization wait, split out of ghaf-clock-ready so it runs AFTER
-  # networking/timesyncd and does not block the early journal flush. It best-effort
-  # waits for NTP synchronization up to the configured bound before FSS activation,
-  # then releases boot regardless (clock readiness is a gate, not a time authority).
-  # Publishes to /run/ghaf-clock-sync-state only. /run/ghaf-clock-synced belongs
-  # to ghaf-wait-time-sync, whose literal "synchronised" SPIRE gates on.
-  ghafClockSync = pkgs.writeShellApplication {
-    name = "ghaf-clock-sync";
-    runtimeInputs =
-      with pkgs;
-      [
-        coreutils
-        gawk
-        systemd
-      ]
-      ++ lib.optional config.services.chrony.enable config.services.chrony.package;
-    text = ''
-      sync_wait_seconds="${toString effectiveSyncWaitSeconds}"
-      sync_state_file="/run/ghaf-clock-sync-state"
-
-      uptime_seconds() {
-        awk '{printf "%d\n", $1}' /proc/uptime
-      }
-
-      sync_result="not-started"
-      sync_value="unknown"
-
-      write_sync_state() {
-        {
-          printf 'sync_result=%s\n' "$sync_result"
-          printf 'sync_value=%s\n' "$sync_value"
-          printf 'sync_wait_seconds=%s\n' "$sync_wait_seconds"
-          printf 'realtime=%s\n' "$(date +%s)"
-          printf 'uptime_seconds=%s\n' "$(uptime_seconds)"
-        } > "$sync_state_file"
-        chmod 0644 "$sync_state_file"
-      }
-
-      if [ "$sync_wait_seconds" -le 0 ]; then
-        sync_result="disabled"
-      elif command -v ${
-        if config.services.chrony.enable then "chronyc" else "timedatectl"
-      } >/dev/null 2>&1; then
-        sync_start_up="$(uptime_seconds)"
-        while true; do
-          if ${
-            if config.services.chrony.enable then
-              "chronyc waitsync 1 0 0 0.1 >/dev/null 2>&1"
-            else
-              ''[ "$(timedatectl show -p NTPSynchronized --value 2>/dev/null || true)" = "yes" ]''
-          }; then
-            sync_value="yes"
-          else
-            sync_value="no"
-          fi
-
-          if [ "$sync_value" = "yes" ]; then
-            sync_result="synchronized"
-            echo "Clock sync observed system time synchronization"
-            break
-          fi
-
-          now_up="$(uptime_seconds)"
-          if [ "$((now_up - sync_start_up))" -ge "$sync_wait_seconds" ]; then
-            sync_result="timeout"
-            echo "Clock sync wait reached; allowing boot to continue with NTPSynchronized=''${sync_value:-unknown}"
-            break
-          fi
-
-          sleep 1
-        done
-      else
-        sync_result="sync-tool-unavailable"
-        echo "Clock sync could not check time synchronization: ${
-          if config.services.chrony.enable then "chronyc" else "timedatectl"
-        } unavailable"
-      fi
-
-      write_sync_state
-    '';
-  };
-
   ghafClockJumpWatcher = pkgs.writeShellApplication {
     name = "ghaf-clock-jump-watcher";
     runtimeInputs = with pkgs; [
@@ -266,28 +22,13 @@ let
       gnugrep
       systemd
     ];
-    # /etc/fss-verify-classifier.sh is populated at runtime by fss.nix
-    # (unconditionally, since this consumer runs even when FSS is disabled);
-    # shellcheck cannot follow it statically.
-    excludeShellChecks = [ "SC1091" ];
     text = ''
-      source /etc/fss-verify-classifier.sh
-
       threshold="${toString recCfg.thresholdSeconds}"
       interval="${toString recCfg.intervalSeconds}"
-      machine_id="$(cat /etc/machine-id 2>/dev/null || echo unknown)"
-      state_dir="/var/log/journal/$machine_id"
-      stamp_file="$state_dir/fss-clock-jump-attested"
-      restart_stamp="/run/ghaf-clock-jump-watcher.setup-restart"
-      restart_cooldown="${toString recCfg.cooldownSeconds}"
-
       last_real="$(date +%s)"
       last_up="$(cut -d' ' -f1 /proc/uptime)"
 
-      # journald's attestations that REALTIME stepped backwards, for steps the
-      # delta below misses. Read from a cursor, not a full `journalctl -b` pass
-      # every tick; cursors are file-order, so immune to the jumps being watched
-      # for. Guarded because an exit under errexit would kill the watcher.
+      # Cursors retain file order across clock jumps and avoid rescanning the boot.
       cursor=""
 
       read_journald_since_cursor() {
@@ -305,46 +46,16 @@ let
           | sed 's/^-- cursor: //'
       }
 
-      # Shares setup's filter, so a monotonic jump is not counted.
+      # Monotonic-clock notices must not trigger realtime recovery.
       jump_epochs_from_output() {
         printf '%s\n' "$1" | { grep -v '^-- cursor: ' || true; } \
-          | fss_time_jump_epochs_from_lines
+          | { grep -F \
+              -e "Time jumped backwards, rotating" \
+              -e "Realtime clock jumped backwards relative to last journal entry, rotating" || true; } \
+          | awk '$1 ~ /^[0-9]+([.][0-9]+)?$/ { split($1, ts, "."); print ts[1] }'
       }
 
-      # Evidence for journal-fss-setup, which gates its re-key on an attestation
-      # and usually looks a boot later. Best effort: a write failure must not
-      # take the watcher down.
-      record_attestation() {
-        local epochs="$1"
-
-        [ -n "$epochs" ] || return 0
-        [ -d "$state_dir" ] || return 0
-        printf '%s\t%s\t%s\n' \
-          "$(date +%s)" \
-          "$(fss_current_boot_id)" \
-          "$(printf '%s' "$epochs" | tr '\n' ',')" \
-          > "$stamp_file" 2>/dev/null || return 0
-        chmod 0644 "$stamp_file" 2>/dev/null || true
-      }
-
-      # Rate-limit the setup restart: it restarts journald, and the unit sets
-      # StartLimitIntervalSec=0 so systemd imposes no limit. Monotonic, since
-      # the event being handled is a realtime jump.
-      setup_restart_due() {
-        local now last
-
-        now=$(awk '{printf "%d\n", $1}' /proc/uptime)
-        last=$(cat "$restart_stamp" 2>/dev/null || true)
-        case "$last" in "" | *[!0-9]*) last="" ;; esac
-        if [ -n "$last" ] && [ "$(( now - last ))" -lt "$restart_cooldown" ]; then
-          return 1
-        fi
-        printf '%s\n' "$now" > "$restart_stamp" 2>/dev/null || true
-      }
-
-      # Baseline: advance past what this boot already recorded and discard it.
-      # Otherwise the first sample looks new on every boot that logged a jump
-      # before the watcher started, restarting setup seconds into each one.
+      # Ignore clock jumps that predate this watcher invocation.
       raw="$(read_journald_since_cursor)"
       seen_cursor="$(cursor_from_output "$raw")"
       [ -z "$seen_cursor" ] || cursor="$seen_cursor"
@@ -366,13 +77,7 @@ let
 
         if awk -v a="$abs" -v t="$threshold" 'BEGIN{exit !(a>=t)}' \
           || [ -n "$new_epochs" ]; then
-          record_attestation "$new_epochs"
           systemctl start ghaf-journal-alloy-recover.service || true
-          # Re-running setup lets it detect a time-poisoned sealing epoch and
-          # re-key (see recover_from_time_poisoned_sealing in fss.nix).
-          if setup_restart_due; then
-            systemctl restart --no-block journal-fss-setup.service 2>/dev/null || true
-          fi
         fi
 
         last_real="$real"
@@ -389,89 +94,11 @@ let
       gnugrep
       systemd
     ];
-    # /etc/fss-verify-classifier.sh is populated at runtime by fss.nix
-    # (unconditionally, since this consumer runs even when FSS is disabled);
-    # shellcheck cannot follow it statically.
-    excludeShellChecks = [ "SC1091" ];
     text = ''
-      source /etc/fss-verify-classifier.sh
-
-      machine_id="$(cat /etc/machine-id)"
-      state_dir="/var/log/journal/$machine_id"
-      recovery_receipts_file="$state_dir/fss-recovery-receipts"
-      activation_state_file="$state_dir/fss-activation-state"
-      activation_baseline_file="$state_dir/fss-baseline-boot"
-      fss_activation_enabled="${if fssActivationEnabled then "1" else "0"}"
-      max_recovery_receipts="${toString recCfg.maxReceipts}"
       stamp="/run/ghaf-journal-alloy-recover.stamp"
       now_ms="$(awk '{printf "%d\n", $1 * 1000}' /proc/uptime)"
       cooldown="${toString recCfg.cooldownSeconds}"
       cooldown_ms=$((cooldown * 1000))
-      before_file="$(mktemp)"
-
-      cleanup() {
-        rm -f "$before_file"
-      }
-
-      list_archived_system_journals() {
-        local journal_dir
-        local archive_path
-
-        for journal_dir in \
-          "/var/log/journal/$machine_id" \
-          "/run/log/journal/$machine_id"; do
-          for archive_path in "$journal_dir"/system@*.journal; do
-            [ -f "$archive_path" ] || continue
-            printf '%s\n' "$archive_path"
-          done
-        done | sort -u
-      }
-
-      fss_activation_complete_current_boot() {
-        local state=""
-        local state_boot=""
-        local baseline_boot=""
-        local boot
-
-        [ -r "$activation_state_file" ] || return 1
-        [ -r "$activation_baseline_file" ] || return 1
-
-        state="$(awk -F '\t' 'NR == 1 { print $1 }' "$activation_state_file")"
-        state_boot="$(awk -F '\t' 'NR == 1 { print $2 }' "$activation_state_file")"
-        baseline_boot="$(tr -d '[:space:]' < "$activation_baseline_file")"
-        boot="$(fss_current_boot_id)"
-
-        [ "$state" = "active" ] \
-          && [ "$state_boot" = "$boot" ] \
-          && [ "$baseline_boot" = "$boot" ]
-      }
-
-      record_recovery_receipt() {
-        fss_write_receipt "$recovery_receipts_file" "$1" "clock-jump-recovery" info "Recorded FSS recovery archive receipt"
-      }
-
-      record_recovery_archives() {
-        local after_file
-        local archive_path
-
-        mkdir -p "$state_dir"
-        touch "$recovery_receipts_file"
-        chmod 0644 "$recovery_receipts_file"
-
-        after_file="$(mktemp)"
-        list_archived_system_journals > "$after_file"
-
-        while IFS= read -r archive_path || [ -n "$archive_path" ]; do
-          [ -n "$archive_path" ] || continue
-          if ! grep -Fxq "$archive_path" "$before_file"; then
-            record_recovery_receipt "$archive_path"
-          fi
-        done < "$after_file"
-
-        rm -f "$after_file"
-        fss_prune_receipt_file "$recovery_receipts_file" "$max_recovery_receipts" "Recovery"
-      }
-
       restart_if_installed() {
         local unit="$1"
 
@@ -481,22 +108,6 @@ let
           echo "$unit not installed, skipping restart"
         fi
       }
-
-      restart_if_active() {
-        local unit="$1"
-
-        if systemctl is-active --quiet "$unit"; then
-          systemctl restart "$unit"
-        else
-          echo "$unit not active, skipping restart"
-        fi
-      }
-
-      trap cleanup EXIT
-      if [ "$fss_activation_enabled" = 1 ] && ! fss_activation_complete_current_boot; then
-        echo "FSS activation is not complete for the current boot; skipping journal recovery"
-        exit 0
-      fi
 
       if [ -e "$stamp" ]; then
         last="$(cat "$stamp" 2>/dev/null || echo 0)"
@@ -511,22 +122,6 @@ let
         fi
       fi
       echo "$now_ms" > "$stamp"
-
-      if [ "$fss_activation_enabled" = 1 ]; then
-        list_archived_system_journals > "$before_file"
-        systemd-tmpfiles --create --prefix /var/log/journal
-        systemctl restart systemd-journald.service
-        record_recovery_archives
-        journalctl --rotate 2>/dev/null || true
-        journalctl --sync 2>/dev/null || true
-        record_recovery_archives
-
-        # Refresh Fail2Ban's invalidated journal reader after the final rotation,
-        # without starting a service that was intentionally stopped.
-        restart_if_active fail2ban.service
-      else
-        echo "FSS disabled; skipping FSS journal restart, rotation, and receipts"
-      fi
 
       restart_if_installed systemd-journal-upload.service
       restart_if_installed alloy.service
@@ -611,8 +206,7 @@ in
           journald SyncIntervalSec: how often journal data is fsync'd to disk.
           Lower values shrink the window of unsynced data lost on an unclean kill
           (host crash, power loss, stop timeout), at the cost of more frequent
-          fsyncs. Relevant to FSS: an unsynced tail can leave a torn, unverifiable
-          sealed journal. systemd's default is 5m.
+          fsyncs. systemd's default is 5m.
         '';
         type = types.str;
         default = "30s";
@@ -620,7 +214,7 @@ in
     };
 
     recovery = {
-      enable = (mkEnableOption "journald/log-forwarder recovery after realtime clock jumps") // {
+      enable = (mkEnableOption "log-forwarder recovery after realtime clock jumps") // {
         default = true;
       };
 
@@ -642,198 +236,50 @@ in
         default = 60;
       };
 
-      maxReceipts = mkOption {
-        type = types.int;
-        default = 64;
-        description = ''
-          Upper bound on retained content-bound recovery archive receipts.
-
-          The recovery path caps the receipt store at this many records, evicting
-          the oldest with a warning when exceeded. Receipts are matched against
-          on-disk archives by content (sha256) at verify time, so a receipt for a
-          deleted archive is harmless and is not dropped merely because the
-          archive is currently absent (transient absence would lose coverage).
-          Archives are owned by journald vacuum/rotation and are not deleted with
-          receipts; this cap is only the growth backstop against repeated clock-
-          jump recoveries, not a 1:1 archive index.
-        '';
-      };
-
-      clockReady = {
-        enable = (mkEnableOption "clock readiness barrier for persistent sealed logging") // {
-          # The barrier exists for hosts whose RTC needs to settle after
-          # power-on. A VM starts with its emulated RTC seeded from host wall
-          # time at VM creation (microvm sets rtc = "on") and runs timesyncd
-          # afterwards, so it boots with an already-settled clock and the
-          # barrier (plus the ghaf-clock-sync NTP wait it gates) only delays
-          # boot there. Disabling it in guests is a deliberate choice: guest
-          # FSS setup/verify no longer waits for NTP, which also uncouples it
-          # from net-vm availability; clock-jump recovery stays active.
-          default = config.ghaf.type == "host";
-          defaultText = lib.literalExpression ''config.ghaf.type == "host"'';
-        };
-
-        stableSeconds = mkOption {
-          description = "Consecutive seconds of non-decreasing realtime required before persistent logging is released.";
-          type = types.int;
-          default = 20;
-        };
-
-        maxWaitSeconds = mkOption {
-          description = "Maximum time to wait for clock readiness before allowing boot to continue.";
-          type = types.int;
-          default = 90;
-        };
-
-        minEpochSeconds = mkOption {
-          description = "Minimum plausible realtime epoch for clock readiness.";
-          type = types.int;
-          default = 1704067200; # 2024-01-01T00:00:00Z
-        };
-
-        maxEpochSeconds = mkOption {
-          description = "Maximum plausible realtime epoch for clock readiness; anchors above this are treated as corrupt.";
-          type = types.int;
-          default = 2524608000; # 2050-01-01T00:00:00Z
-        };
-      };
     };
   };
 
-  config = mkIf (loggingStackEnabled && recCfg.enable) {
+  config = lib.mkMerge [
+    {
+      # A late drop-in also overrides activation files left in /run after a switch.
+      environment.etc."systemd/journald.conf.d/99-ghaf-sealing.conf".text = ''
+        [Journal]
+        Seal=no
+      '';
+    }
+    (mkIf (config.ghaf.logging.enable && recCfg.enable) {
+      systemd = {
+        services.ghaf-clock-jump-watcher = {
+          description = "Detect realtime clock jumps and trigger log-forwarder recovery";
+          wantedBy = [ "multi-user.target" ];
 
-    ghaf.storagevm.directories = mkIf (clockReadyEnabled && config.ghaf.storagevm.enable) [
-      "/var/lib/ghaf/clock-ready"
-    ];
-
-    systemd = {
-      # Barrier target: Requires the oneshot so the target is only reached on
-      # success. Consumers that must not fail-closed on a barrier IO error
-      # (notably systemd-journal-flush) depend on the service with Wants= below,
-      # not on this target.
-      targets.ghaf-clock-ready = mkIf clockReadyEnabled {
-        description = "Ghaf clock readiness barrier";
-        requires = [ "ghaf-clock-ready.service" ];
-        after = [ "ghaf-clock-ready.service" ];
-      };
-
-      services.ghaf-clock-ready = mkIf clockReadyEnabled {
-        description = "Wait for clock readiness before persistent sealed logging";
-        wantedBy = [ "ghaf-clock-ready.target" ];
-        before = [
-          "ghaf-clock-ready.target"
-          "systemd-journal-flush.service"
-          "journal-fss-setup.service"
-          "journal-fss-verify.service"
-          "alloy.service"
-        ];
-        after = [ "systemd-journald.service" ];
-        wants = [ "systemd-journald.service" ];
-
-        unitConfig = {
-          DefaultDependencies = false;
-          RequiresMountsFor = [ "/var/lib/ghaf/clock-ready" ];
+          serviceConfig = {
+            Type = "simple";
+            Restart = "always";
+            RestartSec = 2;
+            ExecStart = lib.getExe ghafClockJumpWatcher;
+          };
         };
 
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          TimeoutStartSec = "${toString (recCfg.clockReady.maxWaitSeconds + 30)}s";
-          ExecStart = lib.getExe ghafClockReady;
-        };
-      };
+        services.ghaf-journal-alloy-recover = {
+          description = "Recover log forwarders after time jump";
 
-      # Time-sync wait, ordered AFTER networking/timesyncd and BEFORE FSS setup,
-      # but deliberately not before systemd-journal-flush, so the early flush only
-      # waits on the fast clock-readiness barrier and never on the NTP timeout.
-      services.ghaf-clock-sync = mkIf clockReadyEnabled {
-        description = "Wait for time synchronization before FSS sealing activation";
-        wantedBy = [ "multi-user.target" ];
-        after = [
-          "ghaf-clock-ready.service"
-          "network-online.target"
-          "systemd-timesyncd.service"
-        ];
-        wants = [ "network-online.target" ];
-        before = [
-          "journal-fss-setup.service"
-          "journal-fss-verify.service"
-        ];
+          unitConfig = {
+            StartLimitIntervalSec = "0";
+          };
 
-        unitConfig = {
-          RequiresMountsFor = [ "/var/lib/ghaf/clock-ready" ];
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = lib.getExe ghafJournalAlloyRecover;
+          };
         };
 
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          TimeoutStartSec = "${toString (effectiveSyncWaitSeconds + 30)}s";
-          ExecStart = lib.getExe ghafClockSync;
-        };
-      };
-
-      # Wants, not Requires: an IO error in the best-effort clock-readiness
-      # barrier (e.g. the anchor-file write) must not dependency-fail the
-      # journal flush and leave logs volatile for the boot.
-      services.systemd-journal-flush = mkIf clockReadyEnabled {
-        after = [ "ghaf-clock-ready.service" ];
-        wants = [ "ghaf-clock-ready.service" ];
-      };
-
-      # Watcher: detects realtime jumps by comparing realtime vs monotonic progression
-      services.ghaf-clock-jump-watcher = {
-        description = "Detect realtime clock jumps and trigger journald/log-forwarder recovery";
-        wantedBy = [ "multi-user.target" ];
-        after =
-          lib.optionals clockReadyEnabled [ "ghaf-clock-ready.service" ]
-          ++ lib.optionals fssActivationEnabled [ "journal-fss-setup.service" ];
-        wants =
-          lib.optionals clockReadyEnabled [ "ghaf-clock-ready.service" ]
-          ++ lib.optionals fssActivationEnabled [ "journal-fss-setup.service" ];
-
-        serviceConfig = {
-          Type = "simple";
-          Restart = "always";
-          RestartSec = 2;
-          ExecStart = lib.getExe ghafClockJumpWatcher;
-        };
-      };
-
-      services.ghaf-journal-alloy-recover = {
-        description = "Recover journald/log-forwarder after time jump";
-        after =
-          lib.optionals clockReadyEnabled [ "ghaf-clock-ready.service" ]
-          ++ lib.optionals fssActivationEnabled [ "journal-fss-setup.service" ];
-        wants =
-          lib.optionals clockReadyEnabled [ "ghaf-clock-ready.service" ]
-          ++ lib.optionals fssActivationEnabled [ "journal-fss-setup.service" ];
-
-        unitConfig = {
-          StartLimitIntervalSec = "0";
-        };
-
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = lib.getExe ghafJournalAlloyRecover;
-        };
-      };
-
-      services.alloy = mkIf (clockReadyEnabled && config.services.alloy.enable) {
-        after = [
-          "ghaf-clock-ready.service"
-          "journal-fss-setup.service"
-        ];
-        wants = [
-          "ghaf-clock-ready.service"
-          "journal-fss-setup.service"
+        tmpfiles.rules = [
+          # Create persistent journal dir with the standard perms/group.
+          "d /var/log/journal 2755 root systemd-journal - -"
+          "z /var/log/journal/%m 2755 root systemd-journal - -"
         ];
       };
-
-      tmpfiles.rules = [
-        # Create persistent journal dir with the standard perms/group.
-        "d /var/log/journal 2755 root systemd-journal - -"
-        "z /var/log/journal/%m 2755 root systemd-journal - -"
-      ];
-    };
-  };
+    })
+  ];
 }

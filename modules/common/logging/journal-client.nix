@@ -106,17 +106,14 @@ in
       (
         if hasStructuredJournald then
           {
-            settings.Journal = mkIf config.ghaf.logging.journalRetention.enable (
-              {
-                MaxRetentionSec = config.ghaf.logging.journalRetention.maxRetention;
-                MaxFileSec = config.ghaf.logging.journalRetention.MaxFileSec;
-                SyncIntervalSec = config.ghaf.logging.journalRetention.syncInterval;
-                SystemMaxUse = config.ghaf.logging.journalRetention.maxDiskUsage;
-                SystemMaxFileSize = "100M";
-                Storage = "persistent";
-              }
-              // lib.optionalAttrs config.ghaf.logging.fss.staticSealEnabled { Seal = true; }
-            );
+            settings.Journal = mkIf config.ghaf.logging.journalRetention.enable {
+              MaxRetentionSec = config.ghaf.logging.journalRetention.maxRetention;
+              MaxFileSec = config.ghaf.logging.journalRetention.MaxFileSec;
+              SyncIntervalSec = config.ghaf.logging.journalRetention.syncInterval;
+              SystemMaxUse = config.ghaf.logging.journalRetention.maxDiskUsage;
+              SystemMaxFileSize = "100M";
+              Storage = "persistent";
+            };
           }
         else
           {
@@ -127,9 +124,6 @@ in
               SystemMaxUse=${config.ghaf.logging.journalRetention.maxDiskUsage}
               SystemMaxFileSize=100M
               Storage=persistent
-              ${optionalString config.ghaf.logging.fss.staticSealEnabled ''
-                Seal=yes
-              ''}
             '';
           }
       )
