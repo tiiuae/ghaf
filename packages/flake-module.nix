@@ -14,7 +14,6 @@
     {
       pkgs,
       lib,
-      system,
       ...
     }:
     let
@@ -27,8 +26,10 @@
 
       packages.logseald = inputs.logseald.lib.mkPackage { inherit pkgs; };
 
-      # Re-export the updater from the exact GIVC revision pinned by this flake.
-      apps.ghaf-ota-update = inputs.givc.apps.${system}.ota-update;
+      apps.ghaf-ota-update = {
+        type = "app";
+        program = "${(pkgs.extend self.overlays.default).ota-update}/bin/ota-update";
+      };
 
       # Generate comprehensive documentation with enhanced module coverage
       packages.doc =
