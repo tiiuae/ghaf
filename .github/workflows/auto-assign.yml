@@ -12,10 +12,18 @@ permissions:
   contents: read
 
 jobs:
+  is-org-member:
+    if: github.repository == 'tiiuae/ghaf'
+    uses: ./.github/workflows/is-org-member.yml
+    with:
+      github-org: tiiuae
+      github-user: ${{ github.event.pull_request.user.login }}
+    secrets:
+      read-org-members: ${{ secrets.READ_ORG_MEMBERS }}
   auto-assign-pr:
-    # skips bots and assigns only members of tiiuae
-    # makes it so unassigned PRs stand out
-    if: github.event.pull_request.author_association == 'MEMBER'
+    needs: [is-org-member]
+    # Unassigned external PRs stand out.
+    if: needs.is-org-member.outputs.is_org_member == 'True'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
