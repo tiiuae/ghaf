@@ -461,19 +461,9 @@ in
             enable = false;
             evaluatedConfig = cfg.idsvmBase;
             passiveMonitor = {
-              # Off by default on the base Orin profile - only the *-extras
-              # trial images (mvp-orinuser-trial-extras.nix) turn this on.
-              enable = false;
               external = true;
-              # Validated on Orin AGX via ghaf-mirror-bench across 50M-1G:
-              # cuts host CPU overhead from mirroring by roughly two thirds
-              # vs. trafficMirror.sender.netem's own default (9.26% -> 2.67-3.00%
-              # delta at the same throughput), with zero packet loss at every
-              # tested rate. The wider batching window trades away mirror-path
-              # latency for that CPU headroom, which is the right trade here
-              # since ids-vm is a passive monitor, not inline on live traffic
-              # (see modules/microvm/common/traffic-mirror.nix). Takes effect
-              # only where passiveMonitor.enable is turned on.
+              # Validated on Orin AGX across 50M-1G: cuts mirroring's host CPU
+              # overhead from 9.26% to under 3%, with no packet loss.
               netem = "slot 400ms 600ms packets 49152 limit 65536";
             };
           };
