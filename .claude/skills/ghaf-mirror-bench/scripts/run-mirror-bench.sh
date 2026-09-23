@@ -46,12 +46,6 @@ Usage: run-mirror-bench.sh [OPTIONS] [-- EXTRA_BENCH_ARGS...]
                          prefer being asked over pasting a remembered name.
       --mode <ab|sweep>  ab: interleaved Mirror ON/OFF pairs (default)
                          sweep: bandwidth sweep with plots (needs iperf3)
-      --window <SEC>     Seconds per ON/OFF slot (bench default: 30)
-      --iterations <N>   ON/OFF pairs, or pairs per sweep step (default: 10)
-      --bandwidth <BW>   iperf3 target bandwidth for ab mode (e.g. 100M)
-      --sweep-min <BW>   Sweep lower bound (default: same as step)
-      --sweep-max <BW>   Sweep upper bound (required for --mode sweep)
-      --sweep-step <BW>  Sweep step (bench default: 5M)
       --iperf-server <H> Use this iperf3 server instead of starting one here
       --no-iperf         Skip iperf3 entirely (ping/CPU/RAM only; not for sweep)
       --no-host-bench    Skip host CPU measurement via ids-bench-server
@@ -59,6 +53,10 @@ Usage: run-mirror-bench.sh [OPTIONS] [-- EXTRA_BENCH_ARGS...]
   -p, --password <PW>    ghaf/admin password on the device (default: ghaf)
       --dry-run          Print what would run, touch nothing
   -h, --help             This message
+
+Passed straight through to ids-mirror-bench, same names and defaults as its
+own --help (run `ssh ghaf@<ip> -- ids-mirror-bench --help` to see them):
+  --window, --iterations, --bandwidth, --sweep-min, --sweep-max, --sweep-step
 
 Anything after `--` is passed through to ids-mirror-bench unchanged, e.g.
   -- --netem "slot 30ms 50ms packets 1024 limit 4096"
@@ -239,27 +237,14 @@ run_remote() {
 
 echo "==> Preflight on $HOST_IP"
 
-# Single-quoted on purpose: every expansion in here has to happen on the
-# device, not in this shell.
+# Single-quoted on purpose: every expansion has to happen on the device.
 # shellcheck disable=SC2016
 REMOTE_PROBE=$(run_remote '
-  echo "bench=$(command -v ids-mirror-bench 2>/dev/null || echo MISSING)"
+  b=$(command -v ids-mirror-bench 2>/dev/null)
+  echo "bench=${b:-MISSING}"
   echo "unit=$(systemctl list-unit-files ids-mirror.service --no-legend 2>/dev/null | awk "{print \$2}" || echo MISSING)"
   echo "trunc=$([ -e /etc/ids-mirror/trunc.o ] && echo present || echo absent)"
-  defdevs=$(ip route show default 2>/dev/null | awk "{for(i=1;i<=NF;i++) if(\$i==\"dev\") print \$(i+1)}" | sort -u | tr "\n" " ")
-  for s in /sys/class/net/*; do
-    n=$(basename "$s"); [ -e "$s/device" ] || continue
-    [ "$n" = mirror ] && continue
-    d=$(basename "$(readlink "$s/device/driver" 2>/dev/null)" 2>/dev/null || true)
-    [ "$d" = virtio_net ] && continue
-    ip4=$(ip -4 -o addr show dev "$n" scope global 2>/dev/null | awk "{print \$4; exit}")
-    [ -z "$ip4" ] && ip4=no-address
-    case " $defdevs " in *" $n "*) dr=default-route ;; *) dr=no-default-route ;; esac
-    rps=$(cat "$s/queues/rx-0/rps_cpus" 2>/dev/null || echo "-")
-    sp=$(cat "$s/speed" 2>/dev/null || echo "-")
-    case "$sp" in "" | -1) sp="-" ;; esac
-    echo "nic=$n $ip4 $dr $(cat "$s/operstate" 2>/dev/null || echo unknown) rps=$rps speed=$sp"
-  done
+  [ -n "$b" ] && ids-mirror-bench --list-ifaces 2>/dev/null | sed "s/^/nic=/"
   echo "netemraw=$(tc qdisc show dev mirror 2>/dev/null | grep -m1 "qdisc netem" || true)"
   echo "rev=$(readlink /run/current-system 2>/dev/null || echo unknown)"
 ') || {
@@ -272,11 +257,8 @@ MIRROR_UNIT=$(printf '%s\n' "$REMOTE_PROBE" | sed -n 's/^unit=//p')
 TRUNC_OBJ=$(printf '%s\n' "$REMOTE_PROBE" | sed -n 's/^trunc=//p')
 DEVICE_REV=$(printf '%s\n' "$REMOTE_PROBE" | sed -n 's/^rev=//p')
 
-# netem and rps are configured in Nix (trafficMirror.sender.netem and
-# sender.rps.enable) and applied by ids-mirror's start script. Read what is
-# actually deployed rather than restating the Nix defaults here: the device
-# can be running an older generation than the checkout, and the point of the
-# run is to measure what is on it.
+# Read netem/rps as deployed, not the Nix defaults: the device can run an
+# older generation than the checkout.
 NETEM_LIVE=$(printf '%s\n' "$REMOTE_PROBE" | sed -n 's/^netemraw=//p' |
   sed -e 's/^qdisc netem [^ ]* root refcnt [0-9]* //' -e 's/ seed [0-9]*//')
 [ -n "$NETEM_LIVE" ] || NETEM_LIVE="none (no netem qdisc on the mirror tap)"
@@ -307,14 +289,8 @@ echo "  ids-mirror : $MIRROR_UNIT"
 echo "  trunc.o    : $TRUNC_OBJ (--truncation on needs 'present')"
 echo "  system     : $DEVICE_REV"
 
-# Resolving the interface here, against what the device actually has, rather
-# than trusting a name from a previous run. Interface names are not stable
-# across targets or even across re-plugs -- the udev rule in netvm-base.nix
-# derives ueth<N> from the interface index, so pulling the dongle bumps
-# ueth5 to ueth6 -- and the bench's own fallback takes the first NIC in
-# sysfs order, which is alphabetical and unrelated to which one carries
-# traffic. Measuring an idle NIC produces a near-zero delta that reads
-# exactly like "mirroring is free".
+# Resolve against the device, not a remembered name: ueth<N> changes on re-plug
+# (netvm-base.nix), and measuring an idle NIC reads exactly like "mirroring is free".
 if [ "${#NIC_NAMES[@]}" -eq 0 ]; then
   echo "No physical NIC on the device; nothing to measure." >&2
   exit 1
@@ -365,9 +341,7 @@ else
   echo "  iface      : $IFACE (chosen)"
 fi
 
-# Anything the user put after `--` wins; otherwise the deployed Nix values
-# stand, because passing neither flag is what leaves ids-mirror's own
-# configuration in place.
+# Anything after `--` wins; passing neither flag leaves the deployed values.
 OVERRIDE_NETEM=0
 OVERRIDE_RPS=0
 for a in ${EXTRA[@]+"${EXTRA[@]}"}; do
@@ -381,6 +355,7 @@ RPS_LIVE=""
 for d in "${NIC_DESC[@]}"; do
   n=${d%% *}
   m=${d##*rps=}
+  m=${m%% *}
   RPS_LIVE="$RPS_LIVE $n=$m"
 done
 RPS_LIVE=${RPS_LIVE# }
@@ -391,10 +366,8 @@ else
   echo "  netem      : $NETEM_LIVE (deployed)"
 fi
 if [ "$OVERRIDE_RPS" = 1 ]; then
-  # apply_rps runs once, before the pair loop, while ids-mirror's start script
-  # re-applies its own per-interface assignment on every ON phase -- unlike
-  # netem and truncation, which the bench deliberately re-applies after each
-  # start. So --rps holds only until the first pair begins.
+  # ids-mirror's start script re-applies its own RPS every ON phase, so --rps
+  # holds only until the first pair begins (netem/truncation are re-applied).
   echo "  rps        : $RPS_LIVE (deployed)"
   echo
   echo "  WARNING: --rps is overwritten by ids-mirror at the first Mirror ON." >&2
@@ -408,12 +381,8 @@ fi
 
 # -------------------------------------------------- ids-bench-server preflight
 
-# Checked before the run rather than discovered 30s into it, because a missed
-# host-CPU sample is not merely missing: measure_window only appends to
-# host_cpu when the query succeeded, and delta() pairs ON against OFF by line
-# number. One dropped sample therefore shifts every later pair against its
-# partner, and the host CPU delta comes out as a plausible-looking number
-# computed from mismatched windows.
+# Checked up front: one dropped host-CPU sample shifts delta()'s ON/OFF line
+# pairing, yielding a plausible but wrong number.
 if [ "$NO_HOST_BENCH" = 0 ]; then
   echo
   echo "==> Checking ids-bench-server"
@@ -434,11 +403,8 @@ if [ "$NO_HOST_BENCH" = 0 ]; then
       exit 1
     fi
     echo "  answering on $HOST_BENCH_IP:9999 — $BENCH_SRV"
-    # The server serves one connection and exits; systemd restarts it about a
-    # second later. The probe above consumed that connection, and the bench
-    # opens its own the moment it starts, so give the restart time to land --
-    # otherwise the first query races it and the run begins with exactly the
-    # dropped sample this check exists to prevent.
+    # The server serves one connection then restarts ~1s later; wait it out so
+    # the bench's first query doesn't race the restart.
     sleep 3
   fi
 fi
@@ -456,9 +422,7 @@ cleanup() {
     kill "$IPERF_PID" 2>/dev/null || true
     wait "$IPERF_PID" 2>/dev/null || true
   fi
-  # The bench flips ids-mirror per pair and restarts it when it finishes
-  # normally. An interrupt can land in an OFF window, which would leave the
-  # device with mirroring off and nothing saying so.
+  # An interrupt in an OFF window would leave mirroring off silently.
   if [ "$MIRROR_TOUCHED" = 1 ] && [ "$rc" -ne 0 ]; then
     echo
     echo "==> Interrupted; restarting ids-mirror on the device"
@@ -482,9 +446,8 @@ resolve_iperf3() {
 }
 
 if [ "$NO_IPERF" = 0 ] && [ -z "$IPERF_SERVER" ]; then
-  # The address the device would reach us on, not our default-route address:
-  # on a multi-homed workstation those differ and the device can only use the
-  # one on the path it takes to us.
+  # The address the device reaches us on, not our default-route one (differs
+  # on a multi-homed workstation).
   IPERF_SERVER=$(ip route get "$HOST_IP" 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}' | head -1)
   [ -n "$IPERF_SERVER" ] || {
     echo "Could not work out our own address toward $HOST_IP." >&2
@@ -499,10 +462,7 @@ if [ "$NO_IPERF" = 0 ] && [ -z "$IPERF_SERVER" ]; then
   }
 
   if [ "$DRY_RUN" = 0 ]; then
-    # Reuse a listener that is already up instead of colliding with it: a
-    # previous run or a hand-started server is perfectly usable, and only a
-    # server this script started is torn down at the end (IPERF_PID stays
-    # empty otherwise, so cleanup leaves someone else's process alone).
+    # Reuse a running listener; IPERF_PID stays empty so cleanup leaves it alone.
     if "$IPERF3_BIN" -c "$IPERF_SERVER" -t 1 -b 1M >/dev/null 2>&1; then
       echo "==> Reusing the iperf3 server already on $IPERF_SERVER:5201"
     else

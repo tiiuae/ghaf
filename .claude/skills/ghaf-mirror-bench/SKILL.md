@@ -5,8 +5,9 @@ description: Measure what IDS traffic mirroring costs on a Ghaf device - CPU, RA
 
 # Benchmarking IDS traffic mirroring
 
-net-vm clones physical NIC traffic to ids-vm over a GRE tunnel (`tc mirred`). This skill
-measures what that costs. The tool is `ids-mirror-bench`, which ships on the device;
+net-vm clones physical NIC traffic to a tap (`tc mirred`) that the host relays to ids-vm. This skill
+measures what that costs. The tool is `ids-mirror-bench`
+(`packages/pkgs-by-name/ids-mirror-bench/package.nix`), which ships on the device;
 `scripts/run-mirror-bench.sh` drives it from here and supplies the three things it cannot
 provide itself — an iperf3 server, root on net-vm, and somewhere to keep the output.
 

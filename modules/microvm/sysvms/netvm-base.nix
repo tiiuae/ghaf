@@ -282,7 +282,7 @@ in
   microvm = {
     # Optimize is disabled because when it is enabled, qemu is built without libusb
     optimize.enable = false;
-    vcpu = lib.mkDefault 3;
+    vcpu = lib.mkDefault 2;
     mem = lib.mkDefault 1024;
     shares = [
       {

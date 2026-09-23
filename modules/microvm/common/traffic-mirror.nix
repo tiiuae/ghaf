@@ -7,7 +7,8 @@
 #   sender   — mirrors physical NIC traffic to a tap (tap-mirror-<hostname>)
 #   receiver — IDS-VM side: receives mirrored frames on the mirror interface
 #
-# The host relays frames between sender and receiver taps via TC redirect
+# The host relays frames between sender and receiver taps (bridge or tc,
+# see host/traffic-mirror.nix relayMethod)
 {
   config,
   lib,
@@ -22,14 +23,8 @@ let
 
   hostTapId = "mir-${config.networking.hostName}";
 
-  idsMirrorBench = pkgs.writeShellScriptBin "ids-mirror-bench" ''
-    exec ${lib.getExe pkgs.ids-mirror-bench} "$@"
-  '';
-
-  # eBPF classifier that truncates mirrored frames to cfg.sender.snaplen bytes.
-  # Attached on the `mirror` tap's own egress, downstream of the mirred clone
-  # (see mirrorStartScript) - by that point the frame is already an
-  # independent copy, so shrinking it here never touches live traffic.
+  # eBPF classifier truncating mirrored frames to cfg.sender.snaplen bytes, on
+  # the `mirror` tap's egress: past the mirred clone, so live traffic is untouched.
   mirrorTruncSrc = pkgs.writeText "mirror-trunc.bpf.c" ''
     #include <linux/bpf.h>
 
@@ -56,10 +51,8 @@ let
           pkgs.clang
           pkgs.linuxHeaders
         ];
-        # nixpkgs' cc-wrapper injects hardening flags (e.g.
-        # -fzero-call-used-regs, -fstack-protector-strong) that clang
-        # rejects for -target bpf; the BPF verifier is the real safety net
-        # here anyway.
+        # cc-wrapper's hardening flags are rejected by clang for -target bpf;
+        # the BPF verifier is the real safety net.
         hardeningDisable = [ "all" ];
       }
       ''
@@ -84,10 +77,8 @@ let
         || { echo "ids-mirror: ERROR: failed to add netem qdisc on mirror" >&2; exit 1; }
 
       ${lib.optionalString (cfg.sender.snaplen != null) ''
-        # Truncate mirrored frames to ${toString cfg.sender.snaplen} bytes on
-        # the mirror tap's own egress, before they hit the netem queue above -
-        # this shrinks everything downstream (queueing, virtio, host relay,
-        # ids-vm receive) to header-only size.
+        # Truncate to ${toString cfg.sender.snaplen} bytes on the tap's egress, before the netem
+        # queue, so everything downstream handles header-only frames.
         tc_try tc filter del dev mirror egress
         tc_try tc qdisc del dev mirror clsact
         tc qdisc add dev mirror clsact \
@@ -116,22 +107,11 @@ let
           tc_try tc qdisc  del dev "$name" clsact
           tc qdisc  add dev "$name" clsact \
             || { echo "ids-mirror: ERROR: failed to add clsact qdisc on $name" >&2; exit 1; }
-          # Low-value/high-volume traffic excluded from the mirror, evaluated
-          # (in pref order) before the catch-all at pref 10 so matching
-          # frames terminate (pass) before mirred ever sees them. DNS is
-          # deliberately NOT excluded here.
-          #
-          # Multicast/broadcast (dst MAC I/G bit set): mDNS/SSDP/IGMP chatter,
-          # and also covers LLDP/CDP/STP since their standard destination
-          # MACs are multicast-addressed - no separate rule needed for those.
-          #
-          # Uses flower's dst_mac match (dissected field), NOT a raw u32 byte
-          # offset at 0. On egress, u32's "at 0" isn't reliably anchored to
-          # the L2 header for locally-originated traffic - it can land on the
-          # IP header instead, and an ordinary IPv4 packet's first byte
-          # (0x45, version+IHL) has its LSB set, misclassifying it as
-          # multicast. flower reads the real dissected MAC field regardless
-          # of direction.
+          # Exclude low-value/high-volume traffic (DNS deliberately kept) before
+          # the pref-10 catch-all, so it passes before mirred sees it.
+          # Multicast/broadcast (incl. LLDP/CDP/STP): flower dst_mac, not u32 at 0 -
+          # on egress u32 can land on the IP header, whose 0x45 first byte has the
+          # multicast bit set and would misclassify ordinary IPv4.
           tc filter add dev "$name" ingress protocol all pref 1 \
             flower dst_mac 01:00:00:00:00:00/01:00:00:00:00:00 action pass \
             || { echo "ids-mirror: ERROR: failed to add multicast-exclude filter on $name ingress" >&2; exit 1; }
@@ -143,10 +123,8 @@ let
             || { echo "ids-mirror: ERROR: failed to add ARP-exclude filter on $name ingress" >&2; exit 1; }
           tc filter add dev "$name" egress protocol arp pref 2 flower action pass \
             || { echo "ids-mirror: ERROR: failed to add ARP-exclude filter on $name egress" >&2; exit 1; }
-          # ICMP + NTP (UDP/123, both port directions) - one shared pref/protocol
-          # band per direction: flower keeps all rules added at the same pref
-          # in a single hash table with one key-extraction pass, instead of
-          # each rule paying its own separate classifier traversal.
+          # ICMP + NTP (UDP/123, both directions) share one pref per direction:
+          # flower hashes same-pref rules in a single lookup pass.
           tc filter add dev "$name" ingress protocol ip pref 3 flower ip_proto icmp action pass \
             || { echo "ids-mirror: ERROR: failed to add ICMP-exclude filter on $name ingress" >&2; exit 1; }
           tc filter add dev "$name" egress protocol ip pref 3 flower ip_proto icmp action pass \
@@ -174,10 +152,7 @@ let
             || { echo "ids-mirror: ERROR: failed to add egress filter on $name" >&2; exit 1; }
 
           ${lib.optionalString cfg.sender.rps.enable ''
-            # RPS: each interface gets its own distinct CPU (round-robin over
-            # however many net-vm actually has, via nproc - not hardcoded),
-            # instead of every interface sharing the same mask and contending
-            # for the same cores.
+            # RPS: one distinct CPU per interface, round-robin over nproc.
             rps_cpu=$((mirrored % $(nproc)))
             rps_mask=$(printf '%x' $((1 << rps_cpu)))
             rps_f="$sysfs/queues/rx-0/rps_cpus"
@@ -335,6 +310,10 @@ in
     # Sender: mirrors physical NIC traffic via tap to the host relay
     (lib.mkIf cfg.sender.enable {
 
+      # tc mirred cloning physical NIC traffic is extra work on top of the
+      # VM's existing role; force a core for it over the plain default.
+      microvm.vcpu = lib.mkForce 3;
+
       boot.kernelPatches = [
         {
           name = "tc-mirror-support";
@@ -400,22 +379,18 @@ in
       };
 
       environment.systemPackages = lib.mkIf config.ghaf.profiles.debug.enable [
-        idsMirrorBench
+        pkgs.ids-mirror-bench
         pkgs.bpftools
         pkgs.iperf3
       ];
       networking.networkmanager.unmanaged = [ "mirror" ];
 
-      # Compiled truncate object at a well-known path so ids-mirror-bench can
-      # attach/detach it directly (`--truncation on|off`) without needing a
-      # rebuild to change snaplen's on/off state at runtime.
+      # Well-known path so ids-mirror-bench can attach/detach it (`--truncation on|off`).
       environment.etc = lib.mkIf (cfg.sender.snaplen != null) {
         "ids-mirror/trunc.o".source = mirrorTruncObj;
       };
 
-      # Not started at boot - single balancing pass, manually triggered:
-      # `systemctl start irqbalance`. Mirrors the same on-demand pattern set
-      # up on the host (see host/traffic-mirror.nix).
+      # Manual only (`systemctl start irqbalance`), like the host's (host/traffic-mirror.nix).
       systemd.services.irqbalance = {
         description = "IRQ balancing: single pass (manual start only)";
         serviceConfig = {

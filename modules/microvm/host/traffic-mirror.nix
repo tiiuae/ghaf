@@ -36,63 +36,62 @@ let
   inTap = tapFor cfg.receiverVm;
   bridgeIface = "br-mirror";
 
-  internalMirrorStartCmds = lib.concatMapStringsSep "\n" (vmName: ''
-    ${pkgs.iproute2}/bin/tc qdisc del dev ${intTapFor vmName} clsact 2>/dev/null || true
-    ${pkgs.iproute2}/bin/tc qdisc add dev ${intTapFor vmName} clsact
-    ${pkgs.iproute2}/bin/tc filter add dev ${intTapFor vmName} ingress protocol all \
-      matchall action mirred egress mirror dev ${inTap}
-  '') internalTapVms;
+  # Start/stop scripts steering each dev's ingress into the receiver tap via tc mirred.
+  mkTcSteer =
+    name: action: devs:
+    let
+      script =
+        suffix: perDev:
+        pkgs.writeShellApplication {
+          name = "${name}-${suffix}";
+          runtimeInputs = [ pkgs.iproute2 ];
+          text = lib.concatMapStringsSep "\n" perDev devs;
+        };
+    in
+    {
+      start = script "start" (dev: ''
+        tc qdisc del dev ${dev} clsact 2>/dev/null || true
+        tc qdisc add dev ${dev} clsact
+        tc filter add dev ${dev} ingress protocol all \
+          matchall action mirred egress ${action} dev ${inTap}
+      '');
+      stop = script "stop" (dev: ''
+        tc filter del dev ${dev} ingress 2>/dev/null || true
+        tc qdisc del dev ${dev} clsact 2>/dev/null || true
+      '');
+    };
 
-  internalMirrorStopCmds = lib.concatMapStringsSep "\n" (vmName: ''
-    ${pkgs.iproute2}/bin/tc filter del dev ${intTapFor vmName} ingress 2>/dev/null || true
-    ${pkgs.iproute2}/bin/tc qdisc  del dev ${intTapFor vmName} clsact  2>/dev/null || true
-  '') internalTapVms;
+  internalMirror = mkTcSteer "ids-internal-mirror" "mirror" (map intTapFor internalTapVms);
 
   # tc relayMethod: per-packet tc filter/mirred redirect on each sender tap.
-  relayStartCmds = lib.concatMapStringsSep "\n" (vmName: ''
-    ${pkgs.iproute2}/bin/tc qdisc del dev ${tapFor vmName} clsact 2>/dev/null || true
-    ${pkgs.iproute2}/bin/tc qdisc add dev ${tapFor vmName} clsact
-    ${pkgs.iproute2}/bin/tc filter add dev ${tapFor vmName} ingress protocol all \
-      matchall action mirred egress redirect dev ${inTap}
-  '') senderNames;
+  relay = mkTcSteer "ids-tap-relay" "redirect" (map tapFor senderNames);
 
-  relayStopCmds = lib.concatMapStringsSep "\n" (vmName: ''
-    ${pkgs.iproute2}/bin/tc filter del dev ${tapFor vmName} ingress 2>/dev/null || true
-    ${pkgs.iproute2}/bin/tc qdisc del dev ${tapFor vmName} clsact 2>/dev/null || true
-  '') senderNames;
+  # RPS on the RX-heavy host-side tap (mir-<vmName>) across CPU2-4, leaving
+  # CPU0-1 free; skipped below 5 CPUs. Best-effort per queue.
+  rpsStart = pkgs.writeShellApplication {
+    name = "ids-mirror-rps-start";
+    text = lib.concatMapStringsSep "\n" (vmName: ''
+      tap="${tapFor vmName}"
+      if [ "$(nproc)" -ge 5 ]; then
+        for q in 0 1 2; do
+          case "$q" in
+            0) mask=4 ;;
+            1) mask=8 ;;
+            2) mask=10 ;;
+          esac
+          f="/sys/class/net/$tap/queues/rx-$q/rps_cpus"
+          fc="/sys/class/net/$tap/queues/rx-$q/rps_flow_cnt"
+          [ -e "$f" ] && { echo "$mask" > "$f" 2>/dev/null || true; }
+          [ -e "$fc" ] && { echo 32768 > "$fc" 2>/dev/null || true; }
+        done
+      fi
+      # Exit 0 whichever branch ran: a missing queue file leaves the last
+      # `[ -e ] &&` at status 1, which would fail the oneshot.
+      true
+    '') senderNames;
+  };
 
-  # RPS on each sender's host-side receive tap (mir-<vmName>) - this is the
-  # RX-heavy end of the relay (receives whatever the sender VM's own
-  # mirror-tx tap sends), unlike the sender-side taps which are TX-only and
-  # use XPS instead. Spreads across CPU2-4, skipping CPU0-1 which are left
-  # for other host work - only bothers if the host actually has the CPUs to
-  # spare (>=5, so CPU4 exists). Best-effort per queue: harmless if a given
-  # tap has fewer than 3 queues.
-  rpsStartCmds = lib.concatMapStringsSep "\n" (vmName: ''
-    tap="${tapFor vmName}"
-    if [ "$(nproc)" -ge 5 ]; then
-      for q in 0 1 2; do
-        case "$q" in
-          0) mask=4 ;;
-          1) mask=8 ;;
-          2) mask=10 ;;
-        esac
-        f="/sys/class/net/$tap/queues/rx-$q/rps_cpus"
-        fc="/sys/class/net/$tap/queues/rx-$q/rps_flow_cnt"
-        [ -e "$f" ] && { echo "$mask" > "$f" 2>/dev/null || true; }
-        [ -e "$fc" ] && { echo 32768 > "$fc" 2>/dev/null || true; }
-      done
-    fi
-    # writeShellScript has no `set -e`, so the script's own exit status is
-    # whatever the last command returned - without this, an `if` whose
-    # condition is false (e.g. nproc<5, intentionally skipping RPS setup)
-    # would make the script exit 1 and systemd report a spurious failure.
-    true
-  '') senderNames;
-
-  # bridge relayMethod: sender taps join br-mirror as isolated ports - they
-  # can only reach a non-isolated port (the receiver tap below), never each
-  # other.
+  # bridge relayMethod: isolated ports can only reach the receiver tap, never each other.
   senderTapNetworks = lib.listToAttrs (
     map (vmName: {
       name = "09-${tapFor vmName}";
@@ -150,30 +149,13 @@ in
   config = lib.mkMerge [
     (lib.mkIf cfg.enable {
 
-      # Not started at boot - its actual usefulness here is unverified
-      # (host-level irqbalance can't reach the guest-internal NIC IRQs this
-      # feature's tuning targets). No `wantedBy`, so it only runs when
-      # explicitly started: `systemctl start irqbalance`. --oneshot does a
-      # single balancing pass and exits, matching Type=oneshot, instead of
-      # lingering as a background daemon during measurement windows.
-      systemd.services.irqbalance = {
-        description = "IRQ balancing: single pass (manual start only)";
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = "${pkgs.irqbalance}/bin/irqbalance --oneshot --debug --foreground";
-        };
-      };
-
       boot.kernelPatches = [
         {
           name = "tc-mirror-support";
           patch = null;
           structuredExtraConfig = with lib.kernel; {
-            # NET_CLS_U32/NET_ACT_MIRRED/NET_SCH_INGRESS are needed for
-            # ids-internal-mirror (VM-to-VM tap mirroring) regardless of
-            # relayMethod, and for the sender->receiver relay itself when
-            # relayMethod = "tc". BRIDGE is only needed when relayMethod =
-            # "bridge", but harmless to always include.
+            # U32/MIRRED/INGRESS serve ids-internal-mirror and relayMethod = "tc";
+            # BRIDGE only relayMethod = "bridge", but is harmless to always include.
             NET_CLS_U32 = module;
             NET_CLS_MATCHALL = module;
             NET_ACT_MIRRED = module;
@@ -191,49 +173,58 @@ in
         "bridge"
       ];
 
-      systemd.services."ids-bench-server" = lib.mkIf config.ghaf.profiles.debug.enable {
-        description = "IDS benchmark command listener (listens on port 9999)";
-        wantedBy = [ "multi-user.target" ];
-        serviceConfig = {
-          Type = "simple";
-          ExecStart = "${pkgs.ids-mirror-bench}/bin/ids-bench-server";
-          Restart = "always";
-          RestartSec = "1s";
-        };
-      };
-
       ghaf.firewall.allowedTCPPorts = lib.optionals config.ghaf.profiles.debug.enable [ 9999 ];
 
-      systemd.services."ids-internal-mirror" =
-        lib.mkIf (config.ghaf.global-config.idsvm.passiveMonitor.internal or false)
-          {
-            description = "IDS internal mirror: copy inter-VM tap traffic to ${cfg.receiverVm}";
-            wantedBy = [ "multi-user.target" ];
-            after = (map (n: "microvm@${n}.service") internalTapVms) ++ [ "microvm@${cfg.receiverVm}.service" ];
-            bindsTo = [ "microvm@${cfg.receiverVm}.service" ];
-            serviceConfig = {
-              Type = "oneshot";
-              RemainAfterExit = true;
-              ExecStart = pkgs.writeShellScript "ids-internal-mirror-start" internalMirrorStartCmds;
-              ExecStop = pkgs.writeShellScript "ids-internal-mirror-stop" internalMirrorStopCmds;
-            };
+      systemd.services = {
+        # Manual only (`systemctl start irqbalance`): usefulness is unverified,
+        # as host irqbalance can't reach guest NIC IRQs. --oneshot does one pass.
+        irqbalance = {
+          description = "IRQ balancing: single pass (manual start only)";
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = "${pkgs.irqbalance}/bin/irqbalance --oneshot --debug --foreground";
           };
+        };
 
-      systemd.services."ids-mirror-rps" = lib.mkIf cfg.rps.enable {
-        description = "RPS steering for sender VMs' host-side receive taps";
-        wantedBy = [ "multi-user.target" ];
-        after = map (n: "microvm@${n}.service") senderNames;
-        bindsTo = map (n: "microvm@${n}.service") senderNames;
-        # BindsTo only guarantees this stops when the sender VM's service
-        # stops - it doesn't retrigger this when that service starts again
-        # (e.g. after a VM restart recreates mir-<vmName>, resetting the
-        # masks to 0). PartOf propagates restarts too, so RPS gets reapplied
-        # whenever the sender VM does.
-        partOf = map (n: "microvm@${n}.service") senderNames;
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          ExecStart = pkgs.writeShellScript "ids-mirror-rps-start" rpsStartCmds;
+        "ids-bench-server" = lib.mkIf config.ghaf.profiles.debug.enable {
+          description = "IDS benchmark command listener (listens on port 9999)";
+          wantedBy = [ "multi-user.target" ];
+          serviceConfig = {
+            Type = "simple";
+            ExecStart = "${pkgs.ids-mirror-bench}/bin/ids-bench-server";
+            Restart = "always";
+            RestartSec = "1s";
+          };
+        };
+
+        "ids-internal-mirror" =
+          lib.mkIf (config.ghaf.global-config.idsvm.passiveMonitor.internal or false)
+            {
+              description = "IDS internal mirror: copy inter-VM tap traffic to ${cfg.receiverVm}";
+              wantedBy = [ "multi-user.target" ];
+              after = (map (n: "microvm@${n}.service") internalTapVms) ++ [ "microvm@${cfg.receiverVm}.service" ];
+              bindsTo = [ "microvm@${cfg.receiverVm}.service" ];
+              serviceConfig = {
+                Type = "oneshot";
+                RemainAfterExit = true;
+                ExecStart = lib.getExe internalMirror.start;
+                ExecStop = lib.getExe internalMirror.stop;
+              };
+            };
+
+        "ids-mirror-rps" = lib.mkIf cfg.rps.enable {
+          description = "RPS steering for sender VMs' host-side receive taps";
+          wantedBy = [ "multi-user.target" ];
+          after = map (n: "microvm@${n}.service") senderNames;
+          bindsTo = map (n: "microvm@${n}.service") senderNames;
+          # BindsTo doesn't re-run this after a VM restart recreates mir-<vmName>
+          # (masks reset to 0); PartOf propagates restarts so RPS is reapplied.
+          partOf = map (n: "microvm@${n}.service") senderNames;
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            ExecStart = lib.getExe rpsStart;
+          };
         };
       };
     })
@@ -246,8 +237,8 @@ in
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
-          ExecStart = pkgs.writeShellScript "ids-tap-relay-start" relayStartCmds;
-          ExecStop = pkgs.writeShellScript "ids-tap-relay-stop" relayStopCmds;
+          ExecStart = lib.getExe relay.start;
+          ExecStop = lib.getExe relay.stop;
         };
       };
 
@@ -283,9 +274,8 @@ in
             Kind = "bridge";
             Name = bridgeIface;
           };
-          # Disable STP, same reasoning as the host's virbr0 (see
-          # modules/microvm/host/networking.nix): static topology, no loops,
-          # and STP's forward-delay would just add pointless startup latency.
+          # No STP (as virbr0, see networking.nix): static topology, and its
+          # forward-delay only adds startup latency.
           bridgeConfig = {
             STP = false;
             ForwardDelaySec = 0;
