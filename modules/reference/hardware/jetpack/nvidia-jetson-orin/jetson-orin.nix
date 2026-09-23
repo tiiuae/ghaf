@@ -513,9 +513,16 @@ let
         uniqueKeyDescription=$1
         defaultKey=$2
         luksDev=$3
+        # The flash image reserves slot 1 for the printable recovery
+        # passphrase. Put the DUK in a known, separate slot so manufacturer
+        # removal cannot remove or rewrite recovery.
+        uniqueKeySlot=2
 
         printf "Switching to use device unique key. This might take a bit..\n"
-        if ! printf "%s" "$defaultKey" | cryptsetup luksAddKey --new-key-description "$uniqueKeyDescription" --key-file=- "$luksDev"; then
+        if ! printf "%s" "$defaultKey" | cryptsetup luksAddKey \
+          --new-key-description "$uniqueKeyDescription" \
+          --new-key-slot "$uniqueKeySlot" \
+          --key-file=- "$luksDev"; then
           printf "error: Failed to set unique key\n"
           handle_error
         fi
@@ -525,15 +532,11 @@ let
           handle_error
         fi
 
-        # luksAddKey/luksRemoveKey only swap keyslots; the volume key that
-        # actually encrypts the data is still the one the manufacturing
-        # passphrase protected. Reencrypt derives a fresh volume key from the
-        # device-unique key, so a leaked manufacturing passphrase grants nothing.
-        printf "Note: Re-encryption may take 1 minute for every 1 GB of data ...\n"
-        if ! cryptsetup reencrypt --key-description "$uniqueKeyDescription" "$luksDev"; then
-           printf "error: Re-encryption failed\n"
-           handle_error
-        fi
+        # Do not rotate the volume key here.  cryptsetup cannot re-wrap a
+        # recovery keyslot without knowing its passphrase, so volume-key
+        # re-encryption would discard the offline recovery credential.  Removing
+        # the manufacturer keyslot is sufficient to revoke that passphrase: it
+        # never exposed the random volume key itself.
       }
 
       # Resolve the LUKS partition by its pinned header UUID and verify it is a
@@ -591,6 +594,94 @@ let
         printf "error: Unable to add cryptrsetup token\n"
         handle_error
       fi
+    '';
+  };
+
+  # APP must be grown while the OP-TEE-derived key is still present in the
+  # initrd's shared keyring.  After switch-root that keyring is intentionally
+  # unreachable, so cryptsetup resize would otherwise prompt for a passphrase.
+  # The real-root firstboot service grows the PV and creates the remaining LVs.
+  resizeVerityLuksScript = pkgs.writeShellApplication {
+    name = "resize-verity-luks";
+    runtimeInputs = with pkgs; [
+      coreutils
+      cryptsetup
+      gptfdisk
+      parted
+      util-linux
+    ];
+    text = ''
+      set -euo pipefail
+
+      luks_dev=""
+      for dev in $(blkid -o device -t UUID=${luksUuid} 2>/dev/null); do
+        [ "$(blkid -o value -s TYPE "$dev" 2>/dev/null)" = "crypto_LUKS" ] || continue
+        luks_dev="$dev"
+        break
+      done
+      [ -n "$luks_dev" ] || { echo "ERROR: LUKS APP partition not found"; exit 1; }
+
+      real_dev=$(readlink -f "$luks_dev")
+      base_dev=$(basename "$real_dev")
+      part_num=$(cat "/sys/class/block/$base_dev/partition")
+      disk="/dev/$(basename "$(readlink -f "/sys/class/block/$base_dev/..")")"
+
+      echo "Growing APP partition $part_num on $disk..."
+      sgdisk -e "$disk" || true
+
+      # Grow to the largest partition size that is an exact multiple of the
+      # LUKS data-sector size.  A raw `resizepart 100%` can leave APP a few
+      # 512-byte sectors too long on NVMe; cryptsetup then refuses to grow a
+      # mapping whose data sector is 4096 bytes.
+      part_start=$(cat "/sys/class/block/$base_dev/start")
+      last_usable=""
+      while IFS= read -r line; do
+        if [[ "$line" =~ last\ usable\ sector\ is\ ([0-9]+) ]]; then
+          last_usable="''${BASH_REMATCH[1]}"
+          break
+        fi
+      done < <(sgdisk -p "$disk")
+      logical_sector_bytes=$(blockdev --getss "$disk")
+      luks_sector_bytes=""
+      while read -r field value _; do
+        if [ "$field" = "sector:" ]; then
+          luks_sector_bytes="$value"
+          break
+        fi
+      done < <(cryptsetup luksDump "$real_dev")
+
+      [[ "$part_start" =~ ^[0-9]+$ ]] || { echo "ERROR: invalid APP start sector"; exit 1; }
+      [[ "$last_usable" =~ ^[0-9]+$ ]] || { echo "ERROR: GPT last usable sector not found"; exit 1; }
+      [[ "$logical_sector_bytes" =~ ^[0-9]+$ ]] || { echo "ERROR: invalid disk sector size"; exit 1; }
+      [[ "$luks_sector_bytes" =~ ^[0-9]+$ ]] || { echo "ERROR: invalid LUKS sector size"; exit 1; }
+      (( luks_sector_bytes >= logical_sector_bytes )) || { echo "ERROR: LUKS sector is smaller than disk sector"; exit 1; }
+      (( luks_sector_bytes % logical_sector_bytes == 0 )) || { echo "ERROR: incompatible LUKS and disk sector sizes"; exit 1; }
+
+      alignment=$((luks_sector_bytes / logical_sector_bytes))
+      max_part_sectors=$((last_usable - part_start + 1))
+      aligned_part_sectors=$((max_part_sectors / alignment * alignment))
+      aligned_end=$((part_start + aligned_part_sectors - 1))
+      (( aligned_part_sectors > 0 )) || { echo "ERROR: no usable aligned APP space"; exit 1; }
+
+      # NVIDIA's generated GPT can leave a handful of sectors outside the
+      # usable range.  --fix answers that repair prompt noninteractively.
+      parted -s -f -a none "$disk" unit s resizepart "$part_num" "''${aligned_end}s"
+      udevadm settle
+
+      # Do not race cryptsetup against the kernel's partition-table update.
+      for _ in $(seq 1 50); do
+        [ "$(cat "/sys/class/block/$base_dev/size")" -eq "$aligned_part_sectors" ] && break
+        sleep 0.1
+      done
+      [ "$(cat "/sys/class/block/$base_dev/size")" -eq "$aligned_part_sectors" ] || {
+        echo "ERROR: kernel did not observe the aligned APP size"
+        exit 1
+      }
+
+      echo "Growing open LUKS mapping ${cfg.diskEncryption.mapperName}..."
+      cryptsetup resize \
+        --key-description ${luksDiskKeyDescription} \
+        ${cfg.diskEncryption.mapperName}
     '';
   };
 
@@ -719,6 +810,15 @@ in
       defaultText = lib.literalExpression "config.ghaf.profiles.debug.enable";
     };
 
+    ftpm.enable = mkOption {
+      description = ''
+        Load the OP-TEE-backed firmware TPM during stage 2. This is independent
+        of the OP-TEE device-unique-key service used for disk encryption.
+      '';
+      type = types.bool;
+      default = true;
+    };
+
     diskEncryption = {
       enable = mkEnableOption "generic LUKS root filesystem encryption for eMMC APP partition";
 
@@ -835,12 +935,10 @@ in
         '';
       }
       {
-        assertion = !(cfg.diskEncryption.enable && verityEnabled);
+        assertion = !cfg.runtimeEkProvision.enable || cfg.ftpm.enable;
         message = ''
-          ghaf.hardware.nvidia.orin.diskEncryption.enable and
-          ghaf.partitioning.verity.enable are mutually exclusive root strategies:
-          verity owns fileSystems."/" as a tmpfs overlay, LUKS as an ext4 root on
-          /dev/mapper/${cfg.diskEncryption.mapperName}. Enable at most one.
+          ghaf.hardware.nvidia.orin.runtimeEkProvision.enable requires
+          ghaf.hardware.nvidia.orin.ftpm.enable.
         '';
       }
     ];
@@ -1041,6 +1139,7 @@ in
         ]
         ++ lib.optionals cfg.diskEncryption.deviceUniqueKey.enable [
           preDiskUniqueKeyScript
+          resizeVerityLuksScript
           postDiskUniqueKeyScript
         ];
 
@@ -1099,12 +1198,35 @@ in
           };
         };
 
+        resize-verity-luks = lib.mkIf verityEnabled {
+          description = "Grow verity APP and LUKS mapping before DUK cleanup";
+          wantedBy = [ "initrd-root-fs.target" ];
+          after = [
+            "systemd-cryptsetup@${cfg.diskEncryption.mapperName}.service"
+          ];
+          before = [
+            "initrd-root-fs.target"
+            "post-disk-unique-key.service"
+          ];
+          unitConfig = {
+            DefaultDependencies = false;
+          };
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            ExecStart = "${resizeVerityLuksScript}/bin/resize-verity-luks";
+            StandardOutput = "journal+console";
+            StandardError = "journal+console";
+            KeyringMode = "shared";
+          };
+        };
+
         post-disk-unique-key = {
           description = "Cleanup service for device unique key disk encryption";
           wantedBy = [ "initrd-switch-root.target" ];
-          after = [
-            "resize-partitions.service"
-          ];
+          after =
+            lib.optionals (!verityEnabled) [ "resize-partitions.service" ]
+            ++ lib.optionals verityEnabled [ "resize-verity-luks.service" ];
           unitConfig = {
             DefaultDependencies = false;
           };
@@ -1155,7 +1277,7 @@ in
       };
     };
 
-    systemd.services.ghaf-load-ftpm-module = {
+    systemd.services.ghaf-load-ftpm-module = mkIf cfg.ftpm.enable {
       description = "Load fTPM module after stage-2 OP-TEE readiness";
       wantedBy = [ "multi-user.target" ];
       wants = [
@@ -1180,7 +1302,7 @@ in
       };
     };
 
-    systemd.services.ghaf-provision-ek-certs = mkIf cfg.runtimeEkProvision.enable {
+    systemd.services.ghaf-provision-ek-certs = mkIf (cfg.ftpm.enable && cfg.runtimeEkProvision.enable) {
       description = "Provision fTPM EK certificates into standard NV indices";
       wantedBy = [ "multi-user.target" ];
       wants = [ "tee-supplicant.service" ];
@@ -1202,7 +1324,7 @@ in
       };
     };
 
-    systemd.services.ghaf-export-ek-endorsement-bundle = {
+    systemd.services.ghaf-export-ek-endorsement-bundle = mkIf cfg.ftpm.enable {
       description = "Export EK certs and build endorsement CA bundle";
       wantedBy = [ "multi-user.target" ];
       wants = [ "tee-supplicant.service" ];
