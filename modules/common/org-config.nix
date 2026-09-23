@@ -21,8 +21,6 @@
   ...
 }@args:
 let
-  inherit (lib) types;
-
   globalConfig = args.globalConfig or null;
   org = config.ghaf.org;
   fwd = v: lib.mkIf (v != null) v;
@@ -30,7 +28,7 @@ let
   mkOptionEntry =
     type: description:
     lib.mkOption {
-      type = types.nullOr type;
+      type = lib.types.nullOr type;
       default = null;
       inherit description;
     };
@@ -39,76 +37,76 @@ in
   _file = ./org-config.nix;
 
   options.ghaf.org = lib.mkOption {
-    type = types.submodule {
+    type = lib.types.submodule {
       options = {
         telemetry = {
           logging = {
-            endpoint = mkOptionEntry types.str "Loki push endpoint URL; null disables log forwarding.";
-            serverName = mkOptionEntry types.str "Expected TLS server name (SNI) for the logging endpoint.";
-            logseald.revokedPeerKeys = mkOptionEntry (types.listOf (types.strMatching "spki-sha256:[0-9a-f]{64}")) ''
+            endpoint = mkOptionEntry lib.types.str "Loki push endpoint URL; null disables log forwarding.";
+            serverName = mkOptionEntry lib.types.str "Expected TLS server name (SNI) for the logging endpoint.";
+            logseald.revokedPeerKeys = mkOptionEntry (lib.types.listOf (lib.types.strMatching "spki-sha256:[0-9a-f]{64}")) ''
               Revoked logseald peer leaf keys (SPKI SHA-256), enforced offline by
               every producer and sealer; null revokes none.
             '';
           };
           bugReport = {
-            owner = mkOptionEntry types.str "GitHub owner of the bug-report repository; null disables bug reporting.";
-            repo = mkOptionEntry types.str "GitHub bug-report repository name; null disables bug reporting.";
+            owner = mkOptionEntry lib.types.str "GitHub owner of the bug-report repository; null disables bug reporting.";
+            repo = mkOptionEntry lib.types.str "GitHub bug-report repository name; null disables bug reporting.";
           };
         };
-        management.fleet.url = mkOptionEntry types.str "Fleet MDM server base URL; null disables Orbit enrollment.";
+        management.fleet.url = mkOptionEntry lib.types.str "Fleet MDM server base URL; null disables Orbit enrollment.";
         network = {
-          firewallRulesUrl = mkOptionEntry types.str ''
+          firewallRulesUrl = mkOptionEntry lib.types.str ''
             Source URL of the firewall rules policy, polled on-device by the
             admin-vm policy updater; null leaves the updater inactive.
           '';
-          ntpServers = mkOptionEntry (types.listOf types.str) ''
+          ntpServers = mkOptionEntry (lib.types.listOf lib.types.str) ''
             Upstream NTP servers for the fleet's time server (net-vm); null keeps
             the default public pool.
           '';
         };
         locale = {
-          defaultLocale = mkOptionEntry types.str ''
+          defaultLocale = mkOptionEntry lib.types.str ''
             System locale for every image; null keeps the NixOS default
             (en_US.UTF-8).
           '';
-          timeZone = mkOptionEntry types.str ''
+          timeZone = mkOptionEntry lib.types.str ''
             First-boot timezone; null keeps UTC. VMs with runtime timezone
             management let the user change it afterwards.
           '';
         };
-        pki.secureBootKeysSource = mkOptionEntry types.path ''
+        pki.secureBootKeysSource = mkOptionEntry lib.types.path ''
           Directory of Secure Boot public enrollment keys (PK/KEK/db .auth and
           .crt), baked into the image for UEFI enrollment. Public material only;
           signing keys stay in release infrastructure. Null installs no keys.
         '';
         identity = {
           admin = {
-            name = mkOptionEntry types.str ''
+            name = mkOptionEntry lib.types.str ''
               Admin account name; null keeps the default ("ghaf"). Every consumer
               reads the canonical option, so the rename applies to host and all VMs
               uniformly.
             '';
-            hashedPassword = mkOptionEntry types.str ''
+            hashedPassword = mkOptionEntry lib.types.str ''
               Hashed admin password (mkpasswd -m yescrypt); null keeps the module
               default credential. Setting it also clears initialPassword, so no
               plaintext password is derived alongside the hash.
             '';
           };
           ssh = {
-            debugKeys = mkOptionEntry (types.listOf types.str) ''
+            debugKeys = mkOptionEntry (lib.types.listOf lib.types.str) ''
               Development SSH key roster. Forwarded unconditionally, inert unless that stack is enabled
             '';
-            releaseKeys = mkOptionEntry (types.listOf types.str) ''
+            releaseKeys = mkOptionEntry (lib.types.listOf lib.types.str) ''
               Static SSH keys for the hardened release stack, inert unless that stack is enabled.
             '';
-            trustedUserCAKeys = mkOptionEntry (types.listOf types.str) "SSH user-CA public keys for release SSH certificate auth.";
-            allowedPrincipals = mkOptionEntry (types.listOf types.str) "Accepted certificate principals (null = module default: the admin user).";
-            authorizedKeysOptions = mkOptionEntry types.str ''
+            trustedUserCAKeys = mkOptionEntry (lib.types.listOf lib.types.str) "SSH user-CA public keys for release SSH certificate auth.";
+            allowedPrincipals = mkOptionEntry (lib.types.listOf lib.types.str) "Accepted certificate principals (null = module default: the admin user).";
+            authorizedKeysOptions = mkOptionEntry lib.types.str ''
               authorized_keys per-key options prefix (null = module default, which
               requires hardware-backed keys via verify-required).
             '';
           };
-          activeDirectory.domains = mkOptionEntry (types.attrsOf types.deferredModule) ''
+          activeDirectory.domains = mkOptionEntry (lib.types.attrsOf lib.types.deferredModule) ''
             Active Directory domain configurations, keyed as in
             ghaf.users.active-directory.domains and carrying the same options
             (modules/common/users/active-directory/options.nix). Carried unevaluated, so the
@@ -125,36 +123,57 @@ in
   config = lib.mkMerge [
     (lib.mkIf (globalConfig != null) { ghaf.org = globalConfig.org; })
     {
-      ghaf.logging.server.endpoint = fwd org.telemetry.logging.endpoint;
-      ghaf.logging.server.tls.serverName = fwd org.telemetry.logging.serverName;
-      ghaf.logging.logseald.tls.revokedPeerKeys = fwd org.telemetry.logging.logseald.revokedPeerKeys;
+      ghaf = {
+        # keep-sorted start block=yes newline_separated=yes
+        firewall.updater.url = fwd org.network.firewallRulesUrl;
 
-      ghaf.services.github.owner = fwd org.telemetry.bugReport.owner;
-      ghaf.services.github.repo = fwd org.telemetry.bugReport.repo;
-      ghaf.services.orbit.fleetUrl = fwd org.management.fleet.url;
-      ghaf.firewall.updater.url = fwd org.network.firewallRulesUrl;
-      ghaf.time.upstreamServers = fwd org.network.ntpServers;
+        logging = {
+          logseald.tls.revokedPeerKeys = fwd org.telemetry.logging.logseald.revokedPeerKeys;
+          server = {
+            endpoint = fwd org.telemetry.logging.endpoint;
+            tls.serverName = fwd org.telemetry.logging.serverName;
+          };
+        };
+
+        security.ssh = {
+          debug.authorizedKeys = fwd org.identity.ssh.debugKeys;
+          release = {
+            authorizedKeys = fwd org.identity.ssh.releaseKeys;
+            trustedUserCAKeys = fwd org.identity.ssh.trustedUserCAKeys;
+            allowedPrincipals = fwd org.identity.ssh.allowedPrincipals;
+            authorizedKeysOptions = fwd org.identity.ssh.authorizedKeysOptions;
+          };
+        };
+
+        services = {
+          github = {
+            owner = fwd org.telemetry.bugReport.owner;
+            repo = fwd org.telemetry.bugReport.repo;
+          };
+          orbit.fleetUrl = fwd org.management.fleet.url;
+        };
+
+        time.upstreamServers = fwd org.network.ntpServers;
+
+        users = {
+          active-directory.domains = fwd org.identity.activeDirectory.domains;
+          admin = {
+            name = fwd org.identity.admin.name;
+            hashedPassword = fwd org.identity.admin.hashedPassword;
+            initialPassword = lib.mkIf (org.identity.admin.hashedPassword != null) null;
+          };
+        };
+        # keep-sorted end
+      };
+
       i18n.defaultLocale = fwd org.locale.defaultLocale;
       time.timeZone = fwd org.locale.timeZone;
-
-      ghaf.users.admin.name = fwd org.identity.admin.name;
-      ghaf.users.admin.hashedPassword = fwd org.identity.admin.hashedPassword;
-      ghaf.users.admin.initialPassword = lib.mkIf (org.identity.admin.hashedPassword != null) null;
-
-      ghaf.security.ssh.debug.authorizedKeys = fwd org.identity.ssh.debugKeys;
-      ghaf.security.ssh.release.authorizedKeys = fwd org.identity.ssh.releaseKeys;
-      ghaf.security.ssh.release.trustedUserCAKeys = fwd org.identity.ssh.trustedUserCAKeys;
-      ghaf.security.ssh.release.allowedPrincipals = fwd org.identity.ssh.allowedPrincipals;
-      ghaf.security.ssh.release.authorizedKeysOptions = fwd org.identity.ssh.authorizedKeysOptions;
-
-      ghaf.users.active-directory.domains = fwd org.identity.activeDirectory.domains;
     }
 
+    # Options depending on evaluation target
     (lib.optionalAttrs (options ? ghaf.host.secureboot.keysSource) {
       ghaf.host.secureboot.keysSource = fwd org.pki.secureBootKeysSource;
     })
-
-    # Declared only in Jetson evaluations, which use their own secureboot module.
     (lib.optionalAttrs (options ? ghaf.hardware.nvidia.orin.secureboot.keysSource) {
       ghaf.hardware.nvidia.orin.secureboot.keysSource = fwd org.pki.secureBootKeysSource;
     })
