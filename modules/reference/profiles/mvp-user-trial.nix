@@ -130,26 +130,46 @@ in
           ];
         };
 
-        # postpendUsbRules runs after business.nix's own rule, so its silent auto-attach wins first.
-        vhotplug.postpendUsbRules = [
-          {
-            description = "Webcams";
-            tag = "cam";
-            allowedVms = [
-              "business-vm"
-              "chrome-vm"
-              "comms-vm"
-              "flatpak-vm"
-            ];
-            allow = [
-              {
-                interfaceClass = 14;
-                description = "Video (USB Webcams)";
-              }
-            ]
-            ++ config.ghaf.reference.passthrough.usb.internalWebcams;
-          }
-        ];
+        vhotplug = {
+          prependUsbRules = lib.optionals config.ghaf.profiles.debug.enable [
+            {
+              description = "USB mass storage";
+              tag = "storage";
+              allowedVms = [
+                "gui-vm"
+                "chrome-vm"
+              ];
+              allow = [
+                {
+                  interfaceClass = 8;
+                  interfaceSubclass = 6;
+                  description = "Mass Storage - SCSI (USB drives)";
+                }
+              ];
+            }
+          ];
+
+          # postpendUsbRules runs after business.nix's own rule, so its silent auto-attach wins first.
+          postpendUsbRules = [
+            {
+              description = "Webcams";
+              tag = "cam";
+              allowedVms = [
+                "business-vm"
+                "chrome-vm"
+                "comms-vm"
+                "flatpak-vm"
+              ];
+              allow = [
+                {
+                  interfaceClass = 14;
+                  description = "Video (USB Webcams)";
+                }
+              ]
+              ++ config.ghaf.reference.passthrough.usb.internalWebcams;
+            }
+          ];
+        };
       };
 
       reference = {
