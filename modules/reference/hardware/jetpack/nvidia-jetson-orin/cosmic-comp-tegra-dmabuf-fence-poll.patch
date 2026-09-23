@@ -31,7 +31,7 @@ diff --git a/src/wayland/handlers/compositor.rs b/src/wayland/handlers/composito
 index 92b51e5..2f2219a 100644
 --- a/src/wayland/handlers/compositor.rs
 +++ b/src/wayland/handlers/compositor.rs
-@@ -3,7 +3,13 @@
+@@ -3,10 +3,14 @@
  use crate::{shell::grabs::SeatMoveGrabState, state::ClientState, utils::prelude::*};
 -use calloop::Interest;
 +use calloop::{
@@ -39,15 +39,13 @@ index 92b51e5..2f2219a 100644
 +    timer::{TimeoutAction, Timer},
 +};
  use smithay::{
--    backend::renderer::{
--        element::{Kind, surface::KindEvaluation},
--        utils::{on_commit_buffer_handler, with_renderer_surface_state},
-+    backend::{
+     backend::{
 +        allocator::dmabuf::Dmabuf,
-+        renderer::{
-+            element::{Kind, surface::KindEvaluation},
-+            utils::{on_commit_buffer_handler, with_renderer_surface_state},
-+        },
+         input::InputTime,
+         renderer::{
+             element::{Kind, surface::KindEvaluation},
+             utils::{on_commit_buffer_handler, with_renderer_surface_state},
+         },
      },
 @@ -14,5 +20,5 @@ use smithay::{
          compositor::{
