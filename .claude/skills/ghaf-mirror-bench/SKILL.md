@@ -5,8 +5,9 @@ description: Measure what IDS traffic mirroring costs on a Ghaf device - CPU, RA
 
 # Benchmarking IDS traffic mirroring
 
-net-vm clones physical NIC traffic to ids-vm over a GRE tunnel (`tc mirred`). This skill
-measures what that costs. The tool is `ids-mirror-bench`, which ships on the device;
+net-vm clones physical NIC traffic to a tap (`tc mirred`) that the host relays to ids-vm. This skill
+measures what that costs. The tool is `ids-mirror-bench`
+(`packages/pkgs-by-name/ids-mirror-bench/package.nix`), which ships on the device;
 `scripts/run-mirror-bench.sh` drives it from here and supplies the three things it cannot
 provide itself — an iperf3 server, root on net-vm, and somewhere to keep the output.
 
@@ -62,8 +63,8 @@ device instead of trusting a name. One physical NIC is picked automatically; sev
 asks, showing what distinguishes them:
 
 ```
-    1) ueth5 192.168.10.188/24 default-route up
-    2) wlp0s5f0 192.168.1.4/24 default-route up
+    1) ueth5 192.168.10.188/24 default-route up rps=1 speed=1000
+    2) wlp0s5f0 192.168.1.4/24 default-route up rps=2 speed=-
 ```
 
 Pick the NIC on the path the traffic actually takes — with the iperf3 server on
@@ -174,23 +175,15 @@ host CPU delta, and that number is wrong rather than missing. `measure_window` a
 — so one dropped sample shifts every later pair against its partner. Kill the run; the
 result is contaminated.
 
-The cause is usually not a dead service. `ids-bench-server` serves **one connection and
-exits**, and systemd restarts it about a second later (`Restart=always`, `RestartSec=1s`),
-so back-to-back queries land in the restart gap. Measured on an X1: four queries four
-seconds apart all answered; three queries back-to-back answered only the first. The bench's
-own header asks `hostname` and then immediately `irqbalance`, so the second one is already
-racing before the first pair begins.
+`ids-bench-server` answers one connection at a time: while it serves `cpu N` it is busy for
+N seconds, and a query arriving meanwhile gets no answer. The bench sends one query per
+window, so a normal run never collides with itself. A miss means the server was really
+unavailable, or something else queried it at the same moment — a second bench against the
+same device, or a hand-run `nc`. Check `systemctl status ids-bench-server` on ghaf-host
+before rerunning.
 
-Two tells that this is what happened, both visible in the header before any pair runs:
-
-- `Target :` is present (the `hostname` query won the race) but the `irqbalance` line shows
-  only `net-vm=...` with no `host=...` (the second query lost it).
-
-`systemctl restart ids-bench-server` therefore buys one more query, not a fixed run. What
-works is spacing the first query away from the restart: `run-mirror-bench.sh` probes the
-server during preflight, refuses to start the long run if it is genuinely unreachable, and
-waits for the restart to land before launching the bench. Running the bench by hand skips
-all of that.
+`run-mirror-bench.sh` probes the server during preflight and refuses to start the long run
+if it does not answer. Running the bench by hand skips that check.
 
 `--no-host-bench` (script) or dropping `--host-bench` (bench) measures net-vm only, which is
 the honest option when the host figure is not what you are after.

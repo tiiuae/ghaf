@@ -112,7 +112,7 @@ in
       encryption.enable = globalConfig.storage.encryption.enable or false;
     };
 
-    # Networking - IDS VM is passive (monitoring only, not a gateway)
+    # Networking
     virtualization.microvm.vm-networking = {
       enable = true;
       isGateway = false;

@@ -40,13 +40,6 @@ in
         host-hardening.enable = true;
       };
 
-      # mitmproxy is deliberately left off. It intercepts by REDIRECTing :80/:443
-      # arriving on the ids-vm's own interface, which only ever fires when app
-      # traffic is *routed through* ids-vm. Under passive GRE mirroring the VM is
-      # not a gateway (idsvm-base sets isGateway = false), so it sees copies of
-      # packets rather than carrying them, and those rules can never match.
-      # Turning it on would install the committed development CA in every app
-      # VM's trust store for an interception that cannot happen.
       virtualization.microvm = {
         idsvm = {
           enable = lib.mkForce config.ghaf.profiles.debug.enable;
