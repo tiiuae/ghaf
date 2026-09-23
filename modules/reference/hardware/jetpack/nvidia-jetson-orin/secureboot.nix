@@ -76,13 +76,19 @@ in
     assertions = [
       {
         assertion = cfg.keysSource != null;
-        message = "ghaf.hardware.nvidia.orin.secureboot is enabled but no enrollment keys are set. Supply them via `ghaf.org` pki.secureBootKeysSource, or set `ghaf.hardware.nvidia.orin.secureboot.keysSource` directly.";
+        message =
+          "ghaf.hardware.nvidia.orin.secureboot is enabled but no enrollment keys are set. "
+          + "Supply them via `ghaf.org` pki.secureBootKeysSource, or set "
+          + "`ghaf.hardware.nvidia.orin.secureboot.keysSource` directly.";
       }
     ]
     ++ lib.optionals (cfg.keysSource != null) (
       map (certFile: {
         assertion = builtins.pathExists certFile;
-        message = "Missing UEFI secure boot certificate `${toString certFile}`. Set `ghaf.hardware.nvidia.orin.secureboot.keysSource` to a directory containing `PK.crt`, `KEK.crt`, and `db.crt`.";
+        message =
+          "Missing UEFI secure boot certificate `${toString certFile}`. "
+          + "Set `ghaf.hardware.nvidia.orin.secureboot.keysSource` to a directory "
+          + "containing `PK.crt`, `KEK.crt`, and `db.crt`.";
       }) requiredCertFiles
     );
 
