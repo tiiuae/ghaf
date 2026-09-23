@@ -7,6 +7,14 @@
 }:
 let
   cfg = config.ghaf.reference.profiles.mvp-user-trial;
+  # Active Directory configuration
+  enableAD = false;
+  adDomain = "ghaf-test.com";
+  # AD Domain controller URL
+  dcUrl = "vm-ghaf-dev-dc.ghaf-test.com";
+  # AD Domain controller IP address
+  dcIp = "10.52.33.4";
+
 in
 {
   _file = ./mvp-user-trial.nix;
@@ -20,9 +28,48 @@ in
 
       # Setup user profiles
       users.profile = {
-        homed-user.enable = true;
-        ad-users.enable = false;
+        homed-user.enable = !enableAD;
+        ad-users.enable = enableAD;
         mutable-users.enable = false;
+      };
+
+      users.active-directory.domains = lib.mkIf enableAD {
+        ${adDomain} = {
+          description = "Active Directory test domain";
+          authProvider = "krb5";
+          idProvider = "ad";
+          dnsProvider = {
+            name = dcUrl;
+            ipAddress = dcIp;
+          };
+          ad = {
+            domain = adDomain;
+            controllers = [ dcUrl ];
+            gpoAccessControl = "enforcing";
+            dyndnsUpdate = false;
+            extraConfig = ''
+              # AD site for GPO discovery
+              ad_site = Default-First-Site-Name
+              # Deny access if no GPO is found (default: false)
+              ad_gpo_implicit_deny = true
+              # Map display manager and su PAM services to interactive logon rights
+              ad_gpo_map_interactive = +login, +greetd, +cosmic-greeter, +su, +su-l
+              # Map SSH PAM service to remote interactive logon rights
+              ad_gpo_map_remote_interactive = +sshd
+            '';
+          };
+          krb5 = {
+            realm = lib.toUpper adDomain;
+            server = [ dcUrl ];
+            kpasswd = [ dcUrl ];
+          };
+          ldap = {
+            uri = [ "ldap://${dcUrl}" ];
+            schema = "ad";
+            idMapping = true;
+          };
+        };
+
       };
 
       virtualization = {
@@ -217,6 +264,13 @@ in
         # Enable kill switch
         kill-switch.enable = true;
       };
+    };
+    # Grant sudo privileges to the ghaf-admins AD group
+    security.sudo = lib.mkIf enableAD {
+      extraConfig = ''
+        %ghaf-admins ALL=(ALL) ALL
+        %ghaf-admins@ghaf-test.com ALL=(ALL) ALL
+      '';
     };
   };
 }
