@@ -588,11 +588,11 @@
         "spectrum": "spectrum"
       },
       "locked": {
-        "lastModified": 1787686269,
-        "narHash": "sha256-Se2jFOq9MG8MkKEfe9t4onf8n3ZOidzVkJFQB6Iz8XI=",
+        "lastModified": 1790243422,
+        "narHash": "sha256-sB6QRywkzJI8H/n3XQOcedlKluOVZqX7McyYemmi86c=",
         "owner": "vadika",
         "repo": "microvm.nix",
-        "rev": "88d9bce92524bae0fe5ab6173e05ee96e0b36fcb",
+        "rev": "6cd84110bb7e9f34ce113dcd964a439ee62d07bb",
         "type": "github"
       },
       "original": {
