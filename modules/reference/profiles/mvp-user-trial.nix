@@ -107,7 +107,7 @@ in
                     inherit (config.ghaf.reference.services.google-chromecast) enable vmName;
                   };
                   chromecast = {
-                    inherit (config.ghaf.reference.services.chromecast) externalNic internalNic;
+                    inherit (config.ghaf.reference.services.chromecast) internalNic;
                   };
                 };
               };

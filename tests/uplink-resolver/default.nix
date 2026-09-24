@@ -105,6 +105,7 @@ pkgs.testers.nixosTest {
         forceInterface = "";
         dependentUnits = [
           "uplink-consumer.service"
+          "uplink-reconcile-stand-in.service"
           "ghaf-firewall-uplink.service"
         ];
       };
@@ -126,8 +127,25 @@ pkgs.testers.nixosTest {
         script = ''
           # shellcheck disable=SC1091
           . /run/ghaf-uplink-state
-          echo "consumer: using $uplink_iface"
-          echo "$uplink_iface" >/run/uplink-consumer-saw
+          echo "consumer: using $uplink_ifaces"
+          echo "$uplink_ifaces" >/run/uplink-consumer-saw
+        '';
+      };
+
+      # Stand-in for nw-packet-forwarder-reconcile: the one real consumer not
+      # gated on the ready flag, so the only one exercising uplink_reason.
+      systemd.services.uplink-reconcile-stand-in = {
+        description = "Stand-in for the one consumer not gated on the ready flag";
+        wantedBy = [ "multi-user.target" ];
+        after = [ "ghaf-uplink-resolver.service" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        script = ''
+          # shellcheck disable=SC1091
+          . /run/ghaf-uplink-state
+          echo "reconcile-stand-in: state=$uplink_state reason=$uplink_reason ifaces=$uplink_ifaces"
         '';
       };
 
@@ -142,11 +160,31 @@ pkgs.testers.nixosTest {
 
     with subtest("resolved: publishes the default-route interface"):
         state = machine.succeed("cat /run/ghaf-uplink-state")
-        assert "uplink_iface=eth1" in state, state
+        assert 'uplink_ifaces="eth1"' in state, state
         assert "uplink_state=resolved" in state, state
         # The readiness flag is what dependent units gate on with
         # ConditionPathExists, so its presence is part of the contract.
         machine.succeed("test -e /run/ghaf-uplink-ready")
+
+    with subtest("multiple uplinks: publishes every default-route interface"):
+        # A dummy netdev with its own default route stands in for a second
+        # uplink without needing a second test vlan.
+        machine.succeed("ip link add dummy0 type dummy")
+        machine.succeed("ip link set dummy0 up")
+        machine.succeed("ip addr add 192.168.2.2/24 dev dummy0")
+        machine.succeed("ip route add default via 192.168.2.1 dev dummy0 metric 9999")
+        machine.systemctl("restart ghaf-uplink-resolver.service")
+        state = machine.succeed("cat /run/ghaf-uplink-state")
+        assert "uplink_state=resolved" in state, state
+        ifaces_line = next(l for l in state.splitlines() if l.startswith("uplink_ifaces="))
+        ifaces = ifaces_line.split("=", 1)[1].strip('"').split()
+        assert set(ifaces) == {"eth1", "dummy0"}, ifaces_line
+
+        machine.succeed("ip route del default dev dummy0")
+        machine.succeed("ip link del dummy0")
+        machine.systemctl("restart ghaf-uplink-resolver.service")
+        state = machine.succeed("cat /run/ghaf-uplink-state")
+        assert 'uplink_ifaces="eth1"' in state, state
 
     with subtest("a pin is honoured, but not silently"):
         # An explicit forceInterface wins -- a setting that some consumers obeyed
@@ -155,7 +193,7 @@ pkgs.testers.nixosTest {
         pinned.start()
         pinned.wait_for_unit("ghaf-uplink-resolver.service")
         state = pinned.succeed("cat /run/ghaf-uplink-state")
-        assert "uplink_iface=lo" in state, state
+        assert 'uplink_ifaces="lo"' in state, state
         assert "uplink_state=resolved" in state, state
         journal = pinned.succeed("journalctl -u ghaf-uplink-resolver --no-pager")
         assert "WARNING" in journal, journal
@@ -179,11 +217,21 @@ pkgs.testers.nixosTest {
         journal = machine.succeed("journalctl -u ghaf-uplink-resolver --no-pager")
         assert "no uplink" in journal, journal
 
+    with subtest("dependent not gated on the ready flag survives a multi-word reason"):
+        # Unquoted, a multi-word reason like "no default route" would make
+        # `. stateFile` try to run "default" as a command and abort.
+        machine.wait_until_succeeds(
+            "systemctl is-active uplink-reconcile-stand-in.service", timeout=30
+        )
+        journal = machine.succeed("journalctl -u uplink-reconcile-stand-in --no-pager")
+        assert "reason=no default route" in journal, journal
+        assert machine.succeed("systemctl --failed --no-legend").strip() == ""
+
     with subtest("recovers when the uplink comes back"):
         machine.succeed("ip route add default via 192.168.1.1 dev eth1")
         machine.systemctl("restart ghaf-uplink-resolver.service")
         state = machine.succeed("cat /run/ghaf-uplink-state")
-        assert "uplink_iface=eth1" in state, state
+        assert 'uplink_ifaces="eth1"' in state, state
         assert "uplink_state=resolved" in state, state
         machine.succeed("test -e /run/ghaf-uplink-ready")
 
