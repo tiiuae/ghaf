@@ -80,7 +80,7 @@ in
     systemd.services = lib.mkMerge (
       lib.mapAttrsToList (name: vm: {
         "microvm@${name}".serviceConfig = {
-          TimeoutStopSec = "95";
+          TimeoutStopSec = lib.mkForce "95";
           ExecStop = lib.mkForce [
             ""
             (mkVerifyScript name)
