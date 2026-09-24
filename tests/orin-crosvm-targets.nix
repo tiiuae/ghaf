@@ -112,6 +112,7 @@ let
       name = "Crosvm shutdown is bounded and reuses the MicroVM helper";
       ok =
         nxGuiShutdown.serviceConfig.TimeoutStopSec == "95"
+        && agx.systemd.services."microvm@admin-vm".serviceConfig.TimeoutStopSec == "95"
         && nxGuiShutdown.serviceConfig.WorkingDirectory == "/var/lib/microvms/gui-vm";
     }
     {
