@@ -15,19 +15,17 @@ let
 in
 pkgs.stdenv.mkDerivation {
   name = "gpuvm-dtb";
-  src = lib.fileset.toSource {
-    root = dtsDir;
-    fileset = lib.fileset.unions [
-      (dtsDir + "/tegra234-gpuvm.dts")
-      (dtsDir + "/tegra234-gpuvm-base.dtsi")
-      (dtsDir + "/tegra234-gpuvm-memory.dtsi")
-      (dtsDir + "/tegra234-gpuvm-proxies.dtsi")
-      (dtsDir + "/tegra234-gpuvm-display.dtsi")
-      (dtsDir + "/tegra234-gpuvm-engines.dtsi")
-      (dtsDir + "/tegra234-gpuvm-dummies.dtsi")
-      (dtsDir + "/generated")
-    ];
-  };
+  src = pkgs.runCommand "gpuvm-dts-source" { } ''
+    mkdir -p "$out/generated"
+    cp ${dtsDir}/tegra234-gpuvm.dts "$out/"
+    cp ${dtsDir}/tegra234-gpuvm-base.dtsi "$out/"
+    cp ${dtsDir}/tegra234-gpuvm-memory.dtsi "$out/"
+    cp ${dtsDir}/tegra234-gpuvm-proxies.dtsi "$out/"
+    cp ${dtsDir}/tegra234-gpuvm-display.dtsi "$out/"
+    cp ${dtsDir}/tegra234-gpuvm-engines.dtsi "$out/"
+    cp ${dtsDir}/tegra234-gpuvm-dummies.dtsi "$out/"
+    cp -r ${dtsDir}/generated/. "$out/generated/"
+  '';
   nativeBuildInputs = [
     pkgs.buildPackages.dtc
     pkgs.buildPackages.gcc

@@ -4,11 +4,7 @@
 { lib, pkgs, ... }:
 let
   # L4T EGL rejects modifier-backed GBM surfaces.
-  gbm-nomod-shim = pkgs.runCommandCC "gbm-nomod-shim" { } ''
-    mkdir -p $out/lib
-    $CC -O2 -fPIC -shared -o $out/lib/gbm-nomod-shim.so \
-      ${./virtualization/passthrough/gpu-vm/sources/gbm-nomod-shim.c} -ldl
-  '';
+  gbm-nomod-shim = pkgs.nvidia-jetpack.orinVirtualizationSupport.gbmNoModifiersShim;
   cosmicPreload = "${gbm-nomod-shim}/lib/gbm-nomod-shim.so";
 in
 {
