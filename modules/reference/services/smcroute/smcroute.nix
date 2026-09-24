@@ -9,9 +9,7 @@
 let
   cfg = config.services.smcroute;
 
-  # The store file is a *template* carrying the placeholders; the real config
-  # is rendered next to it in the unit's RuntimeDirectory, which systemd
-  # creates before ExecStartPre and removes on stop.
+  # A *template*; the real config renders next to it in RuntimeDirectory.
   confTemplate = pkgs.writeText "smcroute.conf.in" ''
     ${lib.concatStringsSep "\n" (lib.optionals (cfg.rules != null) [ cfg.rules ])}
   '';
@@ -90,10 +88,6 @@ in
   config = lib.mkIf cfg.enable {
     assertions = [
       {
-        # smcroute has no build-time fallback any more: it always renders its
-        # config from the resolver's state file, so without the resolver
-        # actually running, ConditionPathExists never sees a ready flag and
-        # the unit sits silently skipped forever instead of failing loudly.
         assertion = config.ghaf.networking.uplinkResolver.enable;
         message = ''
           services.smcroute.enable requires ghaf.networking.uplinkResolver.enable
@@ -146,13 +140,8 @@ in
       ];
       requires = [ "network-online.target" ];
 
-      # With the uplink resolved at runtime there is nothing left to wait
-      # for: the resolver only publishes an interface once it holds the
-      # default route, and ConditionPathExists below keeps this unit from
-      # starting at all until at least one does. What remains is rendering
-      # the config once per resolved uplink -- a device with several
-      # simultaneous uplinks (Wi-Fi and a docked Ethernet, say) gets
-      # multicast routed on all of them, not just one.
+      # Renders the config once per resolved uplink, so a device with
+      # several gets multicast routed on all of them, not just one.
       preStart = ''
         # shellcheck disable=SC1090,SC1091
         . ${cfg.stateFile}
@@ -174,19 +163,11 @@ in
         echo "smcroute: routing multicast on $uplink_ifaces"
       '';
 
-      # No start rate limit: this unit is restarted by the resolver's
-      # dependentUnits whenever the uplink set changes, and NetworkManager
-      # can fire several dispatcher events for one transition (up,
-      # dhcp4-change, connectivity-change), each triggering a restart --
-      # easily more than 3 in 600s on a device with two uplinks changing
-      # close together. Hitting that limit left smcroute refusing to start
-      # for the rest of the window, with no multicast routing at all, which
-      # is worse than the crash-loop the limit was guarding against.
+      # No start rate limit: NetworkManager's dispatcher events can restart
+      # this past the default limit when two uplinks change close together.
       unitConfig = {
         StartLimitIntervalSec = 0;
-        # No uplink => skipped, and visibly so. Not failed: an unplugged dock
-        # is not a defect. Not silently succeeded either, which is what the
-        # old unbounded wait effectively did.
+        # No uplink => skipped, visibly -- not failed, not silently succeeded.
         ConditionPathExists = cfg.readyFlag;
       };
 

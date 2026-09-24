@@ -1,18 +1,9 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# Resolves which interface currently carries the LAN ("the uplink") and publishes
-# it for other units to consume.
-#
-# Why this exists: chromecast, dendrite-pinecone and wireguard-gui take the
-# uplink from a *build-time* expression,
-#   (lib.head config.ghaf.hardware.definition.network.pciDevices).name
-# which enumerates PCI-passthrough NICs and is therefore structurally the Wi-Fi
-# card. Ethernet arrives as a dock or USB dongle via vhotplug at runtime and has
-# no entry in that list at all, so on a wired device the baked name is simply
-# wrong and those services wait forever for an address that never appears.
-#
-# The uplink is a runtime fact, so it has to be resolved at runtime.
+# Resolves which interface currently carries the LAN ("the uplink") and
+# publishes it for other units to consume, replacing the build-time
+# PCI-passthrough NIC guess that a runtime dock or USB dongle never matches.
 {
   config,
   lib,
@@ -40,36 +31,26 @@ let
       gawk
     ];
     text = ''
-      # The uplink is the interface holding the default route: it is the only
-      # definition that always agrees with where traffic actually goes, and it
-      # follows a dock being plugged in or pulled out without any extra state.
-      #
-      # A device can carry more than one default route at once (Wi-Fi and a
-      # docked Ethernet both up), so this resolves *every* usable one, not
-      # just the first. `ifaces`/`uplink_ifaces` is the full list every
-      # consumer (nw-packet-forwarder, smcroute, the firewall, etc.) acts on.
+      # The uplink is the interface holding the default route. Resolves
+      # *every* one held at once (e.g. Wi-Fi + docked Ethernet), not just the first.
       internal=${lib.escapeShellArg cfg.internalInterface}
       pinned=${lib.escapeShellArg cfg.forceInterface}
 
-      # `ip route show default` already restricts to default-route lines; the
-      # `dev` field position varies (e.g. a gateway-less
-      # `default dev wlan0 scope link` has no `via`), so search for the `dev`
-      # token instead of assuming a fixed column.
+      # `dev` field position varies (a gateway-less route has no `via`), so
+      # search for the `dev` token instead of assuming a fixed column.
       mapfile -t routed_list < <(ip route show default 2>/dev/null \
         | awk '{for (i=1;i<=NF;i++) if ($i=="dev") {print $(i+1); break}}')
       routed="''${routed_list[0]:-}"
 
       candidate_ok() {
-        # ethint0 faces the guest VMs, never the LAN. If it somehow holds the
-        # default route the routing table is wrong, and claiming it as the
-        # uplink would bridge multicast straight back inwards.
+        # ethint0 faces the guest VMs; claiming it as uplink would bridge
+        # multicast straight back inwards.
         [ "$1" != "$internal" ] && [ -e "/sys/class/net/$1" ]
       }
 
       ifaces=()
       if [ -n "$pinned" ]; then
-        # An explicit pin wins outright -- see the disagreement warning below
-        # for why that's still not silent.
+        # An explicit pin wins outright (see the disagreement warning below).
         candidate_ok "$pinned" && ifaces=("$pinned")
       else
         seen=""
@@ -99,14 +80,8 @@ let
         reason=""
       fi
 
-      # Written in k=v form so it doubles as a systemd EnvironmentFile.
-      # uplink_ifaces and uplink_reason are quoted since both can contain
-      # spaces (a multi-interface list, a multi-word reason like "no default
-      # route") -- unquoted, `. stateFile` parses the second word as a
-      # command to run, not part of the value. nw-packet-forwarder-reconcile
-      # is the one consumer not gated by the ready flag (it has to run to
-      # tear down when the uplink disappears), so it's the one that actually
-      # sources the file in state=none and hits this.
+      # k=v form doubles as a systemd EnvironmentFile. Values are quoted since
+      # they can contain spaces -- unquoted, `. stateFile` would run the second word as a command.
       tmp=$(mktemp)
       {
         printf 'uplink_ifaces="%s"\n' "$uplink_ifaces"
@@ -115,10 +90,8 @@ let
       } >"$tmp"
       chmod 0644 "$tmp"
 
-      # NetworkManager can emit several dispatcher events for one transition
-      # (up, DHCP change and connectivity change). Preserve a pending change
-      # marker across an interrupted resolver run, but do not restart consumers
-      # again when the resolved state is identical.
+      # Preserve a pending change marker across an interrupted run, but don't
+      # restart consumers again when the resolved state is unchanged.
       if [ ! -r ${stateFile} ] || [ "$(cat ${stateFile})" != "$(cat "$tmp")" ]; then
         : >${changedFlag}
       fi
@@ -126,20 +99,15 @@ let
 
       if [ "$state" = resolved ]; then
         echo "ghaf-uplink: uplink(s): $uplink_ifaces"
-        # The flag file is the readiness signal. Units that need the uplink use
-        # ConditionPathExists on it, which gives them a third state -- "skipped,
-        # because there is no uplink" -- that is visible in systemctl status and
-        # in the journal, without being a spurious failure. An unplugged dock is
-        # a legitimate transient state, not a defect.
+        # ConditionPathExists on this flag gives dependents a visible "skipped,
+        # no uplink" state instead of a spurious failure.
         : >${readyFlag}
       else
         echo "ghaf-uplink: no uplink -- $reason" >&2
         rm -f ${readyFlag}
       fi
 
-      # A pin that disagrees with where traffic actually goes is the original
-      # bug in miniature, so say so rather than letting it pass quietly. It is
-      # still honoured -- an explicit setting should win -- but not silently.
+      # Still honoured -- an explicit setting should win -- but not silently.
       if [ -n "$pinned" ] && [ -n "$routed" ] && [ "$pinned" != "$routed" ]; then
         echo "ghaf-uplink: WARNING uplink is pinned to '$pinned' but the default route is on '$routed'" >&2
         echo "ghaf-uplink: WARNING multicast and NAT will be applied to '$pinned', which is probably not what carries the LAN" >&2
@@ -148,10 +116,8 @@ let
   };
 
   dispatcher = pkgs.writeShellScript "ghaf-uplink-dispatcher" ''
-    # NetworkManager owns the external NIC in net-vm (systemd-networkd owns only
-    # ethint0), so its dispatcher is the precise trigger: it fires when an
-    # address appears or goes away, not merely when a device is added.
-    # $1 = interface, $2 = action.
+    # NetworkManager owns the external NIC; its dispatcher fires on address
+    # change, not merely device-added. $1 = interface, $2 = action.
     case "$2" in
       up | down | dhcp4-change | dhcp6-change | connectivity-change)
         ${pkgs.systemd}/bin/systemctl restart --no-block ghaf-uplink-resolver.service || true
@@ -234,44 +200,28 @@ in
       wantedBy = [ "multi-user.target" ];
       after = [ "network.target" ];
 
-      # No start rate limit. This unit is driven by NetworkManager events, and a
-      # dock being plugged in, a DHCP renew or a wifi roam can easily produce
-      # more than systemd's default 5 starts per 10s. Hitting that limit makes
-      # systemd refuse to run it.
+      # No start rate limit: NetworkManager events (dock, DHCP renew, roam)
+      # can easily exceed systemd's default 5 starts per 10s.
       unitConfig.StartLimitIntervalSec = 0;
 
-      # Deliberately not ordered after network-online.target: on a device whose
-      # uplink is absent that target can take its full timeout, and the resolver
-      # reporting "no uplink" early is more useful than reporting it late.
+      # Not ordered after network-online.target: reporting "no uplink" early
+      # beats waiting out that target's full timeout on an uplink-less device.
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
         ExecStart = lib.getExe resolver;
 
-        # The NetworkManager dispatcher restarts this unit on every up /
-        # dhcp4-change / connectivity-change event, and at boot those arrive
-        # faster than one run completes -- so systemd SIGTERMs the in-flight
-        # ExecStart or ExecStartPost and records "Failed with result 'signal'"
+        # Rapid dispatcher events at boot can SIGTERM an in-flight ExecStart.
         SuccessExitStatus = "SIGTERM";
       }
       // lib.optionalAttrs (cfg.dependentUnits != [ ]) {
-        # `restart` rather than `try-restart`: a dependent that was skipped for
-        # lack of an uplink is not running, and must actually be started once
-        # the flag appears -- try-restart would leave it stopped. When the
-        # uplink goes away the flag is gone, so the start half is skipped by
-        # ConditionPathExists and the unit correctly ends up stopped.
-        # --no-block avoids deadlocking against the resolver they depend on.
+        # `restart`, not `try-restart`: a dependent skipped for no uplink must
+        # actually start once the flag appears. --no-block avoids deadlocking
+        # against the resolver these units depend on.
         #
-        # Restart before clearing the flag, not after: NetworkManager can
-        # fire several dispatcher events within the same second, each
-        # restarting this unit and SIGTERMing whichever invocation (ExecStart
-        # or ExecStartPost) is still in flight -- that is what
-        # SuccessExitStatus above is for. Clearing the flag first would let
-        # that SIGTERM land between "flag gone" and "dependents actually
-        # restarted", silently dropping the update the flag was recording.
-        # Restarting first means an interruption right there just leaves the
-        # flag standing, so the next invocation (already on its way, given
-        # the burst that caused the interruption) retries it.
+        # Restart before clearing the flag: an interrupting SIGTERM (see
+        # SuccessExitStatus) then leaves the flag standing for a retry, rather
+        # than landing between "flag gone" and "dependents restarted".
         ExecStartPost = pkgs.writeShellScript "ghaf-restart-uplink-dependents" ''
           if [ -e ${changedFlag} ]; then
             ${pkgs.systemd}/bin/systemctl restart --no-block ${lib.escapeShellArgs cfg.dependentUnits}
