@@ -546,16 +546,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1787661902,
-        "narHash": "sha256-mJmAXcM7JUbt8sdF8CpKcQzuBIQA0fld8HGWADc3eTs=",
+        "lastModified": 1787678004,
+        "narHash": "sha256-ZCQkDKifePRpnnVtrjQXevLydHVVhpkUBc+8Xoyd6v4=",
         "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "5a30003720b195428fbceb01c117a157605c249c",
+        "rev": "883bdd9c8f8306ffd811f1e2c0f1ef7381226eb9",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "august-rebase",
+        "ref": "feat/orin-proxy-lifecycle",
         "repo": "jetpack-nixos",
         "type": "github"
       }
@@ -588,15 +588,16 @@
         "spectrum": "spectrum"
       },
       "locked": {
-        "lastModified": 1789506833,
-        "narHash": "sha256-4L8SOCF84de1irB72Ka9VHcu9wrAJ9Amuey4lU9oh4Y=",
-        "owner": "microvm-nix",
+        "lastModified": 1790243422,
+        "narHash": "sha256-sB6QRywkzJI8H/n3XQOcedlKluOVZqX7McyYemmi86c=",
+        "owner": "vadika",
         "repo": "microvm.nix",
-        "rev": "187b0a390ee054028106a674e7b01b1cb940cbba",
+        "rev": "6cd84110bb7e9f34ce113dcd964a439ee62d07bb",
         "type": "github"
       },
       "original": {
-        "owner": "microvm-nix",
+        "owner": "vadika",
+        "ref": "feat/crosvm-platform-upstream",
         "repo": "microvm.nix",
         "type": "github"
       }

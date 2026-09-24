@@ -34,65 +34,20 @@ let
     jetpack-nixos.nixosModules.default
   ];
 
+  # Crosvm and ghaf-device-manager are the default virtualization stack for
+  # every exported Orin target and all generated variants.
+  orinCrosvmModule = {
+    ghaf.hardware.nvidia.orin.crosvm.enable = true;
+    ghaf.hardware.nvidia.passthroughs.gui_vm.enable = true;
+  };
+
   # Common modules shared across all Orin configurations
   commonModules = orinSpecificModules ++ [
     self.nixosModules.reference-host-demo-apps
     self.nixosModules.reference-profiles-orin
     self.nixosModules.profiles
+    orinCrosvmModule
   ];
-
-  # Exercise the complete manager/CDI integration in an existing CI-built
-  # image without making example workloads part of Ghaf. The manager-owned
-  # mock plugin is sufficient for build and boot validation; downstream
-  # configurations replace this default with real workload plugins.
-  nxGpuPartitioningDebugModule =
-    { pkgs, ... }:
-    let
-      managerSdk = inputs.gpu-partition-manager.lib.mkSdk { inherit pkgs; };
-      managerMockPlugin = pkgs.stdenv.mkDerivation {
-        pname = "gpu-partition-manager-mock-plugin";
-        version = "1.0";
-
-        dontUnpack = true;
-        dontConfigure = true;
-
-        buildPhase = ''
-          runHook preBuild
-          $CC -std=c11 -Wall -Wextra -Werror -fPIC -shared \
-            -I${managerSdk}/include \
-            -I${pkgs.nvidia-jetpack.cudaPackages.cuda_cudart}/include \
-            ${inputs.gpu-partition-manager}/tests/mock-plugin.c \
-            -o plugin.so
-          runHook postBuild
-        '';
-
-        installPhase = ''
-          runHook preInstall
-          install -Dm755 plugin.so \
-            $out/lib/gpu-partition-manager/plugin.so
-          runHook postInstall
-        '';
-
-        passthru = {
-          gpuPartitionPluginName = "mock";
-          requiredPluginAbiVersion = managerSdk.pluginAbiVersion;
-        };
-
-        meta = {
-          description = "Manager-owned mock plugin for NX debug integration validation";
-          platforms = [ "aarch64-linux" ];
-        };
-      };
-    in
-    {
-      ghaf.hardware.nvidia.passthroughs.gpu_vm = {
-        containerRuntime.enable = true;
-        partitionManager = {
-          enable = true;
-          plugins = lib.mkDefault [ managerMockPlugin ];
-        };
-      };
-    };
 
   # A/B verity boot targets: LVM-based A/B slots + UKI instead of the sd-card
   # format module
@@ -101,6 +56,7 @@ let
     self.nixosModules.reference-host-demo-apps
     self.nixosModules.reference-profiles-orin
     self.nixosModules.profiles
+    orinCrosvmModule
     ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/verity-image.nix
     ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/partition-template-verity.nix
     inputs.nix-store-veritysetup-generator.nixosModules.ghaf-store-veritysetup-generator
@@ -124,47 +80,6 @@ let
     }
   ];
 
-  # Shared by the AGX and NX accelerated-guivm variants.
-  acceleratedGuivmUsbRules = [
-
-    {
-      description = "USB Devices for GUIVM";
-      targetVm = "gui-vm";
-      allow = [
-        {
-          interfaceClass = 3;
-          interfaceProtocol = 1;
-          description = "HID Keyboard";
-        }
-        {
-          interfaceClass = 3;
-          interfaceProtocol = 2;
-          description = "HID Mouse";
-        }
-        {
-          interfaceClass = 11;
-          description = "Chip/SmartCard (e.g. YubiKey)";
-        }
-        {
-          interfaceClass = 8;
-          interfaceSubclass = 6;
-          description = "Mass Storage - SCSI (USB drives)";
-        }
-        {
-          interfaceClass = 17;
-          description = "USB-C alternate modes supported by device";
-        }
-      ];
-      deny = [
-        {
-          vendorId = "046d";
-          productId = "c52b";
-          description = "Logitech Unifying Receiver: evdev-only on Orin (usb-host interrupt-IN broken)";
-        }
-      ];
-    }
-  ];
-
   # Non-verity Orin configurations using mkGhafConfiguration
   target-configs = [
     # ============================================================
@@ -180,25 +95,6 @@ let
       extraModules = commonModules;
       extraConfig = {
         reference.profiles.mvp-orinuser-trial.enable = true;
-      };
-    })
-
-    (ghaf-configuration {
-      name = "nvidia-jetson-orin-agx-accelerated-guivm";
-      inherit system;
-      profile = "orin";
-      hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx;
-      variant = "debug";
-      extraModules = commonModules;
-      extraConfig = {
-        reference.profiles.mvp-orinuser-trial.enable = true;
-        # Accelerated topology has one combined GPU/display owner.
-        hardware.nvidia.passthroughs.gui_vm.enable = true;
-        hardware.nvidia.passthroughs.gpu_vm.enable = lib.mkForce false;
-        hardware.nvidia.passthroughs.disp_vm.enable = lib.mkForce false;
-
-        # Keep the Unifying receiver on the working evdev path.
-        hardware.passthrough.usb.guivmRules = lib.mkForce acceleratedGuivmUsbRules;
       };
     })
 
@@ -232,7 +128,7 @@ let
       profile = "orin";
       hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-nx;
       variant = "debug";
-      extraModules = commonModules ++ [ nxGpuPartitioningDebugModule ];
+      extraModules = commonModules;
       extraConfig = {
         reference.profiles.mvp-orinuser-trial.enable = true;
         # Crucial for Orin devices to use the correct render device
@@ -254,53 +150,6 @@ let
           # then evicts page cache backing the USB-eth driver and the dongle
           # disconnects, killing sshd on the test-net IP.
           mem = 2048;
-        };
-        # The split topology reserves ~2.1GiB after dropping the old 4GiB VRAM
-        # bank. Keep the VM total at or under 7GiB until this reduced layout is
-        # validated on NX; 10.1GiB under the former ~6.1GiB layout OOM-killed a
-        # VM and hung PID 1 on every boot.
-        sysvms.gpuvm = {
-          mem = 2048;
-        };
-        # disp-vm runs on the 1:1 dispram carveout; -m only backs the
-        # machine's default RAM window.
-        sysvms.dispvm = {
-          mem = 1536;
-        };
-      };
-    })
-
-    (ghaf-configuration {
-      name = "nvidia-jetson-orin-nx-accelerated-guivm";
-      inherit system;
-      profile = "orin";
-      hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-nx;
-      variant = "debug";
-      extraModules = commonModules;
-      extraConfig = {
-        reference.profiles.mvp-orinuser-trial.enable = true;
-        # Accelerated topology has one combined GPU/display owner.
-        hardware.nvidia.passthroughs.gui_vm.enable = true;
-        hardware.nvidia.passthroughs.gpu_vm.enable = lib.mkForce false;
-        hardware.nvidia.passthroughs.disp_vm.enable = lib.mkForce false;
-
-        # Pin APP so the flash script carries no embedded image: every flash
-        # supplies one with -s, which also keeps the script buildable without
-        # the image.
-        hardware.nvidia.orin.flashScriptOverrides.appPartitionSizeBytes = 34359738368;
-
-        # Keep the Unifying receiver on the working evdev path.
-        hardware.passthrough.usb.guivmRules = lib.mkForce acceleratedGuivmUsbRules;
-      };
-      vmConfig = {
-        sysvms.netvm = {
-          vcpu = 4;
-          mem = 2048;
-        };
-        # VFIO pins all guest RAM up front, so 4096 only fits alongside the
-        # host zram in orin-nx.nix; without it this OOM-crash-looped.
-        sysvms.guivm = {
-          mem = 4096;
         };
       };
     })
