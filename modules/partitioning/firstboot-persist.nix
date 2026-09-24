@@ -3,14 +3,13 @@
 #
 # First-boot service for Jetson Orin A/B verity boot.
 #
-# The pre-built LVM image contains both fixed-capacity system slots. On first
-# boot this service:
+# Secure A/B images contain both fixed-capacity slots; legacy images reserve
+# space for the second slot here. On first boot this service:
 #
-#   1. Expands the LVM PV after initrd has grown APP and the open LUKS mapping
+#   1. Grows APP and the PV (encrypted APP is grown earlier in initrd)
 #   2. Creates swap and persist LVs from the remaining free space
 #
-# Every step is idempotent — the service can be interrupted and re-run
-# safely (e.g. after a power loss during first boot).
+# An existing persist LV with no recognized filesystem fails closed.
 #
 # Ordering: systemd's device unit for /dev/pool/persist gates the
 # persist.mount unit. This service creates the device, which triggers
@@ -24,37 +23,47 @@
 }:
 let
   cfg = config.ghaf.partitioning.verity;
+  encrypted = config.ghaf.hardware.nvidia.orin.diskEncryption.enable;
+  fixedSlotSizes = cfg.rootSlotSizeMiB != null && cfg.veritySlotSizeMiB != null;
   # TODO: make this configurable?
   swapSizeMiB = 4096;
 
   firstbootScript = pkgs.writeShellApplication {
     name = "firstboot-persist";
-    runtimeInputs = with pkgs; [
-      gnugrep
-      gawk
-      lvm2
-      coreutils
-      btrfs-progs
-      util-linux
-    ];
+    runtimeInputs =
+      with pkgs;
+      [
+        gnugrep
+        gawk
+        lvm2
+        coreutils
+        btrfs-progs
+        util-linux
+      ]
+      ++ lib.optionals (!encrypted) [ parted ];
     text = ''
       set -euo pipefail
       echo "firstboot-persist: starting at $(date)"
 
-      # Initrd grows APP and the open LUKS mapping while the OP-TEE DUK is
-      # still available in its shared keyring.  Only the PV and new LVs are
-      # safe to grow here after switch-root.
+      # Encrypted APP is grown in initrd while the OP-TEE DUK is available.
 
       PV_PATH=$(pvdisplay -C -o pv_name --noheadings -S vg_name=pool | head -n1 | tr -d '[:space:]')
       [[ -n "$PV_PATH" ]] || { echo "ERROR: pool PV not found"; exit 1; }
       echo "PV: $PV_PATH -> $(readlink -f "$PV_PATH")"
 
+      ${lib.optionalString (!encrypted) ''
+        partition=$(readlink -f "$PV_PATH")
+        part_num=$(cat "/sys/class/block/$(basename "$partition")/partition")
+        disk="/dev/$(lsblk --nodeps --noheadings -o pkname "$partition" | xargs)"
+        # parted also relocates the backup GPT without changing its reserved space.
+        parted -s -f "$disk" resizepart "$part_num" 100%
+      ''}
+
       # pvresize is idempotent — no-op if PV already matches partition
       echo "Resizing PV..."
       pvresize "$PV_PATH"
 
-      # The image builder owns the two system pairs. Their names change during
-      # updates, so provisioning must not recreate the initial empty names.
+      # Slot names change during updates; never recreate their initial names.
       vgmknodes pool
 
       # --- Create swap LV (skip if already exists) ---
@@ -66,12 +75,18 @@ let
         echo "swap LV already exists, skipping."
       fi
 
-      # --- Create persist LV and finish an interrupted format if needed ---
+      # --- Create persist LV ---
 
       if [ ! -e /dev/pool/persist ]; then
         VG_FREE_INT=$(vgs --noheadings -o vg_free --nosuffix --units m pool \
           | awk '{ sub(/^</, "", $1); printf "%d", $1 }')
         PERSIST_MIB=$VG_FREE_INT
+        ${lib.optionalString (!fixedSlotSizes) ''
+          A_ROOT_MIB=$(lvs --noheadings -o lv_size --nosuffix --units m -S "vg_name=pool && lv_name=~^root_" | head -n1 | xargs)
+          A_VERITY_MIB=$(lvs --noheadings -o lv_size --nosuffix --units m -S "vg_name=pool && lv_name=~^verity_" | head -n1 | xargs)
+          RESERVE_MIB=$(awk "BEGIN { printf \"%d\", (''${A_ROOT_MIB:-0} + ''${A_VERITY_MIB:-0}) * 1.5 + 64 }")
+          PERSIST_MIB=$((VG_FREE_INT - RESERVE_MIB))
+        ''}
 
         if [ "$PERSIST_MIB" -le 0 ]; then
           echo "ERROR: no free space remains for persist after fixed slots and swap"
@@ -80,6 +95,7 @@ let
 
         echo "Creating persist LV from the remaining $PERSIST_MIB MiB..."
         lvcreate -L "''${PERSIST_MIB}M" -n persist pool
+        mkfs.btrfs -L persist /dev/pool/persist
 
       else
         echo "persist LV already exists."
@@ -87,10 +103,6 @@ let
 
       PERSIST_TYPE=$(blkid -o value -s TYPE /dev/pool/persist 2>/dev/null || true)
       case "$PERSIST_TYPE" in
-        "")
-          echo "Formatting uninitialized persist LV as btrfs..."
-          mkfs.btrfs -L persist /dev/pool/persist
-          ;;
         btrfs)
           echo "persist LV already contains btrfs, retaining it."
           ;;

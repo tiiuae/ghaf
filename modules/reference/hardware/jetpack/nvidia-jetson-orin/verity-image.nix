@@ -12,7 +12,7 @@
 # LVM payload: the image builder creates volume group "pool" with:
 #   - root_<ver>_<hash>  (erofs nix-store image from ghafImage)
 #   - verity_<ver>_<hash> (dm-verity hash tree from ghafImage)
-#   - root_empty / verity_empty (reserved inactive system pair)
+#   - root_empty / verity_empty (when fixed slot sizes are configured)
 #
 # Swap and persist LVs are created on first boot by
 # firstboot-persist.nix, which resizes the APP partition to fill the
@@ -51,15 +51,24 @@ let
     fi
     ln -s "$uki" "$out/uki.efi"
 
-    # The image artifact keeps its manifest-facing ghaf_kernel_* name, but
-    # systemd-boot and ota-update use ghaf-<version>-<hash>.efi as the stable
-    # managed entry ID.  Flash the initial UKI under that same name so the
-    # first slot participates in normal A/B discovery and is removed when its
-    # physical slot is reused.
-    manifest=$(find ${ghafUpdateImage} -name '*.manifest' | head -1)
-    version=$(${pkgs.buildPackages.jq}/bin/jq -er '.version' "$manifest")
-    root_hash=$(${pkgs.buildPackages.jq}/bin/jq -er '.root_verity_hash' "$manifest")
-    printf 'ghaf-%s-%s.efi\n' "$version" "''${root_hash:0:16}" > "$out/uki-filename"
+    ${
+      if config.ghaf.secureUpdate.enable then
+        ''
+          # The image artifact keeps its manifest-facing ghaf_kernel_* name, but
+          # systemd-boot and ota-update use ghaf-<version>-<hash>.efi as the stable
+          # managed entry ID.  Flash the initial UKI under that same name so the
+          # first slot participates in normal A/B discovery and is removed when its
+          # physical slot is reused.
+          manifest=$(find ${ghafUpdateImage} -name '*.manifest' | head -1)
+          version=$(${pkgs.buildPackages.jq}/bin/jq -er '.version' "$manifest")
+          root_hash=$(${pkgs.buildPackages.jq}/bin/jq -er '.root_verity_hash' "$manifest")
+          printf 'ghaf-%s-%s.efi\n' "$version" "''${root_hash:0:16}" > "$out/uki-filename"
+        ''
+      else
+        ''
+          basename "$uki" > "$out/uki-filename"
+        ''
+    }
 
     # systemd-boot
     ln -s "${config.systemd.package}/lib/systemd/boot/efi/systemd-bootaa64.efi" \
@@ -94,7 +103,7 @@ in
             printf '%s\n' "$root_mib" > xchg/root_size_mib
             printf '%s\n' "$verity_mib" > xchg/verity_size_mib
             diskImage=$PWD/system.img
-            truncate -s "$(( (2 * (root_mib + verity_mib) + 64 + ${
+            truncate -s "$(( (${if fixedSlotSizes then "2" else "1"} * (root_mib + verity_mib) + 64 + ${
               if config.ghaf.hardware.nvidia.orin.diskEncryption.enable then "32" else "0"
             }) * 1048576 ))" "$diskImage"
           '';
@@ -115,7 +124,7 @@ in
             encryption=(--luks-uuid ${lib.escapeShellArg config.ghaf.hardware.nvidia.orin.diskEncryption.luksUuid} --key-file manufacturer.key)
           ''}
           ${lib.getExe buildPkgs.ghaf-initialize-verity-lvm} \
-            --image /dev/vda --manifest "$(cat manifest-path)" --create-inactive-slots \
+            --image /dev/vda --manifest "$(cat manifest-path)" ${lib.optionalString fixedSlotSizes "--create-inactive-slots"} \
             --root-size-mib "$(cat root_size_mib)" --verity-size-mib "$(cat verity_size_mib)" \
             "''${encryption[@]}"
           rm -f manufacturer.key

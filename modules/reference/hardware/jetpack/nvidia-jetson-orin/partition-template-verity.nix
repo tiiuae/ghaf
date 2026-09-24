@@ -18,6 +18,7 @@
 }:
 let
   cfg = config.ghaf.hardware.nvidia.orin;
+  secureUpdate = config.ghaf.secureUpdate.enable;
   trustDigests = cfg.secureboot.publicTrustDigests;
   expectedPkDigest = trustDigests."PK.crt" or "";
   expectedKekDigest = trustDigests."KEK.crt" or "";
@@ -158,61 +159,52 @@ let
     echo "============================================================"
     echo ""
 
-    if [ -z "''${GHAF_DEV_KEY_DIR:-}" ]; then
-      echo "ERROR: GHAF_DEV_KEY_DIR is required for secure A/B canary flashes." >&2
-      exit 1
-    fi
-    for _required in PK.crt KEK.crt db.crt db.key update.pub update.key; do
-      if [ ! -s "$GHAF_DEV_KEY_DIR/$_required" ]; then
-        echo "ERROR: missing $GHAF_DEV_KEY_DIR/$_required" >&2
+    ${lib.optionalString secureUpdate ''
+      if [ -z "''${GHAF_DEV_KEY_DIR:-}" ]; then
+        echo "ERROR: GHAF_DEV_KEY_DIR is required for secure A/B canary flashes." >&2
         exit 1
       fi
-    done
+      for _required in PK.crt KEK.crt db.crt db.key update.pub; do
+        if [ ! -s "$GHAF_DEV_KEY_DIR/$_required" ]; then
+          echo "ERROR: missing $GHAF_DEV_KEY_DIR/$_required" >&2
+          exit 1
+        fi
+      done
 
-    _check_public_trust() {
-      _trust_name="$1"
-      _expected_digest="$2"
-      _actual_digest=$("${pkgs.pkgsBuildBuild.coreutils}/bin/sha256sum" "$GHAF_DEV_KEY_DIR/$_trust_name")
-      _actual_digest="''${_actual_digest%% *}"
-      if [ -z "$_expected_digest" ] || [ "$_actual_digest" != "$_expected_digest" ]; then
-        echo "ERROR: GHAF_DEV_KEY_DIR public trust does not match the trust embedded at image evaluation: $_trust_name" >&2
-        echo "  Rebuild the flash script with this exact GHAF_DEV_KEY_DIR." >&2
+      _check_public_trust() {
+        _trust_name="$1"
+        _expected_digest="$2"
+        _actual_digest=$("${pkgs.pkgsBuildBuild.coreutils}/bin/sha256sum" "$GHAF_DEV_KEY_DIR/$_trust_name")
+        _actual_digest="''${_actual_digest%% *}"
+        if [ -z "$_expected_digest" ] || [ "$_actual_digest" != "$_expected_digest" ]; then
+          echo "ERROR: GHAF_DEV_KEY_DIR public trust does not match the trust embedded at image evaluation: $_trust_name" >&2
+          echo "  Rebuild the flash script with this exact GHAF_DEV_KEY_DIR." >&2
+          exit 1
+        fi
+      }
+      _check_public_trust PK.crt ${lib.escapeShellArg expectedPkDigest}
+      _check_public_trust KEK.crt ${lib.escapeShellArg expectedKekDigest}
+      _check_public_trust db.crt ${lib.escapeShellArg expectedDbDigest}
+      _check_public_trust update.pub ${lib.escapeShellArg expectedUpdateDigest}
+
+      _trust_check_dir=$(mktemp -d)
+      "${pkgs.pkgsBuildBuild.openssl}/bin/openssl" pkey \
+        -in "$GHAF_DEV_KEY_DIR/db.key" -pubout -outform DER \
+        -out "$_trust_check_dir/db-key.der"
+      "${pkgs.pkgsBuildBuild.openssl}/bin/openssl" x509 \
+        -in "$GHAF_DEV_KEY_DIR/db.crt" -pubkey -noout \
+        -out "$_trust_check_dir/db-cert.pem"
+      "${pkgs.pkgsBuildBuild.openssl}/bin/openssl" pkey \
+        -pubin -in "$_trust_check_dir/db-cert.pem" -outform DER \
+        -out "$_trust_check_dir/db-cert.der"
+      if ! "${pkgs.pkgsBuildBuild.diffutils}/bin/cmp" -s \
+        "$_trust_check_dir/db-key.der" "$_trust_check_dir/db-cert.der"; then
+        echo "ERROR: GHAF_DEV_KEY_DIR private key does not match public trust: db.key/db.crt" >&2
         exit 1
       fi
-    }
-    _check_public_trust PK.crt ${lib.escapeShellArg expectedPkDigest}
-    _check_public_trust KEK.crt ${lib.escapeShellArg expectedKekDigest}
-    _check_public_trust db.crt ${lib.escapeShellArg expectedDbDigest}
-    _check_public_trust update.pub ${lib.escapeShellArg expectedUpdateDigest}
 
-    _trust_check_dir=$(mktemp -d)
-    "${pkgs.pkgsBuildBuild.openssl}/bin/openssl" pkey \
-      -in "$GHAF_DEV_KEY_DIR/db.key" -pubout -outform DER \
-      -out "$_trust_check_dir/db-key.der"
-    "${pkgs.pkgsBuildBuild.openssl}/bin/openssl" x509 \
-      -in "$GHAF_DEV_KEY_DIR/db.crt" -pubkey -noout \
-      -out "$_trust_check_dir/db-cert.pem"
-    "${pkgs.pkgsBuildBuild.openssl}/bin/openssl" pkey \
-      -pubin -in "$_trust_check_dir/db-cert.pem" -outform DER \
-      -out "$_trust_check_dir/db-cert.der"
-    if ! "${pkgs.pkgsBuildBuild.diffutils}/bin/cmp" -s \
-      "$_trust_check_dir/db-key.der" "$_trust_check_dir/db-cert.der"; then
-      echo "ERROR: GHAF_DEV_KEY_DIR private key does not match public trust: db.key/db.crt" >&2
-      exit 1
-    fi
-
-    "${pkgs.pkgsBuildBuild.openssl}/bin/openssl" pkey \
-      -in "$GHAF_DEV_KEY_DIR/update.key" -pubout -outform DER \
-      -out "$_trust_check_dir/update-key.der"
-    "${pkgs.pkgsBuildBuild.coreutils}/bin/tail" -c 32 \
-      "$_trust_check_dir/update-key.der" > "$_trust_check_dir/update-key.raw"
-    if [ "$("${pkgs.pkgsBuildBuild.coreutils}/bin/wc" -c < "$GHAF_DEV_KEY_DIR/update.pub")" -ne 32 ] \
-      || ! "${pkgs.pkgsBuildBuild.diffutils}/bin/cmp" -s \
-        "$_trust_check_dir/update-key.raw" "$GHAF_DEV_KEY_DIR/update.pub"; then
-      echo "ERROR: GHAF_DEV_KEY_DIR private key does not match public trust: update.key/update.pub" >&2
-      exit 1
-    fi
-    rm -rf "$_trust_check_dir"
+      rm -rf "$_trust_check_dir"
+    ''}
 
     mkdir -pv "$WORKDIR/bootloader"
 
@@ -232,12 +224,46 @@ let
     cp "$_boot_src" "$_sign_dir/BOOTAA64.efi"
     cp "$_uki_src" "$_sign_dir/$_uki_name"
 
-    # Trust and both signing keys were checked before preparing any images.
-    for _efi in "$_sign_dir"/*.efi; do
-      "${pkgs.pkgsBuildBuild.sbsigntool}/bin/sbsign" \
-        --key "$GHAF_DEV_KEY_DIR/db.key" --cert "$GHAF_DEV_KEY_DIR/db.crt" \
-        --output "$_efi" "$_efi"
-    done
+    # Sign EFI binaries if secure boot keys are available
+    ${
+      if secureUpdate then
+        ''
+          _sb_key_dir="$GHAF_DEV_KEY_DIR"
+        ''
+      else
+        ''
+          _sb_key_dir="''${SECURE_BOOT_SIGNING_KEY_DIR:-${
+            if config.ghaf.hardware.nvidia.orin.secureboot.enable then
+              config.ghaf.hardware.nvidia.orin.secureboot.signingKeyDir
+            else
+              ""
+          }}"
+        ''
+    }
+    if [ -n "$_sb_key_dir" ] && [ -f "$_sb_key_dir/db.key" ] && [ -f "$_sb_key_dir/db.crt" ]; then
+      echo "Signing EFI binaries with $_sb_key_dir/db.crt ..."
+      for _efi in "$_sign_dir"/*.efi; do
+        echo "  Signing: $(basename "$_efi")"
+        "${pkgs.pkgsBuildBuild.sbsigntool}/bin/sbsign" \
+          --key "$_sb_key_dir/db.key" --cert "$_sb_key_dir/db.crt" \
+          --output "$_efi" "$_efi"
+      done
+    ${
+      if config.ghaf.hardware.nvidia.orin.secureboot.enable then
+        ''
+          else
+            echo "ERROR: Secure Boot is enabled but no signing keys found." >&2
+            echo "  Set SECURE_BOOT_SIGNING_KEY_DIR or place db.key + db.crt in:" >&2
+            echo "  $_sb_key_dir" >&2
+            exit 1
+        ''
+      else
+        ''
+          else
+            echo "Secure Boot signing skipped (no keys found)."
+        ''
+    }
+    fi
 
     # Create 512M FAT32 ESP image
     "${pkgs.pkgsBuildBuild.dosfstools}/bin/mkfs.vfat" -F 32 -n ESP -C "$_esp" $((512 * 1024))
@@ -253,26 +279,29 @@ let
     _outer="$WORKDIR/bootloader/system.img"
     "${lib.getExe pkgs.pkgsBuildBuild.zstd}" --decompress --force \
       "${verityImages}/system.img.zst" -o "$_outer"
-    ${lib.optionalString (cfg.diskEncryption.enable && !cfg.flashScriptOverrides.onlyQSPI) ''
-      (
-      umask 077
-      _key_dir=$(mktemp -d)
-      trap 'rm -rf "$_key_dir"' EXIT
-      printf '%s' ${lib.escapeShellArg cfg.diskEncryption.deviceUniqueKey.deviceManufacturerPassphrase} > "$_key_dir/manufacturer"
-      _recovery_dir="$GHAF_DEV_KEY_DIR/recovery-passphrases"
-      install -d -m 0700 "$_recovery_dir"
-      _recovery=$(mktemp "$_recovery_dir/recovery-$(date -u +%Y%m%dT%H%M%SZ)-XXXXXX.txt")
-      # Store exactly the printable passphrase bytes that an operator types.
-      # A trailing newline would become part of a cryptsetup key file during
-      # enrollment and make the printed value fail interactive recovery.
-      "${pkgs.pkgsBuildBuild.openssl}/bin/openssl" rand -base64 24 \
-        | "${pkgs.pkgsBuildBuild.coreutils}/bin/tr" -d '\n' > "$_recovery"
-      chmod 0600 "$_recovery"
+    ${lib.optionalString
+      (secureUpdate && cfg.diskEncryption.enable && !cfg.flashScriptOverrides.onlyQSPI)
+      ''
+        (
+        umask 077
+        _key_dir=$(mktemp -d)
+        trap 'rm -rf "$_key_dir"' EXIT
+        printf '%s' ${lib.escapeShellArg cfg.diskEncryption.deviceUniqueKey.deviceManufacturerPassphrase} > "$_key_dir/manufacturer"
+        _recovery_dir="$GHAF_DEV_KEY_DIR/recovery-passphrases"
+        install -d -m 0700 "$_recovery_dir"
+        _recovery=$(mktemp "$_recovery_dir/recovery-$(date -u +%Y%m%dT%H%M%SZ)-XXXXXX.txt")
+        # Store exactly the printable passphrase bytes that an operator types.
+        # A trailing newline would become part of a cryptsetup key file during
+        # enrollment and make the printed value fail interactive recovery.
+        "${pkgs.pkgsBuildBuild.openssl}/bin/openssl" rand -base64 24 \
+          | "${pkgs.pkgsBuildBuild.coreutils}/bin/tr" -d '\n' > "$_recovery"
+        chmod 0600 "$_recovery"
 
-      ${lib.getExe rekeyVerityImage} "$_outer" "$_key_dir/manufacturer" "$_recovery"
-      echo "Recovery passphrase saved at: $_recovery"
-      )
-    ''}
+        ${lib.getExe rekeyVerityImage} "$_outer" "$_key_dir/manufacturer" "$_recovery"
+        echo "Recovery passphrase saved at: $_recovery"
+        )
+      ''
+    }
     # flash.sh -k APP looks for system.img relative to $WORKDIR
     ln -sf "$WORKDIR/bootloader/system.img" "$WORKDIR/system.img"
     echo "APP image: $("${pkgs.pkgsBuildBuild.coreutils}/bin/stat" -c%s "$WORKDIR/bootloader/system.img") bytes"

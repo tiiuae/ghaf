@@ -522,7 +522,7 @@ let
           handle_error
         fi
 
-        ${lib.optionalString (!(config.ghaf.partitioning.verity.enable or false)) ''
+        ${lib.optionalString (!(config.ghaf.secureUpdate.enable or false)) ''
           # Keyslot changes do not replace the shared image's volume key.
           printf "Note: Re-encryption may take 1 minute for every 1 GB of data ...\n"
           if ! cryptsetup reencrypt --key-description "$uniqueKeyDescription" "$luksDev"; then

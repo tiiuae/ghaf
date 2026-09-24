@@ -71,9 +71,10 @@ certificate/key SHA-256 values. The default keyless input and incomplete public
 directories must fail evaluation; no generic-image fallback is allowed.
 
 With **no recovery target attached**, test the flash script with an unset key
-directory, missing files, an independent trust set, and mismatched `db.key` or
-`update.key`. Each must fail before device/work-directory preparation. Restore
-the evaluated trust set and require the checks to pass. Never run key-negative
+directory, missing files, an independent trust set, and mismatched `db.key`.
+Each must fail before device/work-directory preparation. Restore the evaluated
+trust set and require the checks to pass without `update.key`, which is only
+needed for OTA signing. Never run key-negative
 tests while a recovery-mode device is attached.
 
 ## Flash and first boot

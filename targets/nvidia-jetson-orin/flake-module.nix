@@ -475,11 +475,44 @@ let
 
   ];
 
+  verity-target-configs =
+    map
+      (
+        variant:
+        (ghaf-configuration {
+          name = "nvidia-jetson-orin-agx-verity";
+          inherit system variant;
+          profile = "orin";
+          hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx;
+          extraModules = orinVerityModules;
+          extraConfig = {
+            reference.profiles.mvp-orinuser-trial.enable = true;
+            partitioning.verity = {
+              enable = true;
+              erofsCompression.algorithm = "lz4hc";
+              uki-signing-key-dir = lib.mkIf (variant == "debug") ../../modules/secureboot/dev-keys;
+            };
+            hardware.nvidia.orin.secureboot = {
+              enable = true;
+              keysSource = lib.mkIf (variant == "debug") ../../modules/secureboot/dev-keys;
+            };
+          };
+        })
+        // {
+          isVerity = true;
+          secureBootAlwaysOn = true;
+        }
+      )
+      [
+        "debug"
+        "release"
+      ];
+
   # Secure A/B verity+LUKS canaries. The AGX canary leaves the firmware TPM
   # disabled: its OP-TEE fTPM probe can remain uninterruptibly blocked and
   # prevent reboot. This does not disable the separate OP-TEE DUK path used to
   # unlock APP.
-  verity-target-configs =
+  secure-ab-target-configs =
     map
       (
         board:
@@ -559,7 +592,7 @@ let
           enableFtpm = false;
         }
       ];
-  all-target-configs = target-configs ++ verity-target-configs;
+  all-target-configs = target-configs ++ verity-target-configs ++ secure-ab-target-configs;
 
   generate-nodemoapps =
     tgt:
