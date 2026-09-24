@@ -27,6 +27,7 @@ in
 
   ghaf = {
     profiles.debug.enable = lib.mkDefault (globalConfig.debug.enable or false);
+    profiles.release.enable = lib.mkDefault (globalConfig.release.enable or false);
 
     nix.enable = lib.mkDefault (globalConfig.nix.enable or false);
     development = {
@@ -40,7 +41,7 @@ in
       admin = (hostConfig.users.admin or { }) // {
         addToDockerGroup = lib.mkDefault (hostConfig.users.admin.addToDockerGroup or false);
       };
-      managed = hostConfig.users.managed or { };
+      managed = hostConfig.users.managed or [ ];
     };
 
     identity.vmHostNameExport.enable = true;
@@ -131,46 +132,12 @@ in
         mountPoint = "/etc/common";
         proto = "virtiofs";
       }
-    ]
-    ++ lib.optionals (!(globalConfig.storage.storeOnDisk.enable or false)) [
-      {
-        tag = "ro-store";
-        source = "/nix/store";
-        mountPoint = "/nix/.ro-store";
-        proto = "virtiofs";
-      }
     ];
-    writableStoreOverlay = lib.mkIf (
-      !(globalConfig.storage.storeOnDisk.enable or false)
-    ) "/nix/.rw-store";
     qemu.machine =
       {
         x86_64-linux = "q35";
         aarch64-linux = "virt";
       }
       .${globalConfig.platform.hostSystem or "aarch64-linux"};
-  }
-  // lib.optionalAttrs (globalConfig.storage.storeOnDisk.enable or false) (
-    let
-      level = globalConfig.storage.storeOnDisk.compression.level;
-      levelSuffix = lib.optionalString (level != null) ",${toString level}";
-    in
-    {
-      storeOnDisk = true;
-      storeDiskType = "erofs";
-      storeDiskErofsFlags = [
-        "-Eztailpacking"
-        "-Efragments"
-        "--workers=$(( (NIX_BUILD_CORES < 1 || NIX_BUILD_CORES > 4) ? 4 : NIX_BUILD_CORES ))"
-      ]
-      ++ {
-        lz4hc = [ "-zlz4hc${levelSuffix}" ];
-        zstd = [
-          "-zzstd${levelSuffix}"
-          "-E48bit"
-        ];
-      }
-      .${globalConfig.storage.storeOnDisk.compression.algorithm};
-    }
-  );
+  };
 }
