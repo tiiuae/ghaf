@@ -157,7 +157,11 @@ in
       description = "List of hosts entries.";
       default = { };
     };
-
+    vmTapPrefix = mkOption {
+      type = types.str;
+      default = "tap";
+      description = "Prefix for host-side tap interfaces created for VMs";
+    };
   };
 
   config = {

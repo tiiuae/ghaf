@@ -10,14 +10,14 @@
 # Enabled VMs:
 # - Net VM (netvmBase exported for composition)
 # - Admin VM (adminvmBase exported for composition)
+# - IDS VM: passive traffic monitoring (idsvmBase exported for composition)
 #
 # Disabled VMs (architectural reasons):
 # - GUI VM: GPU passthrough not supported, desktop runs natively on host (COSMIC)
 # - Audio VM: Audio hardware directly accessible from host
-# - IDS VM: Resource constraints on embedded platform
 # - App VMs: No GUI VM means no Waypipe, apps run on host or via Docker
 #
-# Both netvmBase and adminvmBase are exported for composition needs.
+# netvmBase, adminvmBase and idsvmBase are exported for composition needs.
 #
 {
   config,
@@ -126,6 +126,16 @@ in
       type = lib.types.unspecified;
       readOnly = true;
       description = "Create an App VM on the Orin base (AArch64 analogue of laptop-x86.mkAppVm).";
+    };
+
+    # IDS VM base configuration for profiles to extend
+    idsvmBase = lib.mkOption {
+      type = lib.types.unspecified;
+      readOnly = true;
+      description = ''
+        Orin IDS VM base configuration.
+        Profiles can extend this with extendModules if customization needed.
+      '';
     };
   };
 
@@ -259,6 +269,30 @@ in
             hostConfig = lib.ghaf.vm.mkHostConfig {
               inherit config;
               vmName = "gui-vm";
+            };
+          };
+        };
+
+        # Export IDS VM base for profiles to extend
+        orin.idsvmBase = lib.nixosSystem {
+          modules = [
+            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.idsvm-base
+            # Import nixpkgs config module to get overlays
+            {
+              nixpkgs = {
+                hostPlatform.system = "aarch64-linux";
+                inherit (config.nixpkgs) overlays;
+                inherit (config.nixpkgs) config;
+              };
+            }
+          ];
+          specialArgs = lib.ghaf.vm.mkSpecialArgs {
+            inherit lib inputs;
+            globalConfig = hostGlobalConfig;
+            hostConfig = lib.ghaf.vm.mkHostConfig {
+              inherit config;
+              vmName = "ids-vm";
             };
           };
         };
@@ -422,7 +456,26 @@ in
           };
 
           idsvm = {
+            # Off by default on the base Orin profile - only the *-extras
+            # trial images (mvp-orinuser-trial-extras.nix) turn ids-vm on.
             enable = false;
+            evaluatedConfig = cfg.idsvmBase;
+            passiveMonitor = {
+              # Off by default on the base Orin profile - only the *-extras
+              # trial images (mvp-orinuser-trial-extras.nix) turn this on.
+              enable = false;
+              external = true;
+              # Validated on Orin AGX via ghaf-mirror-bench across 50M-1G:
+              # cuts host CPU overhead from mirroring by roughly two thirds
+              # vs. trafficMirror.sender.netem's own default (9.26% -> 2.67-3.00%
+              # delta at the same throughput), with zero packet loss at every
+              # tested rate. The wider batching window trades away mirror-path
+              # latency for that CPU headroom, which is the right trade here
+              # since ids-vm is a passive monitor, not inline on live traffic
+              # (see modules/microvm/common/traffic-mirror.nix). Takes effect
+              # only where passiveMonitor.enable is turned on.
+              netem = "slot 400ms 600ms packets 49152 limit 65536";
+            };
           };
 
           guivm = {

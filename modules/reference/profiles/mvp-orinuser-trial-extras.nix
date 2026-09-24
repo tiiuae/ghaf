@@ -35,10 +35,15 @@ in
       };
 
       virtualization.microvm = {
-        # Enable idsvm and the MiTM features
+        # mitmproxy is deliberately left off: it REDIRECTs :80/:443 arriving on
+        # the ids-vm's own interface, which only fires when app traffic is
+        # routed through it. Passive GRE mirroring makes the VM a copy
+        # destination rather than a gateway, so those rules cannot match.
         idsvm = {
           enable = lib.mkForce true;
-          mitmproxy.enable = lib.mkForce true;
+          # Base Orin profile leaves this off; only the extras/trial image
+          # turns passive monitoring on.
+          passiveMonitor.enable = lib.mkForce true;
         };
       };
 

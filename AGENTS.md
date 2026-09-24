@@ -131,17 +131,18 @@ in {
 
 ## Everyday commands
 
-| Task                       | Command                                                                          | Depth          |
-| -------------------------- | -------------------------------------------------------------------------------- | -------------- |
-| See what a build will cost | `nix build --dry-run .#<target>`                                                 | `ghaf-build`   |
-| Build an image             | `nix build .#intel-laptop-debug`                                                 | `ghaf-build`   |
-| Build many targets         | `nix-fast-build --flake '.#packages.x86_64-linux' --select …`                    | `ghaf-build`   |
-| Deploy without reflashing  | `nix develop --command ghaf-rebuild <netvm-ip> .#<target> boot`, then reboot     | `ghaf-deploy`  |
-| Flash an image             | `sudo nix develop --command ghaf-flash -d /dev/sdX -i result/ghaf-image.raw.zst` | `ghaf-deploy`  |
-| Flash a Jetson (RCM)       | `sudo ./result/bin/flash-ghaf-host -s <image-result-dir>`                        | `ghaf-deploy`  |
-| Reach a device or VM       | `ssh ghaf@<host_ip>`, then `ssh <vm>` from there                                 | `ghaf-connect` |
-| Collect logs across VMs    | `.claude/skills/ghaf-logs/scripts/collect-logs.sh --machine <name>`              | `ghaf-logs`    |
-| Run hardware tests         | `.github/skills/ghaf-hw-test/ghaf-hw-test test --device <name> --ip <IP>`        | `ghaf-test`    |
+| Task                       | Command                                                                          | Depth               |
+| -------------------------- | -------------------------------------------------------------------------------- | ------------------- |
+| See what a build will cost | `nix build --dry-run .#<target>`                                                 | `ghaf-build`        |
+| Build an image             | `nix build .#intel-laptop-debug`                                                 | `ghaf-build`        |
+| Build many targets         | `nix-fast-build --flake '.#packages.x86_64-linux' --select …`                    | `ghaf-build`        |
+| Deploy without reflashing  | `nix develop --command ghaf-rebuild <netvm-ip> .#<target> boot`, then reboot     | `ghaf-deploy`       |
+| Flash an image             | `sudo nix develop --command ghaf-flash -d /dev/sdX -i result/ghaf-image.raw.zst` | `ghaf-deploy`       |
+| Flash a Jetson (RCM)       | `sudo ./result/bin/flash-ghaf-host -s <image-result-dir>`                        | `ghaf-deploy`       |
+| Reach a device or VM       | `ssh ghaf@<host_ip>`, then `ssh <vm>` from there                                 | `ghaf-connect`      |
+| Collect logs across VMs    | `.claude/skills/ghaf-logs/scripts/collect-logs.sh --machine <name>`              | `ghaf-logs`         |
+| Run hardware tests         | `.github/skills/ghaf-hw-test/ghaf-hw-test test --device <name> --ip <IP>`        | `ghaf-test`         |
+| Benchmark IDS mirroring    | `.claude/skills/ghaf-mirror-bench/scripts/run-mirror-bench.sh --ip <netvm-ip>`   | `ghaf-mirror-bench` |
 
 Device details (addresses, drives, serial nodes, target and test names per machine) live in
 `.github/skills/ghaf-hw-test/config.yaml`, with per-machine values (addresses, MACs, ssh
@@ -197,9 +198,10 @@ Operator` means the board reset normally and is not in RCM -- that id is the deb
 ## Where the depth is
 
 - `.claude/skills/ghaf-*/SKILL.md` — `ghaf-target`, `ghaf-connect`, `ghaf-logs`,
-  `ghaf-build`, `ghaf-deploy`, `ghaf-test`, `ghaf-dev-loop`: build, deploy, connect, logs,
-  test, and the full development loop. Claude Code loads one on demand when a task matches
-  its description; other agents should read them as documentation when the task matches.
+  `ghaf-build`, `ghaf-deploy`, `ghaf-test`, `ghaf-dev-loop`, `ghaf-mirror-bench`: build,
+  deploy, connect, logs, test, benchmark IDS mirroring, and the full development loop. Claude
+  Code loads one on demand when a task matches its description; other agents should read them
+  as documentation when the task matches.
 - `.claude/skills/karpathy-guidelines/SKILL.md` — the full text behind [Code
   changes](#code-changes), vendored from
   <https://github.com/multica-ai/andrej-karpathy-skills> (MIT). Not situational like the
