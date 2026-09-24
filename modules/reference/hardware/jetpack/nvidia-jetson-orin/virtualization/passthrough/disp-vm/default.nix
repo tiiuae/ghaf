@@ -10,6 +10,7 @@
 let
   cfg = config.ghaf.hardware.nvidia.passthroughs.disp_vm;
   virt = config.ghaf.hardware.nvidia.virtualization;
+  orinVirtualizationSupport = pkgs.nvidia-jetpack.orinVirtualizationSupport;
 
   # Guest RAM and display keyholes use fixed GPA-to-HPA mappings.
   reservedMem = [
@@ -63,13 +64,11 @@ let
 
   dispvm-dtb = pkgs.stdenv.mkDerivation {
     name = "dispvm-dtb";
-    src = lib.fileset.toSource {
-      root = ./.;
-      fileset = lib.fileset.unions [
-        ./tegra234-dispvm.dts
-        ./tegra234-dispvm-memory.dtsi
-      ];
-    };
+    src = pkgs.runCommand "dispvm-dts-source" { } ''
+      mkdir -p "$out"
+      cp ${orinVirtualizationSupport}/device-trees/disp-vm/tegra234-dispvm.dts "$out/"
+      cp ${orinVirtualizationSupport}/device-trees/disp-vm/tegra234-dispvm-memory.dtsi "$out/"
+    '';
     nativeBuildInputs = [
       pkgs.buildPackages.dtc
       pkgs.buildPackages.gcc
@@ -78,21 +77,12 @@ let
       let
         kernel = config.boot.kernelPackages.kernel;
         mainInc = "${kernel.dev}/lib/modules/${kernel.modDirVersion}/source/include";
-        gpuvmDtsi = lib.fileset.toSource {
-          root = ../gpu-vm;
-          fileset = lib.fileset.unions [
-            ../gpu-vm/tegra234-gpuvm-base.dtsi
-            ../gpu-vm/tegra234-gpuvm-proxies.dtsi
-            ../gpu-vm/tegra234-gpuvm-display.dtsi
-            ../gpu-vm/tegra234-gpuvm-dummies.dtsi
-            ../gpu-vm/generated
-          ];
-        };
+        gpuvmDtsi = "${orinVirtualizationSupport}/device-trees/gpu-vm";
       in
       ''
         $CC -E -nostdinc -undef -D__DTS__ -DEXP_DROP_HOST1X -DEXP_DROP_GPU -DGHAF_DCB_DTSI='"${board.dcbDtsi}"' -x assembler-with-cpp \
           -I${mainInc} \
-          -I${../gpu-vm/nv-dt-bindings} \
+          -I${orinVirtualizationSupport}/device-trees/gpu-vm/nv-dt-bindings \
           -I${gpuvmDtsi} \
           -I. \
           tegra234-dispvm.dts > preprocessed.dts
