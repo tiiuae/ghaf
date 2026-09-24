@@ -74,8 +74,6 @@ def run_eval(
         "--select",
         select_expr,
         "--force-recurse",
-        "--workers",
-        "1",
         "--accept-flake-config",
         "--workers",
         str(EVAL_WORKERS),
