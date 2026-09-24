@@ -109,13 +109,16 @@ in
     # the bug the moment someone switched it on.
     services.smcroute = {
       enable = true;
-      uplink.enable = true;
-      rules = ''
-        mgroup from @UPLINK@ group ${cfg.McastUdpIp}
-        mgroup from ${cfg.internalNic} group ${cfg.McastUdpIp}
-        mroute from @UPLINK@ group ${cfg.McastUdpIp} to ${cfg.internalNic}
-        mroute from ${cfg.internalNic} group ${cfg.McastUdpIp} to @UPLINK@
-      '';
+      rules = {
+        perUplink = ''
+          mgroup from @UPLINK@ group ${cfg.McastUdpIp}
+          mroute from @UPLINK@ group ${cfg.McastUdpIp} to ${cfg.internalNic}
+        '';
+        once = ''
+          mgroup from ${cfg.internalNic} group ${cfg.McastUdpIp}
+          mroute from ${cfg.internalNic} group ${cfg.McastUdpIp} to @UPLINKS@
+        '';
+      };
     };
 
     ghaf.networking.uplinkResolver.dependentUnits = [

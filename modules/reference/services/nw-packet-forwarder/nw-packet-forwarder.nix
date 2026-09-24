@@ -24,27 +24,8 @@ let
     --ccastvm-ip ${chromecastVmIpAddr}/24
   '';
 
-  # One forwarder process per resolved uplink, run from a template unit so a
-  # device with several simultaneous uplinks (Wi-Fi and a docked Ethernet,
-  # say) forwards on all of them instead of only the lowest-metric one. `%I`
-  # carries the external interface name; it is passed as an argv element
-  # rather than spliced into this string so it can't collide with the
-  # `chromecastFlags` backslash-continuations below.
-  nw-pckt-fwd-instance = pkgs.writeShellScriptBin "nw-pckt-fwd-instance" ''
-    external_iface="$1"
-    echo "nw-pckt-fwd: forwarding between $external_iface and ${cfg.internalNic}"
-    exec ${pkgs.ghaf-nw-packet-forwarder}/bin/nw-pckt-fwd \
-    --external-iface "$external_iface" \
-    --internal-iface ${cfg.internalNic} \
-    --internal-ip ${cfg.internalIp} ${chromecastFlags}
-  '';
-
-  # Starts/stops nw-packet-forwarder@<iface> instances to match
-  # uplink_ifaces. Deliberately not gated on the ready flag (unlike the
-  # forwarder instances themselves): it must still run when there is no
-  # uplink at all, so it can stop every instance left over from one that just
-  # disappeared -- its own start/stop diff already reduces to "stop
-  # everything" when the desired set is empty.
+  # Not gated on the ready flag (unlike the forwarder instances): must still
+  # run with no uplink at all, to stop whatever instance is left over.
   nw-packet-forwarder-reconcile-script = pkgs.writeShellApplication {
     name = "nw-packet-forwarder-reconcile";
     runtimeInputs = [
@@ -55,7 +36,7 @@ let
     text = ''
       uplink_ifaces=""
       if [ -r ${cfg.stateFile} ]; then
-        # shellcheck disable=SC1090,SC1091
+        # shellcheck disable=SC1091
         . ${cfg.stateFile}
       fi
       read -ra desired <<< "''${uplink_ifaces:-}"
@@ -144,9 +125,9 @@ in
       type = types.path;
       default = "/run/ghaf-uplink-ready";
       description = ''
-        Gate for the reconciler and forwarder instances. Absent means there
-        is no uplink, and instances are stopped rather than left running for
-        a stale interface.
+        File gating the reconciler and forwarder instances. While it does not
+        exist there is no uplink, and instances are stopped rather than left
+        running for a stale interface.
       '';
     };
   };
@@ -157,17 +138,8 @@ in
         message = "Internal Nic must be set";
       }
       {
-        # No build-time fallback any more: every forwarder instance is
-        # started by the reconciler off the resolver's state file. Without
-        # the resolver actually running, the reconciler would never see any
-        # uplink and no instance would ever start -- silently, not a failure.
         assertion = config.ghaf.networking.uplinkResolver.enable;
-        message = ''
-          services.nw-packet-forwarder.enable requires
-          ghaf.networking.uplinkResolver.enable -- every forwarder instance is
-          started off the resolved uplink, and without the resolver running
-          no instance would ever start.
-        '';
+        message = "services.nw-packet-forwarder.enable requires ghaf.networking.uplinkResolver.enable";
       }
     ];
 
@@ -178,19 +150,13 @@ in
     );
 
     systemd.services = {
-      # One instance per resolved uplink, started and stopped by the
-      # reconciler below rather than by a static wantedBy/bindsTo -- a
-      # template can't bindsTo a .device unit whose interface name isn't
-      # known until the resolver runs.
+      # Started/stopped by the reconciler, not a static wantedBy/bindsTo -- a
+      # template can't bindsTo a .device unit with an unknown interface name.
       "nw-packet-forwarder@" = {
         description = "Network packet forwarder daemon (%i)";
 
-        # No start rate limit: the reconciler starts/stops a specific
-        # instance whenever its interface enters or leaves uplink_ifaces,
-        # and NetworkManager can fire several dispatcher events for one
-        # transition -- an interface flapping a few times in quick
-        # succession would otherwise hit the limit and leave that instance
-        # refusing to start for the rest of the window.
+        # No start rate limit: a flapping interface can retrigger this a few
+        # times in quick succession via NetworkManager's dispatcher events.
         unitConfig.StartLimitIntervalSec = 0;
 
         bindsTo = [ "sys-subsystem-net-devices-${cfg.internalNic}.device" ];
@@ -200,7 +166,7 @@ in
         ];
         serviceConfig = {
           Type = "simple";
-          ExecStart = "${nw-pckt-fwd-instance}/bin/nw-pckt-fwd-instance %I";
+          ExecStart = "${lib.getExe' pkgs.ghaf-nw-packet-forwarder "nw-pckt-fwd"} --external-iface %I --internal-iface ${cfg.internalNic} --internal-ip ${cfg.internalIp} ${chromecastFlags}";
           TimeoutStartSec = "0";
           Restart = "always";
           RestartSec = "15s";

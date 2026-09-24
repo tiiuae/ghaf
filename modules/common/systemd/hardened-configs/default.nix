@@ -13,6 +13,7 @@
     "microvm-tap-interfaces@".serviceConfig = import ./microvm-tap-interfaces.nix;
     "microvm-virtiofsd@".serviceConfig = import ./microvm-virtiofsd.nix;
     "microvm@".serviceConfig = import ./microvm.nix;
+    "nw-packet-forwarder@".serviceConfig = import ./nw-packet-forwarder.nix;
     "user-runtime-dir@".serviceConfig = import ./user-runtime-dir.nix;
     bluetooth.serviceConfig = import ./bluetooth.nix;
     dbus.serviceConfig = import ./dbus.nix;
@@ -28,7 +29,6 @@
     logrotate.serviceConfig = import ./logrotate.nix;
     NetworkManager-dispatcher.serviceConfig = import ./NetworkManager-dispatcher.nix;
     nscd.serviceConfig = import ./nscd.nix;
-    nw-packet-forwarder.serviceConfig = import ./nw-packet-forwarder.nix;
     rtkit-daemon.serviceConfig = import ./rtkit-daemon.nix;
     seatd.serviceConfig = import ./seatd.nix;
     ssh-tarpit.serviceConfig = import ./ssh-tarpit.nix;
