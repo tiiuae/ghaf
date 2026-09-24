@@ -132,12 +132,8 @@ pkgs.testers.nixosTest {
         '';
       };
 
-      # Stand-in for nw-packet-forwarder-reconcile specifically: the one real
-      # consumer *not* gated on the ready flag, since it has to run even with
-      # no uplink at all, to tear down anything left over from one that just
-      # disappeared. That makes it the one consumer that actually sources the
-      # state file while uplink_reason is set to a multi-word value -- gating
-      # on the flag like uplink-consumer above never exercises that.
+      # Stand-in for nw-packet-forwarder-reconcile: the one real consumer not
+      # gated on the ready flag, so the only one exercising uplink_reason.
       systemd.services.uplink-reconcile-stand-in = {
         description = "Stand-in for the one consumer not gated on the ready flag";
         wantedBy = [ "multi-user.target" ];
@@ -171,9 +167,8 @@ pkgs.testers.nixosTest {
         machine.succeed("test -e /run/ghaf-uplink-ready")
 
     with subtest("multiple uplinks: publishes every default-route interface"):
-        # A device can carry more than one default route at once (Wi-Fi and a
-        # docked Ethernet both up); a dummy netdev with its own default route
-        # stands in for the second one without needing a second test vlan.
+        # A dummy netdev with its own default route stands in for a second
+        # uplink without needing a second test vlan.
         machine.succeed("ip link add dummy0 type dummy")
         machine.succeed("ip link set dummy0 up")
         machine.succeed("ip addr add 192.168.2.2/24 dev dummy0")
@@ -223,13 +218,8 @@ pkgs.testers.nixosTest {
         assert "no uplink" in journal, journal
 
     with subtest("dependent not gated on the ready flag survives a multi-word reason"):
-        # nw-packet-forwarder-reconcile is the one consumer that has to run
-        # even with no uplink, to tear down anything left over -- this is
-        # what actually sources uplink_reason while it holds a multi-word
-        # value like "no default route", unlike the ready-flag-gated
-        # stand-in above, which never reads the file in this state.
-        # Unquoted, that value would make `. stateFile` try to run "default"
-        # as a command and abort under set -e before doing anything.
+        # Unquoted, a multi-word reason like "no default route" would make
+        # `. stateFile` try to run "default" as a command and abort.
         machine.wait_until_succeeds(
             "systemctl is-active uplink-reconcile-stand-in.service", timeout=30
         )

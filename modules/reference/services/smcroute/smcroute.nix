@@ -9,16 +9,36 @@
 let
   cfg = config.services.smcroute;
 
-  # The store file is a *template* carrying the placeholders; the real config
-  # is rendered next to it in the unit's RuntimeDirectory, which systemd
-  # creates before ExecStartPre and removes on stop.
+  # A *template*; the real config renders next to it in RuntimeDirectory.
   confTemplate = pkgs.writeText "smcroute.conf.in" ''
-    ${lib.concatStringsSep "\n" (lib.optionals (cfg.rules != null) [ cfg.rules ])}
+    ${lib.concatStringsSep "\n" (lib.optionals (cfg.rules.perUplink != null) [ cfg.rules.perUplink ])}
   '';
   confTemplateOnce = pkgs.writeText "smcroute-once.conf.in" ''
-    ${lib.concatStringsSep "\n" (lib.optionals (cfg.rulesOnce != null) [ cfg.rulesOnce ])}
+    ${lib.concatStringsSep "\n" (lib.optionals (cfg.rules.once != null) [ cfg.rules.once ])}
   '';
   runtimeConfFile = "/run/smcroute/smcroute.conf";
+
+  # Renders the config once per resolved uplink, so a device with
+  # several gets multicast routed on all of them, not just one.
+  renderConf = pkgs.writeShellApplication {
+    name = "smcroute-render-conf";
+    runtimeInputs = [ pkgs.gnused ];
+    text = ''
+      uplink_ifaces=""
+      # shellcheck disable=SC1091
+      . ${cfg.stateFile}
+      if [ -z "$uplink_ifaces" ]; then
+        echo "smcroute: ${cfg.stateFile} names no uplink; refusing to route multicast on a guess." >&2
+        exit 1
+      fi
+      : >${runtimeConfFile}
+      sed -e "s|${cfg.placeholderAll}|$uplink_ifaces|g" ${confTemplateOnce} >>${runtimeConfFile}
+      for iface in $uplink_ifaces; do
+        sed -e "s|${cfg.placeholder}|$iface|g" ${confTemplate} >>${runtimeConfFile}
+      done
+      echo "smcroute: routing multicast on $uplink_ifaces"
+    '';
+  };
 in
 {
   _file = ./smcroute.nix;
@@ -26,39 +46,41 @@ in
   options.services.smcroute = {
     enable = lib.mkEnableOption "smcroute";
 
-    rules = lib.mkOption {
-      type = lib.types.nullOr lib.types.lines;
-      default = null;
-      description = ''
-        https://github.com/troglobit/smcroute?tab=readme-ov-file#usage
+    rules = {
+      perUplink = lib.mkOption {
+        type = lib.types.nullOr lib.types.lines;
+        default = null;
+        example = ''
+          mgroup from @UPLINK@ group 239.255.255.250
+          mroute from @UPLINK@ group 239.255.255.250 to ethint0
+        '';
+        description = ''
+          smcroute rules repeated for each resolved uplink, with `placeholder`
+          replaced by that uplink's interface name. See
+          <https://github.com/troglobit/smcroute#usage>.
+        '';
+      };
 
-        Rendered once per resolved uplink, with `placeholder` substituted for
-        the interface being rendered. Put anything here that must be a
-        *separate* directive per uplink (e.g. `mgroup from @UPLINK@ ...`, or
-        an mroute whose source is the uplink). A directive that instead needs
-        every uplink named on the same line (e.g. an mroute fanning out from
-        the internal interface to all of them) belongs in `rulesOnce`
-        instead -- repeating it here would redeclare the same route with a
-        different destination each time, which smcrouted rejects.
-      '';
-    };
-
-    rulesOnce = lib.mkOption {
-      type = lib.types.nullOr lib.types.lines;
-      default = null;
-      description = ''
-        Rendered exactly once, with `placeholderAll` substituted for every
-        resolved uplink, space-separated -- for directives that must name all
-        of them on one line, such as an mroute's `to` list. See `rules` for
-        the per-uplink counterpart.
-      '';
+      once = lib.mkOption {
+        type = lib.types.nullOr lib.types.lines;
+        default = null;
+        example = ''
+          mroute from ethint0 group 239.255.255.250 to @UPLINKS@
+        '';
+        description = ''
+          smcroute rules written once, with `placeholderAll` replaced by all
+          resolved uplinks. Use it for rules that must list every uplink on one
+          line; in `rules.perUplink` they would be repeated and smcrouted would
+          reject the duplicate route.
+        '';
+      };
     };
 
     placeholder = lib.mkOption {
       type = lib.types.str;
       default = "@UPLINK@";
       description = ''
-        Token in `rules` replaced by the resolved uplink interface.
+        Token in `rules.perUplink` replaced by the resolved uplink interface.
       '';
     };
 
@@ -66,7 +88,7 @@ in
       type = lib.types.str;
       default = "@UPLINKS@";
       description = ''
-        Token in `rulesOnce` replaced by every resolved uplink interface,
+        Token in `rules.once` replaced by every resolved uplink interface,
         space-separated.
       '';
     };
@@ -81,8 +103,8 @@ in
       type = lib.types.path;
       default = "/run/ghaf-uplink-ready";
       description = ''
-        Gate for the unit. Absent means there is no uplink, and the unit is
-        skipped rather than failed.
+        File gating the unit. While it does not exist there is no uplink, and
+        the unit is skipped rather than failed.
       '';
     };
   };
@@ -90,35 +112,16 @@ in
   config = lib.mkIf cfg.enable {
     assertions = [
       {
-        # smcroute has no build-time fallback any more: it always renders its
-        # config from the resolver's state file, so without the resolver
-        # actually running, ConditionPathExists never sees a ready flag and
-        # the unit sits silently skipped forever instead of failing loudly.
         assertion = config.ghaf.networking.uplinkResolver.enable;
-        message = ''
-          services.smcroute.enable requires ghaf.networking.uplinkResolver.enable
-          -- smcroute always renders its config from the resolved uplink, and
-          without the resolver it would never see a ready flag and would sit
-          skipped forever instead of routing anything.
-        '';
+        message = "services.smcroute.enable requires ghaf.networking.uplinkResolver.enable";
       }
       {
-        assertion = cfg.rules == null || lib.hasInfix cfg.placeholder cfg.rules;
-        message = ''
-          services.smcroute.rules never mentions ${cfg.placeholder}, so the
-          resolved uplink would be ignored and smcrouted would route
-          multicast on the wrong interface -- silently, which is the exact
-          failure this mechanism exists to prevent.
-        '';
+        assertion = cfg.rules.perUplink == null || lib.hasInfix cfg.placeholder cfg.rules.perUplink;
+        message = "services.smcroute.rules.perUplink must contain ${cfg.placeholder}";
       }
       {
-        assertion = cfg.rulesOnce == null || lib.hasInfix cfg.placeholderAll cfg.rulesOnce;
-        message = ''
-          services.smcroute.rulesOnce never mentions ${cfg.placeholderAll}.
-          If a directive doesn't need the uplink list, it belongs in `rules`
-          instead -- rulesOnce exists only for directives that must name
-          every uplink on one line.
-        '';
+        assertion = cfg.rules.once == null || lib.hasInfix cfg.placeholderAll cfg.rules.once;
+        message = "services.smcroute.rules.once must contain ${cfg.placeholderAll}; rules without it belong in rules.perUplink";
       }
     ];
 
@@ -146,52 +149,17 @@ in
       ];
       requires = [ "network-online.target" ];
 
-      # With the uplink resolved at runtime there is nothing left to wait
-      # for: the resolver only publishes an interface once it holds the
-      # default route, and ConditionPathExists below keeps this unit from
-      # starting at all until at least one does. What remains is rendering
-      # the config once per resolved uplink -- a device with several
-      # simultaneous uplinks (Wi-Fi and a docked Ethernet, say) gets
-      # multicast routed on all of them, not just one.
-      preStart = ''
-        # shellcheck disable=SC1090,SC1091
-        . ${cfg.stateFile}
-        if [ -z "''${uplink_ifaces:-}" ]; then
-          echo "smcroute: ${cfg.stateFile} names no uplink; refusing to route multicast on a guess." >&2
-          exit 1
-        fi
-        : >${runtimeConfFile}
-        # rulesOnce first: directives naming every uplink on one line
-        # (e.g. an mroute's `to` list), rendered exactly once.
-        ${pkgs.gnused}/bin/sed -e "s|${cfg.placeholderAll}|$uplink_ifaces|g" \
-          ${confTemplateOnce} >>${runtimeConfFile}
-        # rules next: directives that are their own thing per uplink
-        # (e.g. `mgroup from @UPLINK@ ...`), rendered once per uplink.
-        for iface in $uplink_ifaces; do
-          ${pkgs.gnused}/bin/sed -e "s|${cfg.placeholder}|$iface|g" \
-            ${confTemplate} >>${runtimeConfFile}
-        done
-        echo "smcroute: routing multicast on $uplink_ifaces"
-      '';
-
-      # No start rate limit: this unit is restarted by the resolver's
-      # dependentUnits whenever the uplink set changes, and NetworkManager
-      # can fire several dispatcher events for one transition (up,
-      # dhcp4-change, connectivity-change), each triggering a restart --
-      # easily more than 3 in 600s on a device with two uplinks changing
-      # close together. Hitting that limit left smcroute refusing to start
-      # for the rest of the window, with no multicast routing at all, which
-      # is worse than the crash-loop the limit was guarding against.
+      # No start rate limit: NetworkManager's dispatcher events can restart
+      # this past the default limit when two uplinks change close together.
       unitConfig = {
         StartLimitIntervalSec = 0;
-        # No uplink => skipped, and visibly so. Not failed: an unplugged dock
-        # is not a defect. Not silently succeeded either, which is what the
-        # old unbounded wait effectively did.
+        # No uplink => skipped, visibly -- not failed, not silently succeeded.
         ConditionPathExists = cfg.readyFlag;
       };
 
       serviceConfig = {
         Type = "simple";
+        ExecStartPre = lib.getExe renderConf;
         ExecStart = "${pkgs.smcroute}/sbin/smcrouted -n -s -f ${runtimeConfFile}";
         User = "root";
         # Restart the service if it fails

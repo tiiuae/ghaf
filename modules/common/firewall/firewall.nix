@@ -342,8 +342,9 @@ in
         type = types.path;
         default = "/run/ghaf-uplink-ready";
         description = ''
-          Gate for the apply unit. Absent means no uplink, and the rules are
-          withdrawn rather than left pointing at a stale interface.
+          File gating the apply unit. While it does not exist there is no
+          uplink, and the rules are withdrawn rather than left pointing at a
+          stale interface.
         '';
       };
 
@@ -862,10 +863,7 @@ in
                   fi
                   ${uplinkFlush}
                   : >/run/ghaf-fw-uplink-rules
-                  # A device with several simultaneous uplinks (Wi-Fi and a
-                  # docked Ethernet, say) gets one -A per interface in the same
-                  # chain -- these are genuinely distinct rules (different
-                  # -i/-o match), not duplicates.
+                  # Multiple uplinks: one -A per interface, not duplicates.
                   for iface in $uplink_ifaces; do
                     sed -e "s|${cfg.uplink.placeholder}|$iface|g" ${uplinkRuleTemplate} >>/run/ghaf-fw-uplink-rules
                   done
