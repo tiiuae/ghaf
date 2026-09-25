@@ -145,6 +145,32 @@ let
           "$out"
       '';
 
+  # Parses the signed-image flags out of the flash script's positional parameters
+  # and exports them for preFlashScript.
+  #
+  # This snippet is inlined into jetpack-nixos preFlashCommands rather than added
+  # to preFlashScript because it needs to access the argument list from flash.sh.
+  parseImageArg = ''
+    flash_args=()
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        -s | --signed-sd-image)
+          if [ "$#" -lt 2 ]; then
+            echo "ERROR: -s requires a directory argument" >&2
+            exit 1
+          fi
+          export SIGNED_SD_IMAGE_DIR="$2"
+          shift 2
+          ;;
+        *)
+          flash_args+=("$1")
+          shift
+          ;;
+      esac
+    done
+    set -- "''${flash_args[@]}"
+  '';
+
   # preFlashCommands: Extract images from sdImage and patch flash.xml
   preFlashScript = pkgs.pkgsBuildBuild.writeShellApplication {
     name = "pre-flash-commands";
@@ -344,6 +370,9 @@ in
       )
       {
         hardware.nvidia-jetpack.flashScriptOverrides.partitionTemplate = partitionTemplate;
-        hardware.nvidia-jetpack.flashScriptOverrides.preFlashCommands = "${preFlashScript}/bin/pre-flash-commands";
+        hardware.nvidia-jetpack.flashScriptOverrides.preFlashCommands = ''
+          ${parseImageArg}
+          ${preFlashScript}/bin/pre-flash-commands
+        '';
       };
 }
