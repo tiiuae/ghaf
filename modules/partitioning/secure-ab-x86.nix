@@ -19,9 +19,16 @@
 
   ghaf.storage.encryption.deferred = true;
   boot.initrd.systemd.services.first-boot-encrypt = {
-    requiredBy = [ "sysroot.mount" ];
+    before = [ "systemd-veritysetup@nix-store.service" ];
+    requiredBy = [
+      "sysroot.mount"
+      "systemd-veritysetup@nix-store.service"
+    ];
     serviceConfig.ExecStartPost = "${pkgs.cryptsetup}/bin/cryptsetup isLuks ${lib.escapeShellArg config.ghaf.storage.encryption.partitionDevice}";
   };
+
+  # The store cannot appear until first-boot encryption has finished.
+  fileSystems."/nix/store".options = [ "x-systemd.device-timeout=0" ];
 
   # Preserve the established x86 storage policy, but apply it equally to both
   # secure A/B slots instead of deriving their capacities from generation 1.

@@ -66,12 +66,12 @@ The encryption service runs in the **initial RAM disk (initrd)** before the root
 ```
 1. Bootloader → Kernel → Initrd
 2. Initrd systemd starts
-3. cryptsetup-pre-check: Is device LUKS?
-   ├─ No → Skip systemd-cryptsetup
-   └─ Yes → systemd-cryptsetup unlocks device
-4. first-boot-encrypt service:
+3. first-boot-encrypt checks LUKS metadata and the installer marker:
    ├─ Device NOT LUKS? → Apply encryption
-   └─ Device IS LUKS? → Skip (already encrypted)
+   ├─ Installer marker remains? → Recover/resume encryption and finish enrollment
+   ├─ Incomplete encryption without installer marker? → Refuse to boot
+   └─ Setup complete? → Skip setup
+4. Unlock the completed LUKS device on normal boots
 5. Mount root filesystem
 6. Switch to main system
 ```
@@ -375,15 +375,15 @@ journalctl -u first-boot-encrypt -b -1
 lsblk
 pvdisplay
 
-# Check if device is already LUKS
-cryptsetup isLuks /dev/sda3 && echo "Already encrypted" || echo "Not encrypted"
+# A LUKS header alone does not prove encryption finished
+cryptsetup isLuks /dev/sda3 && cryptsetup luksDump /dev/sda3
 ```
 
 **Common causes:**
 - Partition table mismatch
 - Insufficient disk space (need 16MB for LUKS header)
 - Corrupted filesystem
-- Device already encrypted
+- Setup already completed
 
 **Recovery:**
 ```bash
