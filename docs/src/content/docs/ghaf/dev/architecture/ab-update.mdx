@@ -283,8 +283,9 @@ A failed fetch leaves only temporary state, not a ready-to-install bundle.
 This policy requires the GIVC fix in
 [PR #512](https://github.com/tiiuae/ghaf-givc/pull/512), commit
 `e68d2d23598a1aba6da9696f4ecb250dea848e25`, or a revision containing it. Check
-`nodes.givc.locked.rev` in `flake.lock`; the older `3755b99` pin still promotes
-the trial during installation and does not provide this rollback behavior.
+`nodes.givc.locked.rev` in `flake.lock`; the current pin contains the merged
+fix. Devices still running the older `3755b99` updater promote the trial during
+installation and need the updated updater before rollback testing.
 The install dry-run must end in `bootctl set-oneshot`, not `set-default`.
 
 Trial UKIs are named `ghaf-<version>-<hash>+3.efi`. Installation selects the
