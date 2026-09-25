@@ -116,10 +116,8 @@
     };
 
     # Ghaf Inter VM communication and control library
-    #
-    # TEMPORARILY pinned to a commit rather than the branch head
     givc = {
-      url = "github:tiiuae/ghaf-givc";
+      url = "github:tiiuae/ghaf-givc/main";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
