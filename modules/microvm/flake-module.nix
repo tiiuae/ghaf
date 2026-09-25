@@ -12,6 +12,7 @@
   flake.nixosModules = {
     microvm-nix.imports = [
       inputs.microvm.nixosModules.microvm
+      ./microvm-extensions
     ];
 
     microvm.imports = [
