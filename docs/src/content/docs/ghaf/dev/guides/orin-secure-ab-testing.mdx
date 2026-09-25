@@ -181,13 +181,18 @@ findmnt --mountpoint /nix/store
 findmnt --mountpoint /persist
 swapon --show
 systemctl list-units 'microvm@*.service' --no-pager
-systemctl show ghaf-boot-health.service -p Result -p ExecMainStatus
-journalctl -b -u firstboot-persist -u ghaf-boot-health --no-pager
+systemctl show ghaf-boot-health.service -p Result -p ExecMainStatus -p ExecMainStartTimestamp
+journalctl -b -u firstboot-persist.service -u ghaf-boot-health.service --no-pager
 ```
 
 Boot health is a oneshot service and can be inactive after success; require
-`Result=success`, `ExecMainStatus=0` and its acceptance journal, not an active
-service state. Require Secure Boot, LUKS-backed `pool`, verified read-only store, read-write
+`Result=success`, `ExecMainStatus=0`, matching running/accepted generations
+and a blessed boot entry. Retain its acceptance journal when available.
+On boards with an incorrect firmware clock, NTP can jump forward far enough
+to expire the early journal immediately. Compare `ExecMainStartTimestamp`
+with `journalctl --list-boots` and retain the prestarted serial capture;
+an empty unit journal alone does not prove boot-health failure or success.
+Require Secure Boot, LUKS-backed `pool`, verified read-only store, read-write
 Btrfs persist, encrypted swap, healthy configured core VMs and matching accepted
 generation. Initial storage reserves the second pair's capacity. Create a
 non-secret sentinel once, and record its checksum outside the board:
@@ -288,8 +293,9 @@ validation is performed later on the Orin host, which has the installed trust
 files and accepted-generation state.
 Registry `--validate` checks artifact integrity; it does not authenticate the
 manifest signature or apply host target/generation policy. Missing signature
-layers must fail pulling; bad signatures and signed-policy mismatches must fail
-subsequent host image validation. Never treat successful transport as authorization.
+layers must fail pulling. Host `image validate` rejects bad signatures and
+target mismatches; `image --dry-run install` rejects equal or older generations.
+Never treat successful transport as authorization.
 
 **In a new `net-vm` shell**, enter the same published reference and the separate
 read-only device credential supplied by the operator. Do not copy push credentials
@@ -374,6 +380,10 @@ systemctl reboot
 ```
 
 Reconnect to the host and repeat the baseline without recreating the sentinel.
+If SSH reports a changed host key, verify the board identity and
+`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` over its identified serial
+console before replacing that host's saved key. The host key can regenerate
+on reboot; the network VM's key is a separate identity.
 A healthy trial advances accepted generation and removes its counter; an injected
 failure must return to the previous accepted generation. The following matrix
 specifies which outcome to require for each candidate.
@@ -412,7 +422,10 @@ persist filesystems only in a disposable fixture, not by replacing real data.
 HW-008: missing/random/wrong-key signature; manifest changed after signing;
 root or verity size/hash mismatch; unsigned/wrong-key UKI; opposite-board target;
 equal/older generation; UKI root hash or generation disagreeing with manifest.
-Validate first and do not continue to installation after a failed preflight.
+Use `image validate` for signature, target and artifact rejection, then
+`image --dry-run install` for equal/older-generation rejection. Authentic older
+bundles can pass `image validate`; this does not authorize their installation.
+Do not run a real installation after either preflight fails.
 
 IT-003: root decoder failure (including writer success), short/failed root
 write, verity decoder/write failure, failed `veritysetup verify`, second final
@@ -465,3 +478,12 @@ the current implementation. Rerun boot-health and corruption cases after updatin
 the pin. The September 2026 X1 rollback result is not Orin hardware acceptance.
 
 Physical power cuts (HW-011) and hard-hang watchdog tests (HW-012) remained unrun.
+
+The 2026-09-25 documentation walkthrough rebuilt both boards' payloads and
+flashers and exercised HTTP delivery, authenticated validation and rejection
+checks on AGX32 and NX. Both installed updaters still ended their installation
+dry-run in `set-default`, so trials were not installed. AGX32 unlocked
+unattended after warm reboot. NX warm reboot entered UEFI HTTP boot; a cold
+power cycle restored unattended unlock with persistence unchanged. This is a
+failed NX warm-reboot result, not rollback acceptance. Fresh flashing,
+post-pin-update trials and the physical fault cases remain unverified by this run.
