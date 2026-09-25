@@ -51,17 +51,18 @@ variables nor private key directories. The repository template has no keys:
 all secure images, including debug, require external public trust.
 
 Create development keys once outside Git and the Nix store, then export a new
-public configuration for every generation; never mutate a published input:
+public configuration for every generation; never mutate a published input.
+Set `PLATFORM_TARGET` to the exact package from the platform guide:
 
-```sh
+```bash
 umask 077
 nix run .#ghaf-dev-keygen -- --output /secure/local/ghaf-dev-keys
 nix run .#ghaf-secure-ab-config -- \
   --key-dir /secure/local/ghaf-dev-keys --generation 8 \
-  --output ./secure-ab-generation-8
+  --output /var/tmp/secure-ab-generation-8
 timeout 2h nix build \
-  --override-input secure-ab-build-config path:./secure-ab-generation-8 \
-  .#<platform-target>
+  --override-input secure-ab-build-config path:/var/tmp/secure-ab-generation-8 \
+  ".#$PLATFORM_TARGET"
 ```
 
 The exporter emits raw 32-byte Ed25519 public keys; the updater also accepts
@@ -71,7 +72,7 @@ flakes should lock the public input and make Ghaf's input follow it.
 
 ### Proposed CI integration
 
-CI is documented only, not implemented. Secure adapter targets remain exposed
+The dedicated secure-image CI flow below is proposed; it is not implemented. Secure adapter targets remain exposed
 in `packages`; evaluating their derivations requires a CI-owned, locked public
 configuration supplied through `--override-input secure-ab-build-config`.
 Future jobs should inject that configuration, run package checks and build targets sequentially under
@@ -99,9 +100,12 @@ exact manifest bytes; the UEFI db key independently signs the UKI.
 Root/verity names are `ghaf_{root,verity}_<version>_<hash>.raw.zst`; the UKI is
 `ghaf_kernel_<version>_<hash>.efi`. Sign into a new output directory:
 
-```sh
+```bash
+set -euo pipefail
+manifests=(result-update/*.manifest)
+test "${#manifests[@]}" -eq 1 && test -f "${manifests[0]}"
 nix run .#ghaf-sign-update -- --key-dir /secure/local/ghaf-dev-keys \
-  --input result-update/ghaf_<version>_<hash>.manifest --output signed-update
+  --input "${manifests[0]}" --output signed-update
 ```
 
 The signing input must be the trusted, immutable Nix build output (`result-update`
@@ -116,8 +120,8 @@ It signs the verified UKI copy, recomputes artifact metadata and signs the manif
 
 Initial disk creation runs in a disposable Nix build VM with its own scratch disk.
 `ghaf-initialize-verity-lvm` validates the manifest and decompressed payload lengths,
-then uses stock `cryptsetup`, `pvcreate`, `vgcreate` and `lvcreate` to create LUKS2
-and the fixed A/B slots. Optional swap and persist filesystems use stock formatters.
+then uses stock `pvcreate`, `vgcreate` and `lvcreate` to create the fixed A/B
+slots, with an optional outer LUKS2 container created by `cryptsetup`. Optional swap and persist filesystems use stock formatters.
 The build host needs KVM; it does not need root access to host storage devices.
 
 The build-time LUKS volume key is a transport key shared by every copy of the
@@ -145,7 +149,10 @@ build/sign -> net-vm fetch -> shared persist -> host validation/install
 Production delivery uses `ota-update registry` with authenticated HTTPS and
 read-only device credentials. `ghaf-fetch-update` is a debug-only static-HTTP
 helper: fixed metadata/artifact caps, declared packed-size limits and exact
-final-size checks precede atomic publication. Fetching never authorizes install.
+final-size checks precede atomic publication. Fetching never authorizes install. Registry `pull --validate` checks artifact
+integrity, not the detached signature, UKI trust or device generation policy;
+`ota-update image validate` on the host is still required. Registry `--install`
+is disabled for signed manifest v2.
 
 On the host, run `ota-update image validate`, then
 `ota-update image --dry-run install`, then `ota-update image install`, each with
@@ -154,18 +161,61 @@ signatures/policy, discovers slots, snapshots/rechecks the network-writable UKI,
 recovers staging, supervises decompression, verifies dm-verity, commits LV names,
 atomically installs the three-attempt UKI, then changes boot selection.
 
+### Static HTTP lab delivery
+
+On the build host, set `SIGNED_DIR` to the new signed bundle directory and
+`SIGNED_MANIFEST` to its manifest. The HTTP helper requires the aliases
+`manifest.json` and `manifest.json.sig`; the signer preserves the original
+manifest filename. Copy the signed bytes without reformatting the JSON:
+
+```bash
+set -euo pipefail
+HTTP_ROOT="$(mktemp -d)"
+install -m 0644 "$SIGNED_MANIFEST" "$HTTP_ROOT/manifest.json"
+install -m 0644 "$SIGNED_MANIFEST.sig" "$HTTP_ROOT/manifest.json.sig"
+for kind in root verity kernel; do
+  artifact="$(jq -er --arg kind "$kind" '.[$kind].file' "$SIGNED_MANIFEST")"
+  cp --reflink=auto -- "$SIGNED_DIR/$artifact" "$HTTP_ROOT/$artifact"
+done
+python3 -m http.server 18080 --bind "$BUILD_HOST_IP" --directory "$HTTP_ROOT"
+```
+
+Set `BUILD_HOST_IP` to an interface reachable from the target's `net-vm`, and
+permit that port on the lab network. Serve only this public bundle directory.
+In `net-vm`, with the matching generation and address:
+
+```bash
+ghaf-fetch-update "http://$BUILD_HOST_IP:18080" "$GENERATION" /persist/sysupdate
+```
+
+The host sees `/persist/sysupdate/http-generation-$GENERATION/manifest.json`.
+A fetch refuses to replace an existing published generation directory; use a
+fresh directory for each candidate. Stop the HTTP server after delivery.
+
 ## Boot health and rollback
 
-Trial UKIs are named `ghaf-<version>-<hash>+3.efi`. Candidate-specific default
-globs follow counter renames without selecting unrelated equal-version UKIs.
-A healthy trial is promoted to its exact UKI name.
+This policy requires the GIVC fix in
+[PR #512](https://github.com/tiiuae/ghaf-givc/pull/512), commit
+`e68d2d23598a1aba6da9696f4ecb250dea848e25`, or a revision containing it. Check
+`nodes.givc.locked.rev` in `flake.lock`; the older `3755b99` pin still promotes
+the trial during installation and does not provide this rollback behavior.
+The install dry-run must end in `bootctl set-oneshot`, not `set-default`.
+
+Trial UKIs are named `ghaf-<version>-<hash>+3.efi`. Installation selects the
+candidate for one boot while preserving the last healthy default. A healthy
+trial is promoted to its exact UKI name.
 
 `ghaf-boot-health.service` checks LUKS, dm-verity, store/persist mounts, configured
 core VMM services and kernel generation; AppVMs/login are excluded. It promotes
 the entry, atomically persists accepted generation, then blesses last. A retry
 after acceptance persistence finishes promotion/blessing without lowering state.
 Unhealthy trials re-arm while attempts remain and reboot; exhaustion selects
-the blessed fallback. Hard hangs additionally require a proven platform reset.
+the blessed fallback. Failure before the health service can re-arm the trial
+returns to the fallback on the next boot, so early corruption need not consume
+all three attempts. Hard hangs additionally require a proven platform reset.
+Do not set the trial as the persistent default: `LoaderEntryDefault` can select
+exhausted entries, as described by the
+[systemd boot loader interface](https://systemd.io/BOOT_LOADER_INTERFACE/).
 
 The health gate checks VMM service activity; guest-agent liveness is not
 currently checked.
