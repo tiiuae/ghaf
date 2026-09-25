@@ -206,7 +206,11 @@ is disabled for signed manifest v2.
 
 On the host, run `ota-update image validate`, then
 `ota-update image --dry-run install`, then `ota-update image install`, each with
-`--manifest PATH`. Stop on validation failure. The locked transaction verifies
+`--manifest PATH`. The first command authenticates the manifest, target,
+artifacts and UKI; it does not reject an already accepted or older generation.
+The installation dry-run additionally checks accepted-generation policy and
+storage state without writing slots. Stop on failure from either command.
+The locked transaction verifies
 signatures/policy, discovers slots, snapshots/rechecks the network-writable UKI,
 recovers staging, supervises decompression, verifies dm-verity, commits LV names,
 atomically installs the three-attempt UKI, then changes boot selection.
@@ -244,13 +248,16 @@ three artifacts. Leave that terminal running while fetching. Private keys are
 never copied to `$HTTP_ROOT`.
 
 **Separate `net-vm` shell.** Connect using the platform's device address and
-[SSH access procedure](/ghaf/dev/ref/ssh#connect), verify `hostname` is `net-vm`,
-and enter the origin and generation printed above. These values are copied
+[SSH access procedure](/ghaf/dev/ref/ssh#connect) and verify that this is the
+network VM: its internal interface has address `192.168.100.1`; its hostname
+is generated as `ghaf-…`, not literally `net-vm`. Enter the origin and
+generation printed above. These values are copied
 explicitly; build-host variables do not exist in this shell:
 
 ```bash
 set -euo pipefail
 hostname
+ip -br -4 address
 read -r -p 'HTTP origin printed by the build host: ' UPDATE_HTTP_ORIGIN
 read -r -p 'Generation printed by the build host: ' GENERATION
 test -w /persist/sysupdate
