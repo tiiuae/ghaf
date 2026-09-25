@@ -9,7 +9,10 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 # Orin secure A/B testing
 
 Use the [shared architecture](/ghaf/dev/architecture/ab-update) for trust,
-manifest, transaction and boot-health contracts.
+manifest, transaction and boot-health contracts. Before rollback testing, the
+GIVC pin must contain [PR #512](https://github.com/tiiuae/ghaf-givc/pull/512)
+(`e68d2d2`) or its successor. A checkout pinned to `3755b99` lacks that
+fix; a dry-run ending in `set-default` is a blocker, not a valid test baseline.
 
 :::danger[Destructive tests]
 Flash, corruption and power-cut cases require an explicitly authorized device.
@@ -41,12 +44,13 @@ Generate keys once as described in the shared guide. Set `ORIN=nx` or
 `ORIN=agx` explicitly for the authorized board. Export a new public directory
 for every candidate; never edit an input used for a published image.
 
-```sh
+```bash
+set -euo pipefail
 export GHAF_DEV_KEY_DIR=/secure/local/ghaf-dev-keys
 ORIN=nx
 TARGET="nvidia-jetson-orin-$ORIN-verity-luks-debug"
 GENERATION=10
-PUBLIC="$PWD/secure-ab-$ORIN-generation-$GENERATION"
+PUBLIC="/var/tmp/secure-ab-$ORIN-generation-$GENERATION"
 nix run .#ghaf-secure-ab-config -- --key-dir "$GHAF_DEV_KEY_DIR" \
   --generation "$GENERATION" --output "$PUBLIC"
 
@@ -56,7 +60,9 @@ for artifact in ghafImage flash-script; do
     ".#$TARGET-from-x86_64-$artifact" -o "result-$ORIN-$artifact"
 done
 
-MANIFEST="$(find -L "result-$ORIN-ghafImage" -maxdepth 1 -name '*.manifest' -print -quit)"
+manifests=("result-$ORIN-ghafImage"/*.manifest)
+test "${#manifests[@]}" -eq 1 && test -f "${manifests[0]}"
+MANIFEST="${manifests[0]}"
 jq -e --arg target "$TARGET" --argjson generation "$GENERATION" \
   '.system == "aarch64-linux" and .target == $target and .generation == $generation' \
   "$MANIFEST"
@@ -88,10 +94,15 @@ For HW-002, record `udevadm info --query=property --name="$SERIAL_DEVICE"`, set
 115200 baud and start a timestamped serial capture before flashing. Then repeat
 the identity checks immediately before the destructive command:
 
-```sh
+```bash
 sudo --preserve-env=GHAF_DEV_KEY_DIR \
   "result-$ORIN-flash-script/bin/flash-ghaf-host" --secure-boot -u
 ```
+
+These verity-canary flash scripts construct ESP/APP from their embedded
+`verityImages` build output and sign locally. They do not use the ordinary
+sd-image flasher's `-s` workflow. Rebuild the flash script with the same public
+input as the intended image; the separately signed update bundle is for OTA.
 
 Keep the new recovery passphrase in protected offline custody, not command
 arguments, ordinary logs or the evidence bundle.
@@ -103,23 +114,26 @@ their on-device first-boot reencryption.
 
 Capture this baseline before every mutating runtime case:
 
-```sh
+```bash
 sudo ota-update image status
 bootctl status --no-pager
 bootctl list --no-pager
 cat /proc/cmdline
-cat /persist/common/ota/accepted-generation
+sudo cat /persist/common/ota/accepted-generation
 sudo cryptsetup status cryptroot
 sudo veritysetup status nix-store
 sudo lvs -a -o lv_name,lv_size,lv_attr,lv_uuid,devices pool
 findmnt --mountpoint /nix/store
 findmnt --mountpoint /persist
 swapon --show
-systemctl is-active microvm@{admin,disp,gpu,net}-vm.service
+systemctl list-units 'microvm@*.service' --no-pager
+systemctl show ghaf-boot-health.service -p Result -p ExecMainStatus
 journalctl -b -u firstboot-persist -u ghaf-boot-health --no-pager
 ```
 
-Require Secure Boot, LUKS-backed `pool`, verified read-only store, read-write
+Boot health is a oneshot service and can be inactive after success; require
+`Result=success`, `ExecMainStatus=0` and its acceptance journal, not an active
+service state. Require Secure Boot, LUKS-backed `pool`, verified read-only store, read-write
 Btrfs persist, encrypted swap, healthy configured core VMs and matching accepted
 generation. Initial storage reserves the second pair's capacity. Create a
 non-secret sentinel under `/persist/common/ota-test/`; compare it after every
@@ -143,18 +157,21 @@ With `UPDATE_REF=<registry>/<namespace>/<repository>:<approved-tag>` and
 `REGISTRY_AUTH_ARGS` supplied privately (`--token TOKEN` or
 `--username USER --password PASSWORD`), run on the developer host:
 
-```sh
-nix run 'path:../ghaf-givc#ota-update' -- registry "${REGISTRY_AUTH_ARGS[@]}" \
+```bash
+nix run .#ghaf-ota-update -- registry "${REGISTRY_AUTH_ARGS[@]}" \
   push --manifest "$SIGNED_MANIFEST" "$UPDATE_REF"
 PULL_ROOT="$(mktemp -d)"
-nix run 'path:../ghaf-givc#ota-update' -- registry "${REGISTRY_AUTH_ARGS[@]}" \
+nix run .#ghaf-ota-update -- registry "${REGISTRY_AUTH_ARGS[@]}" \
   pull --validate --destination "$PULL_ROOT" "$UPDATE_REF"
 ```
 
 Record the OCI digest. Compare pulled `<repository>/<tag>/manifest.json` and
 `manifest.json.sig` byte-for-byte with the signed originals; run signed image
 validation with the target's public keys and accepted-generation state.
-Missing signature layers, tampered manifests or altered artifacts must fail.
+Registry `--validate` checks artifact integrity; it does not authenticate the
+manifest signature or apply host target/generation policy. Missing signature
+layers must fail pulling; bad signatures and signed-policy mismatches must fail
+subsequent host image validation. Never treat successful transport as authorization.
 
 In `net-vm`, repeat `ota-update registry ... discover <repository>` and
 `ota-update registry ... pull --validate --destination /persist/sysupdate "$UPDATE_REF"`
@@ -167,7 +184,7 @@ For an isolated lab only, serve a directory containing exactly five public
 files. Set `UPDATE_HTTP_BIND` and `UPDATE_HTTP_PORT` to a target-reachable
 interface/nonprivileged port; scope any firewall opening to the lab network.
 
-```sh
+```bash
 HTTP_ROOT="$(mktemp -d)"
 install -m 0644 "$SIGNED_MANIFEST" "$HTTP_ROOT/manifest.json"
 install -m 0644 "$SIGNED_MANIFEST.sig" "$HTTP_ROOT/manifest.json.sig"
@@ -193,15 +210,17 @@ staging directory afterward; never expose keys or recovery material.
 
 Use the manifest path printed by either transport:
 
-```sh
+```bash
 sudo ota-update image validate --manifest "$PULLED_MANIFEST"
 sudo ota-update image --dry-run install --manifest "$PULLED_MANIFEST"
 sudo ota-update image install --manifest "$PULLED_MANIFEST"
 ```
 
 Stop on any error. Confirm the active pair/default against the baseline,
-a complete `+3.efi` trial and its candidate-specific default glob; installation
-must not reboot. Reboot manually and observe the health/rollback cases below.
+a complete `+3.efi` trial and candidate-specific one-shot selection. The
+persistent `LoaderEntryDefault` must remain unchanged; compare its efivarfs bytes
+before/after because `bootctl list` may display the one-shot as the next default.
+Installation must not reboot. Reboot manually and observe the health/rollback cases below.
 
 ## Acceptance matrix
 
@@ -215,7 +234,7 @@ fixtures.
 | IT-003 | Inject each transaction failure listed below | Active hashes/UUIDs unchanged; no partial UKI selected; retry converges |
 | BT-001 | Reboot a valid installed trial with healthy dependencies | Exact candidate default, counter removed, accepted generation advances, persist intact |
 | BT-002 / HW-009 | Export a newer public config with `--inject-boot-health-failure`; build/sign/install normally | Three probe-service failures/reboots, one attempt consumed each time, then blessed fallback; acceptance unchanged |
-| BT-003 / HW-010 | With serial and explicit LV identity, corrupt one 4096-byte block of the **inactive trial** root; repeat for verity | Three dm-verity failures, automatic fourth selection of blessed pair; active hashes unchanged |
+| BT-003 / HW-010 | With serial and explicit LV identity, corrupt one 4096-byte block of the **inactive trial** root; repeat for verity | Failure before health re-arms the trial returns to the blessed pair on the next boot; do not require three failures; active pair unchanged |
 | BT-004 | Compare sentinel and persist identity after each case | Same Btrfs LV and contents, no reformat |
 | HW-003 / AGX-001 | Build/flash the board-matched artifacts above | Intended NVMe/eMMC target, signed boot, complete baseline |
 | HW-004 | Select a separate unsigned test UKI without replacing signed fallback | Kernel never runs; signed fallback remains selectable. PXE/shell fallback proves rejection only |
@@ -223,7 +242,7 @@ fixtures.
 | HW-006 | Interrupt first boot after APP/LUKS/PV growth, swap/persist creation and persist formatting | Restart converges, no duplicate LVs; blank persist formats once, Btrfs retained, unexpected filesystem rejects |
 | HW-008 | Apply every rejection variant below | No active hash, LV, ESP or boot-default mutation |
 | HW-011 | Physically cut power at every named phase below | Old blessed boot or complete trial, recoverable staging, persist intact |
-| HW-012 | Hard-hang a counted trial repeatedly | Bounded physical watchdog reset each time, exactly one attempt consumed, eventual fallback |
+| HW-012 | Hard-hang a counted trial repeatedly | Bounded physical watchdog reset and fallback; a hang before health re-arms the trial needs only one attempt |
 | AGX-004 | Verify fTPM disabled and perform ordinary shutdown/reboot | No `/dev/tpmrm0`, load service or `tpm_ftpm_tee` task; prompt reboot, unattended DUK unlock and unchanged persist |
 
 For HW-005, make a protected `cryptsetup luksHeaderBackup` after key rotation
@@ -241,13 +260,13 @@ Validate first and do not continue to installation after a failed preflight.
 
 IT-003: root decoder failure (including writer success), short/failed root
 write, verity decoder/write failure, failed `veritysetup verify`, second final
-LV rename failure, UKI temporary write/sync failure, default-selection failure
-after UKI rename, and process termination after default selection. Record
+LV rename failure, UKI temporary write/sync failure, one-shot-selection failure
+after UKI rename, and process termination after one-shot selection. Record
 pre/post active hashes, LV UUIDs, ESP listing and loader variables.
 
 HW-011: validation before mutation; staging creation; root write; verity write;
 verity verification; first final LV rename; UKI temporary installation; UKI
-atomic rename; boot-default commit; each of the three trial boots; acceptance
+atomic rename; one-shot commit; each of the three trial boots; acceptance
 persistence before blessing. Confirm the phase from live evidence before cutting
 power, collect state before retry, then rerun the exact signed candidate.
 Before boot commit the old pair must boot; afterward only the old pair or
@@ -261,7 +280,7 @@ current/previous boot journals and updater output **before** retrying.
 
 | State | Action and boundary |
 | --- | --- |
-| Recognizable one-sided inactive staging, partial final rename, complete LVs without UKI, or failed candidate default selection | Rerun the exact signed candidate; never rename/delete the active pair |
+| Recognizable one-sided inactive staging, partial final rename, complete LVs without UKI, or failed candidate one-shot selection | Rerun the exact signed candidate; never rename/delete the active pair |
 | Orphan UKI `.tmp` or ESP full | Preserve evidence; remove only proven stale managed files, never current/only blessed fallback; retry |
 | Candidate exceeds fixed slots or pre-canary layout is incompatible | Intentional destructive reflash with suitable layout, not shrinking persist |
 | Incomplete HTTP fetch | Inspect/retain or delete only that temporary directory; retry fresh |
@@ -270,10 +289,11 @@ current/previous boot journals and updater output **before** retrying.
 | Ambiguous active pair, unmanaged/non-staging partial LV, different VG or more than two groups | Stop and escalate |
 | DUK and matching recovery both fail | Preserve header/slots; use controlled rescue and protected backup, never reformat APP |
 
-For rollback failures, check counter suffixes, the candidate-specific
-`ghaf-<version>-<hash>*.efi` glob and surviving blessed UKI. Broad `ghaf-*.efi`
-can pick an older equal-version image by hash order; an exhausted trial must
-not be pinned as an exact default.
+For rollback failures, inspect counter suffixes, `LoaderEntryDefault`,
+`LoaderEntryOneShot` and the surviving blessed UKI. The healthy entry must remain
+the persistent default until a candidate passes health. An exhausted candidate
+pinned by either an exact default or wildcard is a failure. Do not repair that
+state during an acceptance test and then report automatic rollback as passed.
 
 ## Historical evidence and release gates
 
@@ -283,5 +303,9 @@ self-fetch and generations 1→2→3, and persist retention. AGX required option
 fTPM disablement for clean reboot and candidate-specific selection for
 equal-version trials. Unsigned UKI rejection was partial: firmware fell through
 to networking instead of automatically selecting the signed fallback.
+
+Those historical results predate the one-shot activation fix and do not verify
+the current implementation. Rerun boot-health and corruption cases after updating
+the pin. The September 2026 X1 rollback result is not Orin hardware acceptance.
 
 Physical power cuts (HW-011) and hard-hang watchdog tests (HW-012) remained unrun.
