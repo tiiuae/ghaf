@@ -53,13 +53,48 @@ every UKI, rejects Type-1 entries and regenerates the bmap in a new directory.
 
 ## Install and enroll
 
-Explicitly identify and authorize the destination disk before this destructive
-step and set `INSTALL_DISK` to its exact path. Boot the installer in UEFI
-Setup Mode and provide the signed directory and matching enrollment files:
+The secure A/B target above produces a disk image, not an installer ISO; there
+is no `intel-laptop-debug-secure-ab-installer` target. Use the ordinary laptop
+installer from this same checkout as the bootable environment containing
+`ghaf-installer`:
 
 ```bash
-sudo env IMG_PATH=/var/tmp/ghaf-x86-signed \
-  GHAF_SECUREBOOT_KEY_DIR=/var/tmp/ghaf-x86-signed \
+nix build .#intel-laptop-debug-installer -o result-x86-installer
+ls result-x86-installer/iso/*.iso
+```
+
+Write that ISO to a separate installer USB and boot it on the destination
+laptop in UEFI Setup Mode. The ISO includes the ordinary laptop image, not the
+signed A/B image. For this procedure, use the command below with an explicit
+image path instead of installing the TUI's bundled image.
+
+Before booting, copy the entire `/var/tmp/ghaf-x86-signed` directory from the
+build host to a separate data medium with a filesystem that supports files
+larger than 4 GiB, such as ext4 or exFAT. It must contain `ghaf-image.raw.zst`,
+`ghaf-image.bmap`, `PK.auth`, `KEK.auth`, `db.auth` and `db.crt`. These are signed
+artifacts and public enrollment files; private signing keys stay on the build
+host. A build-host `/var/tmp` path is not automatically available in the installer.
+
+Switch to an installer shell, for example with Ctrl+Alt+F2, and mount the data
+medium read-only. Set `PAYLOAD_PARTITION` to its identified partition. In this
+example the copied directory is at the root of that filesystem:
+
+```bash
+sudo systemctl stop ghaf-installer-tui.service
+sudo mkdir -p /mnt/payload
+sudo mount -o ro "$PAYLOAD_PARTITION" /mnt/payload
+SIGNED_DIR=/mnt/payload/ghaf-x86-signed
+test -d /sys/firmware/efi/efivars
+sudo test -s "$SIGNED_DIR/ghaf-image.raw.zst"
+```
+
+Explicitly identify and authorize the destination disk before this destructive
+step and set `INSTALL_DISK` to its exact path. It must be distinct from both
+the installer USB and the data medium. Run inside the booted installer:
+
+```bash
+sudo env IMG_PATH="$SIGNED_DIR" \
+  GHAF_SECUREBOOT_KEY_DIR="$SIGNED_DIR" \
   ghaf-installer -s -d "$INSTALL_DISK"
 ```
 
