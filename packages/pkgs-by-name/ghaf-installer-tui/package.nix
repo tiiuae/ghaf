@@ -17,6 +17,7 @@
   ncurses,
   parted,
   pv,
+  sbsigntool,
   systemd,
   util-linux,
   writeShellApplication,
@@ -49,6 +50,7 @@ writeShellApplication {
     ncurses
     parted # partprobe
     pv
+    sbsigntool # verify loaders and UKIs before enrolling matching keys
     systemd # udevadm
     util-linux
     zstd

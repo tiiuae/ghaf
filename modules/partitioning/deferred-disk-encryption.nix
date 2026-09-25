@@ -44,6 +44,7 @@ let
       gawk
       gnugrep
       gum
+      jq
       kmod
       lvm2
       ncurses
@@ -79,40 +80,51 @@ let
         for _ in {1..30}; do [ -e "$LVM_PV" ] && break; sleep 1; done
 
         # ---------------------------------------------------------------------------
-        # Fast-path: already encrypted
+        # Detect interrupted encryption before deciding whether setup is complete.
         # ---------------------------------------------------------------------------
+        ENCRYPTED=false
+        REENCRYPTING=false
         if cryptsetup isLuks "$LVM_PV"; then
-          [ -e "/dev/mapper/crypted" ] && exit 0
-          mkdir -p /run
-          touch /run/cryptsetup-pre-checked
-          systemctl start --no-block systemd-cryptsetup@crypted || true
-          exit 0
+          ENCRYPTED=true
+          REENCRYPTING=$(cryptsetup luksDump --dump-json-metadata "$LVM_PV" |
+            jq -r 'any(.keyslots[]; .type == "reencrypt")')
         fi
 
         # ---------------------------------------------------------------------------
         # Check for installer marker on ESP
         # ---------------------------------------------------------------------------
+        LVM_DISK="/dev/$(lsblk -dn -o PKNAME "$LVM_PV")"
+        [ -b "$LVM_DISK" ] || { echo "Cannot identify the disk containing $LVM_PV"; exit 1; }
         ESP_DEVICE=""
         for _ in {1..10}; do
-          ESP_DEVICE="$(lsblk -pn -o PATH,PARTLABEL | awk 'tolower($2) ~ /esp/ { print $1; exit }')"
+          ESP_DEVICE="$(lsblk -rpn -o PATH,PARTLABEL "$LVM_DISK" | awk '$2 == "disk-disk1-ESP" { print $1 }')"
           [ -n "$ESP_DEVICE" ] && break
           sleep 1
         done
 
+        SETUP_PENDING=false
+        mkdir -p /mnt/esp
         if [ -z "$ESP_DEVICE" ]; then
           echo "ESP partition not found - cannot check for installer marker. Skipping deferred encryption."
-          exit 0
-        fi
-
-        mkdir -p /mnt/esp
-        if ! mount "$ESP_DEVICE" /mnt/esp; then
+        elif ! mount -o ro "$ESP_DEVICE" /mnt/esp; then
           echo "Failed to mount ESP - skipping deferred encryption."
-          exit 0
-        fi
-
-        if [ ! -f "/mnt/esp/.ghaf-installer-encrypt" ]; then
+        elif [ -f "/mnt/esp/.ghaf-installer-encrypt" ]; then
+          SETUP_PENDING=true
+        else
           echo "Installer marker not found on ESP - skipping deferred encryption."
           umount /mnt/esp
+        fi
+
+        if [ "$SETUP_PENDING" = false ]; then
+          if [ "$REENCRYPTING" = true ]; then
+            echo "Encryption is incomplete but the installer marker is unavailable. Refusing to boot."
+            exit 1
+          fi
+          if [ "$ENCRYPTED" = true ] && [ ! -e "/dev/mapper/crypted" ]; then
+            mkdir -p /run
+            touch /run/cryptsetup-pre-checked
+            systemctl start --no-block systemd-cryptsetup@crypted || true
+          fi
           exit 0
         fi
 
@@ -155,7 +167,11 @@ let
             clear
             show_header "First Boot - Disk Encryption Setup"
             echo ""
-            show_info "You will be prompted to set an encryption PIN or password."
+            if [ "$ENCRYPTED" = true ]; then
+              show_info "Setup was interrupted. Enter the existing encryption PIN or password."
+            else
+              show_info "You will be prompted to set an encryption PIN or password."
+            fi
             show_section \
               "Requirements:" \
               "  - Minimum 4 characters" \
@@ -169,7 +185,7 @@ let
                 || [ "''${#PASSPHRASE}" -lt 4 ]; do
 
               PASSPHRASE=$(prompt_password \
-                "Set encryption password" \
+                "Encryption password" \
                 "Enter encryption PIN/password (min 4 chars)") || {
                   show_error "Failed to read password - retrying..."
                   sleep 1
@@ -200,7 +216,7 @@ let
               fi
             done
 
-            show_success "Password set successfully." ""
+            show_success "Password entered." ""
           ''
       )
       + ''
@@ -211,36 +227,38 @@ let
         run_spin "Syncing filesystems..." sync
         run_spin "Settling udev events..." udevadm settle
 
-        PV_SIZE=$(blockdev --getsize64 "$LVM_PV")
-        NEW_SIZE=$((PV_SIZE - 32 * 1024 * 1024))
+        if [ "$ENCRYPTED" = false ]; then
+          PV_SIZE=$(blockdev --getsize64 "$LVM_PV")
+          NEW_SIZE=$((PV_SIZE - 32 * 1024 * 1024))
 
-        show_section \
-          "Physical volume: $(human_size "$PV_SIZE")" \
-          "After shrink:    $(human_size "$NEW_SIZE")  (32 MiB reserved for LUKS header)"
+          show_section \
+            "Physical volume: $(human_size "$PV_SIZE")" \
+            "After shrink:    $(human_size "$NEW_SIZE")  (32 MiB reserved for LUKS header)"
 
-        run_spin -q "Resizing physical volume..." \
-          pvresize --setphysicalvolumesize "''${NEW_SIZE}B" --yes "$LVM_PV" || \
-          show_warning "Failed to resize PV - encryption may fail if there is insufficient room for the LUKS header."
+          run_spin -q "Resizing physical volume..." \
+            pvresize --setphysicalvolumesize "''${NEW_SIZE}B" --yes "$LVM_PV" || \
+            show_warning "Failed to resize PV - encryption may fail if there is insufficient room for the LUKS header."
 
-        if ! run_spin -q "Deactivating logical volumes..." vgchange -an pool; then
-          show_warning "vgchange failed - attempting forced removal of device-mapper entries..."
-          dmsetup ls | { grep '^pool-' || true; } | awk '{print $1}' | while read -r dev; do
-            [ -z "$dev" ] && continue
-            dmsetup remove -f "$dev" || true
-          done
-          vgchange -an pool || true
+          if ! run_spin -q "Deactivating logical volumes..." vgchange -an pool; then
+            show_warning "vgchange failed - attempting forced removal of device-mapper entries..."
+            dmsetup ls | { grep '^pool-' || true; } | awk '{print $1}' | while read -r dev; do
+              [ -z "$dev" ] && continue
+              dmsetup remove -f "$dev" || true
+            done
+            vgchange -an pool || true
+          fi
+
+          run_spin -q "Waiting for device-mapper to settle..." sleep 1
+
+          if dmsetup ls | grep -q "pool-"; then
+            show_error "LVM volumes still active - cannot proceed."
+            dmsetup ls
+            exit 1
+          fi
+
+          run_spin -q "Unmounting persist..." umount -f /persist 2>/dev/null || true
+          run_spin -q "Disabling swap..." swapoff -a 2>/dev/null || true
         fi
-
-        run_spin -q "Waiting for device-mapper to settle..." sleep 1
-
-        if dmsetup ls | grep -q "pool-"; then
-          show_error "LVM volumes still active - cannot proceed."
-          dmsetup ls
-          exit 1
-        fi
-
-        run_spin -q "Unmounting persist..." umount -f /persist 2>/dev/null || true
-        run_spin -q "Disabling swap..." swapoff -a 2>/dev/null || true
 
         countdown "Starting encryption in" 5
 
@@ -263,29 +281,37 @@ let
         #   --reduce-device-size: Leave space for LUKS header
         #   --resilience journal: Use journal for crash safety
         #   --pbkdf argon2id: Use memory-hard KDF (secure against GPU attacks)
-        # Note: For empty passphrase (debug mode), we use printf to ensure a newline is sent
-        printf '%s' "$PASSPHRASE" | cryptsetup reencrypt \
-          --encrypt \
-          --type luks2 \
-          --reduce-device-size 32M \
-          --resilience journal \
-          --pbkdf argon2id \
-          --pbkdf-memory 1048576 \
-          --pbkdf-parallel 4 \
-          "$LVM_PV" \
-          --key-file=- || {
-            printf '\n'
-            show_error "Encryption failed!"
-            exit 1
-          }
+        if [ "$REENCRYPTING" = true ]; then
+          printf '%s' "$PASSPHRASE" | cryptsetup repair \
+            --batch-mode --key-file=- "$LVM_PV" || {
+              show_error "Interrupted encryption recovery failed!"
+              exit 1
+            }
+        fi
+        if [ "$ENCRYPTED" = false ]; then
+          encrypt_args=(--encrypt --type luks2 --reduce-device-size 32M
+            --resilience journal --pbkdf argon2id --pbkdf-memory 1048576 --pbkdf-parallel 4)
+        else
+          encrypt_args=(--resume-only)
+        fi
+        if [ "$ENCRYPTED" = false ] || [ "$REENCRYPTING" = true ]; then
+          printf '%s' "$PASSPHRASE" | cryptsetup reencrypt \
+            "''${encrypt_args[@]}" "$LVM_PV" --key-file=- || {
+              printf '\n'
+              show_error "Encryption failed!"
+              exit 1
+            }
+        fi
 
         printf '\n'
         show_success "Encryption complete!"
 
-        printf '%s' "$PASSPHRASE" | cryptsetup open "$LVM_PV" crypted --key-file=- || {
-          show_error "Failed to open encrypted device!"
-          exit 1
-        }
+        if [ ! -e /dev/mapper/crypted ]; then
+          printf '%s' "$PASSPHRASE" | cryptsetup open "$LVM_PV" crypted --key-file=- || {
+            show_error "Failed to open encrypted device!"
+            exit 1
+          }
+        fi
         show_success "Device opened."
 
         run_spin -q "Activating logical volumes..." vgchange -ay pool || {
@@ -445,6 +471,7 @@ let
         run_spin -q "Deactivating logical volumes..." vgchange -an pool || true
         cryptsetup close crypted || true
 
+        mount -o remount,rw /mnt/esp
         rm -f /mnt/esp/.ghaf-installer-encrypt
         umount /mnt/esp
         rmdir  /mnt/esp
@@ -535,6 +562,7 @@ in
             gawk
             gnugrep
             gum
+            jq
             kmod
             lvm2
             ncurses
