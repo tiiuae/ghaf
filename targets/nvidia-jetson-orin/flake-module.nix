@@ -495,6 +495,7 @@ let
             hardware.nvidia.orin.secureboot = {
               enable = true;
               keysSource = lib.mkIf (variant == "debug") (lib.mkForce ../../modules/secureboot/dev-keys);
+              signingKeyDir = lib.mkIf (variant == "debug") (toString ../../modules/secureboot/dev-keys);
             };
           };
         })
