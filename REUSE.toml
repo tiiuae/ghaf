@@ -34,6 +34,7 @@ path = [
   "modules/reference/hardware/jetpack/ghaf_host_hardened_baseline-jetson-orin",
   "modules/microvm/sysvms/idsvm/mitmproxy/mitmproxy-ca/*",
   "modules/reference/hardware/jetpack/0001-ARM-SMMU-drivers-return-always-true-for-IOMMU_CAP_CA.patch",
+  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/pkvm/packages/crosvm/0001-vhost-user-handle-ACCESS_PLATFORM-for-protected-guest.patch",
   "packages/pkgs-by-name/ghaf-intro/**/*.png",
   "overlays/custom-packages/cosmic/**/*.patch",
   "overlays/custom-packages/system76-scheduler/0001-fix-add-missing-loop-in-process-scheduler-refresh-ta.patch",
@@ -42,6 +43,7 @@ path = [
   "overlays/custom-packages/systemd/0001-pam_systemd_home-Use-PAM_TEXT_INFO-for-token-prompts.patch",
   "packages/pkgs-by-name/fingwit/0001-check-all-pam-services-for-fprintd.patch",
   "overlays/custom-packages/spire4ghaf/0001-spire-with-basic-plugins.patch",
+  "overlays/jetpack7-nvidia-oot/0002-rtk_btusb-Fix-for-kernel-6.16.patch",
   "modules/common/theming/*.yaml",
   "modules/common/theming/*.ron"
 ]
@@ -108,6 +110,9 @@ SPDX-FileCopyrightText = [
 path = [
   "modules/reference/hardware/jetpack/*.patch",
   "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/uarti-net-vm/patches/net_vm_dtb_with_uarti.patch",
+  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/gui-vm/*.patch",
+  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/gui-vm/*.dts",
+  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/mgbe0-net-vm/*.dts",
   "modules/hardware/x86_64-generic/kernel/pkvm/0001-pkvm-enable-pkvm-on-intel-x86-6.1-lts.patch",
   "modules/microvm/sysvms/0001-x86-gpu-Don-t-reserve-stolen-memory-for-GPU-passthro.patch",
   "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/uarti-net-vm/tegra234-netvm.dts"

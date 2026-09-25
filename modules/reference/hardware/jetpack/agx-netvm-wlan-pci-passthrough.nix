@@ -8,6 +8,8 @@
 }:
 let
   cfg = config.ghaf.hardware.nvidia.orin;
+
+  withPkvm = config.ghaf.host.kernel.hardening.hypervisor.enable;
 in
 {
   _file = ./agx-netvm-wlan-pci-passthrough.nix;
@@ -42,6 +44,7 @@ in
               {
                 bus = "pci";
                 path = "0001:01:00.0";
+                crosvm.guestAddress = "00:01.0";
               }
             ];
         # Network Manager is defined for netvm of Orin Devices
@@ -51,7 +54,7 @@ in
       }
     ];
 
-    hardware.deviceTree.overlays = [
+    hardware.deviceTree.overlays = lib.mkIf (!withPkvm) [
       {
         name = "agx-ethernet-pci-passthough-overlay";
         dtsFile =
@@ -63,6 +66,21 @@ in
             ./agx-ethernet-pci-passthrough-overlay.dts;
       }
     ];
+
+    systemd.services.unbindPcieRootport = {
+      enable = withPkvm;
+      description = "Unbind PCIe root port to release IOMMU group";
+      wantedBy = [ "multi-user.target" ];
+      before = [ "microvm@net-vm.service" ];
+      script = ''
+        echo 0001:00:00.0 > /sys/bus/pci/devices/0001:00:00.0/driver/unbind || true
+        echo 1 > /sys/bus/platform/devices/14100000.pcie/dma_cleanup || true
+      '';
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = "yes";
+      };
+    };
 
     boot.kernelPatches = lib.mkIf (config.ghaf.hardware.nvidia.orin.kernelVersion == "upstream-6") [
       {
