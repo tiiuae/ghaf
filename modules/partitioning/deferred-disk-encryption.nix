@@ -93,9 +93,11 @@ let
         # ---------------------------------------------------------------------------
         # Check for installer marker on ESP
         # ---------------------------------------------------------------------------
+        LVM_DISK="/dev/$(lsblk -dn -o PKNAME "$LVM_PV")"
+        [ -b "$LVM_DISK" ] || { echo "Cannot identify the disk containing $LVM_PV"; exit 1; }
         ESP_DEVICE=""
         for _ in {1..10}; do
-          ESP_DEVICE="$(lsblk -pn -o PATH,PARTLABEL | awk 'tolower($2) ~ /esp/ { print $1; exit }')"
+          ESP_DEVICE="$(lsblk -rpn -o PATH,PARTLABEL "$LVM_DISK" | awk '$2 == "disk-disk1-ESP" { print $1 }')"
           [ -n "$ESP_DEVICE" ] && break
           sleep 1
         done
@@ -104,7 +106,7 @@ let
         mkdir -p /mnt/esp
         if [ -z "$ESP_DEVICE" ]; then
           echo "ESP partition not found - cannot check for installer marker. Skipping deferred encryption."
-        elif ! mount "$ESP_DEVICE" /mnt/esp; then
+        elif ! mount -o ro "$ESP_DEVICE" /mnt/esp; then
           echo "Failed to mount ESP - skipping deferred encryption."
         elif [ -f "/mnt/esp/.ghaf-installer-encrypt" ]; then
           SETUP_PENDING=true
@@ -469,6 +471,7 @@ let
         run_spin -q "Deactivating logical volumes..." vgchange -an pool || true
         cryptsetup close crypted || true
 
+        mount -o remount,rw /mnt/esp
         rm -f /mnt/esp/.ghaf-installer-encrypt
         umount /mnt/esp
         rmdir  /mnt/esp

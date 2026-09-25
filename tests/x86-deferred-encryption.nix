@@ -9,7 +9,10 @@ let
   node = {
     virtualisation = {
       memorySize = 2048;
-      emptyDiskImages = [ 4728 ];
+      emptyDiskImages = [
+        64
+        4728
+      ];
     };
     boot.supportedFilesystems = [ "btrfs" ];
     boot.kernelModules = [
@@ -20,6 +23,7 @@ let
     environment.etc."test-image".source = image;
     environment.systemPackages = with pkgs; [
       cryptsetup
+      dosfstools
       jq
       lvm2
       parted
@@ -65,40 +69,45 @@ pkgs.testers.runNixOSTest {
     keys = []
     for machine in (one, two, three):
         machine.wait_for_unit("multi-user.target")
-        machine.succeed("dd if=/etc/test-image of=/dev/vdb bs=4M conv=fsync status=none; partprobe /dev/vdb; udevadm settle")
-        machine.succeed("test $(blkid -s TYPE -o value /dev/vdb2) = LVM2_member")
+        machine.succeed("parted -s /dev/vdb mklabel gpt mkpart disk-disk1-ESP fat32 1MiB 100%; partprobe /dev/vdb; udevadm settle; mkfs.vfat /dev/vdb1")
+        machine.succeed("mkdir -p /mnt/foreign; mount /dev/vdb1 /mnt/foreign; touch /mnt/foreign/.ghaf-installer-encrypt; umount /mnt/foreign; sha256sum /dev/vdb > /run/foreign.sha256")
+        machine.succeed("dd if=/etc/test-image of=/dev/vdc bs=4M conv=fsync status=none; partprobe /dev/vdc; udevadm settle")
+        machine.succeed("test $(blkid -s TYPE -o value /dev/vdc2) = LVM2_member")
         machine.succeed("vgchange -ay pool; veritysetup format /dev/pool/root_1_deadbeef /dev/pool/verity_1_deadbeef --root-hash-file /run/test-roothash")
         root_hash = machine.succeed("cat /run/test-roothash").strip()
         if machine != one:
-            machine.succeed("umask 077; printf ghaf > /run/test.key; vgchange -an pool; pvresize --yes --setphysicalvolumesize $(( $(blockdev --getsize64 /dev/vdb2) - 32 * 1024 * 1024 ))B /dev/vdb2")
+            machine.succeed("umask 077; printf ghaf > /run/test.key; vgchange -an pool; pvresize --yes --setphysicalvolumesize $(( $(blockdev --getsize64 /dev/vdc2) - 32 * 1024 * 1024 ))B /dev/vdc2")
             mode = "--init-only" if machine == two else ""
-            machine.succeed(f"cryptsetup reencrypt --encrypt --type luks2 --reduce-device-size 32M --key-file /run/test.key --batch-mode {mode} /dev/vdb2")
+            machine.succeed(f"cryptsetup reencrypt --encrypt --type luks2 --reduce-device-size 32M --key-file /run/test.key --batch-mode {mode} /dev/vdc2")
         machine.succeed("mkdir -p /mnt/esp")
         if machine != three:
-            machine.succeed("mount ${
-              host.fileSystems."/boot".device
-            } /mnt/esp; rm /mnt/esp/.ghaf-installer-encrypt; umount /mnt/esp")
+            machine.succeed("mount /dev/vdc1 /mnt/esp; rm /mnt/esp/.ghaf-installer-encrypt; umount /mnt/esp")
             machine.fail("systemctl start first-boot-encrypt systemd-veritysetup@nix-store")
             machine.succeed("test ! -e /dev/mapper/nix-store")
-            machine.succeed("mount /dev/vdb1 /mnt/esp; touch /mnt/esp/.ghaf-installer-encrypt; umount /mnt/esp; systemctl reset-failed")
+            machine.succeed("mount /dev/vdc1 /mnt/esp; touch /mnt/esp/.ghaf-installer-encrypt; umount /mnt/esp; systemctl reset-failed")
+        machine.succeed("sha256sum --check /run/foreign.sha256")
         machine.succeed("systemctl start --no-block first-boot-encrypt systemd-veritysetup@nix-store")
         machine.wait_for_console_text("Encryption Setup Complete!", timeout=300)
         machine.wait_for_shutdown()
         machine.start()
         machine.wait_for_unit("multi-user.target")
-        machine.succeed("cryptsetup isLuks --type luks2 /dev/vdb2")
-        machine.succeed("cryptsetup luksDump --dump-json-metadata /dev/vdb2 | jq -e 'all(.keyslots[]; .type != \"reencrypt\") and all(.segments[]; .type == \"crypt\")'")
+        machine.succeed("cryptsetup isLuks --type luks2 /dev/vdc2")
+        machine.succeed("cryptsetup luksDump --dump-json-metadata /dev/vdc2 | jq -e 'all(.keyslots[]; .type != \"reencrypt\") and all(.segments[]; .type == \"crypt\")'")
         machine.succeed("umask 077; printf ghaf > /run/test.key")
-        machine.succeed("cryptsetup luksDump --dump-volume-key --batch-mode --key-file /run/test.key --volume-key-file /run/volume.key /dev/vdb2")
+        machine.succeed("cryptsetup luksDump --dump-volume-key --batch-mode --key-file /run/test.key --volume-key-file /run/volume.key /dev/vdc2")
         keys.append(machine.succeed("sha256sum /run/volume.key").split()[0])
-        machine.succeed("cryptsetup open --key-file /run/test.key /dev/vdb2 crypted; vgchange -ay pool")
+        machine.succeed("cryptsetup open --key-file /run/test.key /dev/vdc2 crypted; vgchange -ay pool")
         machine.succeed("test $(head -c 4 /dev/pool/root_1_deadbeef) = root")
         machine.succeed(f"echo {root_hash} > /run/test-roothash")
         machine.succeed("mkdir -p /persist /mnt/esp; mount /dev/pool/persist /persist; test -e /persist/.encryption-applied")
-        machine.succeed("mount /dev/vdb1 /mnt/esp; test ! -e /mnt/esp/.ghaf-installer-encrypt")
+        machine.succeed("mount -o ro /dev/vdc1 /mnt/esp; test ! -e /mnt/esp/.ghaf-installer-encrypt; umount /mnt/esp")
+        machine.succeed("mount -o ro /dev/vdb1 /mnt/foreign; test -f /mnt/foreign/.ghaf-installer-encrypt; umount /mnt/foreign")
+        machine.succeed("cryptsetup luksDump --dump-json-metadata /dev/vdc2 > /run/header-before.json; sha256sum /dev/vdb > /run/foreign-before.sha256; blockdev --setro /dev/vdc1")
         machine.succeed("systemctl start first-boot-encrypt systemd-veritysetup@nix-store")
         machine.succeed("test $(head -c 4 /dev/mapper/nix-store) = root")
-        machine.succeed("cryptsetup luksDump --dump-volume-key --batch-mode --key-file /run/test.key --volume-key-file /run/after.key /dev/vdb2; cmp /run/volume.key /run/after.key")
+        machine.succeed("cryptsetup luksDump --dump-json-metadata /dev/vdc2 > /run/header-after.json; cmp /run/header-before.json /run/header-after.json; sha256sum --check /run/foreign-before.sha256")
+        machine.succeed("journalctl -u first-boot-encrypt --no-pager | grep 'Installer marker not found on ESP'; ! journalctl -u first-boot-encrypt --no-pager | grep 'Failed to mount ESP'")
+        machine.succeed("cryptsetup luksDump --dump-volume-key --batch-mode --key-file /run/test.key --volume-key-file /run/after.key /dev/vdc2; cmp /run/volume.key /run/after.key")
     assert len(set(keys)) == 3, "Installs retained the same volume key"
   '';
 }
