@@ -148,7 +148,7 @@ let
         };
         hardware.nvidia.orin.secureboot = {
           inherit (config.ghaf.secureUpdate) publicTrustDigests;
-          keysSource = inputs.secure-ab-build-config;
+          keysSource = lib.mkForce inputs.secure-ab-build-config;
         };
       };
     };
@@ -494,7 +494,7 @@ let
             };
             hardware.nvidia.orin.secureboot = {
               enable = true;
-              keysSource = lib.mkIf (variant == "debug") ../../modules/secureboot/dev-keys;
+              keysSource = lib.mkIf (variant == "debug") (lib.mkForce ../../modules/secureboot/dev-keys);
             };
           };
         })
