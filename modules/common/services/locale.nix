@@ -200,6 +200,19 @@ in
 
       i18n.imperativeLocale = true;
 
+      # Write a mutable /etc/locale.conf during activation
+      # Upstream nixpkgs also creates a tmpfile here during boot but too late
+      # for sessions to pick it up, so all sessions default to the generic C.UTF-8
+      # This change prevents LANG defaulting to the generic C.UTF-8
+      environment.etc."locale.conf" = {
+        text = lib.concatLines (
+          lib.mapAttrsToList (n: v: "${n}=${v}") (
+            { LANG = config.i18n.defaultLocale; } // config.i18n.extraLocaleSettings
+          )
+        );
+        mode = "0644";
+      };
+
       security.polkit = {
         enable = true;
         extraConfig = ''
