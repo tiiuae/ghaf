@@ -521,23 +521,16 @@ let
             ];
           }).pkgs.nvidia-jetpack;
     in
-    # The bundled image uses the plain flasher so encrypted roots and UKIs
-    # need no artifact extraction.
+    # Signed overrides select enrollment firmware; the bundled image uses the
+    # plain flasher so encrypted roots and UKIs need no artifact extraction.
     pkgsX86.writeShellApplication {
       name = "flash-ghaf-host";
       text = ''
-        signed_flasher=${noSB.signedFlashScript}/bin/flash-signed-${innerName}
-        plain_flasher=${noSB.legacyFlashScript}/bin/flash-${innerName}
         args=()
         signed_args=()
         uki_args=()
         while [ "$#" -gt 0 ]; do
           case "$1" in
-            --secure-boot)
-              signed_flasher=${withSB.signedFlashScript}/bin/flash-signed-${innerName}
-              plain_flasher=${withSB.legacyFlashScript}/bin/flash-${innerName}
-              shift
-              ;;
             -s|--signed-sd-image)
               if [ "$#" -lt 2 ]; then
                 echo "Missing argument for $1" >&2
@@ -549,7 +542,7 @@ let
             -u|--uki) uki_args=(-u); shift ;;
             -h|--help)
               echo "Without -s, flash the bundled image with the target's default firmware."
-              echo "Use -s DIR for an external image; add --secure-boot for enrollment."
+              echo "Use -s DIR for an externally signed image and Secure Boot enrollment."
               exec ${noSB.signedFlashScript}/bin/flash-signed-${innerName} --help
               ;;
             --) shift; args+=("$@"); break ;;
@@ -557,13 +550,13 @@ let
           esac
         done
         if [ "''${#signed_args[@]}" -gt 0 ]; then
-          exec "$signed_flasher" "''${signed_args[@]}" "''${uki_args[@]}" -- "''${args[@]}"
+          exec ${withSB.signedFlashScript}/bin/flash-signed-${innerName} "''${signed_args[@]}" "''${uki_args[@]}" -- "''${args[@]}"
         fi
         unset SIGNED_ARTIFACTS_DIR SIGNED_SD_IMAGE_DIR
         ${lib.optionalString (!qspiOnly && !isVerityTarget t) ''
           export SIGNED_SD_IMAGE_DIR=${t.package}
         ''}
-        exec "$plain_flasher" "''${args[@]}"
+        exec ${noSB.legacyFlashScript}/bin/flash-${innerName} "''${args[@]}"
       '';
     };
 
@@ -572,7 +565,7 @@ let
   isVerityTarget = t: t.isVerity or false;
   verityCrossTargets = builtins.filter isVerityTarget crossTargets;
 
-  # External nodemoapps images use the base target's script with an explicit -s
+  # Signed nodemoapps images use the base target's script with an explicit -s
   # override, avoiding a separate firmware evaluation for each image variant.
   flashCrossTargets = builtins.filter (t: !(t.isNoDemoApps or false)) crossTargets;
 in
