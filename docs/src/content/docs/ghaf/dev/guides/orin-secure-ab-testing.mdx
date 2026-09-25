@@ -11,8 +11,9 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 Use the [shared architecture](/ghaf/dev/architecture/ab-update) for trust,
 manifest, transaction and boot-health contracts. Before rollback testing, the
 GIVC pin must contain [PR #512](https://github.com/tiiuae/ghaf-givc/pull/512)
-(`e68d2d2`) or its successor. A checkout pinned to `3755b99` lacks that
-fix; a dry-run ending in `set-default` is a blocker, not a valid test baseline.
+(`e68d2d2`) or its successor. The current pin contains the merged fix, but
+devices still running the older `3755b99` updater need it deployed first.
+A dry-run ending in `set-default` remains a blocker, not a valid test baseline.
 
 :::danger[Destructive tests]
 Flash, corruption and power-cut cases require an explicitly authorized device.
@@ -474,8 +475,8 @@ equal-version trials. Unsigned UKI rejection was partial: firmware fell through
 to networking instead of automatically selecting the signed fallback.
 
 Those historical results predate the one-shot activation fix and do not verify
-the current implementation. Rerun boot-health and corruption cases after updating
-the pin. The September 2026 X1 rollback result is not Orin hardware acceptance.
+the current implementation. Rerun boot-health and corruption cases after deploying
+the updated updater. The September 2026 X1 rollback result is not Orin hardware acceptance.
 
 Physical power cuts (HW-011) and hard-hang watchdog tests (HW-012) remained unrun.
 
