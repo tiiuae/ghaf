@@ -643,9 +643,10 @@ in
     flashScriptOverrides.appPartitionSizeBytes = mkOption {
       description = ''
         Static APP (rootfs) partition size in bytes for flash.xml. When set,
-        flash.xml stops deriving ESP/APP sizes from the built sdImage -- so the
-        flash script no longer depends on building the image -- and flashing
-        requires `-s <signed-sd-image>` to supply the actual image at run time.
+        flash.xml stops deriving ESP/APP sizes from the built sdImage, keeping
+        the underlying flasher independent of the image. The flash-ghaf-host
+        wrapper supplies its matching image by default; `-s <signed-sd-image>`
+        overrides it with an externally signed image.
         Size it above any rootfs you expect to flash; unused space is idle.
       '';
       type = types.nullOr types.ints.positive;

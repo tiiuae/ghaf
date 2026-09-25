@@ -103,17 +103,16 @@ non-interactive progress lines (no TTY), and `-p <secs>` for the progress interv
 run as root. It picks up `result/ghaf-image.bmap` automatically when the sibling file is
 present, which makes the write substantially faster — you do not pass it.
 
-Jetsons flash over USB in recovery mode instead. The flash script carries no image --
-every Orin board pins `appPartitionSizeBytes`, so one script serves all variants and the
-image is supplied at run time with `-s`, taking the *result directory*:
+Jetsons flash over USB in recovery mode instead. The flash script includes its matching
+image:
 
 ```bash
 nix build .#nvidia-jetson-orin-agx-debug-from-x86_64-flash-script -o flasher
-nix build .#nvidia-jetson-orin-agx-debug-from-x86_64             -o image
-sudo ./flasher/bin/flash-ghaf-host -s "$(readlink -f image)"
+sudo ./flasher/bin/flash-ghaf-host
 ```
 
-Without `-s` it exits with "this flash script was built without an embedded sdImage".
+Use `-s <signed-sd-image>` to supply an externally signed image's *result directory*
+and enable Secure Boot enrollment.
 
 Getting into recovery needs hands on the board. On the AGX devkit the buttons are, left to
 right, **Power**, **Force Recovery**, **Reset**: hold the middle one, tap the right one,
