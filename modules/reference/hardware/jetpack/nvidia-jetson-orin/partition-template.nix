@@ -246,7 +246,7 @@ let
       ${lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
         image_source_root=${
           # With a static APP size the flash script must not depend on the
-          # built sdImage; the image then comes exclusively from -s at run time.
+          # built sdImage; the wrapper supplies the default or signed override.
           if cfg.flashScriptOverrides.appPartitionSizeBytes != null then
             "\"\""
           else

@@ -44,9 +44,6 @@
           # eval worker OOM-killed. Same 32 GiB the AGX boards and the
           # nx-accelerated-guivm target already use; NX boots from NVMe, which is
           # far larger than that, so the reserved slack costs nothing.
-          #
-          # Consequence: every NX flash must supply the image with
-          # `-s <signed-sd-image>`; the script refuses to run without it.
           appPartitionSizeBytes = 34359738368;
         };
       };
