@@ -69,7 +69,7 @@ nix run .#ghaf-secure-ab-config -- --key-dir "$GHAF_DEV_KEY_DIR" \
 timeout 2h nix build --override-input secure-ab-build-config "path:$PUBLIC" \
   .#intel-laptop-debug-secure-ab -o result-x86-unsigned
 SIGNED_IMAGE_DIR=/var/tmp/ghaf-x86-signed
-nix run .#ghaf-sign-x86-image -- --key-dir "$GHAF_DEV_KEY_DIR" \
+TMPDIR=/var/tmp nix run .#ghaf-sign-x86-image -- --key-dir "$GHAF_DEV_KEY_DIR" \
   --input result-x86-unsigned --output "$SIGNED_IMAGE_DIR"
 ```
 
@@ -79,6 +79,11 @@ disk directory; `$SIGNED_IMAGE_DIR` is a separate signed directory. The signer
 requires a new output directory and writes the image, bmap, `.auth` enrollment
 files, `db.crt` and `public-trust.json`. The next section transfers that complete
 signed directory. Private keys stay under `$GHAF_DEV_KEY_DIR`.
+
+Signing expands the approximately 121 GiB raw image into `$TMPDIR`, then
+recompresses it. Use a disk-backed temporary directory with room for the full
+raw image plus the signed compressed output; a small `/tmp` tmpfs is unsuitable.
+The temporary raw image is removed when the signer exits.
 
 The signing input must be the trusted, immutable Nix build output, including
 its `esp.sha256` inventory. Do not use a mutable copy: replacing both the image
@@ -125,6 +130,7 @@ partitions shown by `lsblk`, and write the ISO. This destroys that USB's content
 
 ```bash
 read -r -p 'Installer USB whole-disk path: ' INSTALLER_USB_DISK
+test "$(sudo blockdev --getsize64 "$INSTALLER_USB_DISK")" -ge "$(stat -c %s "$INSTALLER_ISO")"
 sudo dd if="$INSTALLER_ISO" of="$INSTALLER_USB_DISK" bs=4M status=progress conv=fsync
 ```
 
@@ -318,7 +324,11 @@ systemctl reboot
 ```
 
 The SSH session closes. Reconnect to the host, reopen a root shell, and repeat
-the baseline commands (do not recreate the sentinel). After a healthy update:
+the baseline commands (do not recreate the sentinel). If SSH reports a changed
+host key, verify the laptop identity and
+`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` over its identified serial
+console before replacing that host's saved key. The host key can regenerate
+on reboot; the network VM's key is a separate identity. After a healthy update:
 running and accepted generations advance, the healthy candidate becomes the
 permanent default, its counter disappears, and the persistence digest and LV
 UUID remain unchanged. Repeat with a third healthy generation to prove A→B→A
@@ -395,16 +405,19 @@ the actual health service.
 
 | Case | Procedure and pass criterion |
 | --- | --- |
-| Rejection | Use disposable copies: missing/wrong signature, altered manifest/root/verity/UKI, wrong-target signed bundle, and older generation. Host validation must reject; do not install after rejection. A wrong-target test needs a valid signature to isolate target policy. |
+| Rejection | Use disposable copies: missing/wrong signature, altered manifest/root/verity/UKI and a wrong-target signed bundle must fail `image validate`. An authentic equal/older generation can pass that command but must fail `image --dry-run install`. Do not install after either rejection. A wrong-target test needs a valid signature to isolate target policy. |
 | Encryption interruption | On a disposable install, interrupt during reencryption and after encryption before enrollment completes. Reboot with the installer marker intact; setup resumes and finishes before store activation. |
 | Recovery unlock | Use the credential saved from first-boot enrollment; verify it with hardware-token unlock unavailable; do not count an already-open mapping as success. |
 | Secure Boot | Use the unsigned UKI from `result-x86-update` as the separate negative fixture; enable the matching firmware trust and require rejection of a separate unsigned UKI while preserving the signed fallback. Disabled Secure Boot cannot validate this case. |
 | Corruption | Identify the inactive trial LV using the signed manifest hash and `ota-update image status`; corrupt only that root or verity LV on a disposable system; require reset and fallback, with the healthy pair and persist retained. |
 | Power loss | Cut power during staging writes, LV renames, UKI publication, one-shot selection and health acceptance; retry the exact candidate and require recovery without modifying the active pair or persist. Disconnecting a laptop charger is not a power cut while its battery supplies power. |
 
-On the X1 Carbon Gen11, the September 2026 run verified healthy updates,
-three-attempt unhealthy rollback, unchanged persistence and all nine VMs running
-after fallback. Firmware Secure Boot was disabled for that run. Firmware
+On the X1 Carbon Gen11, the 2026-09-25 run verified healthy 5→7→8 updates,
+slot UUID reuse, interrupted HTTP fetch/retry, and three-attempt unhealthy
+generation-9 rollback to generation 8. Persistence was unchanged and all nine
+VMs ran after fallback. Initial-image signing and the separate installer ISO
+build passed, but this run did not repeat installation or enrollment.
+Firmware Secure Boot was disabled for that run. Firmware
 signature enforcement, recovery-only unlock, corruption, physical power cuts
 and hard-hang reset remain separate acceptance gates. Do not generalize this
 result to another laptop model or to Orin.
