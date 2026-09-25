@@ -116,8 +116,6 @@
     };
 
     # Ghaf Inter VM communication and control library
-    #
-    # TEMPORARILY pinned to a commit rather than the branch head
     givc = {
       url = "github:tiiuae/ghaf-givc";
       inputs = {
