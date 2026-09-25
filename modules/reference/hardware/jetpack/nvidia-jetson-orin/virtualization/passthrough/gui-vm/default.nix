@@ -29,6 +29,10 @@ let
     cap = capabilities.guivm;
     kernel = config.boot.kernelPackages.kernel;
   };
+
+  withPkvm = config.ghaf.host.kernel.hardening.hypervisor.enable;
+
+  inherit (config.lib.jetpack) preprocessDtsi;
 in
 {
   _file = ./default.nix;
@@ -56,11 +60,17 @@ in
     ];
 
     # Shared closed allowlist is the BPMP security boundary.
-    ghaf.hardware.nvidia.virtualization.host.bpmp.allow = import ../payload/bpmp-allowlist.nix;
+    ghaf.hardware.nvidia.virtualization.host.bpmp.allow = lib.mkIf (!withPkvm) (
+      import ../payload/bpmp-allowlist.nix
+    );
 
     services.udev.extraRules = ''
       KERNEL=="bpmp-host", GROUP="kvm", MODE="0660"
       SUBSYSTEM=="vfio", GROUP="kvm"
+    ''
+    + lib.optionalString withPkvm ''
+      KERNEL=="bpmp_host", GROUP="kvm", MODE="0660"
+      KERNEL=="pkvm-guest-ram", GROUP="kvm", MODE="0660"
     '';
 
     ghaf.profiles.graphics.enable = lib.mkForce false;
@@ -77,45 +87,110 @@ in
       "nvidia_drm"
       "tegra_drm"
       "host1x"
+      "host1x_nvhost"
+      "host1x_fence"
+      "nvhost_isp5"
+      "nvhost_vi5"
+      "nvhost_nvcsi"
+      "nvhost_nvdla"
+      "nvhost_pva"
+      "tegra_camera"
+      "tegra_se"
     ];
 
     systemd.services.bindGuiVm = {
       description = "Bind GPU + display devices to the vfio-platform driver";
       wantedBy = [ "multi-user.target" ];
       before = [ "microvm@gui-vm.service" ];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = "yes";
-        ExecStartPre = map (
-          d:
-          "${pkgs.bash}/bin/bash -c \"echo vfio-platform > /sys/bus/platform/devices/${d}/driver_override\""
-        ) payload.hostDevices;
-        ExecStart = map (
-          d: "${pkgs.bash}/bin/bash -c \"echo ${d} > /sys/bus/platform/drivers/vfio-platform/bind\""
-        ) payload.hostDevices;
-      };
+      serviceConfig =
+        let
+          devices =
+            if withPkvm then
+              [
+                "17000000.gpu"
+                "13e00000.host1x"
+                "60000000.pkvm-host1x-syncpt-dev"
+              ]
+            else
+              payload.hostDevices;
+        in
+        {
+          Type = "oneshot";
+          RemainAfterExit = "yes";
+          ExecStartPre = map (
+            d:
+            "${pkgs.bash}/bin/bash -c \"echo vfio-platform > /sys/bus/platform/devices/${d}/driver_override\""
+          ) devices;
+          ExecStart = map (
+            d: "${pkgs.bash}/bin/bash -c \"echo ${d} > /sys/bus/platform/drivers/vfio-platform/bind\""
+          ) devices;
+        };
     };
+
     systemd.services."microvm@gui-vm" = {
-      requires = [ "bindGuiVm.service" ];
+      wants = [ "bindGuiVm.service" ];
       after = [ "bindGuiVm.service" ];
       environment = lib.mkIf payload.needsDceBridge { GHAF_DCE_GUEST = "1"; };
     };
 
+    ghaf.host.kernel.hardening.allowedPassthroughDevices = [
+      "ga10b"
+      "host1x"
+      "pkvm_host1x_syncpt_dev"
+    ];
+
     hardware.deviceTree.overlays = [
       {
         name = "gpu_passthrough_overlay";
-        dtsFile = ../gpu-vm/gpu_passthrough_overlay.dts;
+        dtsFile =
+          if withPkvm then ./gpu_protected_passthrough_overlay.dts else ../gpu-vm/gpu_passthrough_overlay.dts;
       }
     ];
 
+    # On protected VM, mem size needs to match the size of the 1:1 mapping.
+    # crosvm rejects a RAM file-backed mapping that isn't a subset of one region,
+    # and any leftover sliver would be ordinary non-identity memory.
+    ghaf.virtualization.vmConfig.sysvms.guivm.mem = lib.mkIf withPkvm 13312;
+
     ghaf.hardware.definition.guivm.extraModules = [
-      (mkOrinGpuGuestModule {
-        inherit lib;
-        cap = capabilities.guivm;
-        dtb = guivm-dtb;
-        inherit (payload) vfioArgs;
-        inherit (virt) sourcesPatch;
-      })
+      (
+        if !withPkvm then
+          (mkOrinGpuGuestModule {
+            inherit lib;
+            cap = capabilities.guivm;
+            dtb = guivm-dtb;
+            inherit (payload) vfioArgs;
+            inherit (virt) sourcesPatch;
+          })
+        else
+          (_: {
+            imports = [ ./jetson-guest-graphics.nix ];
+
+            config = {
+              boot.kernelParams = [ "cma=256M" ];
+
+              microvm.crosvm.extraArgs =
+                let
+                  gpuOverlay = preprocessDtsi { dtsFile = ./gpu-guest-overlay.dts; };
+                in
+                [
+                  "--bpmp-proxy"
+                  "--device-tree-overlay"
+                  "${gpuOverlay}"
+                  "--ram-base"
+                  "0x140000000"
+                  "--file-backed-mapping"
+                  "path=/dev/pkvm-guest-ram,addr=0x140000000,size=0x340000000,rw,ram=true"
+                  "--vfio"
+                  "/sys/bus/platform/devices/17000000.gpu/,iommu=pkvm-iommu,dt-symbol=ga10b"
+                  "--vfio"
+                  "/sys/bus/platform/devices/13e00000.host1x/,iommu=pkvm-iommu,dt-symbol=host1x"
+                  "--vfio"
+                  "/sys/bus/platform/devices/60000000.pkvm-host1x-syncpt-dev/,iommu=pkvm-iommu,dt-symbol=host1x_syncpt,guest-mmio-base=0x60000000,guest-mmio-size=0x4000000"
+                ];
+            };
+          })
+      )
     ];
   };
 }

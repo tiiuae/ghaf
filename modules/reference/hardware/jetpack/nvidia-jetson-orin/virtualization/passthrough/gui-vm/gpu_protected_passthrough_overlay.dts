@@ -1,0 +1,50 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/memory/tegra234-mc.h>
+
+/ {
+    overlay-name = "ga10b device assignment";
+    compatible = "nvidia,tegra234";
+
+	fragment@0 {
+		target-path = "/bus@0";
+		__overlay__ {
+			ga10b: gpu@17000000 {
+				iommus = <&smmu_niso0 TEGRA234_SID_PASSTHROUGH>;
+			};
+			smmu_niso0: iommu@12000000 {
+
+			};
+			host1x: host1x@13e00000 {
+
+			};
+		};
+	};
+
+	fragment@1 {
+		target-path = "/";
+		__overlay__ {
+			bpmp_host_proxy {
+				allowed-devices = <&ga10b &host1x>;
+			};
+
+			/* Whole guest RAM, mapped 1:1. Must not be no-map. */
+			reserved-memory {
+				pkvm_guest_ram: pkvm-identity-guest-ram@140000000 {
+					compatible = "pkvm,identity-guest-ram";
+					reg = <0x1 0x40000000 0x3 0x40000000>;	/* 13GB */
+				};
+			};
+
+			pkvm_host1x_syncpt_dev: pkvm-host1x-syncpt-dev@60000000 {
+				compatible = "nvidia,dummy";
+				reg = <0x0 0x60000000 0x0 0x04000000>;
+				iommus = <&smmu_niso0 TEGRA234_SID_PASSTHROUGH>;
+				dma-coherent;
+				status = "okay";
+			};
+		};
+	};
+
+};
