@@ -18,8 +18,8 @@ signing, transactions and acceptance rules.
 | Update payload | `intel-laptop-debug-secure-ab-sysupdate` |
 
 The initial build creates GPT, a Type-2-only ESP, active and empty root/verity
-pairs, Btrfs persist, swap and LUKS2 using stock tools inside a disposable
-Nix build VM. The build host requires KVM; its storage devices are not used. EFI signing is separate so keys stay outside the
+pairs, Btrfs persist and swap in plain LVM using stock tools inside a disposable
+Nix build VM. LUKS2 is created on the device during first boot. The build host requires KVM; its storage devices are not used. EFI signing is separate so keys stay outside the
 store. Each root is 50 GiB and each verity LV 1 GiB; with 12 GiB swap and 2 GiB
 persist the default disk needs approximately 121 GiB. Smaller images reject.
 
@@ -28,10 +28,11 @@ persist the default disk needs approximately 121 GiB. Smaller images reject.
 Generate development keys once using the shared guide. Export a fresh public
 configuration for each generation; never mutate an input used for an image.
 
-```sh
+```bash
+set -euo pipefail
 export GHAF_DEV_KEY_DIR=/secure/local/ghaf-dev-keys
 GENERATION=1
-PUBLIC="$PWD/secure-ab-x86-generation-$GENERATION"
+PUBLIC="/var/tmp/secure-ab-x86-generation-$GENERATION"
 nix run .#ghaf-secure-ab-config -- --key-dir "$GHAF_DEV_KEY_DIR" \
   --generation "$GENERATION" --output "$PUBLIC"
 timeout 2h nix build --override-input secure-ab-build-config "path:$PUBLIC" \
@@ -56,7 +57,7 @@ Explicitly identify and authorize the destination disk before this destructive
 step and set `INSTALL_DISK` to its exact path. Boot the installer in UEFI
 Setup Mode and provide the signed directory and matching enrollment files:
 
-```sh
+```bash
 sudo env IMG_PATH=/var/tmp/ghaf-x86-signed \
   GHAF_SECUREBOOT_KEY_DIR=/var/tmp/ghaf-x86-signed \
   ghaf-installer -s -d "$INSTALL_DISK"
@@ -66,22 +67,173 @@ The image contains plain LVM and the deferred-encryption marker; adding `-e`
 is unnecessary. Before firmware changes the installer
 checks the written ESP read-only, rejects Type-1 entries and verifies all loaders
 and UKIs against `db.crt`. First boot encrypts in place with a fresh per-device
-volume key through the existing deferred-encryption flow, then enrolls TPM2/FIDO2
-and recovery when available. Release uses an interactive, nonempty passphrase;
-debug retains the existing automated development policy. No empty bootstrap
+volume key through the existing deferred-encryption flow, then attempts hardware and recovery enrollment. Confirm the actual tokens and
+recovery credential before treating enrollment as successful. Release uses an interactive, nonempty passphrase;
+debug uses the known development passphrase `ghaf`. The current flow retains
+the password slot even after hardware enrollment; debug images are not suitable
+for protecting sensitive data. No empty bootstrap
 LUKS keyslot is distributed in the image.
 
-## Updates and acceptance
+## Baseline after first boot
 
-Export a fresh public input with a generation newer than the accepted value,
-then build `intel-laptop-debug-secure-ab-sysupdate` with the same pure override.
-Sign its manifest with `ghaf-sign-update` as in the shared guide. The exact
-target remains `intel-laptop-debug-secure-ab`. Fetch in `net-vm`; on the host,
-validate, dry-run and install in that order, stopping on errors, then reboot
-manually to observe the counted trial.
+Run these commands as root on the Ghaf host, not in `net-vm`:
 
-Per laptop, require Secure Boot, distinct per-device volume keys, recovery unlock,
-signed A→B→A reuse, wrong-target/downgrade/tampering rejection,
-health and root/verity-corruption rollback, persist
-retention and power cuts at each transaction boundary. `panic=10` is configured;
-hard-hang reset/watchdog testing is outstanding.
+```bash
+sudo -i
+cat /proc/cmdline
+cat /persist/common/ota/accepted-generation
+ota-update image status
+bootctl status --no-pager
+bootctl list --no-pager
+cryptsetup status crypted
+veritysetup status nix-store
+findmnt --mountpoint /nix/store
+findmnt --mountpoint /persist
+lvs -o lv_name,lv_size,lv_uuid pool
+systemctl --failed
+systemctl show ghaf-boot-health.service -p Result -p ExecMainStatus
+journalctl -b -u ghaf-boot-health.service --no-pager
+```
+
+Expect matching running/accepted generations, an uncounted healthy default,
+active LUKS and verity mappings, and no failed host units. Boot health is a
+oneshot service: successful completion normally leaves it **inactive**, with
+`Result=success` and `ExecMainStatus=0`. Its gate checks configured core VMM
+services, not guest applications or login readiness.
+
+Record the device model, SSD serial, Ghaf/GIVC revisions, Secure Boot state,
+slot UUIDs and accepted generation. Resolve the encrypted partition with
+`cryptsetup status crypted`; do not assume it is `/dev/sda3`. Inspect its
+`cryptsetup luksDump` output for the expected hardware/recovery tokens and no
+unfinished reencryption. Save recovery credentials separately from test logs.
+
+Create a persistence sentinel once and record its digest outside the target:
+
+```bash
+install -d -m 0700 /persist/common/ota-test
+printf 'A/B persistence test\n' > /persist/common/ota-test/sentinel
+sha256sum /persist/common/ota-test/sentinel
+```
+
+## Build, deliver and install an update
+
+On the build host, keep the same keys and choose `GENERATION` greater than the
+accepted value. Use a fresh public configuration and signing output each time:
+
+```bash
+set -euo pipefail
+GENERATION=2
+PUBLIC="/var/tmp/secure-ab-x86-generation-$GENERATION"
+SIGNED_DIR="/var/tmp/ghaf-x86-update-$GENERATION"
+nix run .#ghaf-secure-ab-config -- --key-dir "$GHAF_DEV_KEY_DIR" \
+  --generation "$GENERATION" --output "$PUBLIC"
+nix build --override-input secure-ab-build-config "path:$PUBLIC" \
+  .#intel-laptop-debug-secure-ab-sysupdate -o result-x86-update
+manifests=(result-x86-update/*.manifest)
+test "${#manifests[@]}" -eq 1 && test -f "${manifests[0]}"
+MANIFEST="${manifests[0]}"
+jq -e --argjson generation "$GENERATION" \
+  '.target == "intel-laptop-debug-secure-ab" and .generation == $generation' "$MANIFEST"
+nix run .#ghaf-sign-update -- --key-dir "$GHAF_DEV_KEY_DIR" \
+  --input "$MANIFEST" --output "$SIGNED_DIR"
+SIGNED_MANIFEST="$SIGNED_DIR/$(basename "$MANIFEST")"
+```
+
+Use the [shared delivery instructions](/ghaf/dev/architecture/ab-update#static-http-lab-delivery)
+to publish the aliases expected by `ghaf-fetch-update` and fetch in `net-vm`.
+For a generation-2 HTTP fetch, run in the root host shell:
+
+```bash
+set -euo pipefail
+GENERATION=2
+MANIFEST="/persist/sysupdate/http-generation-$GENERATION/manifest.json"
+trust=(--trusted-key /etc/ghaf/update/update.pub
+       --uki-trusted-cert /etc/ghaf/update/db.crt
+       --target intel-laptop-debug-secure-ab
+       --accepted-generation-file /persist/common/ota/accepted-generation)
+ota-update image validate --manifest "$MANIFEST" "${trust[@]}"
+ota-update image --dry-run install --manifest "$MANIFEST" "${trust[@]}"
+```
+
+Stop on any error. Confirm the dry-run writes only the inactive pair and ends
+with `bootctl set-oneshot <candidate>.efi`. A `set-default` activation means the
+updater lacks the [rollback fix](/ghaf/dev/architecture/ab-update#boot-health-and-rollback);
+stop and deploy the fixed updater before staging a trial.
+
+After inspecting the plan, install and confirm the permanent EFI default is
+unchanged. `bootctl list` can show the one-shot candidate as the next default;
+compare the persistent EFI variable itself:
+
+```bash
+DEFAULT_VAR=/sys/firmware/efi/efivars/LoaderEntryDefault-4a67b082-0a4c-41cf-b6c7-440b29bb8c4f
+cp "$DEFAULT_VAR" /run/ab-default-before
+ota-update image install --manifest "$MANIFEST" "${trust[@]}"
+cmp /run/ab-default-before "$DEFAULT_VAR"
+bootctl status --no-pager
+ls /boot/EFI/Linux/
+systemctl reboot
+```
+
+The install must leave a complete candidate `+3.efi`, preserve the active pair,
+and return without rebooting. After the requested reboot, repeat the baseline:
+running and accepted generations advance, the healthy candidate becomes the
+permanent default, its counter disappears, and the persistence digest and LV
+UUID remain unchanged. Repeat with a third healthy generation to prove A→B→A
+reuse; two successful increasing updates are needed after initial installation.
+
+## Automatic rollback test
+
+Start from a healthy, accepted generation. Build a newer candidate using the
+same sequence, adding `--inject-boot-health-failure` **when exporting its fresh
+public configuration**. Build, sign, fetch, validate and install normally.
+Do not reuse a healthy candidate's generation directory or alter a signed bundle.
+
+Capture serial output and reboot once. Do not change the default, mask boot
+health or select a fallback manually during the test. Expect three failed
+health checks, counter progression `+2-1`, `+1-2`, `+0-3`, then a boot into the
+previous healthy generation. Its accepted generation and persistence digest
+must remain unchanged. A fourth candidate attempt (`+0-4`) is a failure.
+
+A failure before the health service can re-arm the trial, such as early verity
+corruption, returns to the healthy default on the next boot. Do not require
+three attempts for that case. `panic=10` provides panic reboot; hard hangs need
+separate physical watchdog/reset validation. Manual recovery is a failed
+automatic-rollback test even when it restores a usable system.
+
+## Automated checks and remaining hardware cases
+
+From this checkout on an x86 host with KVM:
+
+```bash
+nix build --no-link \
+  .#checks.x86_64-linux.x86-deferred-encryption \
+  .#ghaf-sign-x86-image.tests.sign \
+  .#ghaf-sign-update.tests.verify-input \
+  .#ghaf-sign-update.tests.reject-name-collision \
+  .#ghaf-fetch-update.tests.smoke
+GIVC_REV=$(jq -r '.nodes.givc.locked.rev' flake.lock)
+nix build --no-link \
+  "github:tiiuae/ghaf-givc/$GIVC_REV#checks.x86_64-linux.vmTests-ota-update-image"
+```
+
+The encryption test covers fresh encryption, initialized-but-incomplete
+encryption, completed encryption with unfinished enrollment, and verity ordering.
+The GIVC test uses real UEFI boot counting and fallback; its driver re-arms
+attempts to model Ghaf's health policy. It does not replace the hardware test of
+the actual health service.
+
+| Case | Procedure and pass criterion |
+| --- | --- |
+| Rejection | Use disposable copies: missing/wrong signature, altered manifest/root/verity/UKI, wrong-target signed bundle, and older generation. Host validation must reject; do not install after rejection. A wrong-target test needs a valid signature to isolate target policy. |
+| Encryption interruption | On a disposable install, interrupt during reencryption and after encryption before enrollment completes. Reboot with the installer marker intact; setup resumes and finishes before store activation. |
+| Recovery unlock | Verify a saved recovery credential with hardware-token unlock unavailable; do not count an already-open mapping as success. |
+| Secure Boot | Enable the matching firmware trust and require rejection of a separate unsigned UKI while preserving the signed fallback. Disabled Secure Boot cannot validate this case. |
+| Corruption | Corrupt only an identified inactive trial root or verity LV on a disposable system; require reset and fallback, with the healthy pair and persist retained. |
+| Power loss | Cut power during staging writes, LV renames, UKI publication, one-shot selection and health acceptance; retry the exact candidate and require recovery without modifying the active pair or persist. Disconnecting a laptop charger is not a power cut while its battery supplies power. |
+
+On the X1 Carbon Gen11, the September 2026 run verified healthy updates,
+three-attempt unhealthy rollback, unchanged persistence and all nine VMs running
+after fallback. Firmware Secure Boot was disabled for that run. Firmware
+signature enforcement, recovery-only unlock, corruption, physical power cuts
+and hard-hang reset remain separate acceptance gates. Do not generalize this
+result to another laptop model or to Orin.
