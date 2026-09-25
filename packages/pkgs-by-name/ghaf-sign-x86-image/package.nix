@@ -87,7 +87,10 @@ signer.overrideAttrs (old: {
           inventory
           grep -F './.ghaf-installer-encrypt' input/esp.sha256
           zstd disk.raw -o input/ghaf-image.raw.zst
+          chmod 0444 input/ghaf-image.raw.zst
           ghaf-sign-x86-image --key-dir keys --input input --output signed
+          test "$(stat -c %a input/ghaf-image.raw.zst)" = 444
+          chmod u+w input/ghaf-image.raw.zst
           test -s signed/ghaf-image.bmap
           cmp input/public-trust.json signed/public-trust.json
           zstd -d signed/ghaf-image.raw.zst -o signed.raw

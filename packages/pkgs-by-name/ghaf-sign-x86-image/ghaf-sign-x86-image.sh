@@ -74,6 +74,7 @@ cmp -s "$key_pub" "$cert_pub" || {
 }
 
 zstd -d "$input/ghaf-image.raw.zst" -o "$work/ghaf-image.raw"
+chmod u+w "$work/ghaf-image.raw"
 esp_offset=$(
   sfdisk --json "$work/ghaf-image.raw" |
     jq -er '.partitiontable | .sectorsize as $sector |
