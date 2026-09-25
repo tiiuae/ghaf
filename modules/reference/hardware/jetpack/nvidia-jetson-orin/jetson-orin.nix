@@ -847,7 +847,9 @@ in
     # the documented remedy would not evaluate.
     hardware.nvidia-jetpack.firmware.eksFile = lib.mkDefault "${firmwareEkbImage}/eks_t234.img";
     hardware.nvidia-jetpack.majorVersion = "7";
-    hardware.nvidia-jetpack.kernel.version = "${cfg.kernelVersion}";
+    # hardware.nvidia-jetpack.kernel.version is a custom option and a closed enum type. Only set
+    # it when the value is valid in jetpack-nixos.
+    hardware.nvidia-jetpack.kernel.version = lib.mkIf (options.hardware.nvidia-jetpack.kernel.version.type.check cfg.kernelVersion) cfg.kernelVersion;
     # jetpack-nixos hardcodes the trailing rootfs device as mmcblk0p1; replay
     # the same default here but route it through cfg.flashScriptOverrides.deviceDiskRootfsPartition
     # so per-SoM modules (e.g. orin-nx → nvme0n1p2) only set the option, not

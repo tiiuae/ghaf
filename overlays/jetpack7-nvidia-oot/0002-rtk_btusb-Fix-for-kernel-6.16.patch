@@ -1,0 +1,74 @@
+From 87476de5e5ec6e71066824bc9c558990285b1128 Mon Sep 17 00:00:00 2001
+From: Hannu Lyytinen <hannu.lyytinen@unikie.com>
+Date: Wed, 26 Nov 2025 11:45:37 +0200
+Subject: [PATCH 02/11] rtk_btusb: Fix for kernel 6.16+
+
+Signed-off-by: Hannu Lyytinen <hannu.lyytinen@unikie.com>
+---
+ drivers/bluetooth/realtek/rtk_bt.c   | 6 +++---
+ drivers/bluetooth/realtek/rtk_bt.h   | 7 +++++++
+ drivers/bluetooth/realtek/rtk_coex.c | 2 +-
+ 3 files changed, 11 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/bluetooth/realtek/rtk_bt.c b/drivers/bluetooth/realtek/rtk_bt.c
+index 7a778a96..9674260a 100644
+--- a/drivers/bluetooth/realtek/rtk_bt.c
++++ b/drivers/bluetooth/realtek/rtk_bt.c
+@@ -2037,12 +2037,12 @@ static int btusb_probe(struct usb_interface *intf,
+ 
+ #if HCI_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
+ 	set_bit(BTUSB_USE_ALT3_FOR_WBS, &data->flags);
+-	set_bit(HCI_QUIRK_WIDEBAND_SPEECH_SUPPORTED, &hdev->quirks);
++	rtk_set_quirk(hdev, HCI_QUIRK_WIDEBAND_SPEECH_SUPPORTED);
+ #endif
+ 
+ #if HCI_VERSION_CODE >= KERNEL_VERSION(3, 7, 1)
+ 	if (!reset)
+-		set_bit(HCI_QUIRK_RESET_ON_CLOSE, &hdev->quirks);
++		rtk_set_quirk(hdev, HCI_QUIRK_RESET_ON_CLOSE);
+ #endif
+ 
+ 	/* Interface numbers are hardcoded in the specification */
+@@ -2059,7 +2059,7 @@ static int btusb_probe(struct usb_interface *intf,
+ 	}
+ 
+ #if HCI_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
+-	set_bit(HCI_QUIRK_SIMULTANEOUS_DISCOVERY, &hdev->quirks);
++	rtk_set_quirk(hdev, HCI_QUIRK_SIMULTANEOUS_DISCOVERY);
+ #endif
+ 
+ 	err = hci_register_dev(hdev);
+diff --git a/drivers/bluetooth/realtek/rtk_bt.h b/drivers/bluetooth/realtek/rtk_bt.h
+index c60307ad..c9d8c21f 100644
+--- a/drivers/bluetooth/realtek/rtk_bt.h
++++ b/drivers/bluetooth/realtek/rtk_bt.h
+@@ -41,6 +41,13 @@
+ /* #define HCI_VERSION_CODE KERNEL_VERSION(3, 14, 41) */
+ #define HCI_VERSION_CODE LINUX_VERSION_CODE
+ 
++/* Kernel 6.16+ renamed hci_dev->quirks to hci_dev->quirk_flags and added hci_set_quirk() */
++#if HCI_VERSION_CODE >= KERNEL_VERSION(6, 16, 0)
++#define rtk_set_quirk(hdev, nr) hci_set_quirk(hdev, nr)
++#else
++#define rtk_set_quirk(hdev, nr) set_bit((nr), &(hdev)->quirks)
++#endif
++
+ #define CONFIG_BTCOEX			1
+ #define CONFIG_BTUSB_WAKEUP_HOST	0
+ 
+diff --git a/drivers/bluetooth/realtek/rtk_coex.c b/drivers/bluetooth/realtek/rtk_coex.c
+index 08155ee2..cf0d200d 100644
+--- a/drivers/bluetooth/realtek/rtk_coex.c
++++ b/drivers/bluetooth/realtek/rtk_coex.c
+@@ -2430,7 +2430,7 @@ static void rtk_handle_le_terminate_big_complete_evt(u8 * p)
+ 
+ static void rtk_handle_le_big_sync_established_evt(void * p)
+ {
+-	struct hci_evt_le_big_sync_estabilished *ev = p;
++	struct hci_evt_le_big_sync_established *ev = p;
+ 	u8 status;
+ 	u16 big_handle;
+ 	u16 bis_handle;
+-- 
+2.34.1
+
