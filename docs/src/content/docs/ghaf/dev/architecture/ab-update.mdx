@@ -50,25 +50,67 @@ schema version 1, trust `external`, a positive generation, and optional boolean
 variables nor private key directories. The repository template has no keys:
 all secure images, including debug, require external public trust.
 
-Create development keys once outside Git and the Nix store, then export a new
-public configuration for every generation; never mutate a published input.
-Set `PLATFORM_TARGET` to the exact package from the platform guide:
+Run build-host commands from the root of the Ghaf checkout being tested, in
+Bash with Nix, `jq`, Python 3 and GNU coreutils available. The platform guides
+supply the exact package and generation. Enter `nix develop` in that checkout
+to obtain its pinned `jq`, Python and other development tools before defining
+the variables below. Shell variables and local paths do not
+transfer to the installer, `net-vm`, or the Ghaf host when changing terminals.
+
+Create development keys once outside Git and the Nix store. Reuse that same key
+directory for every image/update installed on a device enrolled with its trust:
 
 ```bash
+set -euo pipefail
 umask 077
-nix run .#ghaf-dev-keygen -- --output /secure/local/ghaf-dev-keys
-nix run .#ghaf-secure-ab-config -- \
-  --key-dir /secure/local/ghaf-dev-keys --generation 8 \
-  --output /var/tmp/secure-ab-generation-8
-timeout 2h nix build \
-  --override-input secure-ab-build-config path:/var/tmp/secure-ab-generation-8 \
-  ".#$PLATFORM_TARGET"
+export GHAF_DEV_KEY_DIR="$HOME/.local/share/ghaf-dev-keys"
+if [ ! -d "$GHAF_DEV_KEY_DIR" ]; then
+  nix run .#ghaf-dev-keygen -- --output "$GHAF_DEV_KEY_DIR"
+fi
 ```
 
-The exporter emits raw 32-byte Ed25519 public keys; the updater also accepts
-64-character hexadecimal encoding. Missing/inconsistent public files fail;
-there is no bundled key or unsigned fallback. Release wrapper
-flakes should lock the public input and make Ghaf's input follow it.
+`ghaf-dev-keygen` creates private `PK.key`, `KEK.key`, `db.key`, `update.key`,
+their public certificates/key, and UEFI `.esl`/`.auth` enrollment files in that
+directory. An existing incomplete directory must be investigated, not silently
+replaced with another trust set. The generator writes the raw 32-byte Ed25519
+`update.pub`; the exporter below only copies public files.
+
+For the generic **update-payload** example below, select a sysupdate/OTA package
+from the platform guide and a generation newer than the device's accepted value.
+This is an alternative to the platform's build recipe, not an additional build
+step to run before it:
+
+```bash
+read -r -p 'Update payload package from the platform guide: ' PLATFORM_TARGET
+read -r -p 'New generation: ' GENERATION
+PUBLIC="/var/tmp/secure-ab-generation-$GENERATION"
+nix run .#ghaf-secure-ab-config -- --key-dir "$GHAF_DEV_KEY_DIR" \
+  --generation "$GENERATION" --output "$PUBLIC"
+timeout 2h nix build \
+  --override-input secure-ab-build-config "path:$PUBLIC" \
+  ".#$PLATFORM_TARGET" -o result-update
+```
+
+The exporter creates `$PUBLIC/config.json` and the four public trust files;
+it rejects an existing output directory. The build creates `result-update`, a
+symlink to the immutable Nix output containing the unsigned manifest/artifacts
+consumed by the next section. Initial-disk and installer outputs are different
+artifacts and must use the platform guide's initial-install recipe.
+
+| Producer | Output and location | Consumer |
+| --- | --- | --- |
+| Key generator, build host | Private keys and public trust in `$GHAF_DEV_KEY_DIR` | Local signers; only exported public files enter builds/devices |
+| Config exporter, build host | Fresh `$PUBLIC` directory with generation and public trust | Nix `secure-ab-build-config` input |
+| Update build, build host | `result-update/*.manifest` and three named artifacts in the Nix store | `ghaf-sign-update` |
+| Update signer, build host | `$SIGNED_DIR`: signed manifest, its `.sig`, root/verity payloads and signed UKI | HTTP staging or OCI push |
+| Fetch, `net-vm` | Published bundle under shared `/persist/sysupdate`; prints its location | Host validation, using the same path |
+| Install, Ghaf host | Inactive slot plus trial UKI and one-shot EFI selection | Next boot and health service |
+| Health service, Ghaf host | Accepted-generation file and promoted/blessed entry, or fallback | Next generation selection and test verdict |
+
+The updater also accepts a 64-character hexadecimal Ed25519 public key.
+Missing/inconsistent public files fail; there is no bundled key or unsigned
+fallback. Release wrapper flakes should lock the public input and make Ghaf's
+input follow it. Never mutate a public input already used for a published image.
 
 ### Proposed CI integration
 
@@ -104,9 +146,17 @@ Root/verity names are `ghaf_{root,verity}_<version>_<hash>.raw.zst`; the UKI is
 set -euo pipefail
 manifests=(result-update/*.manifest)
 test "${#manifests[@]}" -eq 1 && test -f "${manifests[0]}"
-nix run .#ghaf-sign-update -- --key-dir /secure/local/ghaf-dev-keys \
-  --input "${manifests[0]}" --output signed-update
+MANIFEST="${manifests[0]}"
+GENERATION=$(jq -er .generation "$MANIFEST")
+SIGNED_DIR="/var/tmp/ghaf-signed-update-$GENERATION"
+nix run .#ghaf-sign-update -- --key-dir "$GHAF_DEV_KEY_DIR" \
+  --input "$MANIFEST" --output "$SIGNED_DIR"
+SIGNED_MANIFEST="$SIGNED_DIR/$(basename "$MANIFEST")"
 ```
+
+Keep `$SIGNED_DIR` and `$SIGNED_MANIFEST` for delivery; the manifest is not
+renamed to `manifest.json` by the signer. Use a fresh signing directory for each
+candidate.
 
 The signing input must be the trusted, immutable Nix build output (`result-update`
 may be a symlink to it). Do not sign from a writable staging directory: artifact
@@ -163,34 +213,63 @@ atomically installs the three-attempt UKI, then changes boot selection.
 
 ### Static HTTP lab delivery
 
-On the build host, set `SIGNED_DIR` to the new signed bundle directory and
-`SIGNED_MANIFEST` to its manifest. The HTTP helper requires the aliases
-`manifest.json` and `manifest.json.sig`; the signer preserves the original
-manifest filename. Copy the signed bytes without reformatting the JSON:
+**Build host, same Bash session as signing.** Inputs are `$SIGNED_DIR` and
+`$SIGNED_MANIFEST` produced by the signer. If reopening a shell, set them to the
+recorded absolute paths; do not point to an initial disk or unsigned output.
+Choose the build-host address reachable from the target's `net-vm` using
+`ip -br -4 address`, and permit TCP port 18080 on that lab interface.
+
+The helper expects `manifest.json` and `manifest.json.sig`. Create those names
+from the signed bytes, without reformatting the JSON, in a public-only staging
+directory on disk (the payload can be several GiB):
 
 ```bash
 set -euo pipefail
-HTTP_ROOT="$(mktemp -d)"
+GENERATION=$(jq -er .generation "$SIGNED_MANIFEST")
+ip -br -4 address
+read -r -p 'Build-host IP reachable from net-vm: ' BUILD_HOST_IP
+HTTP_ROOT="$(mktemp -d /var/tmp/ghaf-update-http.XXXXXX)"
 install -m 0644 "$SIGNED_MANIFEST" "$HTTP_ROOT/manifest.json"
 install -m 0644 "$SIGNED_MANIFEST.sig" "$HTTP_ROOT/manifest.json.sig"
 for kind in root verity kernel; do
   artifact="$(jq -er --arg kind "$kind" '.[$kind].file' "$SIGNED_MANIFEST")"
   cp --reflink=auto -- "$SIGNED_DIR/$artifact" "$HTTP_ROOT/$artifact"
 done
+printf 'HTTP origin: http://%s:18080\nGeneration: %s\n' "$BUILD_HOST_IP" "$GENERATION"
 python3 -m http.server 18080 --bind "$BUILD_HOST_IP" --directory "$HTTP_ROOT"
 ```
 
-Set `BUILD_HOST_IP` to an interface reachable from the target's `net-vm`, and
-permit that port on the lab network. Serve only this public bundle directory.
-In `net-vm`, with the matching generation and address:
+Output: a foreground server exposing exactly the signed manifest/signature and
+three artifacts. Leave that terminal running while fetching. Private keys are
+never copied to `$HTTP_ROOT`.
+
+**Separate `net-vm` shell.** Connect using the platform's device address and
+[SSH access procedure](/ghaf/dev/ref/ssh#connect), verify `hostname` is `net-vm`,
+and enter the origin and generation printed above. These values are copied
+explicitly; build-host variables do not exist in this shell:
 
 ```bash
-ghaf-fetch-update "http://$BUILD_HOST_IP:18080" "$GENERATION" /persist/sysupdate
+set -euo pipefail
+hostname
+read -r -p 'HTTP origin printed by the build host: ' UPDATE_HTTP_ORIGIN
+read -r -p 'Generation printed by the build host: ' GENERATION
+test -w /persist/sysupdate
+ghaf-fetch-update "$UPDATE_HTTP_ORIGIN" "$GENERATION" /persist/sysupdate
+printf 'Host manifest: /persist/sysupdate/http-generation-%s/manifest.json\n' "$GENERATION"
 ```
 
-The host sees `/persist/sysupdate/http-generation-$GENERATION/manifest.json`.
-A fetch refuses to replace an existing published generation directory; use a
-fresh directory for each candidate. Stop the HTTP server after delivery.
+Output: `/persist/sysupdate/http-generation-N/` containing `manifest.json`,
+`manifest.json.sig`, the three artifacts and `fetch.complete`. Here `N` is the
+entered generation; the helper's directory argument does not authenticate it.
+The host must still check the signed manifest's generation and target.
+
+The configured virtiofs share makes that same path visible on the Ghaf host;
+no SCP from `net-vm` to the host is needed. Enter the printed **host manifest**
+path in the platform's host-install step. If `/persist/sysupdate` is absent or
+not writable in `net-vm`, investigate the share instead of downloading elsewhere
+and assuming the host can see it. A fetch refuses to replace a published
+directory. After a successful fetch, stop the build-host server with Ctrl+C.
+A failed fetch leaves only temporary state, not a ready-to-install bundle.
 
 ## Boot health and rollback
 
