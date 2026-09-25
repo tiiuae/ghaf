@@ -23,6 +23,12 @@ before flashing, and stop on ambiguity. Never overwrite the active pair or the
 only signed fallback.
 :::
 
+Paste complete command blocks, including their parentheses. Each runs in a
+subshell: an error stops the step without closing your terminal. Record printed
+paths and supply them at the next prompt; later steps do not need earlier
+shell variables. In a new build-host shell, enter `nix develop` in the checkout.
+Run `sudo -i` separately before commands marked as host root commands.
+
 ## Scope and records
 
 | Board | Target prefix | APP storage | Additional gate |
@@ -64,6 +70,7 @@ authorized device. Choose `nx` or `agx` from the board identity above. Export a 
 for every candidate; never edit an input used for a published image.
 
 ```bash
+(
 set -euo pipefail
 export GHAF_DEV_KEY_DIR="$HOME/.local/share/ghaf-dev-keys"
 if [ ! -d "$GHAF_DEV_KEY_DIR" ]; then
@@ -95,6 +102,9 @@ SIGNED_DIR="/var/tmp/signed-$ORIN-generation-$GENERATION"
 nix run .#ghaf-sign-update -- --key-dir "$GHAF_DEV_KEY_DIR" \
   --input "$MANIFEST" --output "$SIGNED_DIR"
 SIGNED_MANIFEST="$SIGNED_DIR/$(basename "$MANIFEST")"
+printf 'Signed manifest: %s\n' "$SIGNED_MANIFEST"
+printf 'Signing-key directory: %s\n' "$GHAF_DEV_KEY_DIR"
+)
 ```
 
 Outputs: immutable Nix-store payload and flasher directories, plus a separate
@@ -128,21 +138,28 @@ identity record (not another board's console), then record `udevadm info --query
 flashing. Record UTC start/end with the run record. With access to that TTY:
 
 ```bash
+(
+set -euo pipefail
 read -r -p 'Identified Orin serial-console path: ' SERIAL_DEVICE
 SERIAL_LOG=$(mktemp /var/tmp/ghaf-orin-serial.XXXXXX)
 printf 'Serial evidence: %s\n' "$SERIAL_LOG"
 stty -F "$SERIAL_DEVICE" 115200 raw -echo
 cat "$SERIAL_DEVICE" | tee "$SERIAL_LOG"
+)
 ```
 
-Leave capture running. In the original build/flash shell, `$FLASH_SCRIPT` and
-`GHAF_DEV_KEY_DIR` are the outputs selected above; if reopening that shell,
-restore the printed absolute flasher path and the same key directory. Repeat
-the identity checks immediately before the destructive command:
+Leave capture running. In a separate build-host shell, enter the printed
+absolute flasher path and the same key directory. Repeat the identity checks
+immediately before the destructive command:
 
 ```bash
-sudo --preserve-env=GHAF_DEV_KEY_DIR \
+(
+set -euo pipefail
+read -r -p 'Existing signing-key directory (absolute path): ' GHAF_DEV_KEY_DIR
+read -r -p 'Initial-generation flash command printed by the build: ' FLASH_SCRIPT
+sudo env GHAF_DEV_KEY_DIR="$GHAF_DEV_KEY_DIR" \
   "$FLASH_SCRIPT" --secure-boot -u
+)
 ```
 
 These verity-canary flash scripts construct ESP/APP from their embedded
@@ -169,6 +186,8 @@ mutating runtime case; the displayed accepted generation is the input to the
 next build-host update step:
 
 ```bash
+(
+set -euo pipefail
 hostname
 sudo ota-update image status
 bootctl status --no-pager
@@ -184,6 +203,7 @@ swapon --show
 systemctl list-units 'microvm@*.service' --no-pager
 systemctl show ghaf-boot-health.service -p Result -p ExecMainStatus -p ExecMainStartTimestamp
 journalctl -b -u firstboot-persist.service -u ghaf-boot-health.service --no-pager
+)
 ```
 
 Boot health is a oneshot service and can be inactive after success; require
@@ -199,9 +219,12 @@ generation. Initial storage reserves the second pair's capacity. Create a
 non-secret sentinel once, and record its checksum outside the board:
 
 ```bash
+(
+set -euo pipefail
 sudo install -d -m 0700 /persist/common/ota-test
 printf 'Orin A/B persistence test\n' | sudo tee /persist/common/ota-test/sentinel >/dev/null
 sudo sha256sum /persist/common/ota-test/sentinel
+)
 ```
 
 Compare that retained checksum after every update, reboot and rollback without
@@ -215,8 +238,9 @@ from the Orin host (for example 11 after initial 10). The exporter and signer us
 new directories; an OTA update needs the payload build, not another flash.
 
 ```bash
+(
 set -euo pipefail
-export GHAF_DEV_KEY_DIR="$HOME/.local/share/ghaf-dev-keys"
+read -r -p 'Existing signing-key directory (absolute path): ' GHAF_DEV_KEY_DIR
 read -r -p 'Board already flashed (nx or agx): ' ORIN
 case "$ORIN" in nx|agx) ;; *) exit 1 ;; esac
 TARGET="nvidia-jetson-orin-$ORIN-verity-luks-debug"
@@ -235,10 +259,12 @@ SIGNED_DIR="/var/tmp/signed-$ORIN-generation-$GENERATION"
 nix run .#ghaf-sign-update -- --key-dir "$GHAF_DEV_KEY_DIR" \
   --input "$MANIFEST" --output "$SIGNED_DIR"
 SIGNED_MANIFEST="$SIGNED_DIR/$(basename "$MANIFEST")"
+printf 'Signed manifest: %s\n' "$SIGNED_MANIFEST"
+)
 ```
 
-Output: a new signed five-file OTA bundle. Keep `$SIGNED_DIR` and
-`$SIGNED_MANIFEST` in this shell for one of the delivery methods below. For
+Output: a new signed five-file OTA bundle. Record
+the printed signed-manifest path for one of the delivery methods below. For
 BT-002, replace the export command with the same command plus
 `--inject-boot-health-failure` before creating `$PUBLIC`; then build/sign/fetch
 that distinct candidate normally. Do not edit a previously exported directory.
@@ -265,6 +291,9 @@ the secret in shell history. The CLI passes credentials as arguments; do not
 trace or log these commands:
 
 ```bash
+(
+set -euo pipefail
+read -r -p 'Signed manifest path printed by the signer: ' SIGNED_MANIFEST
 read -r -p 'Approved registry/repository:tag: ' UPDATE_REF
 read -r -p 'Registry push username: ' REGISTRY_USER
 read -r -s -p 'Registry push password: ' REGISTRY_PASSWORD
@@ -276,17 +305,22 @@ PULL_ROOT="$(mktemp -d /var/tmp/ghaf-registry-pull.XXXXXX)"
 nix run .#ghaf-ota-update -- registry "${REGISTRY_AUTH_ARGS[@]}" \
   pull --validate --destination "$PULL_ROOT" "$UPDATE_REF"
 unset REGISTRY_PASSWORD REGISTRY_AUTH_ARGS
+)
 ```
 
 Output: registry publication and a local verification pull. Record the OCI
 digest and the pull command's printed manifest path under `$PULL_ROOT` (including
 repository namespace). Compare that file and its `.sig` byte-for-byte with
-`$SIGNED_MANIFEST` and `$SIGNED_MANIFEST.sig` in the same build-host shell:
+the original signed manifest and its signature, entering their path again:
 
 ```bash
+(
+set -euo pipefail
+read -r -p 'Signed manifest path printed by the signer: ' SIGNED_MANIFEST
 read -r -p 'Local manifest path printed by the verification pull: ' VERIFY_MANIFEST
 cmp "$SIGNED_MANIFEST" "$VERIFY_MANIFEST"
 cmp "$SIGNED_MANIFEST.sig" "$VERIFY_MANIFEST.sig"
+)
 ```
 
 No output from `cmp` and exit status zero means those bytes agree. Signed image
@@ -303,6 +337,7 @@ read-only device credential supplied by the operator. Do not copy push credentia
 to the device:
 
 ```bash
+(
 set -euo pipefail
 hostname
 read -r -p 'Published registry/repository:tag: ' UPDATE_REF
@@ -312,6 +347,7 @@ printf '\n'
 ota-update registry --username "$REGISTRY_USER" --password "$REGISTRY_PASSWORD" \
   pull --validate --destination /persist/sysupdate "$UPDATE_REF"
 unset REGISTRY_PASSWORD
+)
 ```
 
 Copy the printed manifest path for the host-install step below. The namespace
@@ -320,7 +356,7 @@ not periodic discovery, approval or unattended installation.
 
 ### Static HTTP: REG-003
 
-Inputs on the build host are `$SIGNED_DIR` and `$SIGNED_MANIFEST` from the new
+The build-host input is the printed signed-manifest path from the new
 update build. Follow the [shared HTTP delivery procedure](/ghaf/dev/architecture/ab-update#static-http-lab-delivery)
 from its build-host staging step through its `net-vm` fetch. It creates the
 required `manifest.json`/`.sig` aliases and prints both the HTTP origin/generation
@@ -342,8 +378,9 @@ a build-host path would not. Set the board target from the identity baseline.
 The trust files below come from the flashed image, not the downloaded bundle:
 
 ```bash
-sudo -i
+(
 set -euo pipefail
+test "$EUID" -eq 0
 hostname
 read -r -p 'Board identity from baseline (nx or agx): ' ORIN
 case "$ORIN" in nx|agx) ;; *) exit 1 ;; esac
@@ -356,19 +393,31 @@ trust=(--trusted-key /etc/ghaf/update/update.pub
        --accepted-generation-file /persist/common/ota/accepted-generation)
 ota-update image validate --manifest "$PULLED_MANIFEST" "${trust[@]}"
 ota-update image --dry-run install --manifest "$PULLED_MANIFEST" "${trust[@]}"
+)
 ```
 
 Output: authenticated validation and a dry-run plan, with no slot writes. Stop
 on any error or if the final selection is not `set-oneshot`. Check the inactive
-pair against the baseline. In the same root shell, stage the candidate:
+pair against the baseline. Stage the candidate in a root shell, entering the same manifest path again:
 
 ```bash
+(
+set -euo pipefail
+test "$EUID" -eq 0
+read -r -p 'Board identity from baseline (nx or agx): ' ORIN
+case "$ORIN" in nx|agx) ;; *) exit 1 ;; esac
+read -r -p 'Host manifest path already validated: ' PULLED_MANIFEST
+trust=(--trusted-key /etc/ghaf/update/update.pub
+       --uki-trusted-cert /etc/ghaf/update/db.crt
+       --target "nvidia-jetson-orin-$ORIN-verity-luks-debug"
+       --accepted-generation-file /persist/common/ota/accepted-generation)
 DEFAULT_VAR=/sys/firmware/efi/efivars/LoaderEntryDefault-4a67b082-0a4c-41cf-b6c7-440b29bb8c4f
 cp "$DEFAULT_VAR" /run/ab-default-before
 ota-update image install --manifest "$PULLED_MANIFEST" "${trust[@]}"
 cmp /run/ab-default-before "$DEFAULT_VAR"
 bootctl status --no-pager
 ls /boot/EFI/Linux/
+)
 ```
 
 Output: the complete inactive trial, `+3.efi` and one-shot selection, with the
@@ -377,7 +426,10 @@ as the next default, so compare the persistent variable's bytes as above.
 Installation must not reboot. Inspect these outputs before the separate action:
 
 ```bash
+(
+set -euo pipefail
 systemctl reboot
+)
 ```
 
 Reconnect to the host and repeat the baseline without recreating the sentinel.
@@ -454,7 +506,7 @@ current/previous boot journals and updater output **before** retrying.
 | Orphan UKI `.tmp` or ESP full | Preserve evidence; remove only proven stale managed files, never current/only blessed fallback; retry |
 | Candidate exceeds fixed slots or pre-canary layout is incompatible | Intentional destructive reflash with suitable layout, not shrinking persist |
 | Incomplete HTTP fetch | Inspect/retain or delete only that temporary directory; retry fresh |
-| Blank/Btrfs/unexpected persist | Restart to format blank/retain Btrfs; stop on any other filesystem |
+| Existing persist LV with no recognized filesystem | Stop and investigate; formatting is allowed only in the same run that creates the LV |
 | Trust/key mismatch or authentication/policy failure | Restore matching evaluated trust or reject/rebuild; never repair signed contents in place |
 | Ambiguous active pair, unmanaged/non-staging partial LV, different VG or more than two groups | Stop and escalate |
 | DUK and matching recovery both fail | Preserve header/slots; use controlled rescue and protected backup, never reformat APP |
@@ -488,3 +540,11 @@ unattended after warm reboot. NX warm reboot entered UEFI HTTP boot; a cold
 power cycle restored unattended unlock with persistence unchanged. This is a
 failed NX warm-reboot result, not rollback acceptance. Fresh flashing,
 post-pin-update trials and the physical fault cases remain unverified by this run.
+
+A later run on pre-rebase commit `73b5615f`, with the merged GIVC updater,
+passed AGX32 slot reuse through generation 17 and automatic three-attempt
+rollback from 18 to 17. NX reached generation 19 and exhausted generation 20's
+three attempts, but needed cold cycles after warm reboots entered UEFI HTTP
+boot; that is not automatic rollback acceptance. Both retained Secure Boot,
+persistent data and LV UUIDs. These results do not validate subsequent source
+changes, fresh flashing or the physical fault cases above.
