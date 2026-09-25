@@ -8,7 +8,10 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 
 # x86 secure A/B testing
 
-The Intel development canary is additive; normal laptop targets are unchanged.
+The Intel development canary adds separate image targets. The interrupted
+first-boot encryption recovery changes also apply to ordinary laptop targets.
+The marker is checked read-only on the ESP belonging to the encryption disk;
+markers on other disks cannot trigger setup.
 See the [shared architecture](/ghaf/dev/architecture/ab-update) for trust,
 signing, transactions and acceptance rules.
 
@@ -46,8 +49,12 @@ model/serial numbers before writing or mounting them.
 | Fetch / `net-vm` | HTTP origin and generation printed by build host | Shared host manifest path printed after successful fetch |
 | Stage/reboot / Ghaf host | Printed manifest path plus built-in trust files | New healthy generation or fallback; compare baseline/sentinel |
 
-Each shell has its own variables. Re-enter values at the explicit prompts after
-changing machines; do not reuse a build-host path in the installer or a VM.
+Paste each complete command block, including its parentheses. It runs in a
+subshell, so an error stops the step without closing your terminal. Each step
+sets or prompts for its inputs; record printed paths for later steps. After
+opening a new build-host shell, enter `nix develop` in this checkout again.
+For host commands marked root, run `sudo -i` separately first. Do not reuse a
+build-host path in the installer or a VM.
 
 ## Build and sign
 
@@ -57,6 +64,7 @@ already enrolled with them. The exporter copies only public trust into a fresh
 directory. Keep that directory unchanged after building.
 
 ```bash
+(
 set -euo pipefail
 export GHAF_DEV_KEY_DIR="$HOME/.local/share/ghaf-dev-keys"
 if [ ! -d "$GHAF_DEV_KEY_DIR" ]; then
@@ -71,6 +79,8 @@ timeout 2h nix build --override-input secure-ab-build-config "path:$PUBLIC" \
 SIGNED_IMAGE_DIR=/var/tmp/ghaf-x86-signed
 TMPDIR=/var/tmp nix run .#ghaf-sign-x86-image -- --key-dir "$GHAF_DEV_KEY_DIR" \
   --input result-x86-unsigned --output "$SIGNED_IMAGE_DIR"
+printf 'Signing-key directory: %s\nSigned image: %s\n' "$GHAF_DEV_KEY_DIR" "$SIGNED_IMAGE_DIR"
+)
 ```
 
 Outputs on the build host: `$PUBLIC` contains `config.json`, `PK.crt`,
@@ -103,10 +113,14 @@ installer from this same checkout as the bootable environment containing
 `ghaf-installer`:
 
 ```bash
+(
+set -euo pipefail
 nix build .#intel-laptop-debug-installer -o result-x86-installer
 isos=(result-x86-installer/iso/*.iso)
 test "${#isos[@]}" -eq 1 && test -f "${isos[0]}"
 INSTALLER_ISO="${isos[0]}"
+printf 'Installer ISO: %s\n' "$(readlink -f "$INSTALLER_ISO")"
+)
 ```
 
 **Still on the build host**, identify the installer USB and an already formatted
@@ -115,6 +129,9 @@ larger than 4 GiB, such as ext4 or exFAT. Copy the signed directory to its root,
 then unmount it for transfer to the laptop:
 
 ```bash
+(
+set -euo pipefail
+read -r -p 'Signed image directory printed after signing: ' SIGNED_IMAGE_DIR
 lsblk -o PATH,SIZE,MODEL,SERIAL,FSTYPE,LABEL,MOUNTPOINTS
 read -r -p 'Payload-data partition path (not the destination SSD): ' PAYLOAD_PARTITION
 sudo mkdir -p /mnt/ghaf-ab-payload
@@ -123,15 +140,20 @@ sudo test ! -e /mnt/ghaf-ab-payload/ghaf-x86-signed
 sudo cp -r "$SIGNED_IMAGE_DIR" /mnt/ghaf-ab-payload/ghaf-x86-signed
 sudo sync -f /mnt/ghaf-ab-payload
 sudo umount /mnt/ghaf-ab-payload
+)
 ```
 
 Now select the separate installer USB **whole disk**, unmount its mounted
 partitions shown by `lsblk`, and write the ISO. This destroys that USB's contents:
 
 ```bash
+(
+set -euo pipefail
+read -r -p 'Installer ISO path printed after building: ' INSTALLER_ISO
 read -r -p 'Installer USB whole-disk path: ' INSTALLER_USB_DISK
 test "$(sudo blockdev --getsize64 "$INSTALLER_USB_DISK")" -ge "$(stat -c %s "$INSTALLER_ISO")"
 sudo dd if="$INSTALLER_ISO" of="$INSTALLER_USB_DISK" bs=4M status=progress conv=fsync
+)
 ```
 
 Outputs: a bootable installer USB and a separate payload medium containing
@@ -145,6 +167,7 @@ and filesystem. The build-host `/var/tmp` directory and shell variables are not
 present here. Mount the transferred medium read-only and check all inputs:
 
 ```bash
+(
 set -euo pipefail
 sudo systemctl stop ghaf-installer-tui.service
 lsblk -o PATH,SIZE,MODEL,SERIAL,FSTYPE,LABEL,MOUNTPOINTS
@@ -156,6 +179,7 @@ test -d /sys/firmware/efi/efivars
 for file in ghaf-image.raw.zst ghaf-image.bmap PK.auth KEK.auth db.auth db.crt; do
   sudo test -s "$SIGNED_IMAGE_DIR/$file"
 done
+)
 ```
 
 Explicitly identify and authorize the destination disk before this destructive
@@ -163,10 +187,15 @@ step and set `INSTALL_DISK` to its exact path. It must be distinct from both
 the installer USB and the data medium. Run inside the booted installer:
 
 ```bash
+(
+set -euo pipefail
+SIGNED_IMAGE_DIR=/mnt/payload/ghaf-x86-signed
+sudo test -s "$SIGNED_IMAGE_DIR/ghaf-image.raw.zst"
 read -r -p 'Installation destination whole-disk path: ' INSTALL_DISK
 sudo env IMG_PATH="$SIGNED_IMAGE_DIR" \
   GHAF_SECUREBOOT_KEY_DIR="$SIGNED_IMAGE_DIR" \
   ghaf-installer -s -d "$INSTALL_DISK"
+)
 ```
 
 Output: the destination disk contains the signed A/B image and firmware has
@@ -196,7 +225,9 @@ SSH connection to that external IP opens `net-vm`, not the host. Check `hostname
 and open a root host shell before running the following commands:
 
 ```bash
-sudo -i
+(
+set -euo pipefail
+test "$EUID" -eq 0
 hostname
 cat /proc/cmdline
 cat /persist/common/ota/accepted-generation
@@ -211,6 +242,7 @@ lvs -o lv_name,lv_size,lv_uuid pool
 systemctl --failed
 systemctl show ghaf-boot-health.service -p Result -p ExecMainStatus
 journalctl -b -u ghaf-boot-health.service --no-pager
+)
 ```
 
 Expect matching running/accepted generations, an uncounted healthy default,
@@ -232,9 +264,12 @@ unfinished reencryption. Save recovery credentials separately from test logs.
 Create a persistence sentinel once and record its digest outside the target:
 
 ```bash
+(
+set -euo pipefail
 install -d -m 0700 /persist/common/ota-test
 printf 'A/B persistence test\n' > /persist/common/ota-test/sentinel
 sha256sum /persist/common/ota-test/sentinel
+)
 ```
 
 ## Build, deliver and install an update
@@ -247,8 +282,9 @@ Re-select the original key directory if using a new shell; do not regenerate it.
 Use a fresh public directory and signing output for every candidate:
 
 ```bash
+(
 set -euo pipefail
-export GHAF_DEV_KEY_DIR="$HOME/.local/share/ghaf-dev-keys"
+read -r -p 'Existing signing-key directory (absolute path): ' GHAF_DEV_KEY_DIR
 read -r -p 'New generation, greater than the host baseline: ' GENERATION
 PUBLIC="/var/tmp/secure-ab-x86-generation-$GENERATION"
 SIGNED_DIR="/var/tmp/ghaf-x86-update-$GENERATION"
@@ -264,11 +300,13 @@ jq -e --argjson generation "$GENERATION" \
 nix run .#ghaf-sign-update -- --key-dir "$GHAF_DEV_KEY_DIR" \
   --input "$MANIFEST" --output "$SIGNED_DIR"
 SIGNED_MANIFEST="$SIGNED_DIR/$(basename "$MANIFEST")"
+printf 'Signed manifest: %s\n' "$SIGNED_MANIFEST"
+)
 ```
 
 Outputs on the build host: `result-x86-update` points to the unsigned payload;
 `$SIGNED_DIR` contains the signed five-file bundle; `$SIGNED_MANIFEST` names its
-signed manifest. Continue in this build-host shell with the
+signed manifest. Record its printed path and use the
 [shared HTTP delivery instructions](/ghaf/dev/architecture/ab-update#static-http-lab-delivery),
 then fetch in a separate `net-vm` shell. Copy the resulting **host manifest**
 path printed after successful fetch.
@@ -279,8 +317,9 @@ shared `/persist/sysupdate` path. Enter the printed path, not the build-host
 they are not downloaded from the HTTP server:
 
 ```bash
-sudo -i
+(
 set -euo pipefail
+test "$EUID" -eq 0
 hostname
 read -r -p 'Host manifest path printed after fetch: ' MANIFEST
 test -s "$MANIFEST"
@@ -291,11 +330,12 @@ trust=(--trusted-key /etc/ghaf/update/update.pub
        --accepted-generation-file /persist/common/ota/accepted-generation)
 ota-update image validate --manifest "$MANIFEST" "${trust[@]}"
 ota-update image --dry-run install --manifest "$MANIFEST" "${trust[@]}"
+)
 ```
 
 Output: successful authenticated validation and a printed plan; no slot write
-has happened yet. Keep this root shell open so `$MANIFEST` and `trust` remain
-available for the next command block.
+has happened yet. The install block asks for the same manifest path again;
+it can run from a new root shell.
 
 Stop on any error. Confirm the dry-run writes only the inactive pair and ends
 with `bootctl set-oneshot <candidate>.efi`. A `set-default` activation means the
@@ -307,12 +347,21 @@ unchanged. `bootctl list` can show the one-shot candidate as the next default;
 compare the persistent EFI variable itself:
 
 ```bash
+(
+set -euo pipefail
+test "$EUID" -eq 0
+read -r -p 'Host manifest path already validated: ' MANIFEST
+trust=(--trusted-key /etc/ghaf/update/update.pub
+       --uki-trusted-cert /etc/ghaf/update/db.crt
+       --target intel-laptop-debug-secure-ab
+       --accepted-generation-file /persist/common/ota/accepted-generation)
 DEFAULT_VAR=/sys/firmware/efi/efivars/LoaderEntryDefault-4a67b082-0a4c-41cf-b6c7-440b29bb8c4f
 cp "$DEFAULT_VAR" /run/ab-default-before
 ota-update image install --manifest "$MANIFEST" "${trust[@]}"
 cmp /run/ab-default-before "$DEFAULT_VAR"
 bootctl status --no-pager
 ls /boot/EFI/Linux/
+)
 ```
 
 The install must leave a complete candidate `+3.efi`, preserve the active pair,
@@ -320,7 +369,10 @@ and return without rebooting. Inspect those outputs before issuing the reboot
 as a separate action in the same root host shell:
 
 ```bash
+(
+set -euo pipefail
 systemctl reboot
+)
 ```
 
 The SSH session closes. Reconnect to the host, reopen a root shell, and repeat
@@ -338,15 +390,8 @@ reuse; two successful increasing updates are needed after initial installation.
 
 Input: the healthy generation/entry and retained sentinel digest from the
 previous baseline. On the build host choose a new generation and its fresh
-`PUBLIC`/`SIGNED_DIR` paths as above. Replace only the config-export command in
-the update recipe with:
-
-```bash
-nix run .#ghaf-secure-ab-config -- --key-dir "$GHAF_DEV_KEY_DIR" \
-  --generation "$GENERATION" --output "$PUBLIC" --inject-boot-health-failure
-```
-
-Then run that recipe's remaining build and signing commands. Output: a separate
+`PUBLIC`/`SIGNED_DIR` paths as above. Add `--inject-boot-health-failure` to the `ghaf-secure-ab-config` command
+inside the complete update build/sign block above, then run that block. Output: a separate
 signed bundle whose UKI boots the injected failing health service. Deliver it
 through the same HTTP → `net-vm` → shared host path, then validate and install.
 Do not first export a healthy config at the same path, reuse a published fetch
@@ -358,11 +403,14 @@ configured console; it must not be another board's console. With access to that
 TTY, start this capture (115200 baud), retaining the printed path:
 
 ```bash
+(
+set -euo pipefail
 read -r -p 'Laptop serial-console path on the build host: ' SERIAL_DEVICE
 SERIAL_LOG=$(mktemp /var/tmp/ghaf-x86-rollback-serial.XXXXXX)
 printf 'Serial evidence: %s\n' "$SERIAL_LOG"
 stty -F "$SERIAL_DEVICE" 115200 raw -echo
 cat "$SERIAL_DEVICE" | tee "$SERIAL_LOG"
+)
 ```
 
 Leave that terminal running, then issue the single reboot from the host shell.
@@ -386,6 +434,8 @@ automatic-rollback test even when it restores a usable system.
 From this checkout on an x86 host with KVM:
 
 ```bash
+(
+set -euo pipefail
 nix build --no-link \
   .#checks.x86_64-linux.x86-deferred-encryption \
   .#ghaf-sign-x86-image.tests.sign \
@@ -395,10 +445,13 @@ nix build --no-link \
 GIVC_REV=$(jq -r '.nodes.givc.locked.rev' flake.lock)
 nix build --no-link \
   "github:tiiuae/ghaf-givc/$GIVC_REV#checks.x86_64-linux.vmTests-ota-update-image"
+)
 ```
 
 The encryption test covers fresh encryption, initialized-but-incomplete
 encryption, completed encryption with unfinished enrollment, and verity ordering.
+It also checks that another disk's ESP marker is ignored, normal boots can
+inspect a read-only ESP, and completed setup leaves keyslots unchanged.
 The GIVC test uses real UEFI boot counting and fallback; its driver re-arms
 attempts to model Ghaf's health policy. It does not replace the hardware test of
 the actual health service.
