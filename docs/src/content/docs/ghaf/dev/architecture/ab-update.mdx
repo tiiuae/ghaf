@@ -54,19 +54,25 @@ Run build-host commands from the root of the Ghaf checkout being tested, in
 Bash with Nix, `jq`, Python 3 and GNU coreutils available. The platform guides
 supply the exact package and generation. Enter `nix develop` in that checkout
 to obtain its pinned `jq`, Python and other development tools before defining
-the variables below. Shell variables and local paths do not
-transfer to the installer, `net-vm`, or the Ghaf host when changing terminals.
+the commands below. Each complete command block runs in a subshell: failures
+stop that step without exiting your terminal. Variables do not survive the
+block. Record printed output paths and enter them when the next step prompts;
+you can resume from a new shell without reconstructing earlier variables.
+Local paths do not transfer between machines.
 
 Create development keys once outside Git and the Nix store. Reuse that same key
 directory for every image/update installed on a device enrolled with its trust:
 
 ```bash
+(
 set -euo pipefail
 umask 077
 export GHAF_DEV_KEY_DIR="$HOME/.local/share/ghaf-dev-keys"
 if [ ! -d "$GHAF_DEV_KEY_DIR" ]; then
   nix run .#ghaf-dev-keygen -- --output "$GHAF_DEV_KEY_DIR"
 fi
+printf 'Signing-key directory: %s\n' "$GHAF_DEV_KEY_DIR"
+)
 ```
 
 `ghaf-dev-keygen` creates private `PK.key`, `KEK.key`, `db.key`, `update.key`,
@@ -81,6 +87,9 @@ This is an alternative to the platform's build recipe, not an additional build
 step to run before it:
 
 ```bash
+(
+set -euo pipefail
+read -r -p 'Existing signing-key directory (absolute path): ' GHAF_DEV_KEY_DIR
 read -r -p 'Update payload package from the platform guide: ' PLATFORM_TARGET
 read -r -p 'New generation: ' GENERATION
 PUBLIC="/var/tmp/secure-ab-generation-$GENERATION"
@@ -89,6 +98,7 @@ nix run .#ghaf-secure-ab-config -- --key-dir "$GHAF_DEV_KEY_DIR" \
 timeout 2h nix build \
   --override-input secure-ab-build-config "path:$PUBLIC" \
   ".#$PLATFORM_TARGET" -o result-update
+)
 ```
 
 The exporter creates `$PUBLIC/config.json` and the four public trust files;
@@ -143,7 +153,9 @@ Root/verity names are `ghaf_{root,verity}_<version>_<hash>.raw.zst`; the UKI is
 `ghaf_kernel_<version>_<hash>.efi`. Sign into a new output directory:
 
 ```bash
+(
 set -euo pipefail
+read -r -p 'Existing signing-key directory (absolute path): ' GHAF_DEV_KEY_DIR
 manifests=(result-update/*.manifest)
 test "${#manifests[@]}" -eq 1 && test -f "${manifests[0]}"
 MANIFEST="${manifests[0]}"
@@ -152,9 +164,11 @@ SIGNED_DIR="/var/tmp/ghaf-signed-update-$GENERATION"
 nix run .#ghaf-sign-update -- --key-dir "$GHAF_DEV_KEY_DIR" \
   --input "$MANIFEST" --output "$SIGNED_DIR"
 SIGNED_MANIFEST="$SIGNED_DIR/$(basename "$MANIFEST")"
+printf 'Signed manifest: %s\n' "$SIGNED_MANIFEST"
+)
 ```
 
-Keep `$SIGNED_DIR` and `$SIGNED_MANIFEST` for delivery; the manifest is not
+Record the printed signed-manifest path for delivery; the manifest is not
 renamed to `manifest.json` by the signer. Use a fresh signing directory for each
 candidate.
 
@@ -217,9 +231,9 @@ atomically installs the three-attempt UKI, then changes boot selection.
 
 ### Static HTTP lab delivery
 
-**Build host, same Bash session as signing.** Inputs are `$SIGNED_DIR` and
-`$SIGNED_MANIFEST` produced by the signer. If reopening a shell, set them to the
-recorded absolute paths; do not point to an initial disk or unsigned output.
+**Build host, any Bash session in `nix develop`.** Enter the signed-manifest
+path printed by the signer; its containing directory supplies the artifacts.
+Do not point to an initial disk or unsigned output.
 Choose the build-host address reachable from the target's `net-vm` using
 `ip -br -4 address`, and permit TCP port 18080 on that lab interface.
 
@@ -228,7 +242,11 @@ from the signed bytes, without reformatting the JSON, in a public-only staging
 directory on disk (the payload can be several GiB):
 
 ```bash
+(
 set -euo pipefail
+read -r -p 'Signed manifest path printed by the signer: ' SIGNED_MANIFEST
+SIGNED_DIR=$(dirname -- "$SIGNED_MANIFEST")
+test -s "$SIGNED_MANIFEST.sig"
 GENERATION=$(jq -er .generation "$SIGNED_MANIFEST")
 ip -br -4 address
 read -r -p 'Build-host IP reachable from net-vm: ' BUILD_HOST_IP
@@ -241,6 +259,7 @@ for kind in root verity kernel; do
 done
 printf 'HTTP origin: http://%s:18080\nGeneration: %s\n' "$BUILD_HOST_IP" "$GENERATION"
 python3 -m http.server 18080 --bind "$BUILD_HOST_IP" --directory "$HTTP_ROOT"
+)
 ```
 
 Output: a foreground server exposing exactly the signed manifest/signature and
@@ -255,6 +274,7 @@ generation printed above. These values are copied
 explicitly; build-host variables do not exist in this shell:
 
 ```bash
+(
 set -euo pipefail
 hostname
 ip -br -4 address
@@ -263,6 +283,7 @@ read -r -p 'Generation printed by the build host: ' GENERATION
 test -w /persist/sysupdate
 ghaf-fetch-update "$UPDATE_HTTP_ORIGIN" "$GENERATION" /persist/sysupdate
 printf 'Host manifest: /persist/sysupdate/http-generation-%s/manifest.json\n' "$GENERATION"
+)
 ```
 
 Output: `/persist/sysupdate/http-generation-N/` containing `manifest.json`,
