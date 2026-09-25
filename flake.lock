@@ -382,15 +382,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1790072047,
-        "narHash": "sha256-7jfAoakRED6gnTcuaV+lEurtGHDCONqz+sz0kikZQvc=",
-        "owner": "tiiuae",
+        "lastModified": 1790322940,
+        "narHash": "sha256-ASkCrgpdxCVvmGKMNvzfmwb84ElyCAb5Zn9b+QmxBtc=",
+        "owner": "kajusnau",
         "repo": "ghafpkgs",
-        "rev": "cf54102836f44e8892c9218b11fb24531e4d29ba",
+        "rev": "feb60bfd2fff6cd4ed217f02a7fb21c06d20167f",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "kajusnau",
+        "ref": "killswitch-libcosmic-pin",
         "repo": "ghafpkgs",
         "type": "github"
       }
