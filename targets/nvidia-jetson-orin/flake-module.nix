@@ -490,21 +490,13 @@ let
   flashTarget =
     t: qspiOnly:
     let
-      # Shared by both secureboot variants so the two cannot drift apart.
-      nxDiskOverrides = lib.optionalAttrs (lib.strings.hasInfix "nx" t.name && !qspiOnly) {
-        # NX boots from USB or NVMe; the flash script targets NVMe.
-        ghaf.hardware.nvidia.orin.flashScriptOverrides.deviceDisk = lib.mkForce "nvme0n1";
-        ghaf.hardware.nvidia.orin.flashScriptOverrides.deviceDiskEspPartition = lib.mkForce "nvme0n1p1";
-        ghaf.hardware.nvidia.orin.flashScriptOverrides.deviceDiskRootfsPartition = lib.mkForce "nvme0n1p2";
-      };
       noSBCfg = t.hostConfiguration.extendModules {
         modules = [
-          (
-            {
-              ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly;
-            }
-            // nxDiskOverrides
-          )
+
+          {
+            ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly;
+          }
+
         ];
       };
       noSB = noSBCfg.pkgs.nvidia-jetpack.signedFlashScript;
@@ -516,13 +508,10 @@ let
         else
           (t.hostConfiguration.extendModules {
             modules = [
-              (
-                {
-                  ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkForce true;
-                  ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly;
-                }
-                // nxDiskOverrides
-              )
+              {
+                ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkForce true;
+                ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly;
+              }
             ];
           }).pkgs.nvidia-jetpack.signedFlashScript;
     in

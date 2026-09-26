@@ -605,29 +605,6 @@ let
     '';
   };
 
-  # Shared by the deviceDisk, deviceDiskRootfsPartition and deviceDiskEspPartition
-  # options declared below.
-  deviceDiskDescription = ''
-    Rootfs disk and its ESP/rootfs partitions, as kernel device names. The
-    rootfs partition is passed to NVIDIA's flash.sh as the trailing argument
-    and is consumed by the partition layout in the .conf file referenced by
-    configFileName, deciding where the APP partition lands. Downstream callers
-    (e.g. disk-encryption modules) read these to know the rootfs location at
-    build time.
-
-    Orin NX booting from USB, for example:
-
-    ```nix
-    flashScriptOverrides.deviceDisk = "sda";
-    flashScriptOverrides.deviceDiskEspPartition = "sda1";
-    flashScriptOverrides.deviceDiskRootfsPartition = "sda2";
-    ```
-
-    No default: rootfs storage is not common to all carrier boards, so every
-    per-SoM module must set all three explicitly. An assertion in the config
-    block enforces non-empty values.
-  '';
-
 in
 {
   _file = ./jetson-orin.nix;
@@ -656,20 +633,17 @@ in
       default = "";
     };
 
-    flashScriptOverrides.deviceDisk = mkOption {
-      description = deviceDiskDescription;
-      type = types.str;
-      default = "";
-    };
-
     flashScriptOverrides.deviceDiskRootfsPartition = mkOption {
-      description = deviceDiskDescription;
-      type = types.str;
-      default = "";
-    };
+      description = ''
+        Despite its name, this option specifies the rootfs partition as a
+        kernel device name. The rootfs and ESP are currently identified by
+        their UUIDs, which are stored in the GPT. This option is used by
+        NVIDIA's flash.sh script.
 
-    flashScriptOverrides.deviceDiskEspPartition = mkOption {
-      description = deviceDiskDescription;
+        There is no default because rootfs storage varies by carrier board.
+        Each per-SoM module must set this option explicitly; an assertion
+        enforces that requirement.
+      '';
       type = types.str;
       default = "";
     };
@@ -800,13 +774,10 @@ in
 
     assertions = [
       {
-        assertion =
-          cfg.flashScriptOverrides.deviceDisk != ""
-          && cfg.flashScriptOverrides.deviceDiskRootfsPartition != ""
-          && cfg.flashScriptOverrides.deviceDiskEspPartition != "";
+        assertion = cfg.flashScriptOverrides.deviceDiskRootfsPartition != "";
         message = ''
-          ghaf.hardware.nvidia.orin.flashScriptOverrides.deviceDisk* must be
-          set explicitly (e.g. "mmcblk0" for eMMC/SD, "nvme0n1" for NVMe).
+          ghaf.hardware.nvidia.orin.flashScriptOverrides.deviceDiskRootfsPartition
+          must be set explicitly (e.g. for AGX "mmcblk0p2" for eMMC/SD).
           The default is intentionally empty because rootfs storage varies per
           carrier board; the per-SoM module must declare it to avoid silently
           flashing to the wrong device.
