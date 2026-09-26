@@ -7,10 +7,7 @@
 {
   _file = ./orin-agx64.nix;
 
-  imports = [
-    ../../../../common/services/hwinfo
-    ../nvidia-jetson-orin/virtualization/common/dce-virt-common/dce-probe-host.nix
-  ];
+  imports = [ ../../../../common/services/hwinfo ];
 
   ghaf = {
     # Enable hardware info generation on host
