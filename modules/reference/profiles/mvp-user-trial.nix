@@ -130,6 +130,24 @@ in
           ];
         };
 
+        vhotplug.prependUsbRules = [
+          {
+            description = "USB mass storage";
+            tag = "storage";
+            allowedVms = [
+              "gui-vm"
+              "chrome-vm"
+            ];
+            allow = [
+              {
+                interfaceClass = 8;
+                interfaceSubclass = 6;
+                description = "Mass Storage - SCSI (USB drives)";
+              }
+            ];
+          }
+        ];
+
         # postpendUsbRules runs after business.nix's own rule, so its silent auto-attach wins first.
         vhotplug.postpendUsbRules = [
           {
