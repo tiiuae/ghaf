@@ -91,7 +91,7 @@ in
           systemVms = map (vmName: "microvm@${vmName}.service") config.ghaf.common.systemHosts;
           appVms = map (vmName: "microvm@${vmName}.service") config.ghaf.common.appHosts;
         };
-        exec.enable = true;
+        update.enable = true;
         policy = mkIf policycfg.enable {
           enable = true;
           inherit (policycfg) storePath;
