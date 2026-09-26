@@ -328,6 +328,8 @@ in
           let
             mkPpdService = profile: {
               description = "Enable ${profile} Ghaf PPD profile on net-vm";
+              after = [ "tuned.service" ];
+              wants = [ "tuned.service" ];
               serviceConfig = {
                 Type = "oneshot";
                 ExecStart = ''
