@@ -33,8 +33,6 @@
         carrierBoard = "xavierNxDevkit";
         # No eMMC on this SoM; jetpack flashes the QSPI+NVMe layout below.
         flashScriptOverrides = {
-          deviceDisk = "nvme0n1";
-          deviceDiskEspPartition = "nvme0n1p1";
           deviceDiskRootfsPartition = "nvme0n1p2";
           # Pin APP so flash.xml stops deriving ESP/APP sizes from the built
           # sdImage. Without this the flash script depends on the image, which

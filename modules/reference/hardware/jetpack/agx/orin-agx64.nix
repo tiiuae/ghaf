@@ -28,8 +28,6 @@
         carrierBoard = "devkit";
         # AGX64 devkit boots rootfs from eMMC.
         flashScriptOverrides = {
-          deviceDisk = "mmcblk0";
-          deviceDiskEspPartition = "mmcblk0p1";
           deviceDiskRootfsPartition = "mmcblk0p2";
         };
       };
