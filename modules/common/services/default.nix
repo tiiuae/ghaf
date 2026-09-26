@@ -10,6 +10,7 @@
     ./createFakeBattery.nix
     ./disks.nix
     ./firmware.nix
+    ./fortivpn.nix
     ./fprint.nix
     ./github.nix
     ./hwinfo
