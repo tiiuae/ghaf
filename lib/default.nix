@@ -293,5 +293,8 @@ in
       # Feature assignment utilities under lib.ghaf.features.*
       features
       ;
+
+    # For a downstream reusing TII's roster without enabling ghaf.reference.org.tii.
+    org.tii.debugKeys = import ../modules/reference/org/tii-debug-keys.nix;
   };
 }

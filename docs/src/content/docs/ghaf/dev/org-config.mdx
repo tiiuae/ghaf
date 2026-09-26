@@ -61,6 +61,13 @@ It is also exported standalone as `nixosModules.reference-org-tii`, for targets 
 the reference profile sets. The mvp profiles deliberately do **not** enable it, so a downstream
 can reuse them with its own org module.
 
+A downstream that wants TII's development key roster but none of TII's other values can read it
+as `lib.ghaf.org.tii.debugKeys` and add its own keys on top:
+
+```nix
+ghaf.org.identity.ssh.debugKeys = inputs.ghaf.lib.ghaf.org.tii.debugKeys ++ myTesters;
+```
+
 ## The schema
 
 Every value defaults to `null`, which means *unset* — the consuming module keeps its own
