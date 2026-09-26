@@ -9,34 +9,10 @@
 let
   cfg = config.ghaf.hardware.nvidia.virtualization;
   kernelVersion = config.boot.kernelPackages.kernel.version;
-
-  # The bpmp-virt proxy drivers are carried as ordinary source files under
-  # ./sources, not buried in a diff, so they can be read, grepped and reviewed as
-  # code. Only the four in-tree hooks they need (drivers/firmware/tegra/Kconfig,
-  # Makefile, bpmp.c, bpmp-tegra186.c) remain a hand-maintained patch.
-  bpmpVirtSources = pkgs.runCommand "bpmp-virt-sources" { } (
-    ''
-      cp -r ${./sources} $out
-      chmod -R u+w $out
-    ''
-    + lib.optionalString cfg.bpmpAllowAllDomains ''
-      substituteInPlace $out/drivers/firmware/tegra/bpmp-host-proxy/bpmp-host-proxy.c \
-        --replace-fail '#define BPMP_HOST_ALLOWS_ALL   0' '#define BPMP_HOST_ALLOWS_ALL   1'
-    ''
-  );
-
-  # boot.kernelPatches only takes patches, so synthesise the add-files diff from
-  # the sources above rather than keeping ~1100 lines of `+` in the tree.
-  # Timestamps are pinned to the epoch: diff prints them into the ---/+++ headers,
-  # and a build-time mtime would rehash this patch, and the kernel, on every build.
-  bpmpVirtSourcesPatch = pkgs.runCommand "bpmp-virt-add-sources.patch" { } ''
-    mkdir -p a
-    cp -r ${bpmpVirtSources} b
-    chmod -R u+w b
-    find a b -exec touch -h -d @0 {} +
-    diff -Naur a b > "$out" || true
-    test -s "$out"
-  '';
+  orinVirtualizationSupport = pkgs.nvidia-jetpack.orinVirtualizationSupport.override {
+    bpmpAllowAllDomains = cfg.bpmpAllowAllDomains;
+  };
+  supportPath = "${orinVirtualizationSupport}";
 in
 {
   _file = ./default.nix;
@@ -55,11 +31,11 @@ in
     };
 
     sourcesPatch = lib.mkOption {
-      type = lib.types.package;
+      type = lib.types.path;
       readOnly = true;
       internal = true;
-      default = bpmpVirtSourcesPatch;
-      defaultText = lib.literalExpression "<generated add-files patch>";
+      default = "${supportPath}/patches/linux/bpmp-sources.patch";
+      defaultText = lib.literalExpression "<orinVirtualizationSupport>/patches/linux/bpmp-sources.patch";
       description = ''
         Generated patch that adds the bpmp-virt proxy drivers to a kernel tree.
 
@@ -95,8 +71,8 @@ in
         assertion = lib.versionAtLeast kernelVersion "6.6";
         message = ''
           ghaf.hardware.nvidia.virtualization needs kernel >= 6.6; got ${kernelVersion}.
-          The bpmp-virt drivers under bpmp-virt-common/sources/ are written against the
-          6.6 drivers/firmware/tegra layout. Set
+          The bpmp-virt drivers provided by orinVirtualizationSupport are written against
+          the 6.6 drivers/firmware/tegra layout. Set
           ghaf.hardware.nvidia.orin.kernelVersion = "upstream-6-6".
         '';
       }
@@ -124,7 +100,7 @@ in
       }
       {
         name = "Vfio_platform Reset Required False";
-        patch = ./patches/0002-vfio_platform-reset-required-false.patch;
+        patch = "${supportPath}/patches/linux/bpmp/0002-vfio_platform-reset-required-false.patch";
       }
       {
         name = "bpmp-virt proxy drivers";
@@ -132,7 +108,7 @@ in
       }
       {
         name = "bpmp-virt core hooks";
-        patch = ./patches/0001-bpmp-virt-hooks.patch;
+        patch = "${supportPath}/patches/linux/bpmp/0001-bpmp-virt-hooks.patch";
       }
     ];
 

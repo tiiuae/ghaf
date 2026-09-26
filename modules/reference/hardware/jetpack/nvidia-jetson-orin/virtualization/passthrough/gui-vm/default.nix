@@ -28,6 +28,7 @@ let
     inherit lib pkgs board;
     cap = capabilities.guivm;
     kernel = config.boot.kernelPackages.kernel;
+    dtsDir = "${pkgs.nvidia-jetpack.orinVirtualizationSupport}/device-trees/gpu-vm";
   };
 in
 {
@@ -104,7 +105,7 @@ in
     hardware.deviceTree.overlays = [
       {
         name = "gpu_passthrough_overlay";
-        dtsFile = ../gpu-vm/gpu_passthrough_overlay.dts;
+        dtsFile = "${pkgs.nvidia-jetpack.orinVirtualizationSupport}/device-trees/gpu-vm/gpu_passthrough_overlay.dts";
       }
     ];
 
