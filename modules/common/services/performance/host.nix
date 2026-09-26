@@ -6,22 +6,27 @@
   lib,
   mkTunedScript,
   tunedNoDesktop,
+  mkProfileVariants,
+  mkPpdSettings,
+  mkPpdServices,
+  mkProfileDirs,
   ...
 }:
 let
   cfg = config.ghaf.services.performance;
   inherit (lib)
-    concatMapStringsSep
     getExe
     getExe'
+    mapAttrs
     mkEnableOption
     mkForce
     mkIf
     mkMerge
     mkOption
-    nameValuePair
     types
     ;
+
+  hostProfileVariants = mkProfileVariants "host";
 
   hostSchedulerAssignments = {
     system-vms = {
@@ -53,73 +58,23 @@ let
     };
   };
 
-  hostProfileScripts =
-    let
-      # PCI devices we can adjust power management for
-      pciDevices = map (device: device.path) (
-        lib.filter (d: (d.path or null) != null) (
-          config.ghaf.common.hardware.gpus
-          ++ config.ghaf.common.hardware.audio
-          ++ config.ghaf.common.hardware.nics
-        )
-      );
-    in
-    {
-      host-powersave = mkTunedScript {
-        name = "host-powersave";
-        start = ''
-          pci_device_runtime_pm auto "${lib.concatStringsSep " " pciDevices}"
-        ''
-        + lib.optionalString (
-          cfg.host.thermalLimitMode == "ac"
-        ) "timeout 5s ${getExe' pkgs.systemd "systemctl"} start thermald";
-      };
-      host-balanced = mkTunedScript {
-        name = "host-balanced";
-        start = ''
-          pci_device_runtime_pm auto "${lib.concatStringsSep " " pciDevices}"
-        ''
-        + lib.optionalString (
-          cfg.host.thermalLimitMode == "ac"
-        ) "timeout 5s ${getExe' pkgs.systemd "systemctl"} start thermald";
-      };
-      host-performance = mkTunedScript {
-        name = "host-performance";
-        start = ''
-          pci_device_runtime_pm on "${lib.concatStringsSep " " pciDevices}"
-        ''
-        + lib.optionalString (
-          cfg.host.thermalLimitMode == "ac"
-        ) "timeout 5s ${getExe' pkgs.systemd "systemctl"} start thermald";
-      };
-      host-powersave-battery = mkTunedScript {
-        name = "host-powersave-battery";
-        start = ''
-          pci_device_runtime_pm auto "${lib.concatStringsSep " " pciDevices}"
-        ''
-        + lib.optionalString (
-          cfg.host.thermalLimitMode == "ac"
-        ) "timeout 5s ${getExe' pkgs.systemd "systemctl"} stop thermald";
-      };
-      host-balanced-battery = mkTunedScript {
-        name = "host-balanced-battery";
-        start = ''
-          pci_device_runtime_pm auto "${lib.concatStringsSep " " pciDevices}"
-        ''
-        + lib.optionalString (
-          cfg.host.thermalLimitMode == "ac"
-        ) "timeout 5s ${getExe' pkgs.systemd "systemctl"} stop thermald";
-      };
-      host-performance-battery = mkTunedScript {
-        name = "host-performance-battery";
-        start = ''
-          pci_device_runtime_pm on "${lib.concatStringsSep " " pciDevices}"
-        ''
-        + lib.optionalString (
-          cfg.host.thermalLimitMode == "ac"
-        ) "timeout 5s ${getExe' pkgs.systemd "systemctl"} stop thermald";
-      };
-    };
+  hostProfileScripts = mapAttrs (
+    name:
+    { onBattery, ... }:
+    mkTunedScript {
+      inherit name;
+      # No device power management here: the host holds the boot disk, and its
+      # passthrough devices are tuned inside the VM that owns them.
+      #
+      # In "ac" mode thermald carries our raised trip point; on battery the
+      # platform's own passive limits take over.
+      start = lib.optionalString (cfg.host.thermalLimitMode == "ac") ''
+        timeout 5s ${getExe' pkgs.systemd "systemctl"} --no-block ${
+          if onBattery then "stop" else "start"
+        } thermald
+      '';
+    }
+  ) hostProfileVariants;
 
   # Customized TuneD profiles based on TuneD's built-in profiles and system76-power
   tunedProfiles = {
@@ -134,24 +89,20 @@ let
         max_perf_pct = "50";
         boost = "0";
         no_turbo = "1";
-        hwp_dynamic_boost = "0";
       };
 
       acpi.platform_profile = "low-power|quiet";
 
+      # No dirty_* override: tuned maps "%" onto dirty_ratio, and the old 1%/5%
+      # forced more writeback than the kernel's 10/20 default, not less.
       vm = {
-        dirty_background_bytes = "1%";
-        dirty_bytes = "5%";
         transparent_hugepages = "madvise";
       };
 
-      audio.timeout = "5";
-
-      scsi_host.alpm = "min_power";
+      scsi_host.alpm = "med_power_with_dipm";
 
       sysctl = {
         "vm.swappiness" = "5";
-        "vm.laptop_mode" = "5";
         "vm.dirty_writeback_centisecs" = "1500";
         "kernel.nmi_watchdog" = "0";
       };
@@ -168,7 +119,6 @@ let
         max_perf_pct = "80";
         boost = "1";
         no_turbo = "0";
-        hwp_dynamic_boost = "1";
       };
 
       acpi.platform_profile = "balanced";
@@ -181,14 +131,11 @@ let
 
       disk.readahead = ">2048";
 
-      audio.timeout = "10";
-
-      scsi_host.alpm = "medium_power";
+      scsi_host.alpm = "med_power_with_dipm";
 
       sysctl = {
         "vm.swappiness" = "5";
         "vm.dirty_writeback_centisecs" = "1500";
-        "vm.laptop_mode" = "2";
       };
     };
 
@@ -204,7 +151,6 @@ let
         max_perf_pct = "100";
         boost = "1";
         no_turbo = "0";
-        hwp_dynamic_boost = "1";
       };
 
       acpi.platform_profile = "performance";
@@ -223,7 +169,6 @@ let
         "vm.swappiness" = "5";
         "net.core.somaxconn" = ">2048";
         "vm.dirty_writeback_centisecs" = "1500";
-        "vm.laptop_mode" = "0";
       };
     };
   };
@@ -247,6 +192,16 @@ in
           type = types.str;
           default = "host-balanced";
           description = "Default TuneD profile to use on the host.";
+        };
+        profileNames = mkOption {
+          type = types.listOf types.str;
+          readOnly = true;
+          default = lib.attrNames hostProfileVariants;
+          description = ''
+            The profiles this module defines. GIVC whitelists the matching
+            units so the gui-vm can select a profile here; read the list from
+            this option rather than repeating it.
+          '';
         };
       };
       thermalLimitTemp = mkOption {
@@ -327,73 +282,22 @@ in
         inherit (cfg.host.tuned) enable;
         package = tunedNoDesktop;
 
-        settings.profile_dirs = "/etc/tuned/profiles,${
-          concatMapStringsSep "," (script: "${script}") (lib.attrValues hostProfileScripts)
-        }";
+        settings.profile_dirs = mkProfileDirs hostProfileScripts;
 
         settings.recommend_command = false;
 
-        ppdSettings = {
-          main.default = "balanced";
-          battery = {
-            power-saver = "host-powersave-battery";
-            balanced = "host-balanced-battery";
-            performance = "host-performance-battery";
-          };
-          profiles = {
-            power-saver = "host-powersave";
-            balanced = "host-balanced";
-            performance = "host-performance";
-          };
-        };
+        ppdSettings = mkPpdSettings "host";
 
-        profiles = {
-          host-powersave = tunedProfiles.powersave // {
-            script.script = "${getExe hostProfileScripts.host-powersave}";
-          };
-          host-balanced = tunedProfiles.balanced // {
-            script.script = "${getExe hostProfileScripts.host-balanced}";
-          };
-          host-performance = tunedProfiles.performance // {
-            script.script = "${getExe hostProfileScripts.host-performance}";
-          };
-          host-powersave-battery = tunedProfiles.powersave // {
-            script.script = "${getExe hostProfileScripts.host-powersave-battery}";
-          };
-          host-balanced-battery = tunedProfiles.balanced // {
-            script.script = "${getExe hostProfileScripts.host-balanced-battery}";
-          };
-          host-performance-battery = tunedProfiles.performance // {
-            script.script = "${getExe hostProfileScripts.host-performance-battery}";
-          };
-        };
+        profiles = mapAttrs (
+          name:
+          { base, ... }:
+          tunedProfiles.${base} // { script.script = "${getExe hostProfileScripts.${name}}"; }
+        ) hostProfileVariants;
       };
       environment.etc."tuned/recommend.conf".text = ''
         [${cfg.host.tuned.defaultProfile}]
       '';
-      # Service units to set Ghaf PPD profiles on the host when requested from GUI VM
-      # These must be whitelisted in modules/givc/host.nix
-      systemd.services =
-        let
-          mkPpdService = profile: {
-            description = "Enable ${profile} Ghaf PPD profile on host";
-            serviceConfig = {
-              Type = "oneshot";
-              ExecStart = ''
-                -${getExe' pkgs.tuned "tuned-adm"} profile ${profile}
-              '';
-            };
-          };
-          hostProfiles = [
-            "host-powersave"
-            "host-balanced"
-            "host-performance"
-            "host-powersave-battery"
-            "host-balanced-battery"
-            "host-performance-battery"
-          ];
-        in
-        lib.listToAttrs (map (profile: nameValuePair "${profile}" (mkPpdService profile)) hostProfiles);
+      systemd.services = mkPpdServices "host" (lib.attrNames hostProfileVariants);
     }
     (mkIf (cfg.host.thermalLimitMode != "enabled") {
       environment.systemPackages = lib.optionals config.ghaf.profiles.debug.enable [

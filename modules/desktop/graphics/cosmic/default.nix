@@ -46,8 +46,7 @@ let
 
   autostart = pkgs.writeShellApplication {
     name = "autostart";
-
-    text = "" + cfg.extraAutostart;
+    text = cfg.extraAutostart;
   };
 
 in
@@ -585,7 +584,8 @@ in
       '';
 
     systemd.user.services = {
-      autostart = {
+      # Only worth a unit when there is something to run.
+      autostart = lib.mkIf (cfg.extraAutostart != "") {
         description = "Ghaf autostart";
         serviceConfig.ExecStart = "${getExe autostart}";
         partOf = [ "cosmic-session.target" ];
