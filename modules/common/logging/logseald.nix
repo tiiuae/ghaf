@@ -401,6 +401,7 @@ in
             [
               (lib.getExe pkgs.logseald)
               "producer"
+              "--reset-on-credential-change"
               "--state-dir"
               cfg.producer.stateDirectory
               "--max-state-bytes"
@@ -514,6 +515,7 @@ in
               [
                 (lib.getExe pkgs.logseald)
                 "sealer"
+                "--reset-on-credential-change"
                 "--compact-state=true"
                 "--state-dir"
                 cfg.sealer.stateDirectory
