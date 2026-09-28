@@ -45,7 +45,7 @@ in
         # For comparing NixOS system closure differences between generations.
         # ghaf-rebuild runs this on the target to print its post-switch package diff.
         dix
-        
+
         # For debugging network interfaces and traffic
         ethtool
 
