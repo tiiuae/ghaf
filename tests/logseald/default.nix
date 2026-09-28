@@ -6,32 +6,37 @@
   ...
 }:
 let
-  certs = pkgs.runCommand "logseald-test-certificates" { nativeBuildInputs = [ pkgs.openssl ]; } ''
-    mkdir -p "$out/admin" "$out/producer"
-    openssl req -x509 -newkey rsa:2048 -nodes \
-      -keyout ca-key.pem -out "$out/ca-cert.pem" -days 30 \
-      -subj "/CN=logseald-test-ca"
+  makeCerts =
+    name:
+    pkgs.runCommand name { nativeBuildInputs = [ pkgs.openssl ]; } ''
+      mkdir -p "$out/admin" "$out/producer"
+      openssl req -x509 -newkey rsa:2048 -nodes \
+        -keyout ca-key.pem -out "$out/ca-cert.pem" -days 30 \
+        -subj "/CN=logseald-test-ca"
 
-    make_certificate() {
-      name="$1"
-      usage="$2"
-      openssl req -newkey rsa:2048 -nodes \
-        -keyout "$out/$name/key.pem" -out "$name.csr" -subj "/CN=$name"
-      {
-        echo "basicConstraints=CA:FALSE"
-        echo "keyUsage=digitalSignature,keyEncipherment"
-        echo "extendedKeyUsage=$usage"
-        echo "subjectAltName=DNS:$name"
-      } > "$name.ext"
-      openssl x509 -req -in "$name.csr" -CA "$out/ca-cert.pem" \
-        -CAkey ca-key.pem -CAcreateserial -out "$out/$name/cert.pem" \
-        -days 30 -extfile "$name.ext"
-      cp "$out/ca-cert.pem" "$out/$name/ca-cert.pem"
-    }
+      make_certificate() {
+        name="$1"
+        usage="$2"
+        openssl req -newkey rsa:2048 -nodes \
+          -keyout "$out/$name/key.pem" -out "$name.csr" -subj "/CN=$name"
+        {
+          echo "basicConstraints=CA:FALSE"
+          echo "keyUsage=digitalSignature,keyEncipherment"
+          echo "extendedKeyUsage=$usage"
+          echo "subjectAltName=DNS:$name"
+        } > "$name.ext"
+        openssl x509 -req -in "$name.csr" -CA "$out/ca-cert.pem" \
+          -CAkey ca-key.pem -CAcreateserial -out "$out/$name/cert.pem" \
+          -days 30 -extfile "$name.ext"
+        cp "$out/ca-cert.pem" "$out/$name/ca-cert.pem"
+      }
 
-    make_certificate admin "serverAuth,clientAuth"
-    make_certificate producer "clientAuth"
-  '';
+      make_certificate admin "serverAuth,clientAuth"
+      make_certificate producer "clientAuth"
+    '';
+
+  certs = makeCerts "logseald-test-certificates";
+  rotatedCerts = makeCerts "logseald-rotated-certificates";
 
   ghafOptionStubs =
     { lib, ... }:
@@ -88,15 +93,18 @@ let
             serverName = "admin";
           };
           tls = {
-            caFile = "${certs}/${certificateName}/ca-cert.pem";
-            certFile = "${certs}/${certificateName}/cert.pem";
-            keyFile = "${certs}/${certificateName}/key.pem";
+            caFile = "/var/lib/logseald-test-credentials/ca-cert.pem";
+            certFile = "/var/lib/logseald-test-credentials/cert.pem";
+            keyFile = "/var/lib/logseald-test-credentials/key.pem";
             timePolicy = "static-cert";
           };
         };
       };
       storagevm.enable = false;
     };
+    systemd.tmpfiles.rules = [
+      "C /var/lib/logseald-test-credentials - - - - ${certs}/${certificateName}"
+    ];
     networking.firewall.enable = false;
     services.timesyncd.enable = lib.mkForce true;
     systemd.services.givc-key-setup.enable = lib.mkForce false;
@@ -154,7 +162,7 @@ pkgs.testers.nixosTest {
 
     producer.succeed("systemd-cat --identifier=logseald-test echo ONLINE_MARKER")
     producer.wait_until_succeeds("test -n \"$(find /var/lib/logseald/producer/sealed -name '*.json' -print -quit)\"")
-    producer.succeed("logseald verify-producer --state-dir /var/lib/logseald/producer --cert ${certs}/producer/cert.pem --source producer")
+    producer.succeed("logseald verify-producer --state-dir /var/lib/logseald/producer --cert /var/lib/logseald-test-credentials/cert.pem --source producer")
     admin.succeed("logseald verify-sealer --state-dir /var/lib/logseald/sealer")
     admin.succeed("test -s /var/lib/logseald/sealer/checkpoint.json")
     admin.succeed("test -z \"$(find /var/lib/logseald/sealer/ledger -name '*.json' -print -quit)\"")
@@ -182,13 +190,13 @@ pkgs.testers.nixosTest {
             f"assert any({marker.encode()!r} in base64.b64decode(json.loads(p.read_text())['request']['body']) for p in files)"
         )
         producer.wait_until_succeeds("${pkgs.python3}/bin/python3 -c " + shlex.quote(marker_check))
-        producer.succeed("logseald verify-producer --state-dir /var/lib/logseald/producer --cert ${certs}/producer/cert.pem --source producer")
+        producer.succeed("logseald verify-producer --state-dir /var/lib/logseald/producer --cert /var/lib/logseald-test-credentials/cert.pem --source producer")
         admin.succeed("logseald verify-sealer --state-dir /var/lib/logseald/sealer")
     producer.succeed("systemctl start systemd-timesyncd.service")
     producer.wait_until_succeeds("test -s /var/lib/logseald/producer/boundary.json")
     producer.succeed("systemctl stop logseald-producer.service")
     producer.succeed("test $(find /var/lib/logseald/producer/sealed -name '*.json' | wc -l) -le 4")
-    producer.succeed("logseald verify-producer --state-dir /var/lib/logseald/producer --cert ${certs}/producer/cert.pem --source producer")
+    producer.succeed("logseald verify-producer --state-dir /var/lib/logseald/producer --cert /var/lib/logseald-test-credentials/cert.pem --source producer")
     producer.succeed("systemctl start logseald-producer.service")
 
     admin.succeed("systemctl stop logseald-sealer.service")
@@ -201,7 +209,34 @@ pkgs.testers.nixosTest {
     admin.wait_until_succeeds("test \"$(stat -c '%a %U:%G' /run/logseald-sealer/sealer.sock)\" = '660 logseald-sealer:logseald-proxy'")
     admin.succeed("runuser -u logseald-proxy -- test ! -r /var/lib/logseald/sealer/sealer.key")
     producer.wait_until_succeeds("test -z \"$(find /var/lib/logseald/producer/queue -name '*.json' -print -quit)\"")
-    producer.succeed("logseald verify-producer --state-dir /var/lib/logseald/producer --cert ${certs}/producer/cert.pem --source producer")
+    producer.succeed("logseald verify-producer --state-dir /var/lib/logseald/producer --cert /var/lib/logseald-test-credentials/cert.pem --source producer")
     admin.succeed("logseald verify-sealer --state-dir /var/lib/logseald/sealer")
+
+    with subtest("credential regeneration starts fresh chains after reboot"):
+        producer.succeed("systemctl stop logseald-producer.service")
+        admin.succeed("systemctl stop logseald-sealer.service")
+        old_epoch = producer.succeed("cat /var/lib/logseald/producer/credential-epoch")
+        old_key = admin.succeed("sha256sum /var/lib/logseald/sealer/sealer.key")
+        producer.succeed("cp ${rotatedCerts}/producer/*.pem /var/lib/logseald-test-credentials/")
+        admin.succeed("cp ${rotatedCerts}/admin/*.pem /var/lib/logseald-test-credentials/")
+        admin.reboot()
+        admin.wait_for_shutdown()
+        admin.start()
+        admin.wait_for_unit("logseald-sealer.service")
+        producer.reboot()
+        producer.wait_for_shutdown()
+        producer.start()
+        producer.wait_for_unit("logseald-producer.service")
+        assert producer.succeed("cat /var/lib/logseald/producer/credential-epoch") != old_epoch
+        assert admin.succeed("sha256sum /var/lib/logseald/sealer/sealer.key") != old_key
+        producer.succeed("systemd-cat --identifier=logseald-test echo NEW_CREDENTIAL_MARKER")
+        marker_check = (
+            "import base64,json,pathlib; "
+            "files=pathlib.Path('/var/lib/logseald/producer/sealed').glob('*.json'); "
+            "assert any(b'NEW_CREDENTIAL_MARKER' in base64.b64decode(json.loads(p.read_text())['request']['body']) for p in files)"
+        )
+        producer.wait_until_succeeds("${pkgs.python3}/bin/python3 -c " + shlex.quote(marker_check))
+        producer.succeed("logseald verify-producer --state-dir /var/lib/logseald/producer --cert /var/lib/logseald-test-credentials/cert.pem --source producer")
+        admin.succeed("logseald verify-sealer --state-dir /var/lib/logseald/sealer")
   '';
 }
