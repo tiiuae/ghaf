@@ -24,33 +24,35 @@ in
     environment.etc = {
       audio_test.source = ./audio_test;
     };
-    environment.systemPackages = [
-      # for finding and navigation
-      pkgs.fd
-      pkgs.ripgrep
-      pkgs.file
+    environment.systemPackages =
+      with pkgs;
+      [
+        # for finding and navigation
+        fd
+        ripgrep
+        file
 
-      # Grpc testing
-      pkgs.grpcurl
+        # Grpc testing
+        grpcurl
 
-      pkgs.sysbench
-      sysbench-test-script
-      sysbench-fileio-test-script
+        sysbench
+        sysbench-test-script
+        sysbench-fileio-test-script
 
-      # For debug complicated issues
-      pkgs.strace
+        # For debug complicated issues
+        strace
 
-      # For comparing NixOS system closure differences between generations.
-      # ghaf-rebuild runs this on the target to print its post-switch package diff.
-      pkgs.dix
-    ]
-    ++ rmDesktopEntries [
-      pkgs.htop
-    ]
-    ++ lib.optionals (config.nixpkgs.hostPlatform.system != "aarch64-linux") [
-      pkgs.kitty.terminfo
-    ]
-    ++ lib.optional (config.nixpkgs.hostPlatform.system == "aarch64-linux") nvpmodel-check;
+        # For comparing NixOS system closure differences between generations.
+        # ghaf-rebuild runs this on the target to print its post-switch package diff.
+        dix
+      ]
+      ++ rmDesktopEntries [
+        htop
+      ]
+      ++ lib.optionals (config.nixpkgs.hostPlatform.system != "aarch64-linux") [
+        kitty.terminfo
+      ]
+      ++ lib.optional (config.nixpkgs.hostPlatform.system == "aarch64-linux") nvpmodel-check;
 
     programs = {
       fzf = {
