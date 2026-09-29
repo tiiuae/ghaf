@@ -17,15 +17,16 @@ in
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages =
-      lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux")
-        (rmDesktopEntries [
-          pkgs.intel-gpu-tools
-          pkgs.vulkan-tools
-          pkgs.glmark2
-          pkgs.clinfo
-          pkgs.ydotool
-          pkgs.evtest
-          #pkgs.nvtopPackages.full
-        ]);
+      with pkgs;
+      [ lswt ]
+      ++ lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux") (rmDesktopEntries [
+        intel-gpu-tools
+        vulkan-tools
+        glmark2
+        clinfo
+        ydotool
+        evtest
+        #nvtopPackages.full
+      ]);
   };
 }
