@@ -73,7 +73,7 @@ in
           ghaf.hardware.nvidia.virtualization needs kernel >= 6.6; got ${kernelVersion}.
           The bpmp-virt drivers provided by orinVirtualizationSupport are written against
           the 6.6 drivers/firmware/tegra layout. Set
-          ghaf.hardware.nvidia.orin.kernelVersion = "upstream-6-6".
+          ghaf.hardware.nvidia.orin.kernelVersion = "upstream-6".
         '';
       }
     ];
