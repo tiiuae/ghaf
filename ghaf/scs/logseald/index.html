@@ -324,10 +324,20 @@ at service startup; existing connections must be terminated by restarting the
 services. Both TLS modes enforce the list on new and resumed handshakes. Renewing
 a certificate using a denied key cannot bypass the list. To distrust a CA,
 replace the CA trust bundle; the denylist targets leaf keys, not CAs.</p>
-<p>Changing a producer public key changes its chain identity. Existing state must
-not be silently reset or relabelled during rotation; preserve it and plan an
-explicit new-chain transition. Revocation does not invalidate signatures on
-previously retained evidence or reveal when a key was first compromised.</p>
+<p>Changing a producer public key changes its chain identity. Ghaf enables
+<code dir="auto">--reset-on-credential-change</code>: a producer discards its previous sealing state
+when its public key or CA bundle changes. The sealer discards its checkpoint,
+chain heads and signing key when the CA bundle changes. Each reset is logged.
+This allows GIVC credential regeneration on reboot to start fresh chains without
+changing GIVC’s credential lifecycle.</p>
+<p>The first start with this policy also clears legacy state without a
+<code dir="auto">credential-epoch</code> marker. Old sealed evidence, pending blocks and the journal
+cursor are discarded; retained journal records are read again for the new
+chain. Deploy to all producers and the sealer and reboot together. There is no
+evidence-continuity or replay-history guarantee between credential epochs.
+Service restarts, leaf renewals using the same key, and reboots with unchanged
+credentials preserve the current chain. The CA bundle is fingerprinted as file
+bytes, so editing or replacing it also starts a new epoch.</p>
 <div class="sl-heading-wrapper level-h3"><h3 id="capacity-and-memory">Capacity and Memory</h3><a class="sl-anchor-link" href="#capacity-and-memory"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Capacity and Memory”</span></a></div>
 <p>The sealer admits one request body at a time, with a 2 MiB HTTP body limit and a
 1 MiB decoded live block limit. The socket proxy permits at most 16 connections.
@@ -347,7 +357,7 @@ budget, including its pending queue. At one block every five seconds, this is
 about 28 hours. It is not a one-day guarantee: busy producers fill blocks faster
 and byte pressure can shorten the window. Sequence numbers and bytes control
 expiry, so wall-clock jumps and Internet connectivity do not change it.</p>
-<p>Only acknowledged blocks expire. The producer durably writes the last expired
+<p>Within a credential epoch, only acknowledged blocks expire. The producer durably writes the last expired
 block’s signed receipt as a boundary before deleting the block. It keeps at least
 one sealed block to recover the journal cursor. Pending blocks are never expired,
 and space is reserved for their returned seals. If pending data or an individual
@@ -358,12 +368,14 @@ not a full-block ledger. Its signed checkpoint is capped at 1 MiB and 256 identi
 Atomic replacement temporarily needs a second checkpoint copy. The byte budget
 must cover both. Old identities are not automatically forgotten, since forgetting
 one would permit replay of its old chain. At the identity cap, existing chains
-continue but new identities are rejected. Plan key rotation accordingly.</p>
+continue but new identities are rejected. A CA-bundle change starts an empty
+checkpoint for the new credential epoch.</p>
 <p>On upgrade, the sealer verifies the legacy ledger, commits its compact checkpoint
 and removes the old full-block entries. Producers expire acknowledged history to
 their configured window. This is a one-way storage migration. Back up evidence
 before upgrading if older history is needed, and do not run the old binary
-against migrated state. Keys, counters and retained state survive reboots.</p>
+against migrated state. Keys, counters and retained state survive reboots with
+unchanged credentials.</p>
 <p>Set <code dir="auto">producer.windowEntries = 0</code> to disable further producer expiry. Already
 expired evidence is not recoverable. Verification checks retained evidence and
 reports the expired prefix explicitly. Sealer verification checks its checkpoint
@@ -465,9 +477,11 @@ reported sequence or signature error.</p>
 <div class="sl-heading-wrapper level-h3"><h3 id="certificate-changes">Certificate Changes</h3><a class="sl-anchor-link" href="#certificate-changes"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Certificate Changes”</span></a></div>
 <p>The producer pins the first signing key whose binding verifies under the
 authenticated Admin VM GIVC identity. Replacing the Admin VM certificate does
-not replace the Ed25519 sealer key; the sealer creates a new binding for the
-same signing key. Changing the signing key causes producers to reject seals.
-Preserve sealer state across system updates and recovery.</p>
+not replace the Ed25519 sealer key when the CA bundle is unchanged; the sealer
+creates a new binding for the same signing key. A CA-bundle change resets both
+the sealer’s signing key and the producers’ pins under the credential-epoch
+policy above. Resetting only the sealer while producers retain their pins causes
+them to reject its seals.</p>
 <div class="sl-heading-wrapper level-h2"><h2 id="security-properties">Security Properties</h2><a class="sl-anchor-link" href="#security-properties"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Security Properties”</span></a></div>
 <p>Logseald detects these changes within retained evidence:</p>
 <ul>
