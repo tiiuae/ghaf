@@ -8,6 +8,7 @@
 }:
 let
   cfg = config.ghaf.services.sssd;
+  adUserCfg = config.ghaf.users.adUsers;
 
   inherit (lib)
     boolToString
@@ -31,38 +32,107 @@ let
     lib.filter (serviceName: serviceName != null) (
       [
         cfg.pam.displayManagerService
+        "greetd"
         "cosmic-greeter"
         "login"
+        "su"
+        "su-l"
       ]
       ++ lib.optional config.services.openssh.enable "sshd"
     )
   );
+
+  overrideAdUserScript = pkgs.writeShellApplication {
+    name = "sssd-override-user";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.gnugrep
+      pkgs.sssd
+      pkgs.systemd
+    ];
+    text = ''
+      user="''${PAM_USER:-''${1:-}}"
+      if [ -z "$user" ]; then
+        exit 0
+      fi
+
+      # Skip local system accounts (UID < 1000)
+      existing_uid=$(id -u "$user" 2>/dev/null || true)
+      if [ -n "$existing_uid" ] && [ "$existing_uid" -lt 1000 ]; then
+        exit 0
+      fi
+
+      # If user is already mapped to UID 1000, no override needed
+      if [ -n "$existing_uid" ] && [ "$existing_uid" -eq 1000 ]; then
+        exit 0
+      fi
+
+      target_uid="${toString (adUserCfg.override.uid or 1000)}"
+      target_gid="${toString (adUserCfg.override.gid or 100)}"
+      login_shell="${adUserCfg.override.loginShell or "/run/current-system/sw/bin/bash"}"
+      home_dir="/home/$user"
+
+      # If any OTHER user already owns the target UID, exit immediately
+      existing_target_user=$(id -nu "$target_uid" 2>/dev/null || true)
+      if [ -n "$existing_target_user" ] && [ "$existing_target_user" != "$user" ]; then
+        exit 0
+      fi
+
+      current_override=$(sss_override user-find -n "$user" 2>/dev/null || true)
+      if echo "$current_override" | grep -q "UID: $target_uid"; then
+        exit 0
+      fi
+
+      sss_override user-del "$user" 2>/dev/null || true
+      sss_override user-add "$user" -u "$target_uid" -g "$target_gid" -h "$home_dir" -s "$login_shell" 2>/dev/null || true
+      sss_cache -u "$user" 2>/dev/null || true
+      systemctl restart sssd.service 2>/dev/null || true
+    '';
+  };
+
   mkStrictAccessPamService =
     serviceName:
-    {
-      makeHomeDir = true;
-      # Enforce SSSD account decisions (e.g. AD GPO deny) on every interactive login path.
-      sssdStrictAccess = lib.mkDefault true;
-    }
-    // optionalAttrs (serviceName == cfg.pam.displayManagerService) {
-      rules = {
-        auth = {
-          # Disable ccreds pam modules to avoid conflicts with SSSD
-          ccreds-store.enable = lib.mkForce false;
-          ccreds-validate.enable = lib.mkForce false;
-
-          # Allow both unix and sss auth
-          unix.control = lib.mkForce "sufficient";
-          sss.control = lib.mkForce "sufficient";
+    lib.recursiveUpdate
+      {
+        makeHomeDir = true;
+        # Enforce SSSD account decisions (e.g. AD GPO deny) on every interactive login path.
+        sssdStrictAccess = lib.mkDefault true;
+        rules = optionalAttrs (adUserCfg.override.enable or false) {
+          auth = {
+            sssd_override = {
+              enable = true;
+              control = "optional";
+              modulePath = "${pkgs.linux-pam}/lib/security/pam_exec.so";
+              args = [
+                "quiet"
+                "${lib.getExe overrideAdUserScript}"
+              ];
+              order = 12050;
+            };
+          };
         };
-      };
+      }
+      (
+        optionalAttrs (serviceName == cfg.pam.displayManagerService) {
+          rules = {
+            auth = {
+              # Disable ccreds pam modules to avoid conflicts with SSSD
+              ccreds-store.enable = lib.mkForce false;
+              ccreds-validate.enable = lib.mkForce false;
 
-      # Disable Kerberos pam modules
-      rules.auth.krb5.enable = lib.mkForce false;
-      rules.account.krb5.enable = lib.mkForce false;
-      rules.password.krb5.enable = lib.mkForce false;
-      rules.session.krb5.enable = lib.mkForce false;
-    };
+              # Allow both unix and sss auth
+              unix.control = lib.mkForce "sufficient";
+              sss.control = lib.mkForce "sufficient";
+            };
+          };
+
+          # Disable Kerberos pam modules
+          rules.auth.krb5.enable = lib.mkForce false;
+          rules.account.krb5.enable = lib.mkForce false;
+          rules.password.krb5.enable = lib.mkForce false;
+          rules.session.krb5.enable = lib.mkForce false;
+        }
+      );
 
   # SSSD configuration template
   sssdConfig = ''
@@ -77,7 +147,14 @@ let
     filter_users = ${concatMapStrings (u: u + " ") (lib.attrNames config.users.users)}
     filter_groups = ${concatMapStrings (g: g + " ") (lib.attrNames config.users.groups)}
     ${optionalString (cfg.nss.homedirTemplate != null) "override_homedir = ${cfg.nss.homedirTemplate}"}
-    ${optionalString (cfg.nss.shellOverride != null) "override_shell = ${cfg.nss.shellOverride}"}
+    ${
+      if (adUserCfg.override.enable or false) then
+        "override_shell = ${adUserCfg.override.loginShell}"
+      else if (cfg.nss.shellOverride != null) then
+        "override_shell = ${cfg.nss.shellOverride}"
+      else
+        ""
+    }
     ${optionalString (cfg.nss.defaultShell != null) "default_shell = ${cfg.nss.defaultShell}"}
     entry_cache_nowait_percentage = ${toString cfg.entryCacheNowaitPercentage}
     ${optionalString (cfg.nss.extraConfig != null) "${cfg.nss.extraConfig}"}
@@ -132,11 +209,23 @@ let
       min_id = ${toString cfg.domains.${domainName}.minId}
       max_id = ${toString cfg.domains.${domainName}.maxId}
 
+      ${optionalString (adUserCfg.override.enable or false) ''
+        override_gid = ${toString adUserCfg.override.gid}
+        override_shell = ${adUserCfg.override.loginShell}
+        override_homedir = ${
+          if cfg.nss.homedirTemplate != null then cfg.nss.homedirTemplate else "/home/%u"
+        }
+        auto_private_groups = false
+      ''}
+
       # Active Directory Settings
       ${optionalString (cfg.domains.${domainName}.ad.domain != null) ''
         ad_domain = ${cfg.domains.${domainName}.ad.domain}
         ad_server = ${lib.concatStringsSep "," cfg.domains.${domainName}.ad.controllers}
         ad_gpo_access_control = ${cfg.domains.${domainName}.ad.gpoAccessControl}
+        ad_gpo_map_interactive = +login, +greetd, +cosmic-greeter, +su, +su-l
+        ad_gpo_map_remote_interactive = +sshd
+        ad_gpo_default_right = interactive
         ad_enable_gc = ${boolToString cfg.domains.${domainName}.enableGlobalCatalog}
         dyndns_update = ${boolToString cfg.domains.${domainName}.ad.dyndnsUpdate}
       ''}
@@ -278,8 +367,8 @@ in
           "no_session"
           "never"
         ];
-        default = "never";
-        description = "PAM initgroups scheme. Set to 'never' to disable automatic group initialization.";
+        default = "always";
+        description = "PAM initgroups scheme. Set to 'always' to ensure secondary group memberships are populated during authentication.";
       };
       extraConfig = mkOption {
         type = types.nullOr types.lines;
@@ -320,8 +409,26 @@ in
       config = sssdConfig;
     };
 
+    systemd.tmpfiles.rules = [
+      "d /home 0755 root root -"
+      "d /var/lib/sss 0755 root root -"
+    ];
+
+    # Watch for the Kerberos keytab creation on first boot and start SSSD automatically
+    systemd.paths.sssd-keytab = lib.mkIf hasKerberosRealm {
+      description = "Watch Kerberos keytab and trigger SSSD on domain enrollment";
+      wantedBy = [ "multi-user.target" ];
+      pathConfig = {
+        PathChanged = "/etc/krb5.keytab";
+        Unit = "sssd.service";
+      };
+    };
+
     # SSSD service dependencies
     systemd.services.sssd = {
+      unitConfig = lib.mkIf hasKerberosRealm {
+        ConditionPathExists = "/etc/krb5.keytab";
+      };
       before = [
         "greetd.service"
         "cosmic-greeter.service"
@@ -352,6 +459,12 @@ in
               group = "root";
               mode = "0755"; # TODO check minimal permissions (nss)
             }
+            {
+              directory = "/var/lib/AccountsService";
+              user = "root";
+              group = "root";
+              mode = "0755";
+            }
           ];
           # Kerberos keytab storage
           files = [
@@ -380,11 +493,17 @@ in
     # evaluation. The remaining services only get `sssdStrictAccess`, so that an
     # SSSD account-phase deny (e.g. an AD GPO deny) fails the login on every
     # entrypoint that authenticates domain users.
-    security.pam.services = lib.listToAttrs (
-      map (
-        serviceName: lib.nameValuePair serviceName (mkStrictAccessPamService serviceName)
-      ) strictAccessPamServices
-    );
+    security.pam.services =
+      (lib.listToAttrs (
+        map (
+          serviceName: lib.nameValuePair serviceName (mkStrictAccessPamService serviceName)
+        ) strictAccessPamServices
+      ))
+      // {
+        passwd = {
+          rules.password.krb5.enable = lib.mkForce false;
+        };
+      };
 
     # Kerberos configuration '/etc/krb5.conf' auto-populated from domain settings
     security.krb5 = optionalAttrs hasKerberosRealm {
