@@ -138,8 +138,14 @@ in
     # Common namespace - from hostConfig
     # Required for killswitch, etc. to access hardware device info
     common = hostConfig.common or { };
-    # Enable dynamic hostname export for VMs
-    identity.vmHostNameExport.enable = true;
+    # Enable dynamic hostname export and setter for VMs
+    identity = {
+      vmHostNameExport.enable = true;
+      vmHostNameSetter = lib.mkIf (hostConfig.users.profile.ad-users.enable or false) {
+        enable = true;
+        prefix = "dev";
+      };
+    };
 
     # System
     type = "system-vm";
