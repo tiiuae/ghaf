@@ -13,12 +13,6 @@ let
   credSourceDir = "/etc/givc";
   socketPath = "${runtimeDataDir}/api.sock";
 
-  # SPIRE's default CA lifetime is 24h. Anything expiring further out than a
-  # generous multiple of that cannot have been minted against a correct clock,
-  # which is how a clock that was running *ahead* is detected after it is
-  # corrected downwards. Slack rather than an exact bound, so a future change to
-  # ca_ttl does not silently start forcing a rotation on every sync.
-  caLifetimeSlackSeconds = 7 * 24 * 3600;
   dataDir = "${runtimeDataDir}";
 
   spire-package = config.ghaf.common.spire.package;
@@ -95,15 +89,16 @@ let
         exit 1
       fi
 
-      tmp="$(mktemp)"
+      tmp="$(mktemp "$out.XXXXXX")"
+      trap 'rm -f "$tmp"' EXIT
       spire-server bundle show -socketPath "${socketPath}" > "$tmp"
       if [ ! -s "$tmp" ]; then
         echo "ERROR: bundle export produced empty output" >&2
         exit 1
       fi
 
-      install -m 0644 -o root -g root "$tmp" "$out"
-      rm -f "$tmp"
+      chmod 0644 "$tmp"
+      mv -f "$tmp" "$out"
       echo "Wrote $out"
     '';
   };
@@ -112,53 +107,45 @@ let
     name = "spire-refresh-identity";
     runtimeInputs = [
       pkgs.coreutils
-      pkgs.jq
+      pkgs.openssl
+      pkgs.systemd
       spire-package
     ];
     text = ''
-      # Only meaningful once the clock is actually trusted. With requireSync
-      # false (the x86 default) the barrier can release on a timeout, writing
-      # "released"; rotating onto a CA minted against a known-wrong clock buys
-      # nothing. Say so rather than exiting quietly, so "no refresh happened" is
-      # never mistaken for "refreshed".
+      # The boot barrier can time out before NTP synchronises on a later clock change.
       sync_state="$(cat /run/ghaf-clock-synced 2>/dev/null || echo missing)"
-      if [ "$sync_state" != "synchronised" ]; then
-        echo "spire-refresh-identity: clock barrier reports '$sync_state', not 'synchronised';" \
-             "leaving the CA alone. Identities remain minted against an untrusted clock." >&2
+      if [ "$sync_state" != "synchronised" ] \
+        && [ "$(timedatectl show -p NTPSynchronized --value)" != "yes" ]; then
+        echo "spire-refresh-identity: clock barrier reports '$sync_state' and NTP is not synchronised;" \
+             "leaving identities unchanged." >&2
         exit 0
       fi
 
-      state="$(spire-server localauthority x509 show \
-        -socketPath "${socketPath}" -output json)"
-      active_id="$(printf '%s' "$state" | jq -er '.active.authority_id')"
-      active_expires_at="$(printf '%s' "$state" | jq -er '.active.expires_at | tonumber')"
-      now="$(date +%s)"
+      tmp="$(mktemp -d)"
+      trap 'rm -rf "$tmp"' EXIT
+      timeout 5 openssl s_client -connect ${
+        escapeShellArg (
+          (
+            if hasInfix ":" config.ghaf.common.spire.server.address then
+              "[${config.ghaf.common.spire.server.address}]"
+            else
+              config.ghaf.common.spire.server.address
+          )
+          + ":${toString config.ghaf.common.spire.server.port}"
+        )
+      } -alpn h2 -showcerts </dev/null > "$tmp/chain.pem"
+      openssl x509 -in "$tmp/chain.pem" -out "$tmp/svid.pem"
+      spire-server bundle show -socketPath "${socketPath}" > "$tmp/bundle.pem"
 
-      # Rotate in BOTH directions. Expiry alone only catches a clock that was
-      # behind real time; a clock that was *ahead* (dead RTC battery, a fallback
-      # epoch in the future) mints a CA whose notBefore is in the future, which
-      # agents reject as "certificate is not yet valid" while expires_at still
-      # looks comfortably distant. Treat an expiry further out than the CA could
-      # legitimately reach as the same kind of evidence that it was minted
-      # against a bad clock.
-      max_plausible=$(( now + ${toString caLifetimeSlackSeconds} ))
-      if [ "$active_expires_at" -le "$now" ] || [ "$active_expires_at" -gt "$max_plausible" ]; then
-        echo "spire-refresh-identity: active CA expires_at=$active_expires_at is implausible" \
-             "against now=$now; rotating."
-        prepared="$(spire-server localauthority x509 prepare \
-          -socketPath "${socketPath}" -output json)"
-        prepared_id="$(printf '%s' "$prepared" | jq -er '.prepared_authority.authority_id')"
-
-        spire-server localauthority x509 activate \
-          -socketPath "${socketPath}" -authorityID "$prepared_id"
-        # Tainting the old authority makes SPIRE rotate its server SVID now.
-        spire-server localauthority x509 taint \
-          -socketPath "${socketPath}" -authorityID "$active_id"
+      if ! openssl verify -CAfile "$tmp/bundle.pem" -untrusted "$tmp/chain.pem" "$tmp/svid.pem"; then
+        # SPIRE's taint check also validates time, so it cannot rotate a future-dated SVID.
+        echo "spire-refresh-identity: server certificate chain is invalid; restarting SPIRE."
+        systemctl restart spire-server.service
       else
-        echo "spire-refresh-identity: active CA is plausible against the synchronised clock; no rotation needed."
+        echo "spire-refresh-identity: server certificate chain is valid; no restart needed."
       fi
 
-      exec ${getExe spirePublishBundleApp}
+      ${getExe spirePublishBundleApp}
     '';
   };
 
@@ -270,6 +257,7 @@ in
 
           serviceConfig = {
             RuntimeDirectory = mkForce "spire-server";
+            RuntimeDirectoryPreserve = "restart";
             StateDirectory = mkForce "spire-server";
             ReadWritePaths = [
               "${dataDir}"
@@ -315,10 +303,7 @@ in
           ];
           unitConfig = {
             RequiresMountsFor = [ cfg.trustBundlePath ];
-            # Bound the retries. Without a limit a malformed localauthority
-            # response (jq -er exits non-zero under set -e) retries every 5s
-            # forever while the unit never reaches "failed", so nothing shows up
-            # in `systemctl --failed` and the CA silently never rotates.
+            # Successful checks reset this limit, leaving consecutive failures bounded.
             StartLimitIntervalSec = 300;
             StartLimitBurst = 5;
           };
@@ -326,6 +311,7 @@ in
           serviceConfig = {
             Type = "oneshot";
             ExecStart = getExe spireRefreshIdentityApp;
+            ExecStartPost = "${pkgs.systemd}/bin/systemctl reset-failed spire-refresh-identity-after-time-sync.service";
             Restart = "on-failure";
             RestartSec = "5s";
           };
@@ -351,6 +337,14 @@ in
           OnUnitActiveSec = "1h";
           AccuracySec = "1m";
           Unit = "spire-publish-bundle.service";
+        };
+      };
+      timers.spire-refresh-identity-after-time-sync = {
+        description = "Check SPIRE identities after clock changes";
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnClockChange = true;
+          Unit = "spire-refresh-identity-after-time-sync.service";
         };
       };
     };
