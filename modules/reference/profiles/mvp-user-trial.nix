@@ -20,8 +20,8 @@ in
 
       # Setup user profiles
       users.profile = {
-        homed-user.enable = true;
-        ad-users.enable = false;
+        homed-user.enable = false;
+        ad-users.enable = true;
         mutable-users.enable = false;
       };
 

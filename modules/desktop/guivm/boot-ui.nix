@@ -22,7 +22,6 @@ let
     runtimeInputs = [
       pkgs.coreutils
       pkgs.systemd
-      pkgs.jq
     ];
     text = ''
       set -euo pipefail
@@ -30,16 +29,26 @@ let
       echo "Waiting for user to login..."
       USER_ID=0
       while [ "$USER_ID" -eq 0 ]; do
-        active_session="$(loginctl show-seat seat0 -p ActiveSession --value 2>/dev/null || true)"
-        tmp_id="$(loginctl show-session "$active_session" -p User --value 2>/dev/null || true)"
-        seat="$(loginctl show-session "$active_session" -p Seat --value 2>/dev/null || true)"
-        session_class="$(loginctl show-session "$active_session" -p Class --value 2>/dev/null || true)"
+        session="$(loginctl show-seat seat0 -p ActiveSession --value 2>/dev/null || true)"
 
-        if [[ "$tmp_id" =~ ^[0-9]+$ ]] && [ "$tmp_id" -gt 0 ] && [ -n "$seat" ] && [ "$session_class" = "user" ]; then
-          USER_ID="$tmp_id"
-        else
-          USER_ID=0
+        if [ -n "$session" ]; then
+          uid=""
+          seat=""
+          class=""
+          while IFS='=' read -r key value; do
+            case "$key" in
+              User) uid="$value" ;;
+              Seat) seat="$value" ;;
+              Class) class="$value" ;;
+            esac
+          done < <(loginctl show-session "$session" -p User -p Seat -p Class 2>/dev/null || true)
+
+          if [[ "$uid" =~ ^[0-9]+$ ]] && [ "$uid" -gt 0 ] && [ -n "$seat" ] && [ "$class" = "user" ]; then
+            USER_ID="$uid"
+            break
+          fi
         fi
+
         sleep 1
       done
       echo "User with ID=$USER_ID is now active"
