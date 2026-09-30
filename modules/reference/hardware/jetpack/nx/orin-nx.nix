@@ -4,7 +4,6 @@
 # Reference hardware modules
 #
 {
-  config,
   pkgs,
   ...
 }:
