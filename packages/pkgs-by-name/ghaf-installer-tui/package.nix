@@ -4,6 +4,7 @@
   bmaptool,
   brightnessctl,
   coreutils,
+  ghaf-verify-enrollment,
   curl,
   e2fsprogs,
   efibootmgr,
@@ -17,6 +18,7 @@
   ncurses,
   parted,
   pv,
+  sbsigntool,
   systemd,
   util-linux,
   writeShellApplication,
@@ -35,6 +37,7 @@ writeShellApplication {
     bmaptool
     brightnessctl # screen brightness on startup
     coreutils
+    ghaf-verify-enrollment
     curl # fetch the image and its block map when netbooted
     e2fsprogs # chattr in efivar cleanup
     efibootmgr # the boot entry this installer leaves behind
@@ -49,6 +52,7 @@ writeShellApplication {
     ncurses
     parted # partprobe
     pv
+    sbsigntool # verify loaders and UKIs before enrolling matching keys
     systemd # udevadm
     util-linux
     zstd

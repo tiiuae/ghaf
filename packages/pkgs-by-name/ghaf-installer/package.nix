@@ -3,6 +3,7 @@
 {
   bmaptool,
   coreutils,
+  ghaf-verify-enrollment,
   curl,
   e2fsprogs,
   efibootmgr,
@@ -14,6 +15,7 @@
   lvm2,
   ncurses,
   parted,
+  sbsigntool,
   systemd,
   util-linux,
   writeShellApplication,
@@ -24,6 +26,7 @@ writeShellApplication {
   runtimeInputs = [
     bmaptool # sparse-aware copy + per-range sha256 verification
     coreutils
+    ghaf-verify-enrollment
     curl # fetch the image and its block map when netbooted
     e2fsprogs # Needed for chattr in efivar cleanup
     efibootmgr # set_boot_to_disk: create the disk boot entry and BootNext
@@ -39,6 +42,7 @@ writeShellApplication {
     lvm2 # Needed for vgchange, pvremove
     ncurses # Needed for `clear` command
     parted # Needed for partprobe
+    sbsigntool # verify loaders and UKIs before enrolling matching keys
     systemd # Needed for udevadm settle
     util-linux
     zstd
