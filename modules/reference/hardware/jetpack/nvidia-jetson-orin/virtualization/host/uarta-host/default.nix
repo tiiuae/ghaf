@@ -19,11 +19,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    ghaf.hardware.nvidia.virtualization = {
-      enable = true;
-      host.bpmp.enable = true;
-    };
-
     systemd.services = {
       enableVfioPlatform = {
         description = "Enable the vfio-platform driver for UARTA";
