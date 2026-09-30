@@ -18,11 +18,19 @@ in
 
   options.ghaf.services.hwinfo-guest = {
     enable = lib.mkEnableOption "hardware information reading tools for guest VMs";
+    filePath = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = ''
+        Optional hardware information JSON file. The reader checks this file
+        before falling back to QEMU fw_cfg.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
     # Ensure necessary kernel modules are loaded
-    boot.kernelModules = [ "qemu_fw_cfg" ];
+    boot.kernelModules = lib.optionals (cfg.filePath == null) [ "qemu_fw_cfg" ];
 
     environment.systemPackages = [
       # Hardware info reader using fw_cfg
@@ -37,13 +45,13 @@ in
         text = ''
           set -euo pipefail
 
-          # Check possible fw_cfg paths
-          FW_CFG_PATHS=(
+          HWINFO_PATHS=(
+            ${lib.optionalString (cfg.filePath != null) (lib.escapeShellArg cfg.filePath)}
             "/sys/firmware/qemu_fw_cfg/by_name/opt/com.ghaf.hwinfo/raw"
             "/sys/firmware/qemu_fw_cfg/by_name/opt/com.ghaf.hwinfo/data"
           )
 
-          for path in "''${FW_CFG_PATHS[@]}"; do
+          for path in "''${HWINFO_PATHS[@]}"; do
             if [ -f "$path" ]; then
               echo "Hardware Information:"
               jq . < "$path" || cat "$path"
@@ -54,15 +62,20 @@ in
           # Not found - provide helpful error
           echo "Hardware information not available" >&2
 
-          if ! lsmod | grep -q qemu_fw_cfg; then
-            echo "Note: fw_cfg kernel module not loaded. Try: sudo modprobe qemu_fw_cfg" >&2
-          elif [ ! -d "/sys/firmware/qemu_fw_cfg" ]; then
-            echo "Note: fw_cfg sysfs interface not available" >&2
-          else
-            echo "Note: Hardware info file not found in fw_cfg" >&2
-            echo "Available fw_cfg entries:" >&2
-            find /sys/firmware/qemu_fw_cfg/by_name/ -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | head -10 >&2
-          fi
+          ${lib.optionalString (cfg.filePath != null) ''
+            echo "Note: configured hardware information file is missing: ${lib.escapeShellArg cfg.filePath}" >&2
+          ''}
+          ${lib.optionalString (cfg.filePath == null) ''
+            if ! lsmod | grep -q qemu_fw_cfg; then
+              echo "Note: fw_cfg kernel module not loaded. Try: sudo modprobe qemu_fw_cfg" >&2
+            elif [ ! -d "/sys/firmware/qemu_fw_cfg" ]; then
+              echo "Note: fw_cfg sysfs interface not available" >&2
+            else
+              echo "Note: Hardware info file not found in fw_cfg" >&2
+              echo "Available fw_cfg entries:" >&2
+              find /sys/firmware/qemu_fw_cfg/by_name/ -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | head -10 >&2
+            fi
+          ''}
 
           exit 1
         '';

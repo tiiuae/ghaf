@@ -41,6 +41,7 @@
           flatpak-options = pkgs.callPackage ./flatpak/options.nix { inherit self; };
           microvm-tpm-vmm-parity = pkgs.callPackage ./microvm/tpm-vmm-parity.nix { inherit self; };
           org-config = pkgs.callPackage ./org-config { inherit self; };
+          orin-crosvm-targets = pkgs.callPackage ./orin-crosvm-targets.nix { inherit self; };
           uplink-resolver = pkgs.callPackage ./uplink-resolver { };
           logging-recovery = pkgs.callPackage ./logging { };
           logging-logseald = pkgs.callPackage ./logseald { inherit self; };

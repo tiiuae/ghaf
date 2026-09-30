@@ -47,6 +47,7 @@ in
     ./crosvm-dax.nix
     ./networking.nix
     ./shared-mem.nix
+    ./crosvm-shutdown.nix
     ./boot.nix
     ./vtpm-proxy.nix
   ];

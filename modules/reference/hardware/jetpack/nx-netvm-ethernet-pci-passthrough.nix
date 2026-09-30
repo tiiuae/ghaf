@@ -38,14 +38,23 @@ in
 
     # Passthrough devices - use hardware.definition for composition model
     ghaf.hardware.definition.netvm.extraModules = [
-      {
-        microvm.devices = [
-          {
-            bus = "pci";
-            path = ethPciDevice;
-          }
-        ];
-      }
+      (
+        { config, ... }:
+        {
+          microvm.devices = [
+            {
+              bus = "pci";
+              path = ethPciDevice;
+              crosvm = lib.optionalAttrs (config.microvm.hypervisor == "crosvm") {
+                guestAddress = "00:1f.0";
+                # Host VFIO/SMMU isolation remains active; the broken Arm
+                # virtio-IOMMU path is bypassed only inside the guest.
+                iommu = "off";
+              };
+            }
+          ];
+        }
+      )
     ];
 
     hardware.deviceTree.overlays = [
