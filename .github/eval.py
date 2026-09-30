@@ -5,9 +5,12 @@
 """Evaluate flake outputs using nix-eval-jobs with index-based sharding."""
 
 import json
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
+from pathlib import Path
 from typing import Any
 
 # One worker: the default is one per core, which commits the whole 4-vCPU/16 GB
@@ -50,7 +53,7 @@ in {{
 
 
 def run_eval(
-    job_id: int, total_jobs: int
+    job_id: int, total_jobs: int, public_config: str
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Run nix-eval-jobs and return (successes, errors)."""
     select_expr = SELECT_EXPR.format(job_id=job_id, total_jobs=total_jobs)
@@ -64,6 +67,9 @@ def run_eval(
         "--",
         "--flake",
         ".#",
+        "--override-input",
+        "secure-ab-build-config",
+        f"path:{public_config}",
         "--no-instantiate",
         "--select",
         select_expr,
@@ -157,7 +163,22 @@ def main() -> int:
     print(f"[+] Evaluating flake outputs (job {job_id}/{total_jobs})")
 
     start_time = time.time()
-    successes, errors = run_eval(job_id, total_jobs)
+    with tempfile.TemporaryDirectory(prefix="ghaf-eval-") as directory:
+        public_config = Path(directory)
+        shutil.copyfile(
+            "config/secure-ab-build-config/config.json", public_config / "config.json"
+        )
+        for name in ("PK.crt", "KEK.crt", "db.crt"):
+            shutil.copyfile(
+                Path("modules/reference/org/secureboot-keys") / name, public_config / name
+            )
+        # RFC 8032 section 7.1 test key: public trust for evaluation only.
+        (public_config / "update.pub").write_bytes(
+            bytes.fromhex(
+                "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+            )
+        )
+        successes, errors = run_eval(job_id, total_jobs, str(public_config))
     elapsed = time.time() - start_time
     print_results(successes, errors, elapsed)
     sys.stdout.flush()
