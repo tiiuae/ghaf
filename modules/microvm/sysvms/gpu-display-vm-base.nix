@@ -89,17 +89,7 @@ in
     security = {
       fail2ban.enable = globalConfig.security.ssh.debug.enable or false;
       ssh.debug.enable = lib.mkDefault (globalConfig.security.ssh.debug.enable or false);
-      ssh.release = {
-        enable = lib.mkDefault (globalConfig.security.ssh.release.enable or false);
-        inherit (globalConfig.security.ssh.release)
-          authorizedKeys
-          trustedUserCAKeys
-          authorizedKeysOptions
-          ;
-        allowedPrincipals = lib.mkIf (
-          (globalConfig.security.ssh.release.allowedPrincipals or [ ]) != [ ]
-        ) globalConfig.security.ssh.release.allowedPrincipals;
-      };
+      ssh.release.enable = lib.mkDefault (globalConfig.security.ssh.release.enable or false);
       audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
       spire.agents.downstream = {
         enable = globalConfig.spire.enable or false;
