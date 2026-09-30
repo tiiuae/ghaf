@@ -190,21 +190,57 @@ let
     name = "spire-reattest-agents";
     runtimeInputs = [
       pkgs.coreutils
+      pkgs.jq
+      pkgs.openssl
       pkgs.systemd
     ];
     text = ''
-      # Same gate as the server-side refresh: with requireSync false (the x86
-      # default) the barrier can release on a timeout with the clock still
-      # untrusted, and restarting the agents then just re-mints bad identities.
+      # The boot barrier can time out before NTP synchronises on a later clock change.
       sync_state="$(cat /run/ghaf-clock-synced 2>/dev/null || echo missing)"
-      if [ "$sync_state" != "synchronised" ]; then
-        echo "spire-reattest-agents: clock barrier reports '$sync_state', not 'synchronised';" \
-             "not re-attesting. Agents keep identities minted against an untrusted clock." >&2
+      if [ "$sync_state" != "synchronised" ] \
+        && [ "$(timedatectl show -p NTPSynchronized --value)" != "yes" ]; then
+        echo "spire-reattest-agents: clock barrier reports '$sync_state' and NTP is not synchronised;" \
+             "not re-attesting." >&2
         exit 0
       fi
 
-      echo "spire-reattest-agents: clock synchronised, re-attesting ${toString (length agentServiceUnits)} agent(s)"
-      systemctl restart ${escapeShellArgs agentServiceUnits}
+      tmp="$(mktemp -d)"
+      trap 'rm -rf "$tmp"' EXIT
+
+      agent_valid() {
+        systemctl is-active --quiet "$unit" && [ -S "$socket" ] \
+          && cp "$data" "$tmp/data.json" \
+          && jq -er '.svid | select(length > 0) | map(@base64d) | join("")' "$tmp/data.json" > "$tmp/svid.pem" \
+          && jq -er '.bundle | select(length > 0) | map(@base64d) | join("")' "$tmp/data.json" > "$tmp/bundle.pem" \
+          && openssl verify -CAfile "$tmp/bundle.pem" -untrusted "$tmp/svid.pem" "$tmp/svid.pem" \
+          && timeout 5 openssl s_client -connect "$endpoint" -alpn h2 \
+            -CAfile "$tmp/bundle.pem" -verify_return_error </dev/null >/dev/null 2>&1
+      }
+
+      ${concatStringsSep "\n" (
+        mapAttrsToList (name: agent: ''
+          unit=${escapeShellArg "${serviceName name}.service"}
+          socket=${escapeShellArg agent.socketPath}
+          data=${escapeShellArg "${agent.dataDir}/agent-data.json"}
+          endpoint=${escapeShellArg "${if hasInfix ":" agent.serverAddress then "[${agent.serverAddress}]" else agent.serverAddress}:${toString agent.serverPort}"}
+          if agent_valid; then
+            echo "$unit: credentials and server connection are valid; no restart needed."
+          else
+            ${getExe (waitForAgent name agent)}
+            # Allow an attestation already in progress to finish against the ready server.
+            if [ "$(systemctl show -p ActiveState --value "$unit")" = activating ]; then
+              systemctl start "$unit" || true
+            fi
+            if agent_valid; then
+              echo "$unit: recovered without a restart."
+            else
+              echo "$unit: credentials or connection are invalid; re-attesting."
+              systemctl reset-failed "$unit"
+              systemctl restart "$unit"
+            fi
+          fi
+        '') configuredAgents
+      )}
     '';
   };
 
@@ -212,8 +248,10 @@ let
     name: agent:
     pkgs.writeShellApplication {
       name = "wait-for-${serviceName name}";
-      runtimeInputs = optionals (agent.serverHealthCheck.enable || agent.trustBundleUrl != null) [
+      runtimeInputs = [
+        pkgs.coreutils
         pkgs.curl
+        pkgs.openssl
       ];
       text = ''
         ${optionalString agent.serverHealthCheck.enable ''
@@ -224,40 +262,21 @@ let
           done
         ''}
 
-        ${optionalString (agent.trustBundleUrl != null) ''
-          trust_bundle_url=${escapeShellArg agent.trustBundleUrl}
-          until curl --fail --silent --location --connect-timeout 2 --max-time 5 --output /dev/null "$trust_bundle_url"; do
-            echo "Waiting for SPIRE trust bundle URL $trust_bundle_url"
-            sleep 1
-          done
-        ''}
-
-        ${optionalString (agent.trustBundleUrl == null) ''
-          # -s and a PEM check, not just -e: the server truncates and rewrites this file
-          # in place, so a bare existence test lets the agent start against a zero-byte
-          # or half-written bundle and fail its first handshake for no good reason.
-          until [ -s ${escapeShellArg agent.trustBundlePath} ] \
-            && grep -q "BEGIN CERTIFICATE" ${escapeShellArg agent.trustBundlePath}; do
-            echo "Waiting for SPIRE trust bundle ${agent.trustBundlePath}"
-            sleep 1
-          done
-        ''}
-
-        # NOTE: passing the checks above does not prove the bundle is the *current* one.
-        # trustBundlePath lives on persistent storage, so it outlives a reflash while the
-        # server regenerates its CA; the agent then starts against a stale bundle and
-        # crash-loops with "x509svid: could not verify leaf certificate: certificate
-        # signed by unknown authority" until the server rewrites the file. Observed on an
-        # AGX: ~40 restarts per VM per boot, and because Restart= keeps the unit in
-        # activating/auto-restart it never reaches "failed", so `systemctl --failed` and
-        # the test suite's VM status check both stay green while this is happening.
-        #
-        # Closing that properly means making bundle distribution authoritative rather than
-        # best-effort -- spire-publish-bundle.service is still marked PoC and ships
-        # inactive. Deliberately not papered over here with an mtime or freshness
-        # heuristic: if the server does not rewrite the bundle on a given boot, such a
-        # check would hang the agent forever instead of letting it retry, which is worse
-        # than the loop it replaces.
+        tmp="$(mktemp -d)"
+        trap 'rm -rf "$tmp"' EXIT
+        endpoint=${escapeShellArg "${if hasInfix ":" agent.serverAddress then "[${agent.serverAddress}]" else agent.serverAddress}:${toString agent.serverPort}"}
+        # Readiness alone does not prove that the distributed bundle trusts the server.
+        until ${
+          if agent.trustBundleUrl != null then
+            ''curl --fail --silent --location --connect-timeout 2 --max-time 5 ${escapeShellArg agent.trustBundleUrl} -o "$tmp/bundle.pem"''
+          else
+            ''cp ${escapeShellArg agent.trustBundlePath} "$tmp/bundle.pem"''
+        } \
+          && timeout 5 openssl s_client -connect "$endpoint" -alpn h2 \
+            -CAfile "$tmp/bundle.pem" -verify_return_error </dev/null >/dev/null 2>&1; do
+          echo "Waiting for a valid SPIRE server certificate and matching trust bundle"
+          sleep 1
+        done
       '';
     };
 
@@ -412,6 +431,9 @@ in
           serviceConfig = {
             Type = "oneshot";
             ExecStart = getExe reattestAgentsApp;
+            # Harmless clock steps must not exhaust the default unit start limit.
+            ExecStartPost = "${pkgs.systemd}/bin/systemctl reset-failed spire-reattest-agents-after-time-sync.service";
+            TimeoutStartSec = "120s";
           };
         };
       };
@@ -422,6 +444,14 @@ in
           OnBootSec = "0s";
           AccuracySec = "1us";
           Unit = "ghaf-clock-synced.target";
+        };
+      };
+      timers.spire-reattest-agents-after-time-sync = {
+        description = "Re-attest SPIRE agents after clock changes";
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnClockChange = true;
+          Unit = "spire-reattest-agents-after-time-sync.service";
         };
       };
       tmpfiles.rules = filter (rule: rule != "") (
