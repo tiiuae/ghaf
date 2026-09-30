@@ -66,6 +66,7 @@ let
       modules = [
         self.nixosModules.jetpack-orin-gpu-partitioning
         {
+          ghaf.org.identity.ssh.trustedUserCAKeys = [ "ssh-ed25519 AAAATESTKEY orin-crosvm-test" ];
           ghaf.hardware.nvidia.passthroughs = {
             gui_vm.enable = lib.mkForce false;
             gpu_vm.enable = true;
@@ -88,6 +89,20 @@ let
     }).config;
 
   assertions = targetAssertions ++ [
+    {
+      name = "split GPU and display VMs inherit organization SSH keys once";
+      ok =
+        lib.all
+          (
+            name:
+            splitAgx.microvm.vms.${name}.evaluatedConfig.config.ghaf.security.ssh.release.trustedUserCAKeys
+            == [ "ssh-ed25519 AAAATESTKEY orin-crosvm-test" ]
+          )
+          [
+            "gpu-vm"
+            "disp-vm"
+          ];
+    }
     {
       name = "all expected Orin configurations are exported";
       ok = builtins.length (builtins.attrNames orinTargets) == 104;
