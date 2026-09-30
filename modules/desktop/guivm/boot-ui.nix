@@ -24,8 +24,6 @@ let
       pkgs.systemd
     ];
     text = ''
-      set -euo pipefail
-
       echo "Waiting for user to login..."
       USER_ID=0
       while [ "$USER_ID" -eq 0 ]; do
