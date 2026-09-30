@@ -11,37 +11,32 @@
 }:
 let
   cfg = config.ghaf.users.adUsers;
-  inherit (lib)
-    mkEnableOption
-    mkOption
-    types
-    ;
 in
 {
   _file = ./ad-users.nix;
 
   options.ghaf.users.adUsers = {
-    enable = mkEnableOption "Active Directory user configuration";
+    enable = lib.mkEnableOption "Active Directory user configuration";
 
     override = {
-      enable = mkOption {
+      enable = lib.mkOption {
         description = "Enable override for Active Directory user configuration.";
-        type = types.bool;
+        type = lib.types.bool;
         default = true;
       };
-      uid = mkOption {
+      uid = lib.mkOption {
         description = "UID override for Active Directory user.";
-        type = types.int;
+        type = lib.types.int;
         default = 1000;
       };
-      gid = mkOption {
+      gid = lib.mkOption {
         description = "GID override for Active Directory user.";
-        type = types.int;
+        type = lib.types.int;
         default = 100;
       };
-      loginShell = mkOption {
+      loginShell = lib.mkOption {
         description = "Login shell for the user.";
-        type = types.str;
+        type = lib.types.str;
         default = "/run/current-system/sw/bin/bash";
       };
     };
