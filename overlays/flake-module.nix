@@ -40,6 +40,8 @@
     # Also applied by modules/reference/hardware/jetpack/default.nix.
     jetpack-nvdisplay = import ./jetpack-nvdisplay;
 
+    jetpack7-nvidia-oot = import ./jetpack7-nvidia-oot;
+
     # This is a composition of all the overlays that are used in the project
     # and is used to export a simple default interface.
     default = inputs.nixpkgs.lib.composeManyExtensions [

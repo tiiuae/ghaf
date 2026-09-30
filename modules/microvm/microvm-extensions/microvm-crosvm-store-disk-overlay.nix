@@ -14,17 +14,8 @@ in
   # is merged and the microvm input is updated. Crosvm's -r option both
   # attaches a disk and injects root=/dev/vda, so the Nix store image must be
   # attached as a normal read-only block device instead.
-  microvm.declaredRunner = lib.mkIf needsStoreDiskFix (
-    config.microvm.runner.crosvm.overrideAttrs (oldAttrs: {
-      buildCommand = oldAttrs.buildCommand + ''
-        runner="$out/bin/microvm-run"
-        cp --dereference "$runner" "$runner.fixed"
-        rm "$runner"
-        mv "$runner.fixed" "$runner"
-        chmod +x "$runner"
-        substituteInPlace "$runner" \
-          --replace-fail "-r ${storeDisk}" "--block ${storeDisk},ro=true"
-      '';
-    })
-  );
+  microvm.extraBuildCommands = lib.mkIf needsStoreDiskFix ''
+    substituteInPlace "$out/bin/microvm-run" \
+      --replace-fail "-r ${storeDisk}" "--block ${storeDisk},ro=true"
+  '';
 }

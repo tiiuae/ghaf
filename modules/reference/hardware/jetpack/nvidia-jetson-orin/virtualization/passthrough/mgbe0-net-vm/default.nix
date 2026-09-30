@@ -21,6 +21,10 @@
 let
   cfg = config.ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm;
   virt = config.ghaf.hardware.nvidia.virtualization;
+
+  withPkvm = config.ghaf.host.kernel.hardening.hypervisor.enable;
+
+  inherit (config.lib.jetpack) preprocessDtsi;
 in
 {
   _file = ./default.nix;
@@ -94,10 +98,13 @@ in
       # QEMU opens /dev/bpmp-host in instance_init, and microvm.nix runs it as
       # user microvm, group kvm. The char device is otherwise 0600 root:root.
       KERNEL=="bpmp-host", GROUP="kvm", MODE="0660"
+      KERNEL=="bpmp_host", GROUP="kvm", MODE="0660"
 
       # vfio group nodes for the passed-through platform device.
       SUBSYSTEM=="vfio", GROUP="kvm"
     '';
+
+    ghaf.host.kernel.hardening.allowedPassthroughDevices = [ "mgbe0" ];
 
     # Stop the host binding MGBE0 by blacklisting its drivers, NOT by dummying
     # the DT compatible: QEMU's vfio-platform reads of_node/compatible to pick
@@ -133,7 +140,7 @@ in
           # v6.12 hardcodes MGBE0's SMMU stream id (0x6); v6.13+ reads it from an
           # iommu_fwspec the QEMU virt guest lacks (probe -EINVALs). v6.12 also
           # carries the Oct-2024 serdes bring-up fix (1cff6ff30) that v6.6 lacks.
-          boot.kernelPackages = lib.mkForce pkgs.linuxPackages_6_12;
+          boot.kernelPackages = lib.mkIf (!withPkvm) (lib.mkForce pkgs.linuxPackages_6_12);
 
           # MANDATORY, independent of the host proxy's allow-list. At
           # late_initcall the guest runs clk_disable_unused() /
@@ -146,7 +153,7 @@ in
             "pd_ignore_unused"
           ];
 
-          boot.kernelPatches = [
+          boot.kernelPatches = lib.mkIf (!withPkvm) [
             {
               # 6.12.95 backported commit 426046e2d, so dwmac-tegra reads MGBE0's
               # SMMU stream id from DT and -EINVALs when a passthrough guest has
@@ -209,6 +216,18 @@ in
             # ghaf-nvidia-qemu-bpmp patch 0006).
             "vfio-platform,host=6800000.ethernet,startup-rearm=on"
           ];
+
+          microvm.crosvm.extraArgs =
+            let
+              mgbeOverlay = preprocessDtsi { dtsFile = ./ethernet-guest-overlay.dts; };
+            in
+            [
+              "--bpmp-proxy"
+              "--device-tree-overlay"
+              "${mgbeOverlay}"
+              "--vfio"
+              "/sys/bus/platform/devices/6800000.ethernet/,iommu=pkvm-iommu,dt-symbol=mgbe0"
+            ];
         }
       )
     ];

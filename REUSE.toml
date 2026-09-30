@@ -31,8 +31,9 @@ path = [
   "modules/hardware/x86_64-generic/kernel/host/configs/ghaf_host_hardened_baseline-x86",
   "modules/hardware/x86_64-generic/kernel/guest/configs/ghaf_guest_hardened_baseline-x86",
   "modules/reference/hardware/jetpack/ghaf_host_hardened_baseline-jetson-orin",
-  "modules/microvm/sysvms/idsvm/mitmproxy/mitmproxy-ca/*",
   "modules/reference/hardware/jetpack/0001-ARM-SMMU-drivers-return-always-true-for-IOMMU_CAP_CA.patch",
+  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/pkvm/packages/crosvm/0001-vhost-user-handle-ACCESS_PLATFORM-for-protected-guest.patch",
+  "modules/microvm/sysvms/idsvm/mitmproxy/mitmproxy-ca/*",
   "packages/pkgs-by-name/ghaf-intro/**/*.png",
   "overlays/custom-packages/cosmic/**/*.patch",
   "overlays/custom-packages/system76-scheduler/0001-fix-add-missing-loop-in-process-scheduler-refresh-ta.patch",
@@ -113,12 +114,16 @@ path = [
   "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/mgbe0-net-vm/*.patch",
   "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/gpu-vm/patches/*.patch",
   "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/gpu-vm/patches/userspace/*.patch",
+  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/gui-vm/*.patch",
   "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/common/dce-virt-common/patches/*.patch",
   "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/common/dce-virt-common/sources/drivers/platform/tegra/dce-guest-proxy/*",
   "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/common/dce-virt-common/sources/drivers/platform/tegra/dce-host-proxy/*",
   "modules/hardware/x86_64-generic/kernel/pkvm/0001-pkvm-enable-pkvm-on-intel-x86-6.1-lts.patch",
   "modules/microvm/sysvms/0001-x86-gpu-Don-t-reserve-stolen-memory-for-GPU-passthro.patch",
-  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/uarti-net-vm/tegra234-netvm.dts"
+  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/uarti-net-vm/tegra234-netvm.dts",
+  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/gui-vm/*.dts",
+  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/mgbe0-net-vm/*.dts",
+  "overlays/jetpack7-nvidia-oot/0002-rtk_btusb-Fix-for-kernel-6.16.patch"
 ]
 
 # Vendored NVIDIA dt-binding headers carry the deprecated bare `GPL-2.0` tag;
