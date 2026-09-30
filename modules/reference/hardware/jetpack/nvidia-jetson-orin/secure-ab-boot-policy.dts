@@ -1,0 +1,33 @@
+// SPDX-FileCopyrightText: 2026 TII (SSRC) and the Ghaf contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/dts-v1/;
+/plugin/;
+
+/ {
+    overlay-name = "Ghaf secure A/B boot policy";
+
+    fragment@0 {
+        target-path = "/";
+        board_config {
+            sw-modules = "uefi";
+        };
+
+        __overlay__ {
+            firmware {
+                uefi {
+                    variables {
+                        gNVIDIAPublicVariableGuid {
+                            // USB network boot options must not preempt the A/B loader.
+                            NewDeviceHierarchy {
+                                data = [00];
+                                runtime;
+                                non-volatile;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+    };
+};
