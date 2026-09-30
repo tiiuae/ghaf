@@ -40,6 +40,7 @@ in
     boot.loader.efi.canTouchEfiVariables = lib.mkDefault true;
 
     environment.etc = lib.mkIf (cfg.keysSource != null && keysInEtc) {
+      "${keysEtcPrefix}/PK.crt".source = "${cfg.keysSource}/PK.crt";
       "${keysEtcPrefix}/PK.auth".source = "${cfg.keysSource}/PK.auth";
       "${keysEtcPrefix}/KEK.auth".source = "${cfg.keysSource}/KEK.auth";
       "${keysEtcPrefix}/KEK.crt".source = "${cfg.keysSource}/KEK.crt";
