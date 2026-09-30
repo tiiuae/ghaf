@@ -511,7 +511,6 @@ let
         uniqueKeyDescription=$1
         defaultKey=$2
         luksDev=$3
-
         printf "Switching to use device unique key. This might take a bit..\n"
         if ! printf "%s" "$defaultKey" | cryptsetup luksAddKey --new-key-description "$uniqueKeyDescription" --key-file=- "$luksDev"; then
           printf "error: Failed to set unique key\n"
@@ -523,15 +522,16 @@ let
           handle_error
         fi
 
-        # luksAddKey/luksRemoveKey only swap keyslots; the volume key that
-        # actually encrypts the data is still the one the manufacturing
-        # passphrase protected. Reencrypt derives a fresh volume key from the
-        # device-unique key, so a leaked manufacturing passphrase grants nothing.
-        printf "Note: Re-encryption may take 1 minute for every 1 GB of data ...\n"
-        if ! cryptsetup reencrypt --key-description "$uniqueKeyDescription" "$luksDev"; then
-           printf "error: Re-encryption failed\n"
-           handle_error
-        fi
+        ${lib.optionalString (!(config.ghaf.secureUpdate.enable or false)) ''
+          # Keyslot changes do not replace the shared image's volume key.
+          printf "Note: Re-encryption may take 1 minute for every 1 GB of data ...\n"
+          if ! cryptsetup reencrypt --key-description "$uniqueKeyDescription" "$luksDev"; then
+             printf "error: Re-encryption failed\n"
+             handle_error
+          fi
+        ''}
+        # Secure A/B rotates per flash, before enrolling the offline recovery
+        # credential, whose passphrase is unavailable on the device.
       }
 
       # Resolve the LUKS partition by its pinned header UUID and verify it is a
@@ -590,6 +590,16 @@ let
         handle_error
       fi
     '';
+  };
+
+  # APP must be grown while the OP-TEE-derived key is still present in the
+  # initrd's shared keyring.  After switch-root that keyring is intentionally
+  # unreachable, so cryptsetup resize would otherwise prompt for a passphrase.
+  # The real-root firstboot service grows the PV and creates the remaining LVs.
+  resizeVerityLuksScript = import ./resize-verity-luks.nix {
+    inherit pkgs;
+    mapperName = cfg.diskEncryption.mapperName;
+    keyDescription = luksDiskKeyDescription;
   };
 
   postDiskUniqueKeyScript = pkgs.writeShellApplication {
@@ -689,6 +699,15 @@ in
       type = types.bool;
       default = config.ghaf.profiles.debug.enable;
       defaultText = lib.literalExpression "config.ghaf.profiles.debug.enable";
+    };
+
+    ftpm.enable = mkOption {
+      description = ''
+        Load the OP-TEE-backed firmware TPM during stage 2. This is independent
+        of the OP-TEE device-unique-key service used for disk encryption.
+      '';
+      type = types.bool;
+      default = true;
     };
 
     diskEncryption = {
@@ -799,12 +818,15 @@ in
         '';
       }
       {
-        assertion = !(cfg.diskEncryption.enable && verityEnabled);
+        assertion =
+          !(verityEnabled && cfg.diskEncryption.enable) || cfg.diskEncryption.deviceUniqueKey.enable;
+        message = "Encrypted Orin verity images require diskEncryption.deviceUniqueKey.enable.";
+      }
+      {
+        assertion = !cfg.runtimeEkProvision.enable || cfg.ftpm.enable;
         message = ''
-          ghaf.hardware.nvidia.orin.diskEncryption.enable and
-          ghaf.partitioning.verity.enable are mutually exclusive root strategies:
-          verity owns fileSystems."/" as a tmpfs overlay, LUKS as an ext4 root on
-          /dev/mapper/${cfg.diskEncryption.mapperName}. Enable at most one.
+          ghaf.hardware.nvidia.orin.runtimeEkProvision.enable requires
+          ghaf.hardware.nvidia.orin.ftpm.enable.
         '';
       }
     ];
@@ -1002,6 +1024,7 @@ in
         ]
         ++ lib.optionals cfg.diskEncryption.deviceUniqueKey.enable [
           preDiskUniqueKeyScript
+          resizeVerityLuksScript
           postDiskUniqueKeyScript
         ];
 
@@ -1060,12 +1083,35 @@ in
           };
         };
 
+        resize-verity-luks = lib.mkIf verityEnabled {
+          description = "Grow verity APP and LUKS mapping before DUK cleanup";
+          wantedBy = [ "initrd-root-fs.target" ];
+          after = [
+            "systemd-cryptsetup@${cfg.diskEncryption.mapperName}.service"
+          ];
+          before = [
+            "initrd-root-fs.target"
+            "post-disk-unique-key.service"
+          ];
+          unitConfig = {
+            DefaultDependencies = false;
+          };
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            ExecStart = "${resizeVerityLuksScript}/bin/resize-verity-luks";
+            StandardOutput = "journal+console";
+            StandardError = "journal+console";
+            KeyringMode = "shared";
+          };
+        };
+
         post-disk-unique-key = {
           description = "Cleanup service for device unique key disk encryption";
           wantedBy = [ "initrd-switch-root.target" ];
-          after = [
-            "resize-partitions.service"
-          ];
+          after =
+            lib.optionals (!verityEnabled) [ "resize-partitions.service" ]
+            ++ lib.optionals verityEnabled [ "resize-verity-luks.service" ];
           unitConfig = {
             DefaultDependencies = false;
           };
@@ -1116,7 +1162,7 @@ in
       };
     };
 
-    systemd.services.ghaf-load-ftpm-module = {
+    systemd.services.ghaf-load-ftpm-module = mkIf cfg.ftpm.enable {
       description = "Load fTPM module after stage-2 OP-TEE readiness";
       wantedBy = [ "multi-user.target" ];
       wants = [
@@ -1141,7 +1187,7 @@ in
       };
     };
 
-    systemd.services.ghaf-provision-ek-certs = mkIf cfg.runtimeEkProvision.enable {
+    systemd.services.ghaf-provision-ek-certs = mkIf (cfg.ftpm.enable && cfg.runtimeEkProvision.enable) {
       description = "Provision fTPM EK certificates into standard NV indices";
       wantedBy = [ "multi-user.target" ];
       wants = [ "tee-supplicant.service" ];
@@ -1163,7 +1209,7 @@ in
       };
     };
 
-    systemd.services.ghaf-export-ek-endorsement-bundle = {
+    systemd.services.ghaf-export-ek-endorsement-bundle = mkIf cfg.ftpm.enable {
       description = "Export EK certs and build endorsement CA bundle";
       wantedBy = [ "multi-user.target" ];
       wants = [ "tee-supplicant.service" ];

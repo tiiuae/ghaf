@@ -17,6 +17,7 @@
           );
         in
         {
+          orin-rekey = pkgs.callPackage ./orin-rekey.nix { };
           orin-verity-persist = pkgs.callPackage ./orin-verity-persist.nix { };
           installer = pkgs.callPackage ./installer { inherit self; };
           netboot-boot = pkgs.callPackage ./installer/netboot-boot.nix { inherit self; };
