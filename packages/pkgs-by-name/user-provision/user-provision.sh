@@ -754,30 +754,57 @@ perform_ad_join() {
     return 1
   fi
 
-  # Prompt for admin credentials (interactive mode only)
-  local ad_user=""
-  while [[ -z $ad_user ]]; do
-    ad_user=$(prompt_input "Enter admin username:" "e.g., admin") || return 1
-  done
+  while true; do
+    # Prompt for target Organizational Unit
+    local ou=""
+    ou=$(prompt_input "Enter OU name (leave empty for default):" "e.g., TII-Ghaf") || return 1
+    # Strip leading and trailing white spaces
+    ou="${ou#"${ou%%[![:space:]]*}"}"
+    ou="${ou%"${ou##*[![:space:]]}"}"
 
-  # Handle existing keytab if persistent storage is available to force re-creation
-  if [[ -n $STORAGE_MOUNT_PATH ]]; then
-    if [[ -e $KERBEROS_KEYTAB ]]; then
-      debug "Persistent storage detected: removing existing keytab for recreation"
-      umount "$KERBEROS_KEYTAB" 2>/dev/null || true
-      rm -f "$KERBEROS_KEYTAB"
+    local target_ou_dn=""
+    if [[ -n $ou ]]; then
+      local base_dn="${BASE_DN:-$(get_base_dn "$domain")}"
+      target_ou_dn="OU=${ou},${base_dn}"
     fi
-  fi
 
-  # Attempt domain join
-  show_info "Attempting to join domain..."
+    local ad_user=""
+    while [[ -z $ad_user ]]; do
+      ad_user=$(prompt_input "Enter admin username:" "e.g., admin") || return 1
+    done
 
-  until adcli join --user="$ad_user" --domain="$domain" --domain-realm="$realm" --verbose; do
-    show_error "Failed to join the Active Directory domain."
-    prompt_confirm "Retry join?" || return 1
+    # Handle existing keytab if persistent storage is available to force re-creation
+    if [[ -n $STORAGE_MOUNT_PATH ]]; then
+      if [[ -e $KERBEROS_KEYTAB ]]; then
+        debug "Persistent storage detected: removing existing keytab for recreation"
+        umount "$KERBEROS_KEYTAB" 2>/dev/null || true
+        rm -f "$KERBEROS_KEYTAB"
+      fi
+    fi
+
+    local join_args=(
+      "--user=$ad_user"
+      "--domain=$domain"
+      "--domain-realm=$realm"
+      "--verbose"
+    )
+    if [[ -n $target_ou_dn ]]; then
+      join_args+=("--domain-ou=$target_ou_dn")
+    fi
+
+    # Attempt domain join
+    show_info "Attempting to join domain..."
+
+    if adcli join "${join_args[@]}"; then
+      show_success "Successfully joined domain: $domain"
+      break
+    else
+      show_error "Failed to join the Active Directory domain."
+      if ! prompt_confirm "Retry join?" "Yes" "No"; then
+        return 1
+      fi
+    fi
   done
-
-  show_success "Successfully joined domain: $domain"
 
   # Copy and remount keytab to persistent storage
   if [[ -n $STORAGE_MOUNT_PATH ]]; then
