@@ -188,7 +188,7 @@ in
     }
     {
       name = "bpmp-virt core hooks";
-      patch = ../../common/bpmp-virt-common/patches/0001-bpmp-virt-hooks-6.12.patch;
+      patch = "${pkgs.nvidia-jetpack.orinVirtualizationSupport}/patches/linux/bpmp/0001-bpmp-virt-hooks-6.12.patch";
     }
     {
       name = "bpmp guest proxy kernel configuration";
