@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
+  binutils-unwrapped,
   bmaptool,
   brightnessctl,
   coreutils,
@@ -34,6 +35,7 @@ in
 writeShellApplication {
   name = "ghaf-installer-tui";
   runtimeInputs = [
+    binutils-unwrapped
     bmaptool
     brightnessctl # screen brightness on startup
     coreutils

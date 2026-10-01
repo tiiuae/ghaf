@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
+  binutils-unwrapped,
   bmaptool,
   coreutils,
   ghaf-verify-enrollment,
@@ -24,6 +25,7 @@
 writeShellApplication {
   name = "ghaf-installer";
   runtimeInputs = [
+    binutils-unwrapped
     bmaptool # sparse-aware copy + per-range sha256 verification
     coreutils
     ghaf-verify-enrollment
