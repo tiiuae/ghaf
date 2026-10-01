@@ -8,6 +8,18 @@
 let
   needsStoreDiskFix = config.microvm.hypervisor == "crosvm" && config.microvm.storeOnDisk;
   storeDisk = toString config.microvm.storeDisk;
+  inherit (config.microvm) storeDiskDirect;
+  # Built with escapeShellArgs because microvm.nix emits the runner through it: the
+  # `=` in o_direct= flips escapeShellArg from bare to single-quoted, so a hand-written
+  # needle silently stops matching whenever storeDiskDirect changes.
+  storeDiskArg = lib.escapeShellArgs [
+    "-r"
+    "${storeDisk}${lib.optionalString storeDiskDirect ",o_direct=true"}"
+  ];
+  blockArg = lib.escapeShellArgs [
+    "--block"
+    "${storeDisk},o_direct=${lib.boolToString storeDiskDirect},ro=true"
+  ];
 in
 {
   # TODO: Remove after https://github.com/microvm-nix/microvm.nix/pull/584
@@ -23,7 +35,7 @@ in
         mv "$runner.fixed" "$runner"
         chmod +x "$runner"
         substituteInPlace "$runner" \
-          --replace-fail "-r ${storeDisk}" "--block ${storeDisk},ro=true"
+          --replace-fail "${storeDiskArg}" "${blockArg}"
       '';
     })
   );
