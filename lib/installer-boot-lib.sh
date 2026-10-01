@@ -79,16 +79,9 @@ find_esp_loader() {
   printf '%s\n' "$loader"
 }
 
-# Verify the entire executable x86/AArch64 UEFI boot chain against the db
-# certificate that will be enrolled. This must run before enrollment: enrolling
-# keys for an unsigned, differently signed, or Type-1 image can turn a successful
-# install into an immediately unbootable machine once Secure Boot is enabled.
-#
-# Type-1 entries are deliberately rejected. They authenticate the kernel at
-# best, while the initrd and editable command line remain separate unsigned
-# inputs. Secure Ghaf images use Type-2 UKIs under EFI/Linux instead.
-verify_secureboot_esp() {
-  local esp_device="$1" keys_dir="$2" mnt loader uki
+# ci-yubi's uefisignraw uses EFI/nixos entries; secure A/B uses EFI/Linux.
+verify_secureboot_esp() (
+  local esp_device="$1" keys_dir="$2" mnt loader uki entry path
   local -a loaders=() ukis=()
 
   ghaf-verify-enrollment "$keys_dir" || return 1
@@ -108,6 +101,7 @@ verify_secureboot_esp() {
     rmdir "$mnt"
     return 1
   fi
+  trap 'umount "$mnt" 2>/dev/null || true; rmdir "$mnt" 2>/dev/null || true' EXIT
 
   for loader in \
     "$mnt/EFI/systemd/systemd-bootx64.efi" \
@@ -118,33 +112,60 @@ verify_secureboot_esp() {
   done
   if [ "${#loaders[@]}" -eq 0 ]; then
     echo "No supported EFI loader found on $esp_device." >&2
-    umount "$mnt" 2>/dev/null || true
-    rmdir "$mnt" 2>/dev/null || true
     return 1
   fi
 
   while IFS= read -r -d '' uki; do
     ukis+=("$uki")
   done < <(find "$mnt/EFI/Linux" -maxdepth 1 -type f -iname '*.efi' -print0 2>/dev/null)
+
+  # With Secure Boot, a nonempty .cmdline makes systemd-stub ignore options.
+  # Separate initrd directives remain unsigned input, even with a signed UKI.
+  while IFS= read -r -d '' entry; do
+    if ! path="$(awk '
+      { sub(/\r$/, ""); sub(/^[ \t]+/, ""); sub(/[ \t]+$/, "") }
+      /^#/ || /^$/ { next }
+      $1 == "efi" {
+        count++
+        sub(/^[^ \t]+[ \t]+/, "")
+        path = $0
+        next
+      }
+      $1 ~ /^(title|version|machine-id|sort-key|architecture|options)$/ { next }
+      { invalid = 1 }
+      END { if (invalid || count != 1) exit 1; print path }
+    ' "$entry")"; then
+      echo "Unsupported Secure Boot entry: ${entry#"$mnt/"}; expected one efi UKI without external payloads." >&2
+      return 1
+    fi
+    path="${path//\\//}"
+    uki="$(realpath -e -- "$mnt/$path" 2>/dev/null)" || uki=""
+    if [[ $path != /* || $uki != "$mnt/"* || ! -f $uki ]]; then
+      echo "Invalid UKI path in ${entry#"$mnt/"}: $path" >&2
+      return 1
+    fi
+    ukis+=("$uki")
+  done < <(find "$mnt/loader/entries" -maxdepth 1 -type f -iname '*.conf' -print0 2>/dev/null)
+
   if [ "${#ukis[@]}" -eq 0 ]; then
-    echo "No Type-2 UKI found under EFI/Linux on $esp_device." >&2
-    umount "$mnt" 2>/dev/null || true
-    rmdir "$mnt" 2>/dev/null || true
+    echo "No UKI found under EFI/Linux or referenced by a boot entry on $esp_device." >&2
     return 1
   fi
 
-  if find "$mnt/loader/entries" -maxdepth 1 -type f -name '*.conf' -print -quit 2>/dev/null | grep -q .; then
-    echo "Type-1 boot entries remain on $esp_device; refusing Secure Boot enrollment." >&2
-    umount "$mnt" 2>/dev/null || true
-    rmdir "$mnt" 2>/dev/null || true
-    return 1
-  fi
-
+  # Authenticate every executable before passing it to the section parser.
   for loader in "${loaders[@]}" "${ukis[@]}"; do
     if ! sbverify --cert "$keys_dir/db.crt" "$loader" >/dev/null 2>&1; then
       echo "EFI executable is not signed by $keys_dir/db.crt: ${loader#"$mnt/"}" >&2
-      umount "$mnt" 2>/dev/null || true
-      rmdir "$mnt" 2>/dev/null || true
+      return 1
+    fi
+  done
+
+  for uki in "${ukis[@]}"; do
+    if ! objdump -h "$uki" 2>/dev/null | awk '
+      $3 !~ /^0+$/ { sections[$2] = 1 }
+      END { exit !(sections[".linux"] && sections[".initrd"] && sections[".cmdline"] && sections[".osrel"]) }
+    '; then
+      echo "Missing UKI sections in ${uki#"$mnt/"}; refusing Secure Boot enrollment." >&2
       return 1
     fi
   done
@@ -153,9 +174,10 @@ verify_secureboot_esp() {
     echo "Could not unmount ESP after Secure Boot verification." >&2
     return 1
   }
+  trap - EXIT
   rmdir "$mnt" 2>/dev/null || true
   echo "Verified Secure Boot loader and ${#ukis[@]} UKI(s) against $keys_dir/db.crt."
-}
+)
 
 # efibootmgr's own error text is the whole story when the variable store is
 # full, and every call here used to discard it into /dev/null -- which is why a
