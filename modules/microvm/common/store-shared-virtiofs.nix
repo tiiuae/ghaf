@@ -35,7 +35,7 @@ in
     '';
   };
 
-  config = lib.mkIf (!storeOnDiskEnabled) {
+  config = lib.mkIf (!storeOnDiskEnabled && !isCrosvm) {
     microvm = {
       shares = [
         (
