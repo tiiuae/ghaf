@@ -135,9 +135,6 @@ in
               # Keep the R5's flip-completion binding across modesets, or the
               # desktop session after the greeter never sees a completion.
               (support + "/patches/nvidia-oot/gpu-display/0024-nvkms-keep-flip-completion-binding.patch")
-              # Kernel 6.12.103 removed drm_fb_helper_alloc_info(); without this
-              # the tegra fbdev in nvidia-oot does not compile at all.
-              (support + "/patches/nvidia-oot/gpu-display/0025-tegra-fbdev-use-core-allocated-fb-info.patch")
             ]
             # disp-vm has no guest-owned host1x syncpoints.
             ++ lib.optional payload.noSyncpointPatch (

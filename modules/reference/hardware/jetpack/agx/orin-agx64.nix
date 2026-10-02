@@ -22,7 +22,7 @@
     hardware = {
       nvidia.orin = {
         enable = true;
-        kernelVersion = "upstream-6-6";
+        kernelVersion = "upstream-6";
         somType = "agx64";
         agx.enableNetvmWlanPCIPassthrough = true;
         carrierBoard = "devkit";
