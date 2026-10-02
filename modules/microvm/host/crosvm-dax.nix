@@ -17,7 +17,11 @@ let
     let
       vmConfig = lib.ghaf.vm.getConfig vmEntry;
     in
-    vmConfig != null && lib.any (share: share.dax or false) (vmConfig.microvm.shares or [ ]);
+    vmConfig != null
+    && (
+      lib.any (share: share.dax or false) (vmConfig.microvm.shares or [ ])
+      || lib.elem "--pmem-ext2" (vmConfig.microvm.crosvm.extraArgs or [ ])
+    );
 
   daxInUse = lib.any vmUsesDax (lib.attrValues config.microvm.vms);
 in
