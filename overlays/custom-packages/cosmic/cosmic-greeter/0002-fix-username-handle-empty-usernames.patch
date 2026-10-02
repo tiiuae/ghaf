@@ -13,10 +13,10 @@ Signed-off-by: Kajus Naujokaitis <kajusn@gmail.com>
  1 file changed, 11 insertions(+), 5 deletions(-)
 
 diff --git a/src/greeter.rs b/src/greeter.rs
-index 616ef33..a51f3e7 100644
+index 01ebad1..2d3e58a 100644
 --- a/src/greeter.rs
 +++ b/src/greeter.rs
-@@ -1160,6 +1160,7 @@ impl cosmic::Application for App {
+@@ -1148,6 +1148,7 @@ impl cosmic::Application for App {
              .or_else(|| session_names.first().cloned())
              .unwrap_or_default();
          let data_idx = flags.user_datas.iter().position(|d| d.name == username);
@@ -24,7 +24,7 @@ index 616ef33..a51f3e7 100644
          let selected_username = NameIndexPair { username, data_idx };
          let accessibility = Accessibility {
              helper: cosmic_settings_daemon_config::greeter::GreeterAccessibilityState::config()
-@@ -1179,7 +1180,7 @@ impl cosmic::Application for App {
+@@ -1167,7 +1168,7 @@ impl cosmic::Application for App {
              dialog_page_opt: None,
              dropdown_opt: None,
              heartbeat_handle: None,
@@ -33,7 +33,7 @@ index 616ef33..a51f3e7 100644
              accessibility,
              theme_builder: Default::default(),
              randr_list: None,
-@@ -1341,10 +1342,12 @@ impl cosmic::Application for App {
+@@ -1338,10 +1339,12 @@ impl cosmic::Application for App {
              Message::Socket(socket_state) => {
                  self.socket_state = socket_state;
                  if let SocketState::Open = &self.socket_state {
@@ -50,7 +50,7 @@ index 616ef33..a51f3e7 100644
                  }
              }
              Message::Reload(new) => {
-@@ -1374,6 +1377,9 @@ impl cosmic::Application for App {
+@@ -1375,6 +1378,9 @@ impl cosmic::Application for App {
                  }
              }
              Message::Username(username) => {
@@ -60,6 +60,4 @@ index 616ef33..a51f3e7 100644
                  if self.dropdown_opt == Some(Dropdown::User) {
                      self.dropdown_opt = None;
                  }
---
-2.53.0
 

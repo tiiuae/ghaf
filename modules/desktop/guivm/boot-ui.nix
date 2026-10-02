@@ -16,19 +16,37 @@
   ...
 }:
 let
-  # Wait for UID>=1000 session to become active with valid seat
+  # Wait for a real non-root user session, not the display-manager greeter.
   wait-for-session = pkgs.writeShellApplication {
     name = "wait-for-session";
     runtimeInputs = [
+      pkgs.coreutils
       pkgs.systemd
-      pkgs.jq
     ];
     text = ''
       echo "Waiting for user to login..."
-      USER_ID=1
-      while [ "$USER_ID" -lt 1000 ]; do
-        tmp_id=$(loginctl list-sessions --json=short | jq -e '.[] | select(.seat != null) | .uid') || true
-        [[ "$tmp_id" =~ ^[0-9]+$ ]] && USER_ID="$tmp_id" || USER_ID=1
+      USER_ID=0
+      while [ "$USER_ID" -eq 0 ]; do
+        session="$(loginctl show-seat seat0 -p ActiveSession --value 2>/dev/null || true)"
+
+        if [ -n "$session" ]; then
+          uid=""
+          seat=""
+          class=""
+          while IFS='=' read -r key value; do
+            case "$key" in
+              User) uid="$value" ;;
+              Seat) seat="$value" ;;
+              Class) class="$value" ;;
+            esac
+          done < <(loginctl show-session "$session" -p User -p Seat -p Class 2>/dev/null || true)
+
+          if [[ "$uid" =~ ^[0-9]+$ ]] && [ "$uid" -gt 0 ] && [ -n "$seat" ] && [ "$class" = "user" ]; then
+            USER_ID="$uid"
+            break
+          fi
+        fi
+
         sleep 1
       done
       echo "User with ID=$USER_ID is now active"
