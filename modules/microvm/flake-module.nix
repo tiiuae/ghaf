@@ -38,6 +38,7 @@
       ./common/microvm-store-mode.nix
       ./common/shared-directory.nix
       ./common/store-disk-erofs.nix
+      ./common/store-pmem-ext2.nix
       ./common/store-shared-virtiofs.nix
       ./common/storagevm.nix
       ./common/vm-crosvm.nix
