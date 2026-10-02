@@ -46,6 +46,15 @@
       # so fall back to the submodule's own defaults (storeOnDisk disabled).
       storage.storeOnDisk = config.ghaf.virtualization.microvm.storeOnDisk or { };
 
+      # Propagate IDS-VM passive monitoring flags so VMs can check globalConfig.idsvm.passiveMonitor.*
+      idsvm.passiveMonitor = {
+        enable = lib.mkDefault config.ghaf.virtualization.microvm.idsvm.passiveMonitor.enable;
+        external = lib.mkDefault config.ghaf.virtualization.microvm.idsvm.passiveMonitor.external;
+        internal = lib.mkDefault config.ghaf.virtualization.microvm.idsvm.passiveMonitor.internal;
+        snaplen = lib.mkDefault config.ghaf.virtualization.microvm.idsvm.passiveMonitor.snaplen;
+        netem = lib.mkDefault config.ghaf.virtualization.microvm.idsvm.passiveMonitor.netem;
+      };
+
       logging.listener.address = lib.mkIf (
         config.ghaf.global-config.logging.enable && config.ghaf.common.adminHost != null
       ) (lib.mkDefault config.ghaf.networking.hosts.admin-vm.ipv4);
