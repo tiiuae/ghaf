@@ -23,29 +23,42 @@ let
       || lib.elem "--pmem-ext2" (vmConfig.microvm.crosvm.extraArgs or [ ])
     );
 
-  daxInUse = lib.any vmUsesDax (lib.attrValues config.microvm.vms);
+  daxEnabled = lib.any vmUsesDax (lib.attrValues config.microvm.vms);
 in
 {
   _file = ./crosvm-dax.nix;
 
-  config = lib.mkIf cfg.enable {
-    systemd.services."microvm@".serviceConfig =
-      if daxInUse then
-        {
-          # CapabilityBoundingSet only raises the ceiling for a non-root unit;
-          # AmbientCapabilities grants it.
-          AmbientCapabilities = [
-            "CAP_SYS_ADMIN"
-            "CAP_SYS_CHROOT"
-          ];
-        }
-      else
-        {
-          CapabilityBoundingSet = [
-            "~CAP_SYS_ADMIN"
-            "~CAP_SYS_CHROOT"
-          ];
-          RestrictNamespaces = [ "~mnt" ];
+  config = lib.mkIf cfg.enable (
+    lib.mkMerge [
+      {
+        systemd.services."microvm@".serviceConfig =
+          if daxEnabled then
+            {
+              # CapabilityBoundingSet only raises the ceiling for a non-root unit;
+              # AmbientCapabilities grants it.
+              AmbientCapabilities = [
+                "CAP_SYS_ADMIN"
+                "CAP_SYS_CHROOT"
+              ];
+            }
+          else
+            {
+              CapabilityBoundingSet = [
+                "~CAP_SYS_ADMIN"
+                "~CAP_SYS_CHROOT"
+              ];
+              RestrictNamespaces = [ "~mnt" ];
+            };
+      }
+      (lib.mkIf daxEnabled {
+        # crosvm pages the pmem-ext2 metadata out after mkfs and zswap keeps it compressed in RAM
+        boot.zswap = {
+          enable = true;
+          maxPoolPercent = 20;
         };
-  };
+        # The sysfs path units re-fire during shutdown and cancel it
+        boot.kernel.sysfs.module.zswap = lib.mkForce { };
+      })
+    ]
+  );
 }

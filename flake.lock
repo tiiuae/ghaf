@@ -319,10 +319,10 @@
       "flake": false,
       "locked": {
         "lastModified": 1791539530,
-        "narHash": "sha256-OFAfDX4iGyQF46NKQV66C+480mG/u+HiWKM1MTV+6Ps=",
+        "narHash": "sha256-nWVtaiR+IM7FOeGiEX8XQaXvPnjonWSpsnRUD7sYx/0=",
         "ref": "pmem-ext2-64bit",
-        "rev": "8f227de6b0895dde7869845e64ab4725c28b4cfc",
-        "revCount": 11732,
+        "rev": "d19b64757cabfdd8f6317ee4d9ddd8c283dca3e1",
+        "revCount": 11733,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/kajusnau/ghaf-crosvm"
