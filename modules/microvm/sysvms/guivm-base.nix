@@ -153,7 +153,7 @@ in
     systemd = {
       enable = true;
       withName = "guivm-systemd";
-      withHomed = true;
+      withHomed = hostConfig.users.profile.homed-user.enable or false;
       withLocaled = true;
       withNss = true;
       withPolkit = true;

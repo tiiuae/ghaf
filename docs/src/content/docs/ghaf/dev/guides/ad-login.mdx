@@ -160,6 +160,26 @@ If an OU was not specified during join, you can manually move the computer objec
 4. Move the computer object to the target OU where the GPO is linked
 
 
+## YubiKey / FIDO2 Authentication with Active Directory
+
+When hardware token authentication is enabled alongside Active Directory, domain users can authenticate using their physical YubiKey or FIDO2 security keys.
+
+For SSSD passkey verification or Kerberos authentication to succeed, the user's hardware security key credentials (such as public keys or certificates) must be registered in the corresponding user object's LDAP attributes in Active Directory (e.g. `altSecurityIdentities` or `userCertificate`).
+
+### Client-Side Enablement in Ghaf
+
+To enable YubiKey and Active Directory login on the device, configure both in your profile:
+
+```nix
+ghaf = {
+  users.profile = {
+    ad-users.enable = true;
+    homed-user.enable = false;
+  };
+  services.yubikey.enable = true;
+};
+```
+
 ## References
 
 - [SSSD Active Directory GPO Integration](https://sssd.io/design-pages/active_directory_gpo_integration.html)

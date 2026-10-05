@@ -24,6 +24,7 @@ let
 
   # Helpers
   hasStorageVM = config.ghaf.storagevm.enable;
+  hasYubikey = config.ghaf.services.yubikey.enable;
   hasKcm = lib.any (d: (d.cacheCredentials && (d.authProvider == "krb5" || d.authProvider == "ad"))) (
     lib.attrValues cfg.domains
   );
@@ -165,7 +166,13 @@ let
     offline_failed_login_delay = ${toString cfg.pam.offlineFailedLoginDelay}
     pam_initgroups_scheme = ${cfg.pam.initGroupsScheme}
     pam_verbosity = 0
+    ${optionalString hasYubikey "pam_passkey_auth = true"}
     ${optionalString (cfg.pam.extraConfig != null) "${cfg.pam.extraConfig}"}
+
+    ${optionalString hasYubikey ''
+      [prompting/passkey]
+      interactive = true
+    ''}
 
     [kcm]
     ${optionalString (cfg.debugLevel != null) "debug_level = ${toString cfg.debugLevel}"}
