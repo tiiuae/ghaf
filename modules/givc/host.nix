@@ -31,6 +31,10 @@ in
         assertion = !config.ghaf.givc.policyAdmin.enable;
         message = "Policy admin cannot be enabled in host.";
       }
+      {
+        assertion = !config.givc.host.closureUpdates || config.ghaf.profiles.debug.enable;
+        message = "Nix-closure updates are only supported by the debug profile.";
+      }
     ];
     #Access control rules for host.
     ghaf.givc.accessControl.adminRules = [
@@ -50,13 +54,10 @@ in
       enable = true;
       inherit (config.ghaf.givc) debug;
 
-      # Closure updates (`ota-update cachix`) shell out to `nix build`, so they
-      # put the Nix binary in the agent's PATH. The verity scheme replaces whole
-      # root images A/B instead and its store is read-only, so that mode cannot
-      # be used there. shipping Nix on it would only add a package manager
-      # with store-write capability to an appliance that cannot run it.
+      # Closure updates execute downloaded code and require a writable store.
       closureUpdates =
-        !((options ? ghaf.partitioning.verity.enable) && config.ghaf.partitioning.verity.enable);
+        config.ghaf.profiles.debug.enable
+        && !((options ? ghaf.partitioning.verity.enable) && config.ghaf.partitioning.verity.enable);
 
       network = {
         agent.transport = {

@@ -50,6 +50,7 @@
           logging-logseald = pkgs.callPackage ./logseald { inherit self; };
           boot-health = pkgs.callPackage ./boot-health.nix { };
           update-esp = pkgs.callPackage ./update-esp.nix { };
+          ota-update-policy = pkgs.callPackage ./ota-update-policy.nix { inherit self; };
           access-control-tests = pkgs.callPackage ./access-control { inherit self; };
         };
     };
