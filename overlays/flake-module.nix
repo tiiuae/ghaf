@@ -13,7 +13,7 @@
           src = inputs.ghaf-crosvm;
           cargoDeps = prev.rustPlatform.fetchCargoVendor {
             src = inputs.ghaf-crosvm;
-            hash = "sha256-lU30pTzJ1hYyHcpFKemZou9d2ZqSlFu4JC+IUe2Gm5A=";
+            hash = "sha256-I3XFmcXHo2isSTUZ27RkTH1OUp0UjOVXIGECoxcUzHU=";
           };
           cargoBuildFeatures = (old.cargoBuildFeatures or (old.buildFeatures or [ ])) ++ [
             "pci-hotplug"
