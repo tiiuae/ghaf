@@ -62,14 +62,6 @@ in
         pkgs.tpm2-openssl
       ];
 
-      boot.kernelPatches = lib.optionals (vmm == "crosvm") [
-        {
-          name = "chromiumos-virtio-tpm";
-          patch = ../sysvms/patches/chromiumos-virtio-tpm.patch;
-          structuredExtraConfig.TCG_VIRTIO_VTPM = lib.kernel.module;
-        }
-      ];
-
       # Encrypted VM storage is unlocked in initrd. Crosvm's TPM frontend uses
       # the virtio transport, so loading this only in stage 2 makes first-boot
       # enrollment succeed but leaves the next boot unable to unlock vmdata.
