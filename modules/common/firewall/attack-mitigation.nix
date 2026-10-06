@@ -10,6 +10,7 @@ let
     mkAfter
     mkForce
     mkIf
+    mkMerge
     types
     ;
 
@@ -89,67 +90,82 @@ in
       };
       description = "Ping flood mitigation settings";
     };
+
+    arpSpoofing.enable = mkEnableOption "dropping ARP on the VM taps, for guests with static ARP entries";
+
   };
 
-  config = mkIf cfg.enable {
-    assertions = [
-      {
-        assertion =
-          !(lib.hasAttr "allowPing" config.ghaf.firewall.extraOptions)
-          ||
-            config.ghaf.firewall.extraOptions.allowPing != config.ghaf.firewall.attack-mitigation.ping.enable;
-        message = "ghaf.firewall.extraOptions.allowPing and ghaf.firewall.attack-mitigation.ping.enable cannot be set at the same time";
-      }
-    ];
-    # Debug images: relax both limiters, which ban via BLACKLIST (see
-    # blacklistTimeout in firewall.nix). Same debug gate as security/fail2ban.nix.
-    #
-    # Production ping is `above 1/sec burst 10`: `ping -i0.2` from ghaf-host
-    # blacklisted it on net-vm and killed the host<->net-vm link, while every tap
-    # and bridge counter read zero drops -- invisible at L2, so it looks like a
-    # virtio fault rather than a firewall action.
-    ghaf.firewall.attack-mitigation.ping.rule = mkIf (config.ghaf.profiles.debug.enable or false) (
-      lib.mkDefault {
-        burstNum = 100;
-        maxPacketFreq = "3600/minute";
-      }
-    );
+  config = mkIf cfg.enable (mkMerge [
+    {
+      assertions = [
+        {
+          assertion =
+            !(lib.hasAttr "allowPing" config.ghaf.firewall.extraOptions)
+            ||
+              config.ghaf.firewall.extraOptions.allowPing != config.ghaf.firewall.attack-mitigation.ping.enable;
+          message = "ghaf.firewall.extraOptions.allowPing and ghaf.firewall.attack-mitigation.ping.enable cannot be set at the same time";
+        }
+        {
+          assertion = cfg.arpSpoofing.enable -> config.ghaf.type == "host";
+          message = "ghaf.firewall.attack-mitigation.arpSpoofing only applies on the host, where the VM taps are";
+        }
+      ];
+      # Debug images: relax both limiters, which ban via BLACKLIST (see
+      # blacklistTimeout in firewall.nix). Same debug gate as security/fail2ban.nix.
+      #
+      # Production ping is `above 1/sec burst 10`: `ping -i0.2` from ghaf-host
+      # blacklisted it on net-vm and killed the host<->net-vm link, while every tap
+      # and bridge counter read zero drops -- invisible at L2, so it looks like a
+      # virtio fault rather than a firewall action.
+      ghaf.firewall.attack-mitigation.ping.rule = mkIf (config.ghaf.profiles.debug.enable or false) (
+        lib.mkDefault {
+          burstNum = 100;
+          maxPacketFreq = "3600/minute";
+        }
+      );
 
-    # Production ssh is burst 5 / 30-per-minute of NEW connections per source
-    # (ESTABLISHED is accepted earlier, so it counts logins not packets): ~six
-    # quick logins, and a dev jumping through net-vm spends two per command.
-    ghaf.firewall.attack-mitigation.ssh.rule = mkIf (config.ghaf.profiles.debug.enable or false) (
-      lib.mkDefault {
-        burstNum = 100;
-        maxPacketFreq = "1000/minute";
-      }
-    );
+      # Production ssh is burst 5 / 30-per-minute of NEW connections per source
+      # (ESTABLISHED is accepted earlier, so it counts logins not packets): ~six
+      # quick logins, and a dev jumping through net-vm spends two per command.
+      ghaf.firewall.attack-mitigation.ssh.rule = mkIf (config.ghaf.profiles.debug.enable or false) (
+        lib.mkDefault {
+          burstNum = 100;
+          maxPacketFreq = "1000/minute";
+        }
+      );
 
-    # ssh syn flood protection
-    ghaf.firewall.tcpBlacklistRules = mkIf cfg.ssh.enable [
-      {
-        port = builtins.head config.services.openssh.ports;
-        trackingSize = 100;
-        inherit (cfg.ssh.rule) burstNum;
-        inherit (cfg.ssh.rule) maxPacketFreq;
-      }
-    ];
-    # ping flood protection
-    ghaf.firewall.extraOptions = mkIf cfg.ping.enable {
-      allowPing = mkForce false;
-      extraCommands = mkAfter ''
-         # Accept normal ICMP requests (only if not blacklisted)
-        ${config.ghaf.firewall.cmd} -I ${config.ghaf.firewall.chainNamePrefix}in-filter -p icmp --icmp-type echo-request -m mark ! --mark ${config.ghaf.firewall.blacklistFwMarkNum} -j ACCEPT
-         # Blacklist when rate exceeded
-        ${config.ghaf.firewall.cmd} -I ${config.ghaf.firewall.chainNamePrefix}in-filter -p icmp --icmp-type echo-request \
-          -m hashlimit \
-          --hashlimit-above ${toString cfg.ping.rule.maxPacketFreq} \
-          --hashlimit-burst ${toString cfg.ping.rule.burstNum} \
-          --hashlimit-mode srcip \
-          --hashlimit-name ICMP_PER_IP \
-          -j ${config.ghaf.firewall.chainNamePrefix}blacklist-add
+      # ssh syn flood protection
+      ghaf.firewall.tcpBlacklistRules = mkIf cfg.ssh.enable [
+        {
+          port = builtins.head config.services.openssh.ports;
+          trackingSize = 100;
+          inherit (cfg.ssh.rule) burstNum;
+          inherit (cfg.ssh.rule) maxPacketFreq;
+        }
+      ];
+      # ping flood protection
+      ghaf.firewall.extraOptions = mkIf cfg.ping.enable {
+        allowPing = mkForce false;
+        extraCommands = mkAfter ''
+           # Accept normal ICMP requests (only if not blacklisted)
+          ${config.ghaf.firewall.cmd} -I ${config.ghaf.firewall.chainNamePrefix}in-filter -p icmp --icmp-type echo-request -m mark ! --mark ${config.ghaf.firewall.blacklistFwMarkNum} -j ACCEPT
+           # Blacklist when rate exceeded
+          ${config.ghaf.firewall.cmd} -I ${config.ghaf.firewall.chainNamePrefix}in-filter -p icmp --icmp-type echo-request \
+            -m hashlimit \
+            --hashlimit-above ${toString cfg.ping.rule.maxPacketFreq} \
+            --hashlimit-burst ${toString cfg.ping.rule.burstNum} \
+            --hashlimit-mode srcip \
+            --hashlimit-name ICMP_PER_IP \
+            -j ${config.ghaf.firewall.chainNamePrefix}blacklist-add
+        '';
+      };
+    }
+
+    (mkIf cfg.arpSpoofing.enable {
+      networking.firewall.extraCommands = mkAfter ''
+        ebtables -A INPUT -p arp -j DROP -i tap-+
+        ebtables -A FORWARD -p arp -j DROP -i tap-+
       '';
-    };
-
-  };
+    })
+  ]);
 }

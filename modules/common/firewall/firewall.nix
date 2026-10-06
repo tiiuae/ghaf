@@ -557,7 +557,6 @@ in
       default = { };
       description = "Extra firewall rules";
     };
-    filter-arp = mkEnableOption "static ARP and MAC/IP rules";
     updater.enable = mkEnableOption "live update firewall rules";
     updater.url = mkOption {
       type = types.str;
@@ -749,12 +748,6 @@ in
             chain = "${ghafFwChainPrefix}post-nat";
             rules = cfg.extra.postrouting.nat;
           }}
-
-          ${optionalString (cfg.filter-arp && (lib.hasAttr "host" config.ghaf)) ''
-            # Drop ARP traffic on all tap-* interfaces
-            ebtables -A INPUT -p arp -j DROP -i tap-+
-            ebtables -A FORWARD -p arp -j DROP -i tap-+
-          ''}
 
         '';
       }
