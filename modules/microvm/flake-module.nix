@@ -10,10 +10,8 @@
   _file = ./flake-module.nix;
 
   flake.nixosModules = {
-    # Overlay temporary upstream fixes without pinning Ghaf to a fork.
     microvm-nix.imports = [
       inputs.microvm.nixosModules.microvm
-      ./common/microvm-nix-crosvm-store-disk-overlay.nix
     ];
 
     microvm.imports = [
