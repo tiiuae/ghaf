@@ -66,8 +66,11 @@ in
         };
       };
 
-      # Enable ARP filtering with ebtables
-      ghaf.firewall.attack-mitigation.arpSpoofing.enable = mkDefault enableStaticArp;
+      # Enable attack mitigation features
+      ghaf.firewall.attack-mitigation = {
+        arpSpoofing.enable = mkDefault enableStaticArp;
+        macIpSpoofing.enable = mkDefault true;
+      };
 
       # Setup host VM network bridge
       systemd.network = {
