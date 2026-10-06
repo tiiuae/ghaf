@@ -39,9 +39,7 @@ let
       )
     else
       baseKernelPackages;
-  gpuSuspend =
-    (config.ghaf.services.power-manager.gui.enable or false)
-    && (config.ghaf.services.power-manager.gui.gpuSuspend or false);
+  isCrosvm = (config.microvm.hypervisor or null) == "crosvm";
 in
 {
   options.ghaf.guest.kernel.hardening = {
@@ -61,10 +59,53 @@ in
   config = lib.mkIf pkgs.stdenv.hostPlatform.isx86_64 {
     boot.kernelPackages = kernelPackages;
 
-    boot.kernelPatches = lib.optionals gpuSuspend [
+    # Keep guest kernel changes here rather than per VM: every guest gets the
+    # same list, so they all share one kernel build.
+    boot.kernelPatches = [
+      # Inert unless pm_test selects GPU-only mode.
       {
         name = "kernel-pm-test-gpu-suspend";
         patch = ./patches/kernel-pm-test-gpu-suspend.patch;
+      }
+      # https://github.com/troglobit/smcroute?tab=readme-ov-file#linux-requirements
+      {
+        name = "multicast-routing-config";
+        patch = null;
+        structuredExtraConfig = with lib.kernel; {
+          IP_MULTICAST = yes;
+          IP_MROUTE = yes;
+          IP_PIMSM_V1 = yes;
+          IP_PIMSM_V2 = yes;
+          IP_MROUTE_MULTIPLE_TABLES = yes;
+        };
+      }
+    ]
+    ++ lib.optionals isCrosvm [
+      # Crosvm's virtual IOMMU must be available before PCI enumeration.  Loading
+      # it as a module lets passthrough drivers race ahead of the IOMMU supplier;
+      # the late registration then leaves those devices without an IOMMU group and
+      # DMA-backed drivers cannot probe reliably.
+      {
+        name = "crosvm-virtio-iommu-builtin";
+        patch = null;
+        structuredExtraConfig = with lib.kernel; {
+          VIRTIO = yes;
+          VIRTIO_PCI = yes;
+          VIRTIO_IOMMU = yes;
+        };
+      }
+      {
+        name = "goldfish-battery";
+        patch = null;
+        structuredExtraConfig = {
+          GOLDFISH = lib.kernel.yes;
+          BATTERY_GOLDFISH = lib.kernel.module;
+        };
+      }
+      {
+        name = "chromiumos-virtio-tpm";
+        patch = ../../../../microvm/sysvms/patches/chromiumos-virtio-tpm.patch;
+        structuredExtraConfig.TCG_VIRTIO_VTPM = lib.kernel.module;
       }
     ];
   };

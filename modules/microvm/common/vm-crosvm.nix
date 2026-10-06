@@ -3,7 +3,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 let
@@ -16,22 +15,6 @@ in
   # expensive. The messages remain available in the guest journal; suppressing
   # only their console rendering avoids adding seconds to every guest shutdown.
   systemd.settings.Manager.ShowStatus = lib.mkIf isCrosvm false;
-
-  # Crosvm's virtual IOMMU must be available before PCI enumeration.  Loading
-  # it as a module lets passthrough drivers race ahead of the IOMMU supplier;
-  # the late registration then leaves those devices without an IOMMU group and
-  # DMA-backed drivers cannot probe reliably.
-  boot.kernelPatches = lib.optionals (isCrosvm && pkgs.stdenv.hostPlatform.isx86_64) [
-    {
-      name = "crosvm-virtio-iommu-builtin";
-      patch = null;
-      structuredExtraConfig = with lib.kernel; {
-        VIRTIO = yes;
-        VIRTIO_PCI = yes;
-        VIRTIO_IOMMU = yes;
-      };
-    }
-  ];
 
   # The host runs THP in madvise mode and crosvm does not advise by default, so guest
   # RAM ends up entirely 4 KiB-backed. --hugepages issues MADV_HUGEPAGE on it.

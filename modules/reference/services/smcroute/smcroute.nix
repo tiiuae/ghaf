@@ -125,21 +125,6 @@ in
       }
     ];
 
-    # https://github.com/troglobit/smcroute?tab=readme-ov-file#linux-requirements
-    boot.kernelPatches = [
-      {
-        name = "multicast-routing-config";
-        patch = null;
-        structuredExtraConfig = with lib.kernel; {
-          IP_MULTICAST = yes;
-          IP_MROUTE = yes;
-          IP_PIMSM_V1 = yes;
-          IP_PIMSM_V2 = yes;
-          IP_MROUTE_MULTIPLE_TABLES = yes; # For multiple routing tables
-        };
-      }
-    ];
-
     systemd.services."smcroute" = {
       description = "Static Multicast Routing daemon";
       wantedBy = [ "multi-user.target" ];

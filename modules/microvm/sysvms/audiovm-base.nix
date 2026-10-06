@@ -203,17 +203,6 @@ in
     ++ lib.optional (config.ghaf.development.debug.tools.enable or false) pkgs.alsa-utils;
   };
 
-  boot.kernelPatches = lib.optionals (isCrosvm && pkgs.stdenv.hostPlatform.isx86_64) [
-    {
-      name = "goldfish-battery";
-      patch = null;
-      structuredExtraConfig = {
-        GOLDFISH = lib.kernel.yes;
-        BATTERY_GOLDFISH = lib.kernel.module;
-      };
-    }
-  ];
-
   system.stateVersion = lib.trivial.release;
 
   nixpkgs = {
