@@ -91,6 +91,30 @@ in
         # useNotifySockets = true;
       };
 
+      # Every distinct guest kernel is another kernel build and ~220 MiB of
+      # vmlinux and modules in the image.
+      warnings =
+        let
+          vmConfigs = lib.filterAttrs (_: c: c != null) (
+            lib.mapAttrs (_: lib.ghaf.vm.getConfig) config.microvm.vms
+          );
+          byKernel = lib.groupBy (
+            name:
+            let
+              base = baseNameOf (
+                builtins.unsafeDiscardStringContext vmConfigs.${name}.boot.kernelPackages.kernel.outPath
+              );
+            in
+            # Every guest kernel has the same name, so keep a short hash to tell them apart.
+            builtins.substring 0 8 base + builtins.substring 32 (-1) base
+          ) (builtins.attrNames vmConfigs);
+          kernels = builtins.attrNames byKernel;
+        in
+        lib.optional (pkgs.stdenv.hostPlatform.isx86_64 && builtins.length kernels > 1)
+          "Multiple guest kernel builds detected: ${toString (builtins.length kernels)} kernels will be built\n${
+            lib.concatMapStrings (k: "  ${k}: ${lib.concatStringsSep ", " byKernel.${k}}\n") kernels
+          }Make guest kernel changes in modules/hardware/x86_64-generic/kernel/guest/default.nix\nso all guests share one kernel. Each extra kernel adds ~220 MiB to the image.";
+
       ghaf = {
         type = "host";
         microvm-boot = {
