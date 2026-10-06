@@ -6,11 +6,18 @@
   pkgs,
   ...
 }:
+let
+  # Every store path named in the profile becomes a dependency, so only
+  # use it where Chrome is explicitly included anyway
+  enable =
+    config.ghaf.security.apparmor.enable
+    && (config.ghaf.reference.programs.google-chrome.enable or false);
+in
 {
   _file = ./google-chrome.nix;
 
   ## Apparmor profile for Chromium
-  config.security.apparmor.policies."bin.chrome" = lib.mkIf config.ghaf.security.apparmor.enable {
+  config.security.apparmor.policies."bin.chrome" = lib.mkIf enable {
     state = "enforce";
     profile = ''
       abi <abi/3.0>,
