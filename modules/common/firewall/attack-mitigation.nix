@@ -1,8 +1,14 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   cfg = config.ghaf.firewall.attack-mitigation;
+  bridge = config.ghaf.host.networking.bridgeNicName;
 
   inherit (lib)
     mkOption
@@ -13,6 +19,7 @@ let
     mkMerge
     types
     ;
+  iproute = lib.getExe' pkgs.iproute2;
 
   floodType = types.submodule {
     options = {
@@ -26,6 +33,29 @@ let
       };
     };
   };
+
+  # Per-tap source checks for the VM bridge. A gateway forwards outside
+  # sources, so only its use of another guest's address is dropped.
+  macIpSpoofingRules = lib.concatStrings (
+    lib.mapAttrsToList (
+      name: vm:
+      let
+        host = config.ghaf.networking.hosts.${name};
+        net = (lib.ghaf.vm.getConfig vm).ghaf.virtualization.microvm.vm-networking;
+        rule = match: "ebtables -t nat -A PREROUTING -i tap-${name} ${match}\n";
+      in
+      lib.optionalString net.enable (
+        rule "! -s ${host.mac} -j DROP"
+        + (
+          if net.isGateway then
+            rule "-p IPv4 --ip-src ${host.ipv4} -j ACCEPT"
+            + rule "-p IPv4 --ip-src ${host.ipv4}/${toString host.ipv4SubnetPrefixLength} -j DROP"
+          else
+            rule "-p IPv4 ! --ip-src ${host.ipv4} -j DROP"
+        )
+      )
+    ) (config.microvm.vms or { })
+  );
 in
 {
   _file = ./attack-mitigation.nix;
@@ -93,6 +123,7 @@ in
 
     arpSpoofing.enable = mkEnableOption "dropping ARP on the VM taps, for guests with static ARP entries";
 
+    macIpSpoofing.enable = mkEnableOption "guest MAC/IP source filtering on the VM bridge";
   };
 
   config = mkIf cfg.enable (mkMerge [
@@ -106,8 +137,8 @@ in
           message = "ghaf.firewall.extraOptions.allowPing and ghaf.firewall.attack-mitigation.ping.enable cannot be set at the same time";
         }
         {
-          assertion = cfg.arpSpoofing.enable -> config.ghaf.type == "host";
-          message = "ghaf.firewall.attack-mitigation.arpSpoofing only applies on the host, where the VM taps are";
+          assertion = (cfg.arpSpoofing.enable || cfg.macIpSpoofing.enable) -> config.ghaf.type == "host";
+          message = "ghaf.firewall.attack-mitigation.arpSpoofing and macIpSpoofing only apply on the host, where the VM taps are";
         }
       ];
       # Debug images: relax both limiters, which ban via BLACKLIST (see
@@ -166,6 +197,66 @@ in
         ebtables -A INPUT -p arp -j DROP -i tap-+
         ebtables -A FORWARD -p arp -j DROP -i tap-+
       '';
+    })
+
+    (mkIf cfg.macIpSpoofing.enable {
+      assertions = [
+        {
+          # A drop-in for a unit microvm.nix no longer ships would do nothing.
+          assertion = config.systemd.services."microvm-tap-interfaces@".serviceConfig ? ExecStart;
+          message = "ghaf.firewall.attack-mitigation.macIpSpoofing pins guest MACs from microvm.nix's microvm-tap-interfaces@ unit, which this configuration does not define";
+        }
+        {
+          # Fail the build rather than silently cut a guest's IPv6.
+          assertion = lib.all (vm: !((lib.ghaf.vm.getConfig vm).networking.enableIPv6 or false)) (
+            lib.attrValues (config.microvm.vms or { })
+          );
+          message = "ghaf.firewall.attack-mitigation.macIpSpoofing drops IPv6 on the VM bridge and has no IPv6 source checks yet, so no guest may set networking.enableIPv6";
+        }
+      ];
+
+      # ebtables --ip-src needs ebt_ip, which the Jetson kernel does not build.
+      boot.kernelPatches = [
+        {
+          name = "ebtables-ip-match";
+          patch = null;
+          structuredExtraConfig = with lib.kernel; {
+            BRIDGE_NF_EBTABLES = module;
+            BRIDGE_EBT_IP = module;
+          };
+        }
+      ];
+
+      # PREROUTING, so a spoofed frame is dropped before the bridge learns from it.
+      # Only IPv4 passes, and ARP where guests still need it: a VLAN tag would
+      # otherwise hide a packet from the IP check.
+      networking.firewall.extraCommands = mkAfter ''
+        ebtables -t nat -F PREROUTING
+        ${macIpSpoofingRules}
+        # ARP is exempt from the drop below only when arpSpoofing is off, as
+        # guests then resolve addresses by ARP.
+        ${lib.optionalString (
+          !cfg.arpSpoofing.enable
+        ) "ebtables -t nat -A PREROUTING -i tap-+ -p arp -j ACCEPT"}
+
+        ebtables -t nat -A PREROUTING -i tap-+ ! -p IPv4 -j DROP
+      '';
+
+      # Pin each guest's MAC to its tap so another guest cannot claim it. Not
+      # networkd's [BridgeFDB]: that writes "permanent" (bridge-local) entries.
+      systemd.services = lib.mapAttrs' (
+        name: host:
+        lib.nameValuePair "microvm-tap-interfaces@${name}" {
+          overrideStrategy = "asDropin";
+          requires = [ "sys-subsystem-net-devices-${bridge}.device" ];
+          after = [ "sys-subsystem-net-devices-${bridge}.device" ];
+          serviceConfig.ExecStartPost = [
+            "${iproute "ip"} link set tap-${name} master ${bridge}"
+            "${iproute "bridge"} link set dev tap-${name} learning off flood off"
+            "${iproute "bridge"} fdb replace ${host.mac} dev tap-${name} master static"
+          ];
+        }
+      ) (lib.intersectAttrs (config.microvm.vms or { }) config.ghaf.networking.hosts);
     })
   ]);
 }
