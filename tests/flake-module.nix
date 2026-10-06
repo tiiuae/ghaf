@@ -46,6 +46,8 @@
           microvm-tpm-vmm-parity = pkgs.callPackage ./microvm/tpm-vmm-parity.nix { inherit self; };
           org-config = pkgs.callPackage ./org-config { inherit self; };
           uplink-resolver = pkgs.callPackage ./uplink-resolver { };
+          attack-mitigation-arp-spoofing = pkgs.callPackage ./attack-mitigation/arp-spoofing.nix { };
+          attack-mitigation-mac-ip-spoofing = pkgs.callPackage ./attack-mitigation/mac-ip-spoofing.nix { };
           logging-recovery = pkgs.callPackage ./logging { };
           logging-logseald = pkgs.callPackage ./logseald { inherit self; };
           boot-health = pkgs.callPackage ./boot-health.nix { };

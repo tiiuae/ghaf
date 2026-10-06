@@ -242,8 +242,7 @@ in
         ebtables -t nat -A PREROUTING -i tap-+ ! -p IPv4 -j DROP
       '';
 
-      # Pin each guest's MAC to its tap so another guest cannot claim it. Not
-      # networkd's [BridgeFDB]: that writes "permanent" (bridge-local) entries.
+      # Pin each guest's MAC to its tap so another guest cannot claim it.
       systemd.services = lib.mapAttrs' (
         name: host:
         lib.nameValuePair "microvm-tap-interfaces@${name}" {
