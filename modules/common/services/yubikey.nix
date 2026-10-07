@@ -94,7 +94,13 @@ in
       ACTION=="remove", ENV{ID_BUS}=="usb", ENV{ID_VENDOR_ID}=="1050", ENV{ID_MODEL_ID}=="0407", TEST=="${fido2MarkerPath}", RUN+="${pkgs.systemd}/bin/loginctl lock-sessions"
     '';
 
-    systemd.services.ghaf-homed-fido2-sync = {
+    # Create marker for non-homed setups (e.g. Active Directory)
+    systemd.tmpfiles.rules = mkIf (!config.services.homed.enable) [
+      "d /run/fido2 0755 root root -"
+      "f+ ${fido2MarkerPath} 0644 root root -"
+    ];
+
+    systemd.services.ghaf-homed-fido2-sync = mkIf config.services.homed.enable {
       description = "Sync Ghaf FIDO2 marker with systemd-homed users";
       wantedBy = [ "multi-user.target" ];
       after = [ "systemd-homed.service" ];
@@ -104,7 +110,7 @@ in
       };
     };
 
-    systemd.paths.ghaf-homed-fido2-sync = {
+    systemd.paths.ghaf-homed-fido2-sync = mkIf config.services.homed.enable {
       description = "Watch systemd-homed records and sync Ghaf FIDO2 marker";
       wantedBy = [ "multi-user.target" ];
       wants = [ "ghaf-homed-fido2-sync.service" ];

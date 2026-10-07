@@ -1,0 +1,187 @@
+---
+title: "Active Directory Login with GPO Access Control"
+---
+{/*
+SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+*/}
+
+# Active Directory Login with GPO Access Control
+
+This guide covers configuring Ghaf devices for Active Directory (AD) authentication with Group Policy Object (GPO) based access control, so that only authorized AD users can log in.
+
+## Overview
+
+Ghaf uses SSSD (System Security Services Daemon) to integrate with Active Directory. SSSD handles user authentication via Kerberos, identity lookups via LDAP, and access control via GPO evaluation.
+
+### GPO Access Control
+
+SSSD's `ad_gpo_access_control` setting determines how the client handles Windows GPO "logon rights" policies:
+
+| Setting | Behavior |
+|---------|----------|
+| `disabled` | Ignores GPO entirely — any domain user can log in |
+| `permissive` | Evaluates GPO but only logs results, does not block |
+| `enforcing` | Strictly enforces GPO — denies login if user lacks rights |
+
+When set to `enforcing`, SSSD:
+
+1. Queries AD for GPOs linked to the computer object
+2. Parses the "User Rights Assignment" section
+3. Checks for "Allow log on locally" (`SeInteractiveLogonRight`)
+4. Denies login if the user is not allowed (or is explicitly denied)
+
+## Prerequisites
+
+- An Active Directory domain controller with DNS configured
+- Domain Admin or delegated GPO management permissions
+- Test users created in AD (at least one allowed, one denied)
+- Network connectivity from the Ghaf device to the domain controller
+- An explicit `ghaf.users.active-directory.domains` configuration for your environment
+
+## Client-Side Configuration
+
+### Enabling the AD Users Profile
+
+To enable Active Directory authentication, activate the `ad-users` profile in your target profile (e.g. `modules/reference/profiles/mvp-user-trial.nix`):
+
+```nix
+ghaf.users.profile = {
+  homed-user.enable = false;
+  ad-users.enable = true;
+  mutable-users.enable = false;
+};
+```
+
+Ghaf asserts that when `ghaf.users.adUsers.enable` is active, at least one AD domain must be provided.
+
+### Configuring Organization-Specific AD Domains
+
+Active Directory domain configurations are **organization-specific** and intentionally kept separate from generic system images. Ghaf provides the `ghaf.org.identity.activeDirectory.domains` namespace so organizations can declare their directory environments cleanly.
+
+Configure your organization's AD domain inside your organization module (for example, `modules/reference/org/tii.nix` for TII):
+
+```nix
+# File: modules/reference/org/tii.nix
+ghaf.org = {
+  identity.activeDirectory.domains."ghaf-test.com" = {
+    ad = {
+      domain = "ghaf-test.com";
+      controllers = [ "vm-ghaf-dev-dc.ghaf-test.com" ];
+    };
+    dnsProvider = {
+      name = "vm-ghaf-dev-dc.ghaf-test.com";
+      ipAddress = "10.52.33.4";
+    };
+    ldap = {
+      schema = "ad";
+      idMapping = true;
+    };
+  };
+};
+```
+
+### SSSD GPO Settings
+
+The AD users module wires SSSD to the domains you define under `ghaf.users.active-directory.domains`. The key GPO-related settings live in each domain's `ad` block:
+
+```nix
+ad = {
+  domain = "example.com";
+  controllers = [ "dc.example.com" ];
+  gpoAccessControl = "enforcing";
+  dyndnsUpdate = false;
+  extraConfig = ''
+    # AD site for GPO discovery
+    ad_site = Default-First-Site-Name
+    # Deny access if no GPO is found (default: false)
+    ad_gpo_implicit_deny = true
+    # Map display manager and su PAM services to interactive logon rights
+    ad_gpo_map_interactive = +login, +greetd, +cosmic-greeter, +su, +su-l
+    # Map SSH PAM service to remote interactive logon rights
+    ad_gpo_map_remote_interactive = +sshd
+  '';
+};
+```
+
+For detailed explanation of SSSD GPO options and behavior, see the upstream [SSSD Active Directory GPO Integration](https://sssd.io/design-pages/active_directory_gpo_integration.html) documentation and [sssd-ad(5)](https://man.archlinux.org/man/sssd-ad.5).
+
+### User Identity and UID Override
+
+Ghaf uses a single-seat, single-user model where graphical desktop sessions and inter-VM shares expect a deterministic static UID (`1000`) and GID (`100`, `users`).
+
+The `adUsers` module includes an `override` option (enabled by default) that maps the authenticated domain user to UID 1000 via local SSSD overrides:
+
+```nix
+ghaf.users.adUsers.override = {
+  enable = true; # default: true
+  uid = 1000;    # default: 1000
+  gid = 100;     # default: 100
+  loginShell = "/run/current-system/sw/bin/bash";
+};
+```
+
+### Device Hostnames and GUI VM Prefix
+
+In Ghaf, hardware identity is exported dynamically to VMs. To avoid DNS and DHCP naming collisions between VMs on the domain network:
+- The net-vm registers as `ghaf-<device-id>`.
+- The gui-vm prefixes its hostname as `dev-ghaf-<device-id>` (enabled automatically when `ad-users` is active).
+
+When managing computer objects or targeting WMI filters in Active Directory, use the `dev-ghaf-<device-id>` computer account name.
+
+### Sudo Privileges for AD Groups
+
+To grant sudo privileges to specific Active Directory administrative groups, add the group rule to `security.sudo.extraConfig`:
+
+```nix
+security.sudo.extraConfig = ''
+  %<ad-group-name> ALL=(ALL) ALL
+  %<ad-group-name>@<domain> ALL=(ALL) ALL
+'';
+```
+
+### Build and Flash
+
+1. Ensure the `ad-users` profile is enabled in your target configuration
+2. Define at least one `ghaf.users.active-directory.domains.<name>` entry for your environment
+3. Build the image for your target device
+4. Flash the image to the device
+
+## Computer Object OU Placement
+
+GPOs **cannot** be linked to the default `Computers` container in AD. The computer object must reside in a proper Organizational Unit (OU) for policies to apply.
+
+The Ghaf provisioning TUI directly supports this: during the first-boot domain join wizard (`user-provision`), you are prompted for the target OU name (e.g. `TII-Ghaf`). Specifying the OU automatically joins the device into `OU=<ou>,<base-dn>`, placing the computer object into the designated OU immediately upon enrollment.
+
+If an OU was not specified during join, you can manually move the computer object in AD:
+1. Open Active Directory Users and Computers (`dsa.msc`)
+2. Right-click the domain → Find → change dropdown to "Computers"
+3. Search for the device hostname (`dev-ghaf-<device-id>`)
+4. Move the computer object to the target OU where the GPO is linked
+
+
+## YubiKey / FIDO2 Authentication with Active Directory
+
+When hardware token authentication is enabled alongside Active Directory, domain users can authenticate using their physical YubiKey or FIDO2 security keys.
+
+For SSSD passkey verification or Kerberos authentication to succeed, the user's hardware security key credentials (such as public keys or certificates) must be registered in the corresponding user object's LDAP attributes in Active Directory (e.g. `altSecurityIdentities` or `userCertificate`).
+
+### Client-Side Enablement in Ghaf
+
+To enable YubiKey and Active Directory login on the device, configure both in your profile:
+
+```nix
+ghaf = {
+  users.profile = {
+    ad-users.enable = true;
+    homed-user.enable = false;
+  };
+  services.yubikey.enable = true;
+};
+```
+
+## References
+
+- [SSSD Active Directory GPO Integration](https://sssd.io/design-pages/active_directory_gpo_integration.html)
+- [Microsoft GPO User Rights Assignment](https://docs.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/user-rights-assignment)
+- [SSSD man page: sssd-ad](https://man.archlinux.org/man/sssd-ad.5)
