@@ -616,6 +616,22 @@ let
   # generate duplicate synthetic -luks or -luks-uki variants for them.
   luksable-target-configs = builtins.filter (t: !isVerityTarget t) all-target-configs;
 
+  # The only Orin target that turns on idsvm.passiveMonitor (see
+  # modules/profiles/orin.nix). Added after the variant fan-out rather than to
+  # all-target-configs, so it yields one image plus its cross build instead of
+  # another twelve evaluations.
+  orin-agx-extras = ghaf-configuration {
+    name = "nvidia-jetson-orin-agx-extras";
+    inherit system;
+    profile = "orin";
+    hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx;
+    variant = "debug";
+    extraModules = commonModules;
+    extraConfig = {
+      reference.profiles.mvp-orinuser-trial-extras.enable = true;
+    };
+  };
+
   # Add nodemoapps targets
   targets =
     all-target-configs
@@ -623,7 +639,8 @@ let
     ++ (map generate-luks luksable-target-configs)
     ++ (map generate-luks-uki luksable-target-configs)
     ++ (map (t: generate-luks (generate-nodemoapps t)) luksable-target-configs)
-    ++ (map (t: generate-luks-uki (generate-nodemoapps t)) luksable-target-configs);
+    ++ (map (t: generate-luks-uki (generate-nodemoapps t)) luksable-target-configs)
+    ++ [ orin-agx-extras ];
   crossTargets = map generate-cross-from-x86_64 targets;
 
   flashTarget =

@@ -35,10 +35,11 @@ in
       };
 
       virtualization.microvm = {
-        # Enable idsvm and the MiTM features
         idsvm = {
           enable = lib.mkForce true;
-          mitmproxy.enable = lib.mkForce true;
+          # Base Orin profile leaves this off; only the extras/trial image
+          # turns passive monitoring on.
+          passiveMonitor.enable = lib.mkForce true;
         };
       };
 
