@@ -169,6 +169,7 @@ export default defineConfig({
                         "ghaf/dev/guides/migration",
                         "ghaf/dev/guides/orin-secure-ab-testing",
                         "ghaf/dev/guides/x86-secure-ab-testing",
+                        "ghaf/dev/guides/ad-login",
                       ],
                     },
                     {

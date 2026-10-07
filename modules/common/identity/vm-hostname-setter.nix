@@ -12,6 +12,7 @@ let
     mkEnableOption
     mkIf
     mkOption
+    optionalString
     types
     ;
 
@@ -26,6 +27,11 @@ in
       type = types.str;
       default = "/etc/common/ghaf/hostname";
       description = "Path to hostname file in VM (usually shared via virtiofs)";
+    };
+    prefix = mkOption {
+      type = types.nullOr types.str;
+      default = null;
+      description = "Prefix for the hostname (e.g. 'ghaf-device'). If set, formats hostname as '<prefix>-<device-id>'.";
     };
   };
 
@@ -71,6 +77,9 @@ in
             text = ''
               if [ -r ${escapeShellArg cfg.hostnamePath} ]; then
                 name=$(cat ${escapeShellArg cfg.hostnamePath})
+                ${optionalString (cfg.prefix != null) ''
+                  name="${cfg.prefix}-$name"
+                ''}
 
                 # Create /etc/hostname for NetworkManager DHCP client
                 # Remove the symlink first if it exists

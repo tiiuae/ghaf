@@ -76,6 +76,7 @@ let
       }";
     }
   ) virtualApps;
+
 in
 {
   _file = ./guivm-base.nix;
@@ -117,6 +118,7 @@ in
       managed = hostConfig.users.managed or [ ];
       adUsers = {
         enable = hostConfig.users.profile.ad-users.enable or false;
+        override = hostConfig.users.adUsers.override or { };
       };
       homedUser = {
         enable = hostConfig.users.profile.homed-user.enable or false;
@@ -136,8 +138,14 @@ in
     # Common namespace - from hostConfig
     # Required for killswitch, etc. to access hardware device info
     common = hostConfig.common or { };
-    # Enable dynamic hostname export for VMs
-    identity.vmHostNameExport.enable = true;
+    # Enable dynamic hostname export and setter for VMs
+    identity = {
+      vmHostNameExport.enable = true;
+      vmHostNameSetter = lib.mkIf (hostConfig.users.profile.ad-users.enable or false) {
+        enable = true;
+        prefix = "dev";
+      };
+    };
 
     # System
     type = "system-vm";

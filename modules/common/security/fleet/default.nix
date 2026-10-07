@@ -374,7 +374,7 @@ in
         environment.systemPackages = [ pkgs.xdg-utils ] ++ lib.optionals cfg.debug [ pkgs.fleetctl ];
 
         environment.sessionVariables = {
-          PATH = lib.mkAfter "$PATH:${pkgs.xdg-utils}/bin";
+          PATH = lib.mkAfter "\${PATH}:${pkgs.xdg-utils}/bin";
         };
       })
 

@@ -8,5 +8,6 @@ prev.cosmic-greeter.overrideAttrs (oldAttrs: {
     ./0003-skip-config-probe-for-locked-homes.patch
     ./0004-locker-focus-password-entry-on-session-lock-focus.patch
     ./0005-fix-greeter-cancel-session-on-failed-password-authen.patch
+    ./0006-active-directory-user-card-support.patch
   ];
 })

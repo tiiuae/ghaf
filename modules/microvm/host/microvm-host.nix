@@ -31,6 +31,14 @@ let
     else
       config.ghaf.users;
   hasLoginUser = userConfig.homedUser.enable || userConfig.adUsers.enable;
+  loginUserUid = toString (
+    if userConfig.homedUser.enable then
+      (userConfig.homedUser.uid or 1000)
+    else if (userConfig.adUsers.override.enable or false) then
+      (userConfig.adUsers.override.uid or 1000)
+    else
+      1000
+  );
   hasAudioVmAcpiPath =
     (lib.hasAttr "audio-vm" config.microvm.vms)
     && (config.ghaf.hardware.definition.audio.acpiPath != null);
@@ -232,12 +240,11 @@ in
               if xdgPathsAttempt.success then xdgPathsAttempt.value else [ ]
             ) vmsWithXdg
           );
-          xdgRules = map (
-            xdgPath: "D ${xdgPath} 0700 ${toString config.ghaf.users.homedUser.uid} users -"
-          ) xdgDirs;
+          xdgRules = map (xdgPath: "D ${xdgPath} 0700 ${loginUserUid} users -") xdgDirs;
         in
         [
           "d /persist/common 0755 root root -"
+          "d /persist/common/ghaf 0755 root root -"
           "d /persist/sysupdate 0755 root root -"
           "d /persist/storagevm 0755 root root -"
           "d /persist/storagevm/img 0700 microvm kvm -"
@@ -329,13 +336,12 @@ in
       systemd.tmpfiles.rules =
         let
           vmDirs = map (
-            n:
-            "d /persist/storagevm/shared/shares/Unsafe\\x20${n}\\x20share/ 0760 ${toString config.ghaf.users.homedUser.uid} users"
+            n: "d /persist/storagevm/shared/shares/Unsafe\\x20${n}\\x20share/ 0760 ${loginUserUid} users"
           ) cfg.sharedVmDirectory.vms;
         in
         [
           "d /persist/storagevm/shared 0755 root root"
-          "d /persist/storagevm/shared/shares 0760 ${toString config.ghaf.users.homedUser.uid} users"
+          "d /persist/storagevm/shared/shares 0760 ${loginUserUid} users"
         ]
         ++ vmDirs;
     })
