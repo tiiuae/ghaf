@@ -225,7 +225,7 @@
     };
 
     ghaf-device-manager = {
-      url = "github:tiiuae/ghaf-device-manager";
+      url = "github:tiiuae/ghaf-device-manager/1914b8189c8550d5c05d817b382567e734a809a3";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
