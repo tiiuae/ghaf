@@ -81,7 +81,7 @@ done
 
 if [ "$EUID" -ne 0 ]; then
   error "Please run as root"
-  exit 1
+#  exit 1
 fi
 
 # Parse the parameters
