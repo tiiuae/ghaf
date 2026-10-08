@@ -16,7 +16,7 @@ in
   config = lib.mkIf cfg.enable {
     zramSwap = {
       enable = true;
-      algorithm = "lzo-rle";
+      algorithm = "zstd";
       memoryPercent = 25;
     };
     boot.kernel.sysctl."vm.swappiness" = 10;
