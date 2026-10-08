@@ -12,6 +12,7 @@
   flake.nixosModules = {
     microvm-nix.imports = [
       inputs.microvm.nixosModules.microvm
+      ./microvm-extensions
     ];
 
     microvm.imports = [
@@ -42,6 +43,7 @@
       ./common/storagevm.nix
       ./common/vm-crosvm.nix
       ./common/vm-networking.nix
+      ./common/vm-protected.nix
       ./common/vm-qemu.nix
       ./common/vm-swap.nix
       ./common/vm-tpm.nix
