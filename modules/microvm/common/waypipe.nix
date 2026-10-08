@@ -228,7 +228,7 @@ in
             serviceConfig = {
               Type = "exec";
               ExecStart = "${getExe persistentWaypipeServer}";
-              ExecStopPost = "rm -f %t/${cfg.persistentWaypipeServer.display}";
+              ExecStopPost = "${getExe' pkgs.coreutils "rm"} -f %t/${cfg.persistentWaypipeServer.display}";
               Restart = "on-failure";
               RestartSec = "2s";
             };
