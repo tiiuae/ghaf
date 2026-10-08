@@ -23,6 +23,7 @@ let
   inherit (config.networking) hostName;
   inherit (config.ghaf.common.extraNetworking) enableStaticArp;
   hasNetvm = lib.hasAttr "net-vm" config.microvm.vms;
+  hasVms = config.microvm.vms != { };
 in
 {
   _file = ./networking.nix;
@@ -52,7 +53,7 @@ in
   config = mkMerge [
 
     # Common networking configuration that sets up a network bridge for VMs
-    {
+    (mkIf hasVms {
       # To disable the filtering of VM network packets through the firewall.
       boot = {
         blacklistedKernelModules = [ "br_netfilter" ];
@@ -65,8 +66,11 @@ in
         };
       };
 
-      # Enable ARP filtering with ebtables
-      ghaf.firewall.filter-arp = enableStaticArp;
+      # Enable attack mitigation features
+      ghaf.firewall.attack-mitigation = {
+        arpSpoofing.enable = enableStaticArp;
+        macIpSpoofing.enable = mkDefault true;
+      };
 
       # Setup host VM network bridge
       systemd.network = {
@@ -148,7 +152,7 @@ in
           };
         };
       };
-    }
+    })
 
     # Host networking configuration
     (mkIf cfg.enable {
