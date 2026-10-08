@@ -52,6 +52,7 @@ let
       ];
 
       ghaf.host.secureboot.enable = true;
+      services.fwupd.enable = true;
 
       # The dev-key roster is org data: without the TII org module the debug
       # authorizedKeys list is empty and the installer is reachable by no one.
