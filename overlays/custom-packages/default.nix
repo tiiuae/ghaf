@@ -28,6 +28,7 @@
   qt6Packages = import ./qt6Packages { inherit prev; };
   spire4ghaf = import ./spire4ghaf { inherit prev; };
   udiskie = import ./udiskie { inherit prev; };
+  wayland = import ./wayland { inherit prev; };
   waypipe = import ./waypipe { inherit prev; };
   yad = import ./yad { inherit prev; };
 })
