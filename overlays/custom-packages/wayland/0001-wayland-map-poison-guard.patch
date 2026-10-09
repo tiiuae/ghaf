@@ -1,0 +1,33 @@
+SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: Apache-2.0
+
+From e28e5d26d80e462d4c2435bb8acd49fd3fd72575 Mon Sep 17 00:00:00 2001
+From: Janne Pirskanen <janne.pirskanen@tii.ae>
+Date: Tue, 6 Oct 2026 10:26:50 +0300
+Subject: [PATCH] Add pointer check for released wl_map
+
+Signed-off-by: Janne Pirskanen <janne.pirskanen@tii.ae>
+---
+ src/wayland-util.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/src/wayland-util.c b/src/wayland-util.c
+index 15e157d..bef1e3e 100644
+--- a/src/wayland-util.c
++++ b/src/wayland-util.c
+@@ -277,6 +277,12 @@ wl_map_insert_at(struct wl_map *map, uint32_t flags, uint32_t i, void *data)
+ 		return -1;
+ 	}
+ 
++	if (entries->data == WL_ARRAY_POISON_PTR) {
++		wl_log("wl_map_insert_at: refusing insert into released map, id=%u\n", i);
++		errno = EINVAL;
++		return -1;
++	}
++
+ 	count = entries->size / sizeof *start;
+ 	if (count < i) {
+ 		errno = EINVAL;
+-- 
+2.51.2
+
