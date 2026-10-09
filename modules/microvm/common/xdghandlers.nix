@@ -39,7 +39,7 @@ let
           trap cleanup EXIT
 
           echo "${name}: Opening file $file using ${package.name}"
-          systemd-run --unit=${name} --wait --service-type=${serviceType} --user ${envFlags} -- ${execCmd} "$file"
+          systemd-run --unit=${name} --property=ExitType=cgroup --wait --service-type=${serviceType} --user ${envFlags} -- ${execCmd} "$file"
         '';
     };
 
