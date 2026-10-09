@@ -102,7 +102,7 @@
     # Crosvm with Ghaf's swtpm backend. This is a non-flake source input
     # because nixpkgs supplies the package expression and Rust dependencies.
     ghaf-crosvm = {
-      url = "git+https://github.com/tiiuae/ghaf-crosvm?submodules=1";
+      url = "git+https://github.com/kajusnau/ghaf-crosvm?ref=pmem-ext2-64bit&submodules=1";
       flake = false;
     };
 

@@ -318,19 +318,20 @@
     "ghaf-crosvm": {
       "flake": false,
       "locked": {
-        "lastModified": 1788280008,
-        "narHash": "sha256-+1WP7iAexfmT9nviC39aXeqLVrBAVisNilnCLFA9r8I=",
-        "ref": "refs/heads/main",
-        "rev": "2a98c208e586a43a092d122dce2a35a235b33389",
-        "revCount": 11729,
+        "lastModified": 1791546056,
+        "narHash": "sha256-PdgBMAcjh0ULqBZOClTwulmjuHNyqNSqOG6otGqTf6M=",
+        "ref": "pmem-ext2-64bit",
+        "rev": "0b449c1c358ca7155d10720101536b33d4dc95ad",
+        "revCount": 11734,
         "submodules": true,
         "type": "git",
-        "url": "https://github.com/tiiuae/ghaf-crosvm"
+        "url": "https://github.com/kajusnau/ghaf-crosvm"
       },
       "original": {
+        "ref": "pmem-ext2-64bit",
         "submodules": true,
         "type": "git",
-        "url": "https://github.com/tiiuae/ghaf-crosvm"
+        "url": "https://github.com/kajusnau/ghaf-crosvm"
       }
     },
     "ghaf-device-manager": {
