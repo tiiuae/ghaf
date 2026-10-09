@@ -71,6 +71,8 @@ in
     '';
 
     systemd.services.greetd.serviceConfig = {
+      # nixpkgs uses Type=idle, which delays the greeter by up to 5 s at boot
+      Type = lib.mkForce "simple";
       RestartSec = "5";
     };
 
