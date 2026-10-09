@@ -30,6 +30,10 @@
     );
   });
 
+  packagekit = prev.packagekit.overrideAttrs (oldAttrs: {
+    nativeBuildInputs = (oldAttrs.nativeBuildInputs or [ ]) ++ [ final.buildPackages.python3 ];
+  });
+
   # tpm2-pytss 3.0.0rc1 already invokes $CC -E when preprocessing headers,
   # so nixpkgs' older cross.patch no longer applies and is no longer needed.
   pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
