@@ -80,3 +80,9 @@ only exist until an upstream fix lands, so they should be reverted rather than m
 
   Drop it when a `jetpack-nixos` bump brings an `nvidia-oot` that knows the new
   fb-helper contract.
+
+## Rust Platform Fixes
+
+ChromiumVm's chromium package caused a build issue with crubit while the fix required update of rust platform by adding openssl to builInputs, which is not yet upstreamed. It also requires rust toolchain links and packagekit nativeinputs to be added python3 packages.
+
+The relevant issue is crbug 558415424. Chromium’s Sept. 9 Rust roll says it could proceed after that Crubit issue was fixed; the roll is commit b7a1ab74, reviewed as CL 8378741. It is not yet upstreamed, but the fix is in the Rust toolchain. With chromium version bump in nixpkgs we can use the upstreamed fix.

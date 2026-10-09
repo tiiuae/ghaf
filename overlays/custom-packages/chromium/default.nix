@@ -31,21 +31,40 @@ let
   cross = stdenv.hostPlatform != stdenv.buildPlatform;
 
   oldBrowser = prev.chromium.browser;
-  crossBrowser = oldBrowser.overrideAttrs (old: {
-    postPatch =
-      (old.postPatch or "")
-      # Single-line replacement: an indented multi-line python block would be
-      # mangled by nix indented-string whitespace stripping.
-      + ''
-        substituteInPlace build/rust/gni_impl/run_bindgen.py --replace-fail \
-          "env = os.environ" \
-          "env = os.environ; env.update({'BINDGEN_EXTRA_CLANG_ARGS': '-isystem ${lib.getDev prev.pkgsBuildBuild.stdenv.cc.libc}/include'} if any(a.startswith('--target=${stdenv.buildPlatform.parsed.cpu.name}') for a in genargs) else {})"
-      '';
-    preConfigure = (old.preConfigure or "") + ''
-      export CGO_ENABLED=0
-      export GOFLAGS=-ldflags=-linkmode=internal
-    '';
-  });
+  crossBrowser =
+    (oldBrowser.override (
+      { mkChromiumDerivation, ... }: {
+        mkChromiumDerivation = mkChromiumDerivation.override {
+          # Crubit and gnrt run during the build; gnrt also needs native OpenSSL.
+          rustPlatform = prev.pkgsBuildBuild.rustPlatform // {
+            buildRustPackage =
+              args:
+              (prev.pkgsBuildBuild.rustPlatform.buildRustPackage args).overrideAttrs (old: {
+                buildInputs = map (
+                  input: if lib.getName input == "openssl" then prev.pkgsBuildBuild.openssl else input
+                ) (old.buildInputs or [ ]);
+              });
+          };
+        };
+      }
+    )).overrideAttrs
+      (old: {
+        postPatch =
+          (old.postPatch or "")
+          # Single-line replacement: an indented multi-line python block would be
+          # mangled by nix indented-string whitespace stripping.
+          + ''
+            # Chromium supplies its own sysroot in response files, which the Nix wrapper cannot detect.
+            ln -sfn ${prev.buildPackages.rustc.unwrapped}/bin/rustc third_party/rust-toolchain/bin/rustc
+            substituteInPlace build/rust/gni_impl/run_bindgen.py --replace-fail \
+              "env = os.environ" \
+              "env = os.environ; env.update({'BINDGEN_EXTRA_CLANG_ARGS': '-isystem ${lib.getDev prev.pkgsBuildBuild.stdenv.cc.libc}/include'} if any(a.startswith('--target=${stdenv.buildPlatform.parsed.cpu.name}') for a in genargs) else {})"
+          '';
+        preConfigure = (old.preConfigure or "") + ''
+          export CGO_ENABLED=0
+          export GOFLAGS=-ldflags=-linkmode=internal
+        '';
+      });
 in
 if cross then
   prev.chromium.overrideAttrs (old: {
