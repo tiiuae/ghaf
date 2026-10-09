@@ -8,8 +8,6 @@
   colors,
 }:
 let
-  backgroundColor = with colors; "${base00-dec-r}, ${base00-dec-g}, ${base00-dec-b}";
-
   foregroundColor = with colors; "${base05-dec-r}, ${base05-dec-g}, ${base05-dec-b}";
 in
 builtins.toFile "ghaf-plymouth-theme" ''
@@ -20,8 +18,8 @@ builtins.toFile "ghaf-plymouth-theme" ''
 
   ### BACKGROUND ###
 
-  Window.SetBackgroundTopColor(${backgroundColor});
-  Window.SetBackgroundBottomColor(${backgroundColor});
+  Window.SetBackgroundTopColor(0, 0, 0);
+  Window.SetBackgroundBottomColor(0, 0, 0);
 
   ### LOGO ###
   # Pulses the logo's opacity in a slow sine wave ("breathing") in place of

@@ -261,6 +261,32 @@ in
             makestep 1.0 -1
           '';
         };
+
+        # Ask for the time as soon as the uplink is up instead of ~30s later.
+        systemd.services.ghaf-chrony-burst = {
+          description = "Poll time servers now that an uplink is up";
+          after = [ "chronyd.service" ];
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = [
+              "${lib.getExe' config.services.chrony.package "chronyc"} refresh"
+              "${lib.getExe' config.services.chrony.package "chronyc"} burst 4/4"
+            ];
+          };
+        };
+        # chronyc cannot run inside the dispatcher's sandbox, so start a unit instead.
+        networking.networkmanager.dispatcherScripts = [
+          {
+            source = pkgs.writeShellScript "ghaf-chrony-burst" ''
+              case "$2" in
+                up | connectivity-change)
+                  ${lib.getExe' pkgs.systemd "systemctl"} start --no-block ghaf-chrony-burst.service || true
+                  ;;
+              esac
+            '';
+            type = "basic";
+          }
+        ];
       })
     ]
   );
