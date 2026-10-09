@@ -59,6 +59,19 @@ in
   config = lib.mkIf pkgs.stdenv.hostPlatform.isx86_64 {
     boot.kernelPackages = kernelPackages;
 
+    # Stop systemd stalling on crosvm's slow serial console during boot.
+    boot.kernelParams = lib.optionals isCrosvm [
+      "systemd.show_status=error"
+    ];
+
+    # Crosvm guests only have virtio devices, so skip the bare-metal drivers.
+    boot.initrd.includeDefaultModules = !isCrosvm;
+
+    # Keep the initrd's early mounts from hitting systemd's mount rate limit.
+    boot.initrd.systemd.managerEnvironment = lib.mkIf isCrosvm {
+      SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST = "50";
+    };
+
     # Keep guest kernel changes here rather than per VM: every guest gets the
     # same list, so they all share one kernel build.
     boot.kernelPatches = [
@@ -93,6 +106,12 @@ in
           VIRTIO_PCI = yes;
           VIRTIO_IOMMU = yes;
         };
+      }
+      # Probing serial port IRQs finds nothing on crosvm and costs ~1s per boot.
+      {
+        name = "crosvm-serial-no-irq-probe";
+        patch = null;
+        structuredExtraConfig.SERIAL_8250_DETECT_IRQ = lib.kernel.no;
       }
       {
         name = "goldfish-battery";
