@@ -172,7 +172,8 @@
 
     # For building and managing VMs
     microvm = {
-      url = "github:microvm-nix/microvm.nix";
+      # TODO: return to upstream once https://github.com/microvm-nix/microvm.nix/pull/622 lands.
+      url = "github:kajusnau/microvm.nix/crosvm-console-115200";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
