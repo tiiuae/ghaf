@@ -207,41 +207,6 @@ let
     '';
   };
 
-  loadFtpmModuleApp = pkgs.writeShellApplication {
-    name = "ghaf-load-ftpm-module";
-    runtimeInputs = [
-      pkgs.coreutils
-      pkgs.kmod
-      pkgs.systemd
-    ];
-    text = ''
-      set -euo pipefail
-
-      if [ -e /dev/tpmrm0 ]; then
-        echo "fTPM device already present, skipping"
-        exit 0
-      fi
-
-      if ! systemctl is-active --quiet tee-supplicant.service; then
-        echo "tee-supplicant is not active" >&2
-        exit 1
-      fi
-
-      if ! timeout 20s modprobe tpm_ftpm_tee; then
-        echo "Failed to load tpm_ftpm_tee" >&2
-        exit 1
-      fi
-
-      udevadm settle --timeout=5 || true
-      if [ ! -e /dev/tpmrm0 ]; then
-        echo "tpm_ftpm_tee loaded but /dev/tpmrm0 is missing" >&2
-        exit 1
-      fi
-
-      echo "Loaded tpm_ftpm_tee"
-    '';
-  };
-
   firmwareEkbImage =
     pkgs.buildPackages.runCommand "ghaf-eks-t234"
       {
@@ -690,26 +655,6 @@ in
       default = "bsp-default";
     };
 
-    runtimeEkProvision.enable = mkOption {
-      description = ''
-        Provision EK certificates into TPM NV indices at runtime.
-        This is an unfused development/testing flow; production devices
-        receive EK certificates during manufacturing.
-      '';
-      type = types.bool;
-      default = config.ghaf.profiles.debug.enable;
-      defaultText = lib.literalExpression "config.ghaf.profiles.debug.enable";
-    };
-
-    ftpm.enable = mkOption {
-      description = ''
-        Load the OP-TEE-backed firmware TPM during stage 2. This is independent
-        of the OP-TEE device-unique-key service used for disk encryption.
-      '';
-      type = types.bool;
-      default = true;
-    };
-
     diskEncryption = {
       enable = mkEnableOption "generic LUKS root filesystem encryption for eMMC APP partition";
 
@@ -822,13 +767,6 @@ in
           !(verityEnabled && cfg.diskEncryption.enable) || cfg.diskEncryption.deviceUniqueKey.enable;
         message = "Encrypted Orin verity images require diskEncryption.deviceUniqueKey.enable.";
       }
-      {
-        assertion = !cfg.runtimeEkProvision.enable || cfg.ftpm.enable;
-        message = ''
-          ghaf.hardware.nvidia.orin.runtimeEkProvision.enable requires
-          ghaf.hardware.nvidia.orin.ftpm.enable.
-        '';
-      }
     ];
     ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkDefault (
       cfg.flashScriptOverrides.signedArtifactsPath != null
@@ -887,10 +825,6 @@ in
       };
 
       modprobeConfig.enable = true;
-
-      # Prevent early autoload; load in stage-2 after local filesystems
-      # and tee-supplicant are up.
-      blacklistedKernelModules = [ "tpm_ftpm_tee" ];
 
       kernelPatches = [
         {
@@ -1163,40 +1097,14 @@ in
       };
     };
 
-    systemd.services.ghaf-load-ftpm-module = mkIf cfg.ftpm.enable {
-      description = "Load fTPM module after stage-2 OP-TEE readiness";
-      wantedBy = [ "multi-user.target" ];
-      wants = [
-        "local-fs.target"
-        "tee-supplicant.service"
-      ];
-      after = [
-        "local-fs.target"
-        "systemd-modules-load.service"
-        "tee-supplicant.service"
-      ];
-      before = [
-        "ghaf-provision-ek-certs.service"
-        "ghaf-export-ek-endorsement-bundle.service"
-      ];
-      unitConfig.ConditionPathExists = "!/dev/tpmrm0";
-
-      serviceConfig = {
-        Type = "oneshot";
-        TimeoutStartSec = "80s";
-        ExecStart = lib.getExe loadFtpmModuleApp;
-      };
-    };
-
-    systemd.services.ghaf-provision-ek-certs = mkIf (cfg.ftpm.enable && cfg.runtimeEkProvision.enable) {
+    systemd.services.ghaf-provision-ek-certs = mkIf cfg.optee.ftpm.enable {
       description = "Provision fTPM EK certificates into standard NV indices";
       wantedBy = [ "multi-user.target" ];
       wants = [ "tee-supplicant.service" ];
       after = [
         "local-fs.target"
         "systemd-modules-load.service"
-        "tee-supplicant.service"
-        "ghaf-load-ftpm-module.service"
+        "ftpm-driver.service"
       ];
       unitConfig.ConditionPathExists = "/dev/tpmrm0";
       unitConfig.OnSuccess = [ "ghaf-export-ek-endorsement-bundle.service" ];
@@ -1204,31 +1112,26 @@ in
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        TimeoutStartSec = "90s";
         UMask = "0077";
         ExecStart = lib.getExe provisionEkCertsApp;
       };
     };
 
-    systemd.services.ghaf-export-ek-endorsement-bundle = mkIf cfg.ftpm.enable {
+    systemd.services.ghaf-export-ek-endorsement-bundle = mkIf cfg.optee.ftpm.enable {
       description = "Export EK certs and build endorsement CA bundle";
       wantedBy = [ "multi-user.target" ];
       wants = [ "tee-supplicant.service" ];
       after = [
         "local-fs.target"
         "systemd-modules-load.service"
-        "tee-supplicant.service"
-        "ghaf-load-ftpm-module.service"
-      ]
-      ++ lib.optionals cfg.runtimeEkProvision.enable [
         "ghaf-provision-ek-certs.service"
       ];
       unitConfig.ConditionPathExists = "/dev/tpmrm0";
 
       serviceConfig = {
         Type = "oneshot";
-        TimeoutStartSec = "45s";
         UMask = "0077";
+        RemainAfterExit = true;
         ExecStart = lib.getExe exportEkBundleApp;
       };
     };
