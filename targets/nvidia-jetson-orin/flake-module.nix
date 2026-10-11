@@ -437,10 +437,9 @@ let
         "release"
       ];
 
-  # Secure A/B verity+LUKS canaries. The AGX canary leaves the firmware TPM
-  # disabled: its OP-TEE fTPM probe can remain uninterruptibly blocked and
-  # prevent reboot. This does not disable the separate OP-TEE DUK path used to
-  # unlock APP.
+  # Secure A/B verity+LUKS canaries. The OP-TEE fTPM probe can remain
+  # uninterruptibly blocked and prevent reboot. This risk is independent of
+  # the OP-TEE DUK path used to unlock APP.
   secure-ab-target-configs =
     map
       (
@@ -514,8 +513,6 @@ let
             hardware.nvidia.orin.secureboot.enable = true;
             hardware.nvidia.orin.diskEncryption.enable = true;
             hardware.nvidia.orin.diskEncryption.deviceUniqueKey.enable = true;
-            hardware.nvidia.orin.ftpm.enable = board.enableFtpm;
-            hardware.nvidia.orin.runtimeEkProvision.enable = board.enableFtpm;
             virtualization.vmConfig.sysvms.netvm.extraModules = [ orinUpdateHttpFetchModule ];
             boot-health = {
               enable = true;
@@ -536,12 +533,10 @@ let
         {
           name = "nvidia-jetson-orin-nx";
           hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-nx;
-          enableFtpm = true;
         }
         {
           name = "nvidia-jetson-orin-agx";
           hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx;
-          enableFtpm = false;
         }
       ];
   all-target-configs = target-configs ++ verity-target-configs ++ secure-ab-target-configs;

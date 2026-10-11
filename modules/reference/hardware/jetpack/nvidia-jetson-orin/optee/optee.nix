@@ -107,9 +107,43 @@ in
         '';
       };
     };
+
+    ftpm = {
+      enable = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Enable fTPM support.";
+      };
+
+      measuredBoot = mkOption {
+        type = types.bool;
+        default = false;
+        description = "Enable measured-boot support for fTPM.";
+      };
+
+      unsecureInjectEPS = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable unsecure fTPM EPS injection.";
+        };
+
+        value = mkOption {
+          type = types.str;
+          default = "";
+          description = "EPS value to inject when unsecure EPS injection is enabled.";
+        };
+      };
+    };
   };
 
   config = mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = !cfg.ftpm.unsecureInjectEPS.enable || cfg.ftpm.unsecureInjectEPS.value != "";
+        message = "ghaf.hardware.nvidia.orin.optee.ftpm.unsecureInjectEPS.value must be set when EPS injection is enabled.";
+      }
+    ];
 
     hardware.nvidia-jetpack.firmware.optee = {
       pkcs11Support = cfg.pkcs11.enable;
@@ -127,6 +161,15 @@ in
       patches = lib.optional cfg.pkcs11.lockPinAfterFailedLoginAttempts ./0001-ta-pkcs11-Build-time-option-for-controlling-pin-lock.patch;
 
       inherit (cfg) xtest;
+
+      ftpm = {
+        enable = cfg.ftpm.enable;
+        measuredBoot = cfg.ftpm.measuredBoot;
+        unsecureInjectEPS = {
+          enable = cfg.ftpm.unsecureInjectEPS.enable;
+          value = cfg.ftpm.unsecureInjectEPS.value;
+        };
+      };
     };
 
     environment.systemPackages = lib.optional cfg.pkcs11-tool pkcs11-tool-optee;

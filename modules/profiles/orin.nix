@@ -134,6 +134,10 @@ in
       # Orin devices are embedded, not laptops
       hardware.definition.type = "embedded";
 
+      hardware.nvidia.orin.optee.ftpm = {
+        enable = true;
+      };
+
       # Avoid non-cross-compilable desktop features unavailable on Orin.
       global-config.features.fprint.enable = false;
 
