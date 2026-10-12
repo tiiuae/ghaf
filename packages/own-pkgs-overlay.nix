@@ -21,6 +21,7 @@
         { };
     ghaf-installer = final.callPackage ./pkgs-by-name/ghaf-installer/package.nix { };
     ghaf-intro = final.callPackage ./pkgs-by-name/ghaf-intro/package.nix { };
+    ghaf-journal-remote = final.callPackage ./pkgs-by-name/ghaf-journal-remote/package.nix { };
     ghaf-open = final.callPackage ./pkgs-by-name/ghaf-open/package.nix { };
     ghaf-powercontrol = final.callPackage ./ghaf-powercontrol/package.nix { };
     ghaf-prepare-x86-verity-disk =
