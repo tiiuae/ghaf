@@ -140,13 +140,23 @@ in
 
     services.getty = {
       greetingLine = "<<< Welcome to the Ghaf installer >>>";
-      helpLine = lib.mkAfter ''
+      # Replace the NixOS installer text, since it doesn't match Ghaf's installer
+      helpLine = lib.mkForce ''
 
-        To start the interactive Ghaf installer, run
-        `sudo ghaf-installer-tui`.
+        To start the interactive Ghaf installer, run `sudo ghaf-installer-tui`.
 
-        To start the non-interactive Ghaf installer, run
-        `sudo ghaf-installer`.
+        For a scripted install, run `sudo ghaf-installer --help`
+        (e.g. `sudo ghaf-installer -d /dev/nvme0n1 -y` installs without prompts).
+
+        To connect to Wi-Fi, run `nmtui`, or
+        `sudo nmcli dev wifi connect <SSID> password <PASSWORD>`.
+
+        To update device firmware (needs a network connection), run
+        `sudo fwupdmgr refresh`, then `sudo fwupdmgr get-updates` to list updates
+        and `sudo fwupdmgr update` to apply them. A reboot is usually required.
+
+        The "nixos" and "root" accounts have no password. To log in over SSH,
+        set one with `passwd` (`sudo passwd` for "root").
       '';
     };
 
