@@ -2,6 +2,7 @@
 title: System Logs
 description: "Overview of Ghaf’s logging architecture: collection, aggregation, retention, transport protection, and tamper evidence."
 ---
+
 Ghaf's logging pipeline collects journald and auditd records, aggregates them in
 the Admin VM, and can forward them to a remote backend. Transport protection,
 storage protection, retention, and log sealing address different security
@@ -51,13 +52,35 @@ its responsibilities and distinct attack surface.
 
 #### Intra-Platform Log Forwarding
 
-All non-admin VMs (including both system and application VMs) forward their `journald` streams to the Admin VM. The Admin VM plays a dual role: it (i) generates its own logs locally (like any other VM) and (ii) runs a listener/receiver that ingests forwarded logs from the other VMs. This makes the Admin VM the single aggregation point inside the Ghaf Platform, reducing the need for each VM to maintain independent connectivity to remote logging infrastructure and allowing policy enforcement to be concentrated in one place.
+The logging-enabled host and non-admin VMs use `systemd-journal-upload` to send
+journals over HTTPS with GIVC mutual TLS. In Admin VM,
+`ghaf-journal-receiver.service` stores them in the shared native journal at
+`/var/log/ghaf-journal/shared/remote.journal`. Alloy reads this journal and the
+Admin VM's local journal for forwarding to the remote backend.
 
-Once logs are aggregated, the Admin VM can forward the unified stream to a
-remote log server. This endpoint supports centralized querying, alerting, and
-longer-term storage beyond what is retained locally.
+Ghaf's receiver patch accepts known certificate identities and replaces any
+sender-supplied `_GHAF_SOURCE` with the authenticated source name. Alloy uses
+this field for `host` and drops entries without a known source. Use these
+identities for attribution; `_HOSTNAME` is untrusted. A compromised sender can
+fabricate its own logs, but impersonating another VM requires credentials valid
+for that VM.
+
+#### Shared Journal Retention
+
+When enabled, `ghaf.logging.journalRetention` supplies the same `maxDiskUsage`,
+`maxRetention`, and `MaxFileSec` settings to local journals and the shared
+receiver. Both use a 100 MiB maximum file size. The receiver rotates and removes
+expired files internally, including during idle periods, without interrupting
+uploads.
+
+The shared disk budget covers all forwarded sources and is separate from local
+journal budgets. A noisy VM can shorten retention for others. Cleanup operates
+on whole files, and active files can temporarily exceed the budget. Deleted
+records are unavailable for Alloy replay. Logseald seals local journals
+independently.
 
 ### Secure Logging
+
 Ghaf applies separate controls while logs are stored, forwarded, and retained
 across isolation boundaries. Integrity, retention, and confidentiality are
 complementary properties.
@@ -100,7 +123,7 @@ Encryption in transit
 - Implemented with TLS/SSL-protected channels (for example, HTTPS endpoints, syslog over TLS, gRPC with mTLS, or SSH tunnels) between hosts and MicroVMs.
 - Protects confidentiality when logs traverse networks, virtual busses, or shared host paths between VMs.
 - Prevents tampering and spoofing by authenticating endpoints and enabling integrity checks, so attackers cannot inject or modify events in flight.
-- Aligns with Ghaf’s compartmentalization model (modules/microvm/*) and least-privilege service design: even if an intermediate domain is compromised, encrypted channels limit what can be observed or altered.
+- Aligns with Ghaf’s compartmentalization model (modules/microvm/\*) and least-privilege service design: even if an intermediate domain is compromised, encrypted channels limit what can be observed or altered.
 
 Encryption at rest
 
@@ -111,7 +134,7 @@ Encryption at rest
 - Limits blast radius of host or service compromises by requiring access to both storage and keys.
 - Complements tamper-evidence controls by protecting stored log content from
   unauthorized offline reading.
-- Complements kernel/host hardening profiles (see modules/common/profiles/kernel-hardening.nix) and auditing (modules/common/security/audit/*), which increase the value and sensitivity of what is logged.
+- Complements kernel/host hardening profiles (see modules/common/profiles/kernel-hardening.nix) and auditing (modules/common/security/audit/\*), which increase the value and sensitivity of what is logged.
 
 Threats mitigated
 

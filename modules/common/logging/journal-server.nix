@@ -3,6 +3,8 @@
 {
   config,
   lib,
+  options,
+  pkgs,
   ...
 }:
 let
@@ -13,12 +15,68 @@ let
     types
     ;
   cfg = config.ghaf.logging.journalServer;
+  retention = config.ghaf.logging.journalRetention;
   givcEnabled = config.ghaf.givc.enable;
   givcHostEnabled = config.ghaf.givc.host.enable;
   needsGivcMount = givcEnabled && !givcHostEnabled;
+  producers = lib.remove config.networking.hostName (builtins.attrNames config.ghaf.networking.hosts);
+  unit = "ghaf-journal-receiver";
+  logDirectory = "/var/log/ghaf-journal";
+  remote = lib.getExe pkgs.ghaf-journal-remote;
+  receiver = pkgs.writeShellApplication {
+    name = "start-journal-receiver";
+    text = ''
+      exec ${remote} --listen-https=0.0.0.0:${toString config.ghaf.logging.listener.port} \
+        --split-mode=none --output=${logDirectory}/shared/remote.journal \
+        --key="$CREDENTIALS_DIRECTORY/key" --cert="$CREDENTIALS_DIRECTORY/cert" \
+        --trust="$CREDENTIALS_DIRECTORY/ca" \
+        ${lib.escapeShellArgs (
+          lib.optionals retention.enable [
+            "--max-use=${retention.maxDiskUsage}"
+            "--max-file-size=100M"
+            "--max-retention=${retention.maxRetention}"
+            "--max-file-age=${retention.MaxFileSec}"
+          ]
+          ++ map (name: "--authenticated-source=${name}") producers
+        )}
+    '';
+  };
+  tlsPolicy = pkgs.writeText "journal-receiver-tls.conf" ''
+    [overrides]
+    disabled-version = tls1.0
+    disabled-version = tls1.1
+    disabled-version = ssl3.0
+  '';
+  hardening = {
+    User = unit;
+    Group = "systemd-journal";
+    NoNewPrivileges = true;
+    ProtectSystem = "strict";
+    ReadWritePaths = [ logDirectory ];
+    ProtectHome = true;
+    PrivateDevices = true;
+    PrivateTmp = true;
+    CapabilityBoundingSet = "";
+    UMask = "0027";
+    LogLevelMax = "notice";
+    # Keep unclassified shell errors visible through the notice-level filter.
+    SyslogLevel = "warning";
+  };
+
 in
 {
   _file = ./journal-server.nix;
+
+  imports = [
+    (lib.mkRemovedOptionModule [
+      "ghaf"
+      "logging"
+      "journalServer"
+      "tls"
+      "terminator"
+      "backendPort"
+    ] "Journal ingestion now uses a single authenticated TLS receiver.")
+  ];
 
   options.ghaf.logging.journalServer = {
     enable = mkEnableOption "Logs aggregator server";
@@ -27,25 +85,20 @@ in
       caFile = mkOption {
         type = types.nullOr types.path;
         default = "/etc/givc/ca-cert.pem";
-        description = "Optional CA bundle for server verification (e.g., /etc/givc/ca-cert.pem). If null, use system CAs.";
+        description = "Required CA bundle for verifying journal sender certificates.";
       };
       certFile = mkOption {
         type = types.nullOr types.path;
         default = "/etc/givc/cert.pem";
-        description = "Client certificate (PEM) used for mTLS.";
+        description = "Receiver certificate (PEM) used for mTLS.";
       };
       keyFile = mkOption {
         type = types.nullOr types.path;
         default = "/etc/givc/key.pem";
-        description = "Client private key (PEM) used for mTLS.";
+        description = "Receiver private key (PEM) used for mTLS.";
       };
 
       terminator = {
-        backendPort = mkOption {
-          type = types.port;
-          default = 3101;
-          description = "Local HTTP backend port for systemd-journal-remote when TLS termination is enabled.";
-        };
         verifyClients = mkOption {
           type = types.bool;
           default = true;
@@ -62,73 +115,52 @@ in
         message = "Please set ghaf.logging.journalServer.tls.certFile and tls.keyFile.";
       }
       {
-        assertion = (!cfg.tls.terminator.verifyClients) || cfg.tls.caFile != null;
-        message = "Please set ghaf.logging.journalServer.tls.caFile when mTLS client verification is enabled.";
+        assertion = cfg.tls.terminator.verifyClients && cfg.tls.caFile != null;
+        message = "Journal ingestion requires client certificate verification and a trusted CA.";
       }
       {
-        assertion = cfg.tls.terminator.backendPort != config.ghaf.logging.listener.port;
-        message = "ghaf.logging.journalServer.tls.terminator.backendPort must differ from ghaf.logging.listener.port.";
+        assertion =
+          producers != [ ] && lib.all (name: builtins.match "[a-z0-9][a-z0-9-]{0,62}" name != null) producers;
+        message = "Journal ingestion requires known producers with lowercase DNS identities.";
       }
     ];
 
-    services.journald.remote = {
-      enable = true;
-      port = cfg.tls.terminator.backendPort;
-      output = "/var/log/journal/remote/";
-      settings.Remote = {
-        SplitMode = "host";
-      };
+    services.journald.remote.enable = lib.mkForce false;
+    users.users.${unit} = {
+      isSystemUser = true;
+      group = "systemd-journal";
     };
-
-    services.stunnel = {
-      enable = true;
-
-      servers."ghaf-journal" = {
-        accept = config.ghaf.logging.listener.port;
-        connect = "127.0.0.1:${toString cfg.tls.terminator.backendPort}";
-        cert = cfg.tls.certFile;
-        key = cfg.tls.keyFile;
-        verify = if cfg.tls.terminator.verifyClients then 2 else 0;
-        sslVersionMin = "TLSv1.2";
-      }
-      // lib.optionalAttrs (cfg.tls.caFile != null) {
-        CAfile = cfg.tls.caFile;
-      };
-    };
-
-    systemd.services.systemd-journal-remote = {
+    systemd.services.${unit} = {
+      description = "Native journal receiver with authenticated VM sources";
+      wantedBy = [ "multi-user.target" ];
       after = [
-        "systemd-journald.service"
-        "local-fs.target"
+        "systemd-tmpfiles-setup.service"
       ]
       ++ lib.optionals givcHostEnabled [ "givc-key-setup.service" ];
-      unitConfig = lib.optionalAttrs needsGivcMount {
-        RequiresMountsFor = [ "/etc/givc" ];
+      unitConfig.RequiresMountsFor = [ logDirectory ] ++ lib.optional needsGivcMount "/etc/givc";
+      environment = {
+        SYSTEMD_LOG_LEVEL = "notice";
+        GNUTLS_SYSTEM_PRIORITY_FILE = tlsPolicy;
+        GNUTLS_SYSTEM_PRIORITY_FAIL_ON_INVALID = "1";
       };
-      serviceConfig = {
-        User = lib.mkForce "root";
-        Group = lib.mkForce "systemd-journal";
-      };
-    };
-
-    systemd.sockets.systemd-journal-remote.listenStreams = lib.mkForce [
-      ""
-      "127.0.0.1:${toString cfg.tls.terminator.backendPort}"
-    ];
-
-    systemd.services.stunnel = {
-      after = lib.optionals givcHostEnabled [ "givc-key-setup.service" ];
-      wants = lib.optionals givcHostEnabled [ "givc-key-setup.service" ];
-      unitConfig = lib.optionalAttrs needsGivcMount {
-        RequiresMountsFor = [ "/etc/givc" ];
+      serviceConfig = hardening // {
+        LoadCredential = [
+          "cert:${cfg.tls.certFile}"
+          "key:${cfg.tls.keyFile}"
+          "ca:${cfg.tls.caFile}"
+        ];
+        ExecStart = lib.getExe receiver;
+        Restart = "on-failure";
       };
     };
-
-    systemd.tmpfiles.rules = lib.mkAfter [
-      "d /var/log/journal/remote 2755 root systemd-journal -"
-      "z /var/log/journal/remote 2755 root systemd-journal -"
-      "z /var/log/journal/remote/remote-*.journal 0640 root systemd-journal -"
+    systemd.tmpfiles.rules = [
+      "d ${logDirectory} 0750 root systemd-journal -"
+      "d ${logDirectory}/shared 2750 ${unit} systemd-journal -"
     ];
+
+    ghaf.storagevm = lib.optionalAttrs (options ? ghaf.storagevm.directories) {
+      directories = lib.mkIf config.ghaf.storagevm.enable [ logDirectory ];
+    };
 
     networking.firewall.allowedTCPPorts = [ config.ghaf.logging.listener.port ];
 

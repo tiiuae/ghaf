@@ -145,7 +145,7 @@ in
 
     listener.port = mkOption {
       description = ''
-        Listener port for systemd-journal-remote on admin-vm.
+        HTTPS listener port for the authenticated journal receiver on admin-vm.
         This port is also opened in the admin-vm firewall.
       '';
       type = types.port;

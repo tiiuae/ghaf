@@ -99,6 +99,10 @@ in
         assertion = (cfg.tls.certFile != null) && (cfg.tls.keyFile != null);
         message = "Please set ghaf.logging.journalClient.tls.certFile and tls.keyFile.";
       }
+      {
+        assertion = lib.hasPrefix "https://" cfg.endpoint && cfg.tls.caFile != null;
+        message = "Journal uploads require HTTPS with a trusted receiver CA.";
+      }
     ];
 
     # Local journal retention
