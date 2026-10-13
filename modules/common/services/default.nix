@@ -14,6 +14,7 @@
     ./github.nix
     ./hwinfo
     ./killswitch.nix
+    ./led-proxy.nix
     ./locale.nix
     ./performance
     ./power.nix
