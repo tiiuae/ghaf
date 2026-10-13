@@ -18,10 +18,12 @@ let
     "nvidia-jetson-orin-agx-industrial-release"
     "nvidia-jetson-orin-agx-verity-debug"
     "nvidia-jetson-orin-agx-verity-release"
+    "nvidia-jetson-orin-agx-verity-luks-debug"
     "nvidia-jetson-orin-agx64-debug"
     "nvidia-jetson-orin-agx64-release"
     "nvidia-jetson-orin-nx-debug"
     "nvidia-jetson-orin-nx-release"
+    "nvidia-jetson-orin-nx-verity-luks-debug"
   ];
   baseTargets = lib.getAttrs baseTargetNames orinTargets;
   hostConfig = target: target.config;
@@ -105,7 +107,7 @@ let
     }
     {
       name = "all expected Orin configurations are exported";
-      ok = builtins.length (builtins.attrNames orinTargets) == 104;
+      ok = builtins.length (builtins.attrNames orinTargets) == 112;
     }
     {
       name = "AGX NetVM waits for MGBE bind and Crosvm overlay preparation";
