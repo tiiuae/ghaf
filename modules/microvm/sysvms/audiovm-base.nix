@@ -28,6 +28,7 @@ let
   vmName = "audio-vm";
   audioEnabled = lib.ghaf.features.isEnabledFor globalConfig "audio" vmName;
   bluetoothEnabled = lib.ghaf.features.isEnabledFor globalConfig "bluetooth" vmName;
+  ledProxyEnabled = lib.ghaf.features.isEnabledFor globalConfig "ledProxy" vmName;
   powerManagerEnabled = lib.ghaf.features.isEnabledFor globalConfig "power-manager" vmName;
   performanceEnabled = lib.ghaf.features.isEnabledFor globalConfig "performance" vmName;
   timezoneEnabled = lib.ghaf.features.isEnabledFor globalConfig "timezone" vmName;
@@ -138,6 +139,16 @@ in
             ++ lib.optional bluetoothEnabled "bluetooth.service";
         };
       };
+      led-proxy = {
+        enable = lib.mkDefault ledProxyEnabled;
+        client = {
+          enable = lib.mkDefault true;
+          leds = [
+            "micmute"
+            "mute"
+          ];
+        };
+      };
 
       performance = {
         enable = lib.mkDefault performanceEnabled;
@@ -210,6 +221,19 @@ in
     hostPlatform.system = globalConfig.platform.hostSystem or "x86_64-linux";
   };
 
+  # Udev rules for LED proxy: enable ALSA 'Master Playback Switch' event
+  services.udev.extraRules = lib.mkIf ledProxyEnabled ''
+    ACTION=="add", SUBSYSTEM=="leds", KERNEL=="*::mute", RUN+="${lib.getExe' pkgs.led-proxy "setup-audio-led"} mute %k"
+    ACTION=="add", SUBSYSTEM=="leds", KERNEL=="*::micmute", RUN+="${lib.getExe' pkgs.led-proxy "setup-audio-led"} micmute %k"
+  '';
+  # Workaround over ALSA bug LED's: reapply LED state after resume
+  ghaf.services.power-manager.suspend.extraResumeCommands = lib.mkIf ledProxyEnabled ''
+    for led in /sys/class/leds/*::mute; do
+      [ -e "$led" ] || continue
+      ${lib.getExe' pkgs.led-proxy "setup-audio-led"} mute "$(basename "$led")"
+    done
+  '';
+
   microvm = {
     # Optimize is disabled because when it is enabled, qemu is built without libusb
     optimize.enable = false;
@@ -224,6 +248,7 @@ in
         proto = "virtiofs";
       }
     ];
+    vsock.cid = hostConfig.networking.thisVm.cid or 6;
 
     qemu = lib.mkIf (!isCrosvm) {
       machine =
