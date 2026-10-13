@@ -107,45 +107,54 @@ let
     name = "spire-refresh-identity";
     runtimeInputs = [
       pkgs.coreutils
+      pkgs.diffutils
       pkgs.openssl
       pkgs.systemd
       spire-package
     ];
     text = ''
-      # The boot barrier can time out before NTP synchronises on a later clock change.
-      sync_state="$(cat /run/ghaf-clock-synced 2>/dev/null || echo missing)"
-      if [ "$sync_state" != "synchronised" ] \
-        && [ "$(timedatectl show -p NTPSynchronized --value)" != "yes" ]; then
-        echo "spire-refresh-identity: clock barrier reports '$sync_state' and NTP is not synchronised;" \
-             "leaving identities unchanged." >&2
-        exit 0
-      fi
-
       tmp="$(mktemp -d)"
       trap 'rm -rf "$tmp"' EXIT
-      timeout 5 openssl s_client -connect ${
-        escapeShellArg (
-          (
-            if hasInfix ":" config.ghaf.common.spire.server.address then
-              "[${config.ghaf.common.spire.server.address}]"
-            else
-              config.ghaf.common.spire.server.address
+      read_identity() {
+        local attempts="''${1:-1}"
+        while ! timeout 5 openssl s_client -connect ${
+          escapeShellArg (
+            (
+              if hasInfix ":" config.ghaf.common.spire.server.address then
+                "[${config.ghaf.common.spire.server.address}]"
+              else
+                config.ghaf.common.spire.server.address
+            )
+            + ":${toString config.ghaf.common.spire.server.port}"
           )
-          + ":${toString config.ghaf.common.spire.server.port}"
-        )
-      } -alpn h2 -showcerts </dev/null > "$tmp/chain.pem"
-      openssl x509 -in "$tmp/chain.pem" -out "$tmp/svid.pem"
-      spire-server bundle show -socketPath "${socketPath}" > "$tmp/bundle.pem"
+        } -alpn h2 -showcerts </dev/null > "$tmp/chain.pem" 2>"$tmp/tls-error"; do
+          attempts=$((attempts - 1))
+          if [ "$attempts" -eq 0 ]; then
+            cat "$tmp/tls-error" >&2
+            return 1
+          fi
+          sleep 1
+        done
+        openssl x509 -in "$tmp/chain.pem" -out "$tmp/svid.pem"
+        spire-server bundle show -socketPath "${socketPath}" > "$tmp/bundle.pem"
+      }
 
-      if ! openssl verify -CAfile "$tmp/bundle.pem" -untrusted "$tmp/chain.pem" "$tmp/svid.pem"; then
+      read_identity 10
+
+      if ! openssl verify -CAfile "$tmp/bundle.pem" -untrusted "$tmp/chain.pem" "$tmp/svid.pem" >/dev/null; then
         # SPIRE's taint check also validates time, so it cannot rotate a future-dated SVID.
         echo "spire-refresh-identity: server certificate chain is invalid; restarting SPIRE."
+        # Restarting the in-memory KeyManager can replace the CA, requiring
+        # bundle publication and agent re-attestation.
         systemctl restart spire-server.service
-      else
-        echo "spire-refresh-identity: server certificate chain is valid; no restart needed."
+        # The service can be active before its TLS listener starts.
+        read_identity 10
+        openssl verify -CAfile "$tmp/bundle.pem" -untrusted "$tmp/chain.pem" "$tmp/svid.pem" >/dev/null
       fi
 
-      ${getExe spirePublishBundleApp}
+      if ! cmp -s "$tmp/bundle.pem" ${escapeShellArg cfg.trustBundlePath}; then
+        ${getExe spirePublishBundleApp}
+      fi
     '';
   };
 
@@ -344,6 +353,8 @@ in
         wantedBy = [ "timers.target" ];
         timerConfig = {
           OnClockChange = true;
+          OnUnitInactiveSec = "60s";
+          AccuracySec = "1s";
           Unit = "spire-refresh-identity-after-time-sync.service";
         };
       };

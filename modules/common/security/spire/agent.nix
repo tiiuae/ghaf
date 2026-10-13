@@ -186,6 +186,48 @@ let
 
   agentServiceUnits = map (name: "${serviceName name}.service") (builtins.attrNames configuredAgents);
 
+  checkServerReady =
+    name: agent:
+    pkgs.writeShellApplication {
+      name = "check-server-for-${serviceName name}";
+      runtimeInputs = [
+        pkgs.coreutils
+        pkgs.curl
+        pkgs.gnused
+        pkgs.systemd
+      ];
+      text = ''
+        headers="$(mktemp)"
+        trap 'rm -f "$headers"' EXIT
+        if ! curl --fail --silent --noproxy '*' --connect-timeout 1 --max-time 2 \
+          --dump-header "$headers" --output /dev/null ${escapeShellArg "http://${if hasInfix ":" agent.serverAddress then "[${agent.serverAddress}]" else agent.serverAddress}:${toString agent.serverHealthCheck.port}/ready"}; then
+          echo "Waiting for SPIRE server readiness endpoint" >&2
+          exit 1
+        fi
+
+        # Preserve bootstrap without NTP; coordinate recovery once local time is trusted.
+        # A single-property query avoids reading the RTC held open by Chrony.
+        if [ "$(cat /run/ghaf-clock-synced 2>/dev/null || true)" != synchronised ] \
+          && [ "$(busctl --system --timeout=2s get-property org.freedesktop.timedate1 \
+            /org/freedesktop/timedate1 org.freedesktop.timedate1 NTPSynchronized 2>/dev/null || true)" != "b true" ]; then
+          exit 0
+        fi
+
+        server_date="$(sed -n 's/^Date: \(.*\)\r$/\1/Ip' "$headers")"
+        if [ -z "$server_date" ]; then
+          echo "SPIRE readiness response has no server time" >&2
+          exit 1
+        fi
+        server_now="$(date --date="$server_date" +%s)"
+        offset=$((server_now - $(date +%s)))
+        # SPIRE backdates SVIDs by 10s; leave room for request latency and rounding.
+        if [ "$offset" -lt -5 ] || [ "$offset" -gt 5 ]; then
+          echo "Waiting for SPIRE server clock to agree within 5 seconds" >&2
+          exit 1
+        fi
+      '';
+    };
+
   reattestAgentsApp = pkgs.writeShellApplication {
     name = "spire-reattest-agents";
     runtimeInputs = [
@@ -195,15 +237,6 @@ let
       pkgs.systemd
     ];
     text = ''
-      # The boot barrier can time out before NTP synchronises on a later clock change.
-      sync_state="$(cat /run/ghaf-clock-synced 2>/dev/null || echo missing)"
-      if [ "$sync_state" != "synchronised" ] \
-        && [ "$(timedatectl show -p NTPSynchronized --value)" != "yes" ]; then
-        echo "spire-reattest-agents: clock barrier reports '$sync_state' and NTP is not synchronised;" \
-             "not re-attesting." >&2
-        exit 0
-      fi
-
       tmp="$(mktemp -d)"
       trap 'rm -rf "$tmp"' EXIT
 
@@ -212,9 +245,10 @@ let
           && cp "$data" "$tmp/data.json" \
           && jq -er '.svid | select(length > 0) | map(@base64d) | join("")' "$tmp/data.json" > "$tmp/svid.pem" \
           && jq -er '.bundle | select(length > 0) | map(@base64d) | join("")' "$tmp/data.json" > "$tmp/bundle.pem" \
-          && openssl verify -CAfile "$tmp/bundle.pem" -untrusted "$tmp/svid.pem" "$tmp/svid.pem" \
+          && openssl verify -CAfile "$tmp/bundle.pem" -untrusted "$tmp/svid.pem" "$tmp/svid.pem" >/dev/null \
           && timeout 5 openssl s_client -connect "$endpoint" -alpn h2 \
-            -CAfile "$tmp/bundle.pem" -verify_return_error </dev/null >/dev/null 2>&1
+            -CAfile "$tmp/bundle.pem" -verify_return_error </dev/null >/dev/null 2>&1 \
+          && "$check_server"
       }
 
       ${concatStringsSep "\n" (
@@ -223,9 +257,15 @@ let
           socket=${escapeShellArg agent.socketPath}
           data=${escapeShellArg "${agent.dataDir}/agent-data.json"}
           endpoint=${escapeShellArg "${if hasInfix ":" agent.serverAddress then "[${agent.serverAddress}]" else agent.serverAddress}:${toString agent.serverPort}"}
-          if agent_valid; then
-            echo "$unit: credentials and server connection are valid; no restart needed."
-          else
+          check_server=${
+            escapeShellArg (
+              if agent.serverHealthCheck.enable then
+                getExe (checkServerReady name agent)
+              else
+                "${pkgs.coreutils}/bin/true"
+            )
+          }
+          if ! agent_valid; then
             ${getExe (waitForAgent name agent)}
             # Allow an attestation already in progress to finish against the ready server.
             if [ "$(systemctl show -p ActiveState --value "$unit")" = activating ]; then
@@ -237,6 +277,10 @@ let
               echo "$unit: credentials or connection are invalid; re-attesting."
               systemctl reset-failed "$unit"
               systemctl restart "$unit"
+              if ! agent_valid; then
+                echo "$unit: identity is still invalid after re-attestation; recovery will retry." >&2
+                exit 1
+              fi
             fi
           fi
         '') configuredAgents
@@ -254,27 +298,37 @@ let
         pkgs.openssl
       ];
       text = ''
-        ${optionalString agent.serverHealthCheck.enable ''
-          server_url="http://${agent.serverAddress}:${toString agent.serverHealthCheck.port}/ready"
-          until curl --fail --silent --connect-timeout 1 --max-time 2 "$server_url" >/dev/null 2>&1; do
-            echo "Waiting for SPIRE server at $server_url"
-            sleep 1
-          done
-        ''}
-
         tmp="$(mktemp -d)"
         trap 'rm -rf "$tmp"' EXIT
         endpoint=${escapeShellArg "${if hasInfix ":" agent.serverAddress then "[${agent.serverAddress}]" else agent.serverAddress}:${toString agent.serverPort}"}
+        tls_reason="Waiting for SPIRE server TLS validation at $endpoint"
+        previous_reason=""
         # Readiness alone does not prove that the distributed bundle trusts the server.
-        until ${
-          if agent.trustBundleUrl != null then
-            ''curl --fail --silent --location --connect-timeout 2 --max-time 5 ${escapeShellArg agent.trustBundleUrl} -o "$tmp/bundle.pem"''
+        while true; do
+          if ! ${
+            if agent.trustBundleUrl != null then
+              ''curl --fail --silent --location --connect-timeout 2 --max-time 5 ${escapeShellArg agent.trustBundleUrl} -o "$tmp/bundle.pem"''
+            else
+              ''cp ${escapeShellArg agent.trustBundlePath} "$tmp/bundle.pem"''
+          } >/dev/null 2>&1; then
+            reason="Waiting for SPIRE bootstrap trust bundle"
+          elif ! timeout 5 openssl s_client -connect "$endpoint" -alpn h2 \
+            -CAfile "$tmp/bundle.pem" -verify_return_error </dev/null >/dev/null 2>"$tmp/tls-error"; then
+            reason="$tls_reason"
+          ${optionalString agent.serverHealthCheck.enable ''
+            elif ! reason="$(${getExe (checkServerReady name agent)} 2>&1)"; then
+              :
+          ''}
           else
-            ''cp ${escapeShellArg agent.trustBundlePath} "$tmp/bundle.pem"''
-        } \
-          && timeout 5 openssl s_client -connect "$endpoint" -alpn h2 \
-            -CAfile "$tmp/bundle.pem" -verify_return_error </dev/null >/dev/null 2>&1; do
-          echo "Waiting for a valid SPIRE server certificate and matching trust bundle"
+            break
+          fi
+          if [ "$reason" != "$previous_reason" ]; then
+            echo "$reason" >&2
+            if [ "$reason" = "$tls_reason" ]; then
+              cat "$tmp/tls-error" >&2
+            fi
+            previous_reason="$reason"
+          fi
           sleep 1
         done
       '';
@@ -451,6 +505,8 @@ in
         wantedBy = [ "timers.target" ];
         timerConfig = {
           OnClockChange = true;
+          OnUnitInactiveSec = "60s";
+          AccuracySec = "1s";
           Unit = "spire-reattest-agents-after-time-sync.service";
         };
       };
