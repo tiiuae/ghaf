@@ -383,17 +383,18 @@
         ]
       },
       "locked": {
-        "lastModified": 1790750631,
-        "narHash": "sha256-2jChZikcnI6+vFacvlEGWKYyp4urfTyogK5JNJSq+9Y=",
-        "owner": "tiiuae",
-        "repo": "ghafpkgs",
-        "rev": "b45de259054ea773cbd664127e240aa4b1af1aa4",
-        "type": "github"
+        "lastModified": 1792480142,
+        "narHash": "sha256-WuZ7y8uiBX09q4IwIraGB09Dtyvbg2JaAoy9y5f2+mU=",
+        "ref": "leds-server",
+        "rev": "6cc375ee30479b6120a543066be4f474c09b304c",
+        "revCount": 310,
+        "type": "git",
+        "url": "ssh://git@github.com/jkuro-tii/ghafpkgs.git"
       },
       "original": {
-        "owner": "tiiuae",
-        "repo": "ghafpkgs",
-        "type": "github"
+        "ref": "leds-server",
+        "type": "git",
+        "url": "ssh://git@github.com/jkuro-tii/ghafpkgs.git"
       }
     },
     "git-hooks-nix": {
