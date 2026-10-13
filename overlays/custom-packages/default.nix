@@ -16,6 +16,7 @@
   cosmic-osd = import ./cosmic/cosmic-osd { inherit prev; };
   cosmic-panel = import ./cosmic/cosmic-panel { inherit prev; };
   cosmic-reader = import ./cosmic/cosmic-reader { inherit prev; };
+  cosmic-session = import ./cosmic/cosmic-session { inherit prev; };
   cosmic-settings = import ./cosmic/cosmic-settings { inherit prev; };
   cosmic-settings-daemon = import ./cosmic/cosmic-settings-daemon { inherit prev; };
   element-desktop = import ./element-desktop { inherit prev; };
