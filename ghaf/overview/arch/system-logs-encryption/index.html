@@ -107,10 +107,28 @@ Sealing</a> for details.</p>
 OSPP-aligned, and role-specific rules. The Ghaf Host has additional rules for
 its responsibilities and distinct attack surface.</p>
 <div class="sl-heading-wrapper level-h4"><h4 id="intra-platform-log-forwarding">Intra-Platform Log Forwarding</h4><a class="sl-anchor-link" href="#intra-platform-log-forwarding"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Intra-Platform Log Forwarding”</span></a></div>
-<p>All non-admin VMs (including both system and application VMs) forward their <code dir="auto">journald</code> streams to the Admin VM. The Admin VM plays a dual role: it (i) generates its own logs locally (like any other VM) and (ii) runs a listener/receiver that ingests forwarded logs from the other VMs. This makes the Admin VM the single aggregation point inside the Ghaf Platform, reducing the need for each VM to maintain independent connectivity to remote logging infrastructure and allowing policy enforcement to be concentrated in one place.</p>
-<p>Once logs are aggregated, the Admin VM can forward the unified stream to a
-remote log server. This endpoint supports centralized querying, alerting, and
-longer-term storage beyond what is retained locally.</p>
+<p>The logging-enabled host and non-admin VMs use <code dir="auto">systemd-journal-upload</code> to send
+journals over HTTPS with GIVC mutual TLS. In Admin VM,
+<code dir="auto">ghaf-journal-receiver.service</code> stores them in the shared native journal at
+<code dir="auto">/var/log/ghaf-journal/shared/remote.journal</code>. Alloy reads this journal and the
+Admin VM’s local journal for forwarding to the remote backend.</p>
+<p>Ghaf’s receiver patch accepts known certificate identities and replaces any
+sender-supplied <code dir="auto">_GHAF_SOURCE</code> with the authenticated source name. Alloy uses
+this field for <code dir="auto">host</code> and drops entries without a known source. Use these
+identities for attribution; <code dir="auto">_HOSTNAME</code> is untrusted. A compromised sender can
+fabricate its own logs, but impersonating another VM requires credentials valid
+for that VM.</p>
+<div class="sl-heading-wrapper level-h4"><h4 id="shared-journal-retention">Shared Journal Retention</h4><a class="sl-anchor-link" href="#shared-journal-retention"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Shared Journal Retention”</span></a></div>
+<p>When enabled, <code dir="auto">ghaf.logging.journalRetention</code> supplies the same <code dir="auto">maxDiskUsage</code>,
+<code dir="auto">maxRetention</code>, and <code dir="auto">MaxFileSec</code> settings to local journals and the shared
+receiver. Both use a 100 MiB maximum file size. The receiver rotates and removes
+expired files internally, including during idle periods, without interrupting
+uploads.</p>
+<p>The shared disk budget covers all forwarded sources and is separate from local
+journal budgets. A noisy VM can shorten retention for others. Cleanup operates
+on whole files, and active files can temporarily exceed the budget. Deleted
+records are unavailable for Alloy replay. Logseald seals local journals
+independently.</p>
 <div class="sl-heading-wrapper level-h3"><h3 id="secure-logging">Secure Logging</h3><a class="sl-anchor-link" href="#secure-logging"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Secure Logging”</span></a></div>
 <p>Ghaf applies separate controls while logs are stored, forwarded, and retained
 across isolation boundaries. Integrity, retention, and confidentiality are
