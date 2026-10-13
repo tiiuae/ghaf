@@ -261,6 +261,48 @@ in
             makestep 1.0 -1
           '';
         };
+
+        # Without this chronyd backs off resolving and polling, so sync lags the uplink by ~30s or more.
+        systemd.services =
+          lib.mapAttrs
+            (_: cmds: {
+              description = "Tell chronyd the network configuration changed";
+              after = [ "chronyd.service" ];
+              requisite = [ "chronyd.service" ];
+              unitConfig = {
+                StartLimitIntervalSec = 1;
+                StartLimitBurst = 10;
+              };
+              serviceConfig = {
+                Type = "oneshot";
+                ExecStart = map (cmd: "${lib.getExe' config.services.chrony.package "chronyc"} ${cmd}") cmds;
+              };
+            })
+            {
+              ghaf-chrony-onoffline = [
+                "onoffline"
+                "burst 4/10"
+              ];
+              # Re-resolving replaces sources and drops their samples, so only do it when DNS changed.
+              ghaf-chrony-refresh = [ "refresh" ];
+            };
+
+        # chronyc cannot run inside the dispatcher's sandbox, so start a unit instead.
+        networking.networkmanager.dispatcherScripts = mkIf config.networking.networkmanager.enable [
+          {
+            type = "basic";
+            source = pkgs.writeShellScript "ghaf-chrony-dispatcher" ''
+              case "$2" in
+                up | down | connectivity-change)
+                  ${lib.getExe' pkgs.systemd "systemctl"} restart --no-block ghaf-chrony-onoffline.service
+                  ;;
+                dhcp4-change | dhcp6-change | dns-change)
+                  ${lib.getExe' pkgs.systemd "systemctl"} restart --no-block ghaf-chrony-refresh.service
+                  ;;
+              esac
+            '';
+          }
+        ];
       })
     ]
   );
