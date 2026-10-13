@@ -94,7 +94,7 @@ let
         # Check for installer marker on ESP
         # ---------------------------------------------------------------------------
         LVM_DISK="/dev/$(lsblk -dn -o PKNAME "$LVM_PV")"
-        [ -b "$LVM_DISK" ] || { echo "Cannot identify the disk containing $LVM_PV"; exit 1; }
+        [ -b "$LVM_DISK" ] || { echo "Cannot identify the disk containing $LVM_PV" | tee /dev/console; exit 1; }
         ESP_DEVICE=""
         for _ in {1..10}; do
           ESP_DEVICE="$(lsblk -rpn -o PATH,PARTLABEL "$LVM_DISK" | awk '$2 == "disk-disk1-ESP" { print $1 }')"
@@ -117,7 +117,7 @@ let
 
         if [ "$SETUP_PENDING" = false ]; then
           if [ "$REENCRYPTING" = true ]; then
-            echo "Encryption is incomplete but the installer marker is unavailable. Refusing to boot."
+            echo "Encryption is incomplete but the installer marker is unavailable. Refusing to boot." | tee /dev/console
             exit 1
           fi
           if [ "$ENCRYPTED" = true ] && [ ! -e "/dev/mapper/crypted" ]; then
@@ -143,6 +143,7 @@ let
           sleep 2
         fi
 
+        exec >/dev/console 2>&1
         clear
         show_header "First Boot - Disk Encryption Setup"
         echo ""
@@ -599,14 +600,10 @@ in
                 Type = "oneshot";
                 RemainAfterExit = true;
 
-                # Interactive service - needs direct TTY access.
-                # "tty" (not "journal+console") is required so GUM's ANSI
-                # escape sequences reach the terminal unmodified; the journal
-                # path prepends timestamps and service metadata to every line
-                # which breaks GUM rendering entirely.
+                # Log to the journal to keep the splash clean; the setup UI writes to /dev/console.
                 StandardInput = "tty-force";
-                StandardOutput = "tty";
-                StandardError = "tty";
+                StandardOutput = "journal";
+                StandardError = "journal";
 
                 # Disable restart - encryption only happens once
                 Restart = "no";
