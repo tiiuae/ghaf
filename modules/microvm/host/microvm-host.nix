@@ -179,6 +179,10 @@ in
           };
           create-fake-battery.enable = true;
           firmware.enable = true;
+          led-proxy = {
+            enable = config.ghaf.global-config.features.ledProxy.enable;
+            host.enable = config.ghaf.global-config.features.ledProxy.enable;
+          };
 
           # Monitoring of /nix/store for nixos-rebuild copy sessions and flagging interruptions
           storeWatcher.enable = false;
