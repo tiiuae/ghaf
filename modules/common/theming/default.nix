@@ -287,9 +287,6 @@ in
         stylix = {
           enable = cfg.stylix.enable;
 
-          # Currently unused
-          targets.nixos-icons.enable = lib.mkDefault false;
-
           inherit (cfg) polarity base16Scheme;
 
           fonts = {
@@ -302,12 +299,20 @@ in
             inherit (cfg.iconTheme) package light dark;
           };
 
-          # We build our own Plymouth theme below instead, so that we can pulse
-          # the logo's opacity ("breathe") rather than spinning it.
-          targets.plymouth.enable = false;
+          targets = {
+            # Currently unused
+            nixos-icons.enable = lib.mkDefault false;
 
-          # qt5ct/qt6ct fail to cross-compile
-          targets.qt.enable = !isCross;
+            # We build our own Plymouth theme below instead, so that we can pulse
+            # the logo's opacity ("breathe") rather than spinning it.
+            plymouth.enable = false;
+
+            # Colour 0 is the VT background; keep the palette but make it pure black.
+            console.colors.override.base00-hex = "000000";
+
+            # qt5ct/qt6ct fail to cross-compile
+            qt.enable = !isCross;
+          };
         };
 
         # Remove all unused fonts
