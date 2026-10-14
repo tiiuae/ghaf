@@ -10,6 +10,7 @@
   flake.nixosModules = {
     common.imports = [
       # keep-sorted start
+      ./bash.nix
       ./common.nix
       ./firewall
       ./global-config.nix
