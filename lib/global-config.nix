@@ -186,6 +186,35 @@ rec {
         };
       };
 
+      # IDS-VM options
+      idsvm.passiveMonitor = {
+        enable = mkEnableOption "passive traffic monitoring";
+        external = mkEnableOption "mirror external (physical NIC) traffic";
+        internal = mkEnableOption "mirror internal (inter-VM) traffic";
+        snaplen = mkOption {
+          type = types.nullOr types.ints.positive;
+          default = null;
+          example = 128;
+          description = ''
+            Truncate mirrored packets to this many bytes, capturing headers
+            only. An eBPF classifier on monitored vm's `mirror` tap egress does the
+            truncation, before the packets leave monitored vm.
+          '';
+        };
+        netem = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          example = "slot 10ms 20ms packets 300 limit 2000";
+          description = ''
+            netem qdisc parameters applied to `mirror` tap.
+
+            Leave as null to keep whatever `trafficMirror.sender.netem`
+            defaults to. Set it to override that default with a value
+            validated for this target's hardware.
+          '';
+        };
+      };
+
       # Graphics/boot UI settings
       graphics.boot.enable = mkEnableOption "graphical boot support (splash screen, user login detection)";
 
@@ -460,7 +489,6 @@ rec {
       graphics.boot.enable = true;
 
       shm.enable = false;
-      idsvm.mitmproxy.enable = false;
 
       theming.enable = true;
 
@@ -564,7 +592,6 @@ rec {
       graphics.boot.enable = true;
 
       shm.enable = false;
-      idsvm.mitmproxy.enable = false;
 
       theming.enable = true;
 
@@ -663,7 +690,6 @@ rec {
       };
 
       shm.enable = false;
-      idsvm.mitmproxy.enable = false;
 
       # Feature defaults for minimal profile - all disabled
       features = {

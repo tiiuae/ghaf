@@ -63,6 +63,18 @@ in
     })
 
     (lib.mkIf (cfg.enable && isIdsVm) {
+      assertions = [
+        {
+          assertion = config.ghaf.virtualization.microvm.vm-networking.isGateway;
+          message = ''
+            mitmproxy intercepts by redirecting :80/:443 arriving on ids-vm's own
+            interface, which only fires for traffic routed through it. With
+            vm-networking.isGateway = false, ip_forward is off and nothing is
+            intercepted, while app VMs still trust the development CA.
+          '';
+        }
+      ];
+
       # Here we add default CA keypair and corresponding self-signed certificate
       # for mitmproxy in different formats. These should be, of course, randomly and
       # securely generated and stored for each instance, but for development purposes

@@ -254,6 +254,15 @@ in
   systemd.network.networks."10-ethint0".networkConfig.MulticastDNS = false;
   networking.networkmanager.connectionConfig."connection.mdns" = 0;
 
+  ghaf.virtualization.microvm.trafficMirror.sender = {
+    enable = globalConfig.idsvm.passiveMonitor.enable or false;
+    mirrorExternalInterfaces = globalConfig.idsvm.passiveMonitor.external or false;
+    snaplen = globalConfig.idsvm.passiveMonitor.snaplen or null;
+    netem = lib.mkIf (
+      globalConfig.idsvm.passiveMonitor.netem or null != null
+    ) globalConfig.idsvm.passiveMonitor.netem;
+  };
+
   systemd.tmpfiles.rules = [ "d /persist/sysupdate 0755 ghaf root -" ]; # Set permissions for mountpoint
   microvm = {
     # Optimize is disabled because when it is enabled, qemu is built without libusb
@@ -289,4 +298,10 @@ in
       ];
     };
   };
+
+  # Renaming usb-ethernet interfaces to a stable name based on the interface index.
+  services.udev.extraRules = ''
+    SUBSYSTEM=="net", ACTION=="add", DRIVERS=="usb", \
+      NAME="${hostConfig.common.hardware.usbEthernetPrefix}%E{IFINDEX}"
+  '';
 }

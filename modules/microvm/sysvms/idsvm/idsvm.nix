@@ -30,6 +30,34 @@ in
   options.ghaf.virtualization.microvm.idsvm = {
     enable = lib.mkEnableOption "Whether to enable IDS-VM on the system";
 
+    passiveMonitor = {
+      enable = lib.mkEnableOption "passive traffic monitoring";
+      external = lib.mkEnableOption "mirror external (physical NIC) traffic";
+      internal = lib.mkEnableOption "mirror internal (inter-VM) traffic";
+      snaplen = lib.mkOption {
+        type = lib.types.nullOr lib.types.ints.positive;
+        default = null;
+        example = 128;
+        description = ''
+          Truncate mirrored packets to this many bytes, capturing headers
+          only. An eBPF classifier on monitored vm's `mirror` tap egress does the
+          truncation, before the packets leave monitored vm.
+        '';
+      };
+      netem = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        example = "slot 10ms 20ms packets 300 limit 2000";
+        description = ''
+          netem qdisc parameters applied to `mirror` tap.
+
+          Leave as null to keep whatever `trafficMirror.sender.netem`
+          defaults to. Set it to override that default with a value
+          validated for this target's hardware.
+        '';
+      };
+    };
+
     evaluatedConfig = lib.mkOption {
       type = lib.types.nullOr lib.types.unspecified;
       default = null;
@@ -53,6 +81,8 @@ in
         inherit vmName;
         inherit (cfg) enable evaluatedConfig extraNetworking;
       };
+
+      ghaf.virtualization.microvm.host.trafficMirror.enable = lib.mkDefault cfg.passiveMonitor.enable;
     }
     (lib.mkIf cfg.enable {
       assertions = [
