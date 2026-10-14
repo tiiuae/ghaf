@@ -134,7 +134,6 @@ in
           prependUsbRules = lib.optionals config.ghaf.profiles.debug.enable [
             {
               description = "USB mass storage";
-              tag = "storage";
               allowedVms = [
                 "gui-vm"
                 "chrome-vm"
