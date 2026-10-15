@@ -1,0 +1,47 @@
+SPDX-FileCopyrightText: 2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: Apache-2.0
+
+Subject: [PATCH] Start the DCE event relay after creating device processes
+
+Starting the relay before creating the PCI root makes Minijail reject its
+fork from a multithreaded parent. Defer the thread until architecture device
+creation has finished, before starting the vCPUs.
+
+--- a/aarch64/src/lib.rs
++++ b/aarch64/src/lib.rs
+@@ -834,6 +834,8 @@
+         let mmio_bus = Arc::new(devices::Bus::new(BusType::Mmio));
+
+         #[cfg(target_os = "linux")]
++        let mut nvidia_dce_device = None;
++        #[cfg(target_os = "linux")]
+         let nvidia_dce_irq = if let Some(host_device) = components.nvidia_dce_host.take() {
+             let event_memory = SharedMemory::new("nvidia-dce-event", NVIDIA_DCE_EVENT_PAYLOAD_SIZE)
+                 .map_err(Error::BuildNvidiaDcePayload)?;
+@@ -866,9 +868,7 @@
+             mmio_bus
+                 .insert(dce.clone(), NVIDIA_DCE_MMIO_BASE, NVIDIA_DCE_MMIO_SIZE)
+                 .map_err(Error::RegisterNvidiaDce)?;
+-            dce.lock()
+-                .start_event_thread()
+-                .map_err(Error::StartNvidiaDce)?;
++            nvidia_dce_device = Some(dce);
+             Some(irq)
+         } else {
+             None
+@@ -1240,6 +1240,15 @@
+
+         let vm_request_tubes = vec![vmwdt_host_tube, vcpufreq_host_tube];
+
++        // Minijail requires a single-threaded parent while forking device processes.
++        // Start the DCE relay only after all architecture devices have been created.
++        #[cfg(target_os = "linux")]
++        if let Some(dce) = nvidia_dce_device {
++            dce.lock()
++                .start_event_thread()
++                .map_err(Error::StartNvidiaDce)?;
++        }
++
+         Ok(RunnableLinuxVm {
+             vm,
+             vcpu_count,
