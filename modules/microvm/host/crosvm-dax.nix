@@ -50,7 +50,7 @@ in
               RestrictNamespaces = [ "~mnt" ];
             };
       }
-      (lib.mkIf (daxEnabled && config.swapDevices != [ ]) {
+      (lib.mkIf (daxEnabled && config.swapDevices != [ ] && !config.zramSwap.enable) {
         # crosvm pages the pmem-ext2 metadata out after mkfs and zswap keeps it compressed in RAM
         boot.zswap = {
           enable = true;
