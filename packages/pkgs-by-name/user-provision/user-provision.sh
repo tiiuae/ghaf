@@ -788,6 +788,9 @@ perform_ad_join() {
       "--domain-realm=$realm"
       "--verbose"
     )
+    if [[ -n $AD_SERVER ]]; then
+      join_args+=("--domain-controller=$AD_SERVER")
+    fi
     if [[ -n $target_ou_dn ]]; then
       join_args+=("--domain-ou=$target_ou_dn")
     fi
