@@ -35,16 +35,23 @@ in
       identity.activeDirectory.domains."ghaf-test.com" = {
         ad = {
           domain = "ghaf-test.com";
-          controllers = [ "vm-ghaf-dev-dc.ghaf-test.com" ];
+          controllers = [ "vm-dev-ghaf-dc-1a.ghaf-test.com" ];
+          dyndnsUpdate = false;
         };
         dnsProvider = {
-          name = "vm-ghaf-dev-dc.ghaf-test.com";
-          ipAddress = "10.52.33.4";
+          name = "vm-dev-ghaf-dc-1a.ghaf-test.com";
+          #ipAddress = "10.52.33.4";
+          ipAddress = "20.174.11.80";
+        };
+        krb5 = {
+          realm = "GHAF-TEST.COM";
+          server = [ "vm-dev-ghaf-dc-1a.ghaf-test.com" ];
+          kpasswd = [ "vm-dev-ghaf-dc-1a.ghaf-test.com" ];
         };
         ldap = {
+          uri = [ "ldap://vm-dev-ghaf-dc-1a.ghaf-test.com" ];
           schema = "ad";
           idMapping = true;
-
         };
       };
 
