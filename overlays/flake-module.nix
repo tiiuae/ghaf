@@ -10,6 +10,14 @@ let
   crosvmGhaf = _final: prev: {
     crosvm = prev.crosvm.overrideAttrs (old: {
       src = inputs.ghaf-crosvm;
+      patches = prev.lib.unique (
+        (old.patches or [ ])
+        ++ [
+          ./crosvm-pmem-ext2-low-address.patch
+          ./crosvm-dce-defer-thread.patch
+          ./crosvm-arm64-readonly-cache-maintenance.patch
+        ]
+      );
       cargoDeps = prev.rustPlatform.fetchCargoVendor {
         src = inputs.ghaf-crosvm;
         hash = "sha256-I3XFmcXHo2isSTUZ27RkTH1OUp0UjOVXIGECoxcUzHU=";
