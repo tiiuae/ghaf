@@ -53,7 +53,7 @@ in
 
       level = lib.mkOption {
         type = lib.types.nullOr lib.types.int;
-        default = 4;
+        default = 6;
         description = ''
           zstd compression level used for the install image.
           The guest `/nix/store` erofs level
@@ -149,7 +149,7 @@ in
           lib.optionalString (
             cfg.imageBuilder.compression.level != null
           ) "-${toString cfg.imageBuilder.compression.level}"
-        } --long --compress "$out/${diskName}.raw" -o "$out/ghaf-image.raw.zst" --rm
+        } --compress "$out/${diskName}.raw" -o "$out/ghaf-image.raw.zst" --rm
       '';
       devices = {
         disk."${diskName}" = {
