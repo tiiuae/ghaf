@@ -15,11 +15,7 @@ let
           patches = prev.lib.unique (
             (old.patches or [ ])
             ++ prev.lib.optionals (prev.lib.versions.majorMinor kernelPrev.kernel.version == "6.18") [
-              (prev.fetchurl {
-                name = "linux-dax-empty-entry.patch";
-                url = "https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/patch/?id=8e2b8614039853e68d5338e37821e8bcee9fc05f";
-                hash = "sha256-oFxXsyCGENc6RXs1foJkeHF0oN0WV0pJnBloHfKn0RY=";
-              })
+              ./linux-dax-empty-entry.patch
             ]
           );
         });
