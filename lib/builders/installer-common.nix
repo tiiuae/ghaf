@@ -66,108 +66,43 @@ in
     environment = {
       sessionVariables.IMG_PATH = cfg.imageSource;
       variables.IMG_PATH = cfg.imageSource;
+      systemPackages = [
+        self.packages.${system}.ghaf-installer-tui
+        self.packages.${system}.ghaf-installer
+        self.packages.${system}.hardware-scan
+      ];
     };
 
-    ghaf.theming.enable = true;
-    ghaf.locales.enable = true;
-
-    ghaf.graphics.boot = {
-      enable = true;
-      renderer = "simpledrm";
-    };
-
-    # Skip NixOS installer
-    boot.loader.timeout = lib.mkForce 0;
-
-    systemd.services.wpa_supplicant.wantedBy = lib.mkForce [ "multi-user.target" ];
-    systemd.services.sshd.wantedBy = lib.mkForce [ "multi-user.target" ];
-    networking.networkmanager.enable = true;
-
-    image.baseName = lib.mkForce "ghaf";
-    networking.hostName = "ghaf-installer";
-
-    environment.systemPackages = [
-      self.packages.${system}.ghaf-installer-tui
-      self.packages.${system}.ghaf-installer
-      self.packages.${system}.hardware-scan
-    ];
-
-    # Autostart the installer on tty1, replacing the default getty.
-    systemd.services.ghaf-installer-tui = {
-      description = "Ghaf Installer";
-      after = [ "multi-user.target" ];
-      wantedBy = [ "multi-user.target" ];
-      conflicts = [ "getty@tty1.service" ];
-      environment = {
-        IMG_PATH = cfg.imageSource;
+    ghaf = {
+      theming = {
+        enable = true;
+        iconTheme.package = null;
       };
-      serviceConfig = {
-        ExecStart = pkgs.writeShellScript "ghaf-installer-autostart" ''
-          # ghaf-installer reads ghaf.install_target/_encrypt/_secureboot and
-          # ghaf.image_url itself, so the dispatch here is only about which of
-          # the two front-ends to run.
-          if grep -q 'ghaf\.install_target=' /proc/cmdline 2>/dev/null; then
-            echo "ghaf.install_target= on the kernel command line: installing unattended." >&2
-            # Tee'd rather than exec'd: StandardOutput is the tty, so without
-            # this an unattended install's only record is a screen nobody is
-            # watching -- and its warnings are exactly what you need after a
-            # machine comes back unbootable. tee keeps the console copy.
-            set -o pipefail
-            ${self.packages.${system}.ghaf-installer}/bin/ghaf-installer 2>&1 |
-              ${pkgs.coreutils}/bin/tee >(${pkgs.systemd}/bin/systemd-cat -t ghaf-installer)
-            exit "''${PIPESTATUS[0]}"
-          fi
-          exec ${self.packages.${system}.ghaf-installer-tui}/bin/ghaf-installer-tui
-        '';
-        # Suppress kernel printk noise on tty1 while TUI is active
-        ExecStartPre = "${pkgs.util-linux}/bin/dmesg -n 1";
-        # Restore kernel log level and hand tty1 back to getty on exit
-        ExecStopPost = [
-          "${pkgs.util-linux}/bin/dmesg -n 7"
-          "${pkgs.systemd}/bin/systemctl start getty@tty1.service"
-        ];
-        StandardInput = "tty";
-        StandardOutput = "tty";
-        StandardError = "tty";
-        TTYPath = "/dev/tty1";
-        TTYReset = true;
-        TTYVHangup = true;
-        PrivateTmp = true;
-        Restart = "on-failure";
-        RestartSec = "5s";
+      graphics.boot = {
+        enable = true;
+        renderer = "simpledrm";
       };
+      development.usb-serial.enable = true;
     };
 
-    services.getty = {
-      greetingLine = "<<< Welcome to the Ghaf installer >>>";
-      # Replace the NixOS installer text, since it doesn't match Ghaf's installer
-      helpLine = lib.mkForce ''
-
-        To start the interactive Ghaf installer, run `sudo ghaf-installer-tui`.
-
-        For a scripted install, run `sudo ghaf-installer --help`
-        (e.g. `sudo ghaf-installer -d /dev/nvme0n1 -y` installs without prompts).
-
-        To connect to Wi-Fi, run `nmtui`, or
-        `sudo nmcli dev wifi connect <SSID> password <PASSWORD>`.
-
-        To update device firmware (needs a network connection), run
-        `sudo fwupdmgr refresh`, then `sudo fwupdmgr get-updates` to list updates
-        and `sudo fwupdmgr update` to apply them. A reboot is usually required.
-
-        The "nixos" and "root" accounts have no password. To log in over SSH,
-        set one with `passwd` (`sudo passwd` for "root").
-      '';
+    # Console-only installer: keep the console theming, drop the GTK/Qt stack.
+    stylix.targets = {
+      gtk.enable = false;
+      qt.enable = lib.mkForce false;
     };
 
-    # NOTE: Stop nixos complains about "warning:
-    # mdadm: Neither MAILADDR nor PROGRAM has been set. This will cause the `mdmon` service to crash."
-    # https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/profiles/installation-device.nix#L112
-    boot.swraid.mdadmConf = "PROGRAM ${pkgs.coreutils}/bin/true";
-
-    ghaf.development.usb-serial.enable = true;
+    documentation.enable = lib.mkForce false;
+    system.installer.channel.enable = false;
 
     boot = {
+      # Skip NixOS installer
+      loader.timeout = lib.mkForce 0;
+
+      # NOTE: Stop nixos complains about "warning:
+      # mdadm: Neither MAILADDR nor PROGRAM has been set. This will cause the `mdmon` service to crash."
+      # https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/profiles/installation-device.nix#L112
+      swraid.mdadmConf = "PROGRAM ${pkgs.coreutils}/bin/true";
+
       kernelPackages = pkgs.linuxPackages_latest;
       # Disable ZFS support - not compatible with latest. only supported on LTS.
       supportedFilesystems.zfs = lib.mkForce false;
@@ -177,6 +112,88 @@ in
         "console=tty0"
         "console=ttyUSB0,115200"
       ];
+    };
+
+    systemd.services = {
+      wpa_supplicant.wantedBy = lib.mkForce [ "multi-user.target" ];
+      sshd.wantedBy = lib.mkForce [ "multi-user.target" ];
+
+      # Autostart the installer on tty1, replacing the default getty.
+      ghaf-installer-tui = {
+        description = "Ghaf Installer";
+        after = [ "multi-user.target" ];
+        wantedBy = [ "multi-user.target" ];
+        conflicts = [ "getty@tty1.service" ];
+        environment = {
+          IMG_PATH = cfg.imageSource;
+        };
+        serviceConfig = {
+          ExecStart = pkgs.writeShellScript "ghaf-installer-autostart" ''
+            # ghaf-installer reads ghaf.install_target/_encrypt/_secureboot and
+            # ghaf.image_url itself, so the dispatch here is only about which of
+            # the two front-ends to run.
+            if grep -q 'ghaf\.install_target=' /proc/cmdline 2>/dev/null; then
+              echo "ghaf.install_target= on the kernel command line: installing unattended." >&2
+              # Tee'd rather than exec'd: StandardOutput is the tty, so without
+              # this an unattended install's only record is a screen nobody is
+              # watching -- and its warnings are exactly what you need after a
+              # machine comes back unbootable. tee keeps the console copy.
+              set -o pipefail
+              ${self.packages.${system}.ghaf-installer}/bin/ghaf-installer 2>&1 |
+                ${pkgs.coreutils}/bin/tee >(${pkgs.systemd}/bin/systemd-cat -t ghaf-installer)
+              exit "''${PIPESTATUS[0]}"
+            fi
+            exec ${self.packages.${system}.ghaf-installer-tui}/bin/ghaf-installer-tui
+          '';
+          # Suppress kernel printk noise on tty1 while TUI is active
+          ExecStartPre = "${pkgs.util-linux}/bin/dmesg -n 1";
+          # Restore kernel log level and hand tty1 back to getty on exit
+          ExecStopPost = [
+            "${pkgs.util-linux}/bin/dmesg -n 7"
+            "${pkgs.systemd}/bin/systemctl start getty@tty1.service"
+          ];
+          StandardInput = "tty";
+          StandardOutput = "tty";
+          StandardError = "tty";
+          TTYPath = "/dev/tty1";
+          TTYReset = true;
+          TTYVHangup = true;
+          PrivateTmp = true;
+          Restart = "on-failure";
+          RestartSec = "5s";
+        };
+      };
+    };
+
+    networking = {
+      networkmanager.enable = true;
+      hostName = "ghaf-installer";
+    };
+
+    image.baseName = lib.mkForce "ghaf";
+
+    services = {
+      getty = {
+        greetingLine = "<<< Welcome to the Ghaf installer >>>";
+        # Replace the NixOS installer text, since it doesn't match Ghaf's installer
+        helpLine = lib.mkForce ''
+
+          To start the interactive Ghaf installer, run `sudo ghaf-installer-tui`.
+
+          For a scripted install, run `sudo ghaf-installer --help`
+          (e.g. `sudo ghaf-installer -d /dev/nvme0n1 -y` installs without prompts).
+
+          To connect to Wi-Fi, run `nmtui`, or
+          `sudo nmcli dev wifi connect <SSID> password <PASSWORD>`.
+
+          To update device firmware (needs a network connection), run
+          `sudo fwupdmgr refresh`, then `sudo fwupdmgr get-updates` to list updates
+          and `sudo fwupdmgr update` to apply them. A reboot is usually required.
+
+          The "nixos" and "root" accounts have no password. To log in over SSH,
+          set one with `passwd` (`sudo passwd` for "root").
+        '';
+      };
     };
 
     # Configure nixpkgs with Ghaf overlays for extended lib support
