@@ -13,6 +13,7 @@
   cosmic-comp = import ./cosmic/cosmic-comp { inherit prev; };
   cosmic-greeter = import ./cosmic/cosmic-greeter { inherit prev; };
   cosmic-initial-setup = import ./cosmic/cosmic-initial-setup { inherit prev; };
+  cosmic-notifications = import ./cosmic/cosmic-notifications { inherit prev; };
   cosmic-osd = import ./cosmic/cosmic-osd { inherit prev; };
   cosmic-panel = import ./cosmic/cosmic-panel { inherit prev; };
   cosmic-reader = import ./cosmic/cosmic-reader { inherit prev; };
