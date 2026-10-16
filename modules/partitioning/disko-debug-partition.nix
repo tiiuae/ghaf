@@ -149,7 +149,7 @@ in
           lib.optionalString (
             cfg.imageBuilder.compression.level != null
           ) "-${toString cfg.imageBuilder.compression.level}"
-        } --long --compress "$out/${diskName}.raw" -o "$out/ghaf-image.raw.zst" --rm
+        } --compress "$out/${diskName}.raw" -o "$out/ghaf-image.raw.zst" --rm
       '';
       devices = {
         disk."${diskName}" = {
