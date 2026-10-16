@@ -159,11 +159,14 @@ let
 
   failed = map (assertion: assertion.name) (lib.filter (assertion: !assertion.ok) assertions);
 in
-assert lib.assertMsg (
-  failed == [ ]
-) "Orin Crosvm target policy: ${lib.concatStringsSep "; " failed}";
-runCommand "orin-crosvm-targets" { } ''
-  grep -Fq 'while ((SECONDS < grace_deadline))' ${nxGuiShutdownScript}
-  grep -Fq /booted/bin/microvm-shutdown ${nxGuiShutdownScript}
-  touch "$out"
-''
+# Keep target evaluation lazy when flake show inspects the check's name.
+runCommand "orin-crosvm-targets" { } (
+  assert lib.assertMsg (
+    failed == [ ]
+  ) "Orin Crosvm target policy: ${lib.concatStringsSep "; " failed}";
+  ''
+    grep -Fq 'while ((SECONDS < grace_deadline))' ${nxGuiShutdownScript}
+    grep -Fq /booted/bin/microvm-shutdown ${nxGuiShutdownScript}
+    touch "$out"
+  ''
+)
