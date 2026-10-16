@@ -433,7 +433,7 @@ in
         balloon = (vm.balloonRatio or 2) > 0;
         deflateOnOOM = true;
         vcpu = lib.mkDefault (vm.vcpu or 4);
-        hypervisor = vmm;
+        hypervisor = lib.mkDefault vmm;
         vsock.cid = hostConfig.networking.thisVm.cid or 100;
         # The host runs VMMs as the unprivileged `microvm` user. crosvm's
         # multiprocess minijail needs CAP_SYS_ADMIN to create PID and mount

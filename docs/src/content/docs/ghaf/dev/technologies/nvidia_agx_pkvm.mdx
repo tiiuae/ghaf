@@ -1,0 +1,219 @@
+---
+title: "NVIDIA Orin AGX: pKVM and Protected VMs"
+---
+
+# Architecture
+
+Enabling protected virtualization on Orin AGX is controlled by two configuration options:
+`ghaf.host.kernel.hardening.hypervisor.enable` and `ghaf.guest.hardening.protected.enable`.
+
+The first option `ghaf.host.kernel.hardening.hypervisor` selects a [custom Linux kernel](https://github.com/tiiuae/linux-pkvm-jetson)
+with built-in support for the pKVM hypervisor, and configures the Jetson host.
+Meanwhile, the option `ghaf.guest.hardening.protected.enable` is a global host option that loads a common
+configuration in the microvm guests to allow them to run as protected VMs.
+
+The target **nvidia-jetson-orin-agx64-pvm** is an extension of the existing *nvidia-jetson-orin-agx64*
+that enables both options mentioned above.
+
+```nix
+# File: targets/nvidia-jetson-orin/flake-module.nix
+(ghaf-configuration {
+	name = "nvidia-jetson-orin-agx64-pvm";  # new target
+	inherit system;
+	profile = "orin";
+	hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx64;
+	variant = "debug";
+	extraModules = commonModules;
+	extraConfig = {
+		reference.profiles.mvp-orinuser-trial.enable = true;
+
+		host.kernel.hardening.hypervisor.enable = true;  # enable host pKVM support
+		guest.hardening.protected.enable = true;         # enable guest pKVM support
+	};
+})
+```
+
+The implementation of these two options is found respectively in the modules **`orin-pkvm-host.nix`**
+and **`orin-pkvm-guest.nix`**,
+placed under `modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/pkvm`.
+
+These modules - along with the `default.nix` file in the same folder - are the main entry points that
+define the system configuration required by pKVM.
+
+## Host configuration
+
+`orin-pkvm-host.nix` modifies some high-level NixOS configuration to facilitate the pKVM host integration.
+
+Its core changes are:
+
+- swaps the default kernel for the Linux 6.18 kernel with ARM64 pKVM support
+
+```nix
+boot.kernelPackages = lib.mkForce (
+	(pkgs.linuxPackagesFor kernelDrv).extend pkgs.nvidia-jetpack.kernelPackagesOverlay
+);
+```
+
+- bumps the Jetpack BSP version to the major version 7 (instead of the default 6). This brings in
+more recent revisions of NVIDIA out-of-tree (OOT) modules to facilitate interoperability with the 6.18 kernel.
+
+```nix
+hardware.nvidia-jetpack.majorVersion = "7";
+```
+
+- exposes an option to list assignable platform devices, and generates a host device-tree overlay based on
+the provided values. Refer to the [pKVM allowed devices](#pkvm-allowed-devices) section for more
+information on device assignment.
+
+The BPMP drivers are built into the kernel instead of being loaded as separate modules and as such
+the corresponding Ghaf module is disabled. It also uses a single VM for the GPU (gui-vm) instead of
+the two separate display and compute VMs.
+
+## Guest configuration
+
+`orin-pkvm-guest.nix` defines a NixOS configuration that is applied to every VM when the protected
+Orin target is selected.
+
+```nix
+# File: modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/pkvm/default.nix
+	guestConfig = _: { imports = [ ./orin-pkvm-guest.nix ]; };
+	...
+	sysvms = {
+		netvm.extraModules = [ guestConfig ];
+		adminvm.extraModules = [ guestConfig ];
+		guivm.extraModules = [ guestConfig ];
+	};
+	appvms = {
+		chromium.extraModules = [ guestConfig ];
+		flatpak.extraModules = [ guestConfig ];
+	};
+```
+This guest module enables `ghaf.virtualization.microvm.protected-vm` which contains settings common to
+all protected VMs (defined in `microvm/common/vm-protected.nix`).
+
+It also selects a custom crosvm package that points to the repository [tiiuae/crosvm](https://github.com/tiiuae/crosvm/tree/develop).
+The nix package is defined in `modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/pkvm/packages/crosvm/default.nix`
+and the microvm hypervisor configured in `microvm/common/vm-crosvm.nix`.
+
+This crosvm fork follows closely upstream crosvm with a few minor patches applied on top. Ideally these
+patches will either be integrated into upstream crosvm or added as standalone crates, which will make the
+upstream crosvm package compatible with Jetson Orin.
+
+The same kernel tree as the host is reused for the guest, but built with a guest specific configuration
+indented for paravirtualized systems.
+
+### Additional configuration for Jetpack graphics
+
+`jetson-guest-graphics.nix` is a VM module that configures the NVIDIA Jetson graphics userspace and kernel
+drivers. It makes the guest use the L4T drivers and firmware instead of the default NixOS desktop
+NVIDIA stack.
+
+This module was extracted from the existing graphics module in jetpack-nixos that is normally
+intended for a Jetson host system, with the options for Jetson SoCs other than Orin removed.
+
+## Passthrough support
+
+To configure a device passthrough under pKVM, the following properties need to be configured:
+
+- the device must be in the list of allowed devices; see the "pKVM allowed devices" subsection.
+
+import { Aside } from '@astrojs/starlight/components';
+
+<Aside>
+For PCI devices specifically, there exists a global "allow by default" flag in the form of the
+`pkvm.assign_permissive` boot parameter. If it is set, all discovered PCI devices are automatically
+registered as allowed devices during system startup.
+</Aside>
+
+- the device must be bound to the corresponding VFIO driver (`vfio-pci` or `vfio-platform`). It may
+be necessary to unbind it first from its canonical driver on the host, or blacklist that driver entirely
+to prevent it from claiming the device.
+
+- a `--vfio` flag must be added to the crosvm run command for that particular device, plus an
+additional device tree overlay (with `--device-tree-overlay`) if the device is a platform bus device.
+The flag has a sub-setting to configure the type of IOMMU used by crosvm for each device. For pKVM,
+this must be set to `pkvm-iommu`.
+
+The guest device tree overlay is often a copy of the node definition found in the Jetson BSP, with
+some properties removed that are not applicable in a guest context. For that reason, a utility
+module `nv-preprocess-dtsi.nix` was added that converts a Tegra-compatible device tree file to a
+compiled device tree overlay that is accepted by crosvm.
+
+After all device resources have been successfully setup for passthrough (MMIO regions, DMA, interrupts),
+the driver for the device can be loaded in the guest. For most devices this as simple as enabling
+the in-tree driver in the guest kernel config. The rest for which only out-of-tree drivers are
+available need additional logic in the guest image build process to compile and add the remaining kernel modules
+(for ex. the Orin GPU).
+
+Lastly, additional userspace libraries are required to support CUDA workloads on NVIDIA GPUs. See the [section
+on `jetson-guest-graphics.nix`](#additional-configuration-for-jetpack-graphics).
+
+### pKVM allowed devices
+
+Device assignment in the pKVM hypervisor comes with a simple security policy that disallows donating
+device resources to guest VMs, unless explicitely allowed in the host's device tree.
+
+To configure this in Ghaf, the option `ghaf.host.kernel.hardening.allowedPassthroughDevices` was added.
+It accepts a list of device tree labels to be inserted in the final device tree, inside the `pkvm,device-assignment`
+compatible node. The kernel reads this property at boot time and registers platform devices that
+can be passed-through to guest VMs.
+
+As an example, the gui-vm passthrough sets `allowedPassthroughDevices` to:
+
+```nix
+# File: modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/gui-vm/default.nix
+	ghaf.host.kernel.hardening.allowedPassthroughDevices = [
+		"ga10b"
+		"host1x"
+		"pkvm_host1x_syncpt_dev"
+	];
+```
+
+Here is how the final `"pkvm,device-assignment"` node will look like:
+
+```
+__overlay__ {
+	pkvm_devices {
+		compatible = "pkvm,device-assignment";
+		devices = <&ga10b 0>, <&host1x 0>, <&pkvm_host1x_syncpt_dev 0>, ...;
+	};
+};
+```
+
+### Enabled passthroughs
+
+Three existing Orin device passthroughs were adapted for the pKVM target. In each of these modules,
+some configuration settings initially applied to the regular KVM target were dropped or replaced by
+pKVM specific settings. This is controlled by the `withPkvm` flag.
+
+- **Ethernet (MGBE)**: the Ethernet controller is passed-through to the net-vm. The pKVM configuration
+disables the 6.12 guest kernel in favor of its own kernel image, and disables related kernel patches.
+As a platform device, the Ethernet controller needs a node in the guest device tree. It is added via
+a guest overlay found in
+`modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/mgbe0-net-vm/ethernet-guest-overlay.dts`.
+
+- **WLAN**: the PCIe Wi-Fi card is passed to the net-vm at a fixed guest address. The main changes here
+are the removal of the host device tree overlay - the `iommus` property on the PCIe node is needed
+for pKVM - replaced by the release of the PCIe root port on the host at runtime.
+
+- **GPU**: the GPU and host1x devices are passed to the gui-vm. The guest runs with its RAM mapped
+1:1 to host memory, which allows the Jetson NVIDIA GPU drivers to run unmodified in the guest VM. Its
+device tree is placed in
+`reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/gui-vm/gpu-guest-overlay.dts`.
+
+## Various fixes
+
+1. The microvm extensions (`modules/microvm/microvm-extensions`) add crosvm features that microvm.nix
+does not provide yet, such as choosing the IOMMU type and guest PCI address for each VFIO device.
+
+It is effectively a compatibility module; it "injects" functionality in microvm.nix that downstream
+Ghaf modules can use as if it was provided by the library.
+The goal is to provide a buffer for open pull requests that haven't been merged in the library's
+main branch, such as [microvm.nix#586](https://github.com/microvm-nix/microvm.nix/pull/586).
+
+2. The Jetpack 7 overlay adjusts the NVIDIA out-of-tree module compilation flags to avoid building
+Wi-Fi drivers that the selected kernel already provides. A few third-party packages used in jetpack-nixos
+needed small adjustments to build with Jetpack 7.
+
+3. DCE host proxy was previously always enabled on Orin. Since the display is not virtualized in this
+target, the former is not needed. An option was added with an enable switch for the DCE proxy.

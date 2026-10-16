@@ -4,6 +4,7 @@
   _file = ./default.nix;
 
   imports = [
+    ./crosvm.nix
     ./nvidia-docker.nix
     ./nvidia-podman.nix
     ./qemu.nix

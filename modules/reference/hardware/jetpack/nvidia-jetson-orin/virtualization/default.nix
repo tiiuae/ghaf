@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   imports = [
+    ./nv-preprocess-dtsi.nix
     ./common/bpmp-virt-common
     ./host/bpmp-virt-host
     ./host/uarta-host
@@ -10,6 +11,7 @@
     ./passthrough/gpu-vm
     ./passthrough/disp-vm
     ./passthrough/gui-vm
+    ./pkvm
     ./ownership-assertions.nix
   ];
 }
