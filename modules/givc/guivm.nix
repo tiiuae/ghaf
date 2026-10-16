@@ -48,7 +48,6 @@ in
           "SetTimezone"
           "StartService"
           "ListGenerations"
-          "SetGeneration"
           "StartVM"
           "Watch"
           "GetStats"
@@ -57,7 +56,8 @@ in
           "PauseApplication"
           "ResumeApplication"
           "StopApplication"
-        ];
+        ]
+        ++ lib.optionals config.ghaf.profiles.debug.enable [ "SetGeneration" ];
       }
       # Microvm services for apps, executed by admin
       {
