@@ -52,6 +52,18 @@ let
           }
         && host.microvm.vms ? "gui-vm"
         && usesCrosvm host
+        && lib.all (
+          vm:
+          !vm.ghaf.virtualization.microvm.tpm.emulated.enable
+          || (
+            lib.elem "tpm_virtio" vm.boot.initrd.kernelModules
+            && lib.any (
+              patch:
+              patch.name == "chromiumos-virtio-tpm"
+              && patch.structuredExtraConfig.TCG_VIRTIO_VTPM == lib.kernel.module
+            ) vm.boot.kernelPatches
+          )
+        ) (vmConfigs host)
         && host.systemd.services ? ghaf-device-manager
         && !(host.systemd.services ? vhotplug);
     }
