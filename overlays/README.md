@@ -53,6 +53,12 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
   This is caused by missing `${stdenv.cc.targetPrefix}` in `build-skaware-package.nix` of nixpkgs. execline also misses `targetPrefix` in `postInstall` function its `pkg-config` wrapper.
   The fix solves both issues.
 
+- [cosmic-notifications: extend panel connection timeout to 10s](https://github.com/pop-os/cosmic-notifications/pull/181)
+
+  `overlays/custom-packages/cosmic/cosmic-notifications/default.nix` raises the
+  daemon's panel connection timeout from 1s to 10s, fixes panel sometimes failing to load
+  Should be included in COSMIC 1.10 or 1.11
+
 ## Inputs pinned to an unmerged PR
 
 A rev pin freezes *every* change in that input, not just the one being carried, so it must be
