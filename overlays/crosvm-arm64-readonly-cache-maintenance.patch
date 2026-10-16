@@ -1,0 +1,202 @@
+SPDX-FileCopyrightText: 2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: Apache-2.0
+
+Subject: [PATCH] Handle ARM64 cache maintenance on read-only memory slots
+
+DAX executable mappings in recent kernels issue IC IVAU on the PMEM store.
+ARM reports this as a write-like NISV fault. Opt into NISV exits and skip
+only cache-maintenance operations inside registered read-only slots, keeping
+actual stores and unrelated faults fatal. Synchronize slot tracking with
+KVM registration and removal so vCPUs cannot observe stale permissions.
+
+--- a/hypervisor/src/kvm/mod.rs
++++ b/hypervisor/src/kvm/mod.rs
+@@ -275,6 +275,8 @@
+     vm: SafeDescriptor,
+     guest_mem: GuestMemory,
+     mem_regions: Mutex<BTreeMap<MemSlot, Box<dyn MappedRegion>>>,
++    #[cfg(target_arch = "aarch64")]
++    readonly_regions: Arc<Mutex<BTreeMap<MemSlot, (u64, u64)>>>,
+     /// A min heap of MemSlot numbers that were used and then removed and can now be re-used
+     mem_slot_gaps: Mutex<BinaryHeap<Reverse<MemSlot>>>,
+     caps: KvmVmCaps,
+@@ -305,6 +307,8 @@
+             vm: vm_descriptor,
+             guest_mem,
+             mem_regions: Default::default(),
++            #[cfg(target_arch = "aarch64")]
++            readonly_regions: Default::default(),
+             mem_slot_gaps: Default::default(),
+             caps: Default::default(),
+             force_disable_readonly_mem: cfg.force_disable_readonly_mem,
+@@ -366,6 +370,8 @@
+             id,
+             cap_kvmclock_ctrl: self.caps.kvmclock_ctrl,
+             run_mmap: Arc::new(run_mmap),
++            #[cfg(target_arch = "aarch64")]
++            readonly_regions: self.readonly_regions.clone(),
+         })
+     }
+
+@@ -691,6 +697,10 @@
+             None => (regions.len() + self.guest_mem.num_regions() as usize) as MemSlot,
+         };
+
++        // Keep the vCPU's cache-maintenance view in sync with KVM's memslots.
++        #[cfg(target_arch = "aarch64")]
++        let mut readonly_regions = self.readonly_regions.lock();
++
+         // SAFETY:
+         // Safe because we check that the given guest address is valid and has no overlaps. We also
+         // know that the pointer and size are correct because the MemoryMapping interface ensures
+@@ -714,6 +724,10 @@
+             return Err(e);
+         }
+         regions.insert(slot, mem);
++        #[cfg(target_arch = "aarch64")]
++        if read_only && !self.force_disable_readonly_mem {
++            readonly_regions.insert(slot, (guest_addr.offset(), end_addr.offset()));
++        }
+         Ok(slot)
+     }
+
+@@ -781,6 +795,8 @@
+
+     fn remove_memory_region(&self, slot: MemSlot) -> Result<Box<dyn MappedRegion>> {
+         let mut regions = self.mem_regions.lock();
++        #[cfg(target_arch = "aarch64")]
++        let mut readonly_regions = self.readonly_regions.lock();
+         if !regions.contains_key(&slot) {
+             return Err(Error::new(ENOENT));
+         }
+@@ -799,6 +815,8 @@
+             )?;
+         }
+         self.mem_slot_gaps.lock().push(Reverse(slot));
++        #[cfg(target_arch = "aarch64")]
++        readonly_regions.remove(&slot);
+         // This remove will always succeed because of the contains_key check above.
+         Ok(regions.remove(&slot).unwrap())
+     }
+@@ -960,6 +978,8 @@
+     id: usize,
+     cap_kvmclock_ctrl: bool,
+     run_mmap: Arc<MemoryMapping>,
++    #[cfg(target_arch = "aarch64")]
++    readonly_regions: Arc<Mutex<BTreeMap<MemSlot, (u64, u64)>>>,
+ }
+
+ impl Vcpu for KvmVcpu {
+@@ -1040,6 +1060,10 @@
+
+         // Check for architecture-specific VM exit reasons first in case the architecture wants to
+         // override the default handling.
++        #[cfg(target_arch = "aarch64")]
++        if run.exit_reason == KVM_EXIT_ARM_NISV {
++            return self.handle_readonly_cache_maintenance(run);
++        }
+         if let Some(vcpu_exit) = self.handle_vm_exit_arch(run) {
+             return Ok(vcpu_exit);
+         }
+--- a/hypervisor/src/kvm/cap.rs
++++ b/hypervisor/src/kvm/cap.rs
+@@ -123,6 +123,7 @@
+     ArmProtectedVm = KVM_CAP_ARM_PROTECTED_VM,
+     X86ProtectedVm = KVM_CAP_X86_PROTECTED_VM,
+     ArmMte = KVM_CAP_ARM_MTE,
++    ArmNisvToUser = KVM_CAP_ARM_NISV_TO_USER,
+     #[cfg(target_arch = "x86_64")]
+     BusLockDetect = KVM_CAP_X86_BUS_LOCK_EXIT,
+     // TODO(b/388092267): use upstream cap when available
+--- a/hypervisor/src/kvm/aarch64.rs
++++ b/hypervisor/src/kvm/aarch64.rs
+@@ -96,6 +96,10 @@
+ impl KvmVm {
+     /// Does platform specific initialization for the KvmVm.
+     pub fn init_arch(&self, cfg: &Config) -> Result<()> {
++        if self.check_raw_capability(KvmCap::ArmNisvToUser) {
++            // SAFETY: this capability has no pointer arguments.
++            unsafe { self.enable_raw_capability(KvmCap::ArmNisvToUser, 0, &[0; 4])? }
++        }
+         if match cfg.mte {
+             ToggleMode::On => true,
+             ToggleMode::Auto => self.check_capability(VmCap::Mte),
+@@ -281,7 +285,41 @@
+     }
+ }
+
++fn is_readonly_cache_maintenance(
++    esr_iss: u64,
++    fault_ipa: u64,
++    regions: impl Iterator<Item = (u64, u64)>,
++) -> bool {
++    const ESR_CM: u64 = 1 << 8;
++    esr_iss & ESR_CM != 0
++        && regions
++            .into_iter()
++            .any(|(start, end)| start <= fault_ipa && fault_ipa < end)
++}
++
+ impl KvmVcpu {
++    pub(crate) fn handle_readonly_cache_maintenance(&self, run: &kvm_run) -> Result<VcpuExit> {
++        // SAFETY: the caller checked KVM_EXIT_ARM_NISV before reading this union member.
++        let fault = unsafe { run.__bindgen_anon_1.arm_nisv };
++        let regions = self.readonly_regions.lock();
++        if !is_readonly_cache_maintenance(fault.esr_iss, fault.fault_ipa, regions.values().copied())
++        {
++            return Err(Error::new(libc::ENOSYS));
++        }
++
++        // DAX executable mappings invalidate the instruction cache. ARM reports this as a
++        // write fault on a read-only memslot, but there can be no guest-dirty data here.
++        // Match KVM's handling of cache maintenance on non-memory regions; keep actual
++        // stores and all other NISV faults fatal rather than making the store writable.
++        let pc = self.get_one_reg(VcpuRegAArch64::Pc)?;
++        self.set_one_reg(
++            VcpuRegAArch64::Pc,
++            pc.checked_add(4).ok_or(Error::new(EINVAL))?,
++        )?;
++        // The exit is fully handled; let the existing retry path re-enter KVM.
++        Err(Error::new(libc::EAGAIN))
++    }
++
+     /// Handles a `KVM_EXIT_SYSTEM_EVENT` with event type `KVM_SYSTEM_EVENT_RESET` with the given
+     /// event flags and returns the appropriate `VcpuExit` value for the run loop to handle.
+     ///
+@@ -1002,6 +1040,36 @@
+     use super::*;
+
+     #[test]
++    fn readonly_cache_maintenance_boundaries() {
++        let regions = [(0x1000, 0x2000)];
++        for address in [0x1000, 0x1fff] {
++            assert!(is_readonly_cache_maintenance(
++                0x147,
++                address,
++                regions.into_iter()
++            ));
++        }
++        for address in [0xfff, 0x2000, u64::MAX] {
++            assert!(!is_readonly_cache_maintenance(
++                0x147,
++                address,
++                regions.into_iter()
++            ));
++        }
++        // A normal store must remain fatal, even inside the read-only slot.
++        assert!(!is_readonly_cache_maintenance(
++            0x47,
++            0x1000,
++            regions.into_iter()
++        ));
++        assert!(!is_readonly_cache_maintenance(
++            0x147,
++            0x1000,
++            [].into_iter()
++        ));
++    }
++
++    #[test]
+     fn system_timer_register_mixup() {
+         // Per https://docs.kernel.org/virt/kvm/api.html ARM64 system register encoding docs,
+         // KVM_REG_ARM_TIMER_CVAL and KVM_REG_ARM_TIMER_CNT were accidentally defined backwards.

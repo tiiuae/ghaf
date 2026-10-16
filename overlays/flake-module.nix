@@ -2,34 +2,58 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Flake module for exporting overlays
-{ inputs, ... }: {
+{
+  inputs,
+  ...
+}:
+let
+  crosvmGhaf = _final: prev: {
+    # Backport the ARM64 DAX empty-entry fix for the pinned default guest kernel.
+    linuxPackages = prev.linuxPackages.extend (
+      _kernelFinal: kernelPrev: {
+        kernel = kernelPrev.kernel.overrideAttrs (old: {
+          patches = prev.lib.unique (
+            (old.patches or [ ])
+            ++ prev.lib.optionals (prev.lib.versions.majorMinor kernelPrev.kernel.version == "6.18") [
+              ./linux-dax-empty-entry.patch
+            ]
+          );
+        });
+      }
+    );
+    crosvm = prev.crosvm.overrideAttrs (old: {
+      src = inputs.ghaf-crosvm;
+      patches = prev.lib.unique (
+        (old.patches or [ ])
+        ++ [
+          ./crosvm-pmem-ext2-low-address.patch
+          ./crosvm-dce-defer-thread.patch
+          ./crosvm-arm64-readonly-cache-maintenance.patch
+        ]
+      );
+      cargoDeps = prev.rustPlatform.fetchCargoVendor {
+        src = inputs.ghaf-crosvm;
+        hash = "sha256-I3XFmcXHo2isSTUZ27RkTH1OUp0UjOVXIGECoxcUzHU=";
+      };
+      cargoBuildFeatures = (old.cargoBuildFeatures or (old.buildFeatures or [ ])) ++ [
+        "pci-hotplug"
+        "power-monitor-sysfs"
+        "vtpm"
+      ];
+      buildInputs = (old.buildInputs or [ ]) ++ [ prev.dbus ];
+    });
+  };
+in
+{
   flake.overlays = {
     cross-compilation = import ./cross-compilation;
     custom-packages = import ./custom-packages;
+    crosvm-ghaf = crosvmGhaf;
     crosvm =
-      _final: prev:
-      inputs.nixpkgs.lib.optionalAttrs prev.stdenv.hostPlatform.isx86_64 {
-        crosvm = prev.crosvm.overrideAttrs (old: {
-          src = inputs.ghaf-crosvm;
-          cargoDeps = prev.rustPlatform.fetchCargoVendor {
-            src = inputs.ghaf-crosvm;
-            hash = "sha256-I3XFmcXHo2isSTUZ27RkTH1OUp0UjOVXIGECoxcUzHU=";
-          };
-          cargoBuildFeatures = (old.cargoBuildFeatures or (old.buildFeatures or [ ])) ++ [
-            "pci-hotplug"
-            "power-monitor-sysfs"
-            "vtpm"
-          ];
-          buildInputs = (old.buildInputs or [ ]) ++ [ prev.dbus ];
-        });
-      };
+      final: prev:
+      inputs.nixpkgs.lib.optionalAttrs prev.stdenv.hostPlatform.isx86_64 (crosvmGhaf final prev);
 
-    ghaf-device-manager =
-      _final: prev:
-      inputs.nixpkgs.lib.optionalAttrs prev.stdenv.hostPlatform.isx86_64 {
-        ghaf-device-manager =
-          inputs.ghaf-device-manager.packages.${prev.stdenv.hostPlatform.system}.default;
-      };
+    ghaf-device-manager = inputs.ghaf-device-manager.overlays.default;
 
     # Jetson-only Python fixes for the EDK2/UEFI firmware build. Deliberately
     # excluded from `default`: it rewrites pythonPackagesExtensions globally.
