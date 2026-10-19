@@ -212,6 +212,9 @@ in
                 mode = "2755";
               }
             ]
+            ++ optionals config.services.journald.upload.enable [
+              "/var/lib/private/systemd/journal-upload"
+            ]
             ++ optionals config.services.alloy.enable [
               "/var/lib/private/alloy"
             ]
