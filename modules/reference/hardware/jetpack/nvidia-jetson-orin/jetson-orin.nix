@@ -497,6 +497,11 @@ let
         ''}
         # Secure A/B rotates per flash, before enrolling the offline recovery
         # credential, whose passphrase is unavailable on the device.
+
+        if ! cryptsetup token add --key-description "$uniqueKeyDescription" "$luksDev" > /dev/null 2>&1; then
+          printf "error: Unable to add cryptrsetup token\n"
+          handle_error
+        fi
       }
 
       # Resolve the LUKS partition by its pinned header UUID and verify it is a
@@ -548,11 +553,6 @@ let
       # if the device can be unlocked by any available mechanism, including tokens/keyring.
       if ! cryptsetup luksDump "$luksDev" 2>/dev/null | grep -Fq ${luksDiskKeyDescription}; then
         switch_to_use_device_unique_key "$luksDiskKeyKeyringDescription" "$defaultManufactureKey" "$luksDev"
-      fi
-
-      if ! cryptsetup token add --key-description "$luksDiskKeyKeyringDescription" "$luksDev" > /dev/null 2>&1; then
-        printf "error: Unable to add cryptrsetup token\n"
-        handle_error
       fi
     '';
   };
