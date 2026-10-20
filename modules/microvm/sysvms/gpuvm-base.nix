@@ -163,37 +163,6 @@ in
       })
     ];
 
-  # GPU nodes are created root-only at early nvgpu load, before udev rules
-  # reliably apply, so a rule alone leaves them root:root. Re-grant video-group
-  # access once they exist so CUDA runs as ghaf without sudo (sudo strips
-  # LD_LIBRARY_PATH).
-  systemd.services.gpu-vm-node-access = {
-    description = "Grant video-group access to the passed-through GPU nodes";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "systemd-udev-settle.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-    };
-    script = ''
-      for attempt in $(${pkgs.coreutils}/bin/seq 1 30); do
-        if [ -e /dev/nvgpu/igpu0/ctrl ]; then
-          break
-        fi
-        if [ "$attempt" -eq 30 ]; then
-          echo "GPU control node did not appear within 30 seconds" >&2
-          exit 1
-        fi
-        ${pkgs.coreutils}/bin/sleep 1
-      done
-
-      for d in /dev/nvgpu /dev/nvhost-* /dev/nvmap; do
-        [ -e "$d" ] || continue
-        chgrp -R video "$d"
-        chmod -R g+rw "$d"
-      done
-    '';
-  };
   users.users.ghaf.extraGroups = [ "video" ];
 
   # cudaPackages' cuda_compat libcuda.so.1 wins the path collision but can't find
