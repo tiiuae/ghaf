@@ -568,11 +568,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1790593484,
-        "narHash": "sha256-M562cPwsPq/qdqS2XnMOYpWJwNhDE72vg3X2XGKHYRY=",
+        "lastModified": 1792480378,
+        "narHash": "sha256-C2giHJYr9GBoBeWKWLeoTfCkvV0vtSpJBrhIrhM5YRU=",
         "owner": "tiiuae",
         "repo": "ghaf-logseald",
-        "rev": "84aecfca714d128a3dbc07e610c50e30f8f09873",
+        "rev": "0e290d45f69a0d04bfaf02e44b443c275ad16a86",
         "type": "github"
       },
       "original": {
