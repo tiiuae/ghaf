@@ -35,24 +35,23 @@ in
       identity.activeDirectory.domains."ghaf-test.com" = {
         ad = {
           domain = "ghaf-test.com";
-          controllers = [ "vm-ghaf-dev-dc.ghaf-test.com" ];
+          controllers = [ "vm-dev-ghaf-dc-1a.ghaf-test.com" ];
+          dyndnsUpdate = false;
         };
         dnsProvider = {
-          name = "vm-ghaf-dev-dc.ghaf-test.com";
-          ipAddress = "10.52.33.4";
+          name = "vm-dev-ghaf-dc-1a.ghaf-test.com";
+          #ipAddress = "10.52.33.4";
+          ipAddress = "20.174.11.80";
+        };
+        krb5 = {
+          realm = "GHAF-TEST.COM";
+          server = [ "vm-dev-ghaf-dc-1a.ghaf-test.com" ];
+          kpasswd = [ "vm-dev-ghaf-dc-1a.ghaf-test.com" ];
         };
         ldap = {
+          uri = [ "ldap://vm-dev-ghaf-dc-1a.ghaf-test.com" ];
           schema = "ad";
-          # TII's AD publishes POSIX attributes; map them RFC2307-style
-          # (idMapping stays false, the shared type's default).
-          extraConfig = ''
-            # RFC2307 User and group attribute mappings
-            ldap_user_name = uid
-            ldap_user_uid_number = uidNumber
-            ldap_user_gid_number = gidNumber
-            ldap_user_home_directory = homeDirectory
-            ldap_user_shell = loginShell
-          '';
+          idMapping = true;
         };
       };
 

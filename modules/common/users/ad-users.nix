@@ -17,6 +17,29 @@ in
 
   options.ghaf.users.adUsers = {
     enable = lib.mkEnableOption "Active Directory user configuration";
+
+    override = {
+      enable = lib.mkOption {
+        description = "Enable override for Active Directory user configuration.";
+        type = lib.types.bool;
+        default = true;
+      };
+      uid = lib.mkOption {
+        description = "UID override for Active Directory user.";
+        type = lib.types.int;
+        default = 1000;
+      };
+      gid = lib.mkOption {
+        description = "GID override for Active Directory user.";
+        type = lib.types.int;
+        default = 100;
+      };
+      loginShell = lib.mkOption {
+        description = "Login shell for the user.";
+        type = lib.types.str;
+        default = "/run/current-system/sw/bin/bash";
+      };
+    };
   };
 
   config = {
@@ -36,5 +59,6 @@ in
       debugLevel = 6;
       inherit (config.ghaf.users.active-directory) domains;
     };
+
   };
 }
