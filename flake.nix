@@ -47,6 +47,8 @@
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
         crane.follows = "givc/crane";
+        treefmt-nix.follows = "treefmt-nix";
+        givc.follows = "givc";
       };
     };
 
