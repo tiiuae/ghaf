@@ -1,0 +1,22 @@
+SPDX-FileCopyrightText: 2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: Apache-2.0
+
+Subject: [PATCH] Allocate pmem-ext2 below the ARM64 linear mapping limit
+
+Top-down allocation can place the store above PHYSMEM_END, causing
+nd_pmem to reject it with EINVAL. Allocate from the bottom as the regular
+PMEM device already does.
+
+--- a/src/crosvm/sys/linux/device_helpers.rs
++++ b/src/crosvm/sys/linux/device_helpers.rs
+@@ -1357,7 +1357,9 @@
+                 Alloc::PmemDevice(index),
+                 format!("pmem_ext2_image_{index}"),
+                 AllocOptions::new()
+-                .top_down(true)
++                // Keep the store within the guest kernel's linear mapping range,
++                // as with regular PMEM devices.
++                .top_down(false)
+                 .prefetchable(true)
+                 // 2MB alignment for DAX
+                 // cf. https://docs.pmem.io/persistent-memory/getting-started-guide/creating-development-environments/linux-environments/advanced-topics/i-o-alignment-considerations#verifying-io-alignment

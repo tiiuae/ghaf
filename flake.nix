@@ -166,13 +166,15 @@
     # Nvidia Orin support for NixOS
     jetpack-nixos = {
       #url = "github:anduril/jetpack-nixos";
-      url = "github:tiiuae/jetpack-nixos/october-rebase";
+      # TODO: restore october-rebase after https://github.com/tiiuae/jetpack-nixos/pull/22 merges.
+      url = "github:tiiuae/jetpack-nixos/feat/orin-proxy-lifecycle";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # For building and managing VMs
     microvm = {
-      url = "github:microvm-nix/microvm.nix";
+      # TODO: restore the upstream input after microvm.nix#586 merges.
+      url = "github:vadika/microvm.nix/feat/crosvm-platform-upstream";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
