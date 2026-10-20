@@ -99,6 +99,11 @@ in
         enable = lib.mkDefault true;
         bootLabel = lib.mkDefault "Starting desktop...";
       };
+      iconTheme = {
+        package = lib.mkDefault pkgs.cosmic-icons;
+        light = lib.mkDefault "Cosmic";
+        dark = lib.mkDefault "Cosmic";
+      };
     };
     locales.enable = lib.mkDefault true;
 
@@ -330,6 +335,11 @@ in
       pkgs.ctrl-panel
       pkgs.waypipe
       pkgs.wlopm
+      # The blueman applet's tray icons, without the desktop entries
+      (pkgs.runCommand "blueman-icons" { } ''
+        mkdir -p $out/share
+        cp -rs ${pkgs.blueman}/share/icons $out/share/
+      '')
     ]
     # For GIVC debugging/testing
     ++ lib.optional (globalConfig.debug.enable or false) pkgs.givc-cli
