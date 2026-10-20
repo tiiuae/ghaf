@@ -9,6 +9,7 @@
 let
   # Ghaf systemd config
   cfg = config.ghaf.systemd;
+  withImportd = cfg.withMachines || cfg.withSysupdate;
   localeDirectory = "/run/current-system/sw/lib/locale";
 
   inherit (lib)
@@ -35,12 +36,10 @@ let
         inherit (cfg) withEfi;
         inherit (cfg) withBootloader;
         inherit (cfg) withFido2;
-        # Importd needs a crypto backend even when OpenSSL is disabled.
-        withGcrypt = (cfg.withMachines || cfg.withSysupdate) && !cfg.withOpenSSL;
         inherit (cfg) withHomed;
-        inherit (cfg) withOpenSSL;
+        withOpenSSL = cfg.withOpenSSL || withImportd;
         inherit (cfg) withHostnamed;
-        withImportd = cfg.withMachines || cfg.withSysupdate;
+        inherit withImportd;
         withKexectools = cfg.withDebug;
         withKmod = true;
         withLibBPF = true;
