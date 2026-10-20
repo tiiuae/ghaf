@@ -40,6 +40,7 @@ let
             target-path = "/";
             __overlay__ {
                 bpmp_host_proxy: bpmp_host_proxy {
+                    nvidia,bpmp = <&bpmp>;
                     compatible = "nvidia,bpmp-host-proxy";
                     allowed-clocks = <${lib.concatStringsSep " " (ids allow.clocks)}>;
                     allowed-resets = <${lib.concatStringsSep " " (ids allow.resets)}>;

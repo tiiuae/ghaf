@@ -19,6 +19,7 @@
 # `-from-x86_64` variants.
 (_final: prev: {
   pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
+    (import ./patchfv)
     (import ./setuptools-pkg-resources)
     (import ./threadpoolctl-no-check)
   ];
