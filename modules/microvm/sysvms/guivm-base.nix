@@ -47,6 +47,7 @@ let
   performanceEnabled = lib.ghaf.features.isEnabledFor globalConfig "performance" vmName;
   localeEnabled = lib.ghaf.features.isEnabledFor globalConfig "locale" vmName;
   timezoneEnabled = lib.ghaf.features.isEnabledFor globalConfig "timezone" vmName;
+  ledProxyEnabled = lib.ghaf.features.isEnabledFor globalConfig "ledProxy" vmName;
   isCrosvm = config.microvm.hypervisor == "crosvm";
 
   # The bug-report repo is an org-supplied value. With no value configured
@@ -235,6 +236,15 @@ in
       fprint.enable = lib.mkDefault fprintEnabled;
       yubikey.enable = lib.mkDefault yubikeyEnabled;
       brightness.enable = lib.mkDefault brightnessEnabled;
+      led-proxy = {
+        enable = lib.mkDefault ledProxyEnabled;
+        client = {
+          enable = lib.mkDefault true;
+          leds = [
+            "kbd_backlight"
+          ];
+        };
+      };
 
       user-provisioning.enable = true;
 
