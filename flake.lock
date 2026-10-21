@@ -389,12 +389,12 @@
         "rev": "6cc375ee30479b6120a543066be4f474c09b304c",
         "revCount": 310,
         "type": "git",
-        "url": "ssh://git@github.com/jkuro-tii/ghafpkgs.git"
+        "url": "https://github.com/jkuro-tii/ghafpkgs.git"
       },
       "original": {
         "ref": "leds-server",
         "type": "git",
-        "url": "ssh://git@github.com/jkuro-tii/ghafpkgs.git"
+        "url": "https://github.com/jkuro-tii/ghafpkgs.git"
       }
     },
     "git-hooks-nix": {

@@ -10,35 +10,30 @@ let
   inherit (lib) mkIf;
 
   cfg = config.ghaf.services.led-proxy;
-  # names of handled LEDs
-  leds = [
-    "kbd_backlight"
-    "micmute"
-    "mute"
-  ];
   unsupportedClientLeds = lib.filter (led: !(lib.elem led cfg.host.leds)) cfg.client.leds;
 in
 {
   _file = ./led-proxy.nix;
 
   options.ghaf.services.led-proxy = {
-    enable = lib.mkEnableOption "the LED proxy service";
+    enable = lib.mkEnableOption "sharing of host LEDs with VMs";
     client = {
-      enable = lib.mkEnableOption "the LED proxy client";
+      enable = lib.mkEnableOption "control of host LEDs from this VM";
       leds = lib.mkOption {
-        # verify the leds assignment against host supported leds
         type = lib.types.listOf lib.types.str;
-        description = "List of LED names to be managed by the LED proxy service for clients";
-        default = leds;
+        description = "Host LEDs this VM may control. Each must also be listed in host.leds";
+        default = [ ];
       };
     };
-    # List of LED names to be managed by the host LED proxy service
-    # Non existing LEDs will be ignored by the service
     host = {
-      enable = lib.mkEnableOption "the LED proxy host";
+      enable = lib.mkEnableOption "serving this host's LEDs to VMs";
       leds = lib.mkOption {
         type = lib.types.listOf lib.types.str;
-        description = "List of LED names to be managed by the host LED proxy service";
+        # fix to multiline
+        description = "
+        Host LEDs that VMs may control, matched by name suffix (kbd_backlight matches tpacpi::kbd_backlight).
+        Names with no matching LED are ignored.
+        ";
         default = [
           "kbd_backlight"
           "micmute"
@@ -94,10 +89,10 @@ in
             assertions = [
               {
                 assertion = unsupportedClientLeds == [ ];
-                message = ''
+                message = "
                   LED proxy client contains LEDs not supported by the host:
                   ${lib.concatStringsSep ", " unsupportedClientLeds}
-                '';
+                ";
               }
             ];
           }
