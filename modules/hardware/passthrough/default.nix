@@ -9,6 +9,7 @@
     ./pci-ports.nix
     ./pci-rules.nix
     ./usb-quirks.nix
+    ./usb-authorization.nix
     ./usb-rules.nix
     ./usb-static.nix
     ./vhotplug.nix
