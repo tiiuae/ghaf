@@ -92,7 +92,7 @@ jobs:
         env:
           BASE_REF: ${{ github.base_ref }}
       - name: Install nix
-        uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+        uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
       - name: Prepare remote builds
         run: |
           sudo sh -c "echo '${BUILDER_SSH_KNOWN_HOST}' >>/etc/ssh/ssh_known_hosts"
