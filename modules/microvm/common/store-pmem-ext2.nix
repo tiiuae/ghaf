@@ -16,10 +16,6 @@ let
   # Each VM only has access ot its own closure paths
   closure = pkgs.closureInfo { rootPaths = [ config.system.build.toplevel ]; };
   storeArg = "/nix/store:paths=${closure}/store-paths";
-  # A new closure, builder option or crosvm build gets a new cache file.
-  cacheKey = builtins.hashString "sha256" (
-    builtins.unsafeDiscardStringContext "${storeArg}:${config.microvm.crosvm.package}"
-  );
 in
 {
   _file = ./store-pmem-ext2.nix;
@@ -28,7 +24,7 @@ in
     microvm = {
       crosvm.extraArgs = [
         "--pmem-ext2"
-        "${storeArg}:cache=/persist/ghaf-store/${config.networking.hostName}-${cacheKey}.zst"
+        storeArg
       ];
       # microvm.nix defaults to an erofs store disk when no /nix/store share exists
       storeOnDisk = false;

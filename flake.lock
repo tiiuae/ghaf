@@ -318,17 +318,17 @@
     "ghaf-crosvm": {
       "flake": false,
       "locked": {
-        "lastModified": 1792485632,
-        "narHash": "sha256-8LHhJpDe4IuQhU4jwSDjjQzDOhBOTxNtbQmW+53fbN8=",
-        "ref": "fix/pmem-ext2-vcpu-start",
-        "rev": "8c997f5ca5de1050c8157274d4b1a700687bfe8e",
-        "revCount": 11738,
+        "lastModified": 1792658303,
+        "narHash": "sha256-DiuwDdUh32cwDkes1yFQ9LGO0NvE+ZTsWRQk8yo/y7A=",
+        "ref": "perf/pmem-ext2-nocache",
+        "rev": "78d355c7cd46fd0ea1278af3e73da167057b2de1",
+        "revCount": 11740,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/kajusnau/ghaf-crosvm"
       },
       "original": {
-        "ref": "fix/pmem-ext2-vcpu-start",
+        "ref": "perf/pmem-ext2-nocache",
         "submodules": true,
         "type": "git",
         "url": "https://github.com/kajusnau/ghaf-crosvm"
