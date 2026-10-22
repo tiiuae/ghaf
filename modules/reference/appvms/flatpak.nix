@@ -129,6 +129,8 @@ let
           cp -rL "$EXPORTS_DIR" "$UNSAFE_SHARE_DIR" \
             && echo "Copied flatpak 'exports/share' to $UNSAFE_SHARE_DIR" \
             || echo "Failed to copy flatpak desktop entries to $UNSAFE_SHARE_DIR"
+          # gui-vm can neither D-Bus activate the apps nor hand them files yet
+          rm -rf "$UNSAFE_SHARE_DIR/share/dbus-1" "$DESKTOP_DIR/mimeinfo.cache"
 
           add_desktop_actions() {
             # Action display names
@@ -176,11 +178,18 @@ let
                 continue
               fi
 
-              # Fixup Exec, remove TryExec and Path, strip existing action sections
+              # Fixup launch keys for gui-vm and drop the ones only meaningful in flatpak-vm
               sed -i \
                 "s|^Exec=.*|Exec=ghaf-open flatpak-run -- http://$app_id|; \
+                s|^Terminal=.*|Terminal=false|; \
                 s|^TryExec=.*||; \
                 s|^Path=.*||; \
+                s|^DBusActivatable=.*||; \
+                s|^StartupNotify=.*|StartupNotify=false|; \
+                s|^MimeType=.*||; \
+                s|^Implements=.*||; \
+                s|^PrefersNonDefaultGPU=.*||; \
+                s|^X-Flatpak[^=]*=.*||; \
                 /^\[Desktop Action/,/^\[/{/^Exec=/d}" "$desktop"
 
               # Add VM labels while preserving localizations
