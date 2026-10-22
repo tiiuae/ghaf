@@ -3,13 +3,15 @@ From: Kajus Naujokaitis <kajusn@gmail.com>
 Date: Thu, 18 Jun 2026 10:35:53 +0300
 Subject: [PATCH] Preselect Ghaf themes
 
+Start the frosted glass toggle from the selected theme's own setting.
+
 Signed-off-by: Kajus Naujokaitis <kajusn@gmail.com>
 ---
- src/page/appearance.rs | 23 +++++++----------------
- 1 file changed, 7 insertions(+), 16 deletions(-)
+ src/page/appearance.rs | 27 +++++++++++----------------
+ 1 file changed, 11 insertions(+), 16 deletions(-)
 
 diff --git a/src/page/appearance.rs b/src/page/appearance.rs
-index 016f43a..2cc655a 100644
+index 016f43a..27f499d 100644
 --- a/src/page/appearance.rs
 +++ b/src/page/appearance.rs
 @@ -86,20 +86,7 @@ impl Page {
@@ -43,13 +45,17 @@ index 016f43a..2cc655a 100644
              theme_mode_config,
              dark_theme_config: cosmic::cosmic_theme::Theme::dark_config().ok(),
              dark_theme_builder_config: ThemeBuilder::dark_config().ok(),
-@@ -163,7 +150,11 @@ impl Page {
+@@ -163,7 +150,15 @@ impl Page {
              themes,
              selected: if ThemeMode::default().is_dark { 0 } else { 1 },
              frosted_glass: false,
 -        }
 +        };
 +
++        page.frosted_glass = page
++            .themes
++            .get(page.selected)
++            .is_some_and(|theme| theme.builder.frosted_windows);
 +        page.update(Message::Select(page.selected));
 +
 +        page
