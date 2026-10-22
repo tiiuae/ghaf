@@ -25,21 +25,13 @@ in
       pkgs.fingwit
     ];
 
-    ghaf.services.power-manager.suspend.extraSuspendCommands = ''
-      ${lib.getExe' pkgs.systemd "systemctl"} stop fprintd || true
+    powerManagement.powerDownCommands = ''
+      ${pkgs.systemd}/bin/systemctl stop fprintd
     '';
 
-    systemd.services.fprintd-resume = {
-      wantedBy = [ "post-resume.target" ];
-      after = [ "systemd-logind.service" ];
-
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = ''
-          ${pkgs.systemd}/bin/systemctl restart fprintd
-        '';
-      };
-    };
+    powerManagement.resumeCommands = ''
+      ${pkgs.systemd}/bin/systemctl start fprintd
+    '';
 
     ghaf = {
       systemd.withPolkit = true;
