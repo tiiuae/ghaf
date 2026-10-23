@@ -15,6 +15,8 @@
     fleet-orbit = final.callPackage ./pkgs-by-name/fleet-orbit/package.nix { };
     gala = final.callPackage ./pkgs-by-name/gala/package.nix { };
     ghaf-build-helper = final.callPackage ./pkgs-by-name/ghaf-build-helper/package.nix { };
+    ghaf-cosmic-theme = final.callPackage ./pkgs-by-name/ghaf-cosmic-theme/package.nix { };
+    ghaf-cosmic-theme-v1 = final.callPackage ./pkgs-by-name/ghaf-cosmic-theme-v1/package.nix { };
     ghaf-fetch-update = final.callPackage ./pkgs-by-name/ghaf-fetch-update/package.nix { };
     ghaf-initialize-verity-lvm =
       final.callPackage ./pkgs-by-name/ghaf-initialize-verity-lvm/package.nix
