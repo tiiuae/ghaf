@@ -73,6 +73,7 @@
     frosted_system_interface: false,
     frosted_panel: false,
     frosted_applets: false,
+    frosted_maximized_apps: false,
     alpha_map: (
         extremely_low: 0.9,
         extremely_low_2: 0.87692,
