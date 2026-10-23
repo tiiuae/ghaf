@@ -34,6 +34,7 @@ in
         borderColor = "#122263";
         machineType = "microvm";
         vtpm.enable = lib.mkDefault true;
+        ghafAudio.enable = lib.mkDefault true;
         extraModules = [
           {
             # Keep logseald evidence while application/user state stays ephemeral.
