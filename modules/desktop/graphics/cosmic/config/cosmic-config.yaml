@@ -35,8 +35,13 @@ com.system76.CosmicBackground:
         scaling_mode: Zoom,
         sampling_method: Alphanumeric,
     )
-  backgrounds: [All]
+  backgrounds: []
   same-on-all: true
+
+com.system76.CosmicSettings.Wallpaper:
+  current-folder: Some("/run/current-system/sw/share/backgrounds/ghaf/")
+  recent-folders: ["/run/current-system/sw/share/backgrounds/ghaf/"]
+  rotation-frequency: 3600
 
 com.system76.CosmicComp:
   autotile_behavior: PerWorkspace
