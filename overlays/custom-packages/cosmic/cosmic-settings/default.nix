@@ -35,5 +35,8 @@
     substituteInPlace cosmic-settings/src/pages/desktop/appearance/mod.rs \
       --replace-fail 'ThemeBuilder::dark()' 'Config::system(cosmic::cosmic_theme::DARK_THEME_BUILDER_ID, ThemeBuilder::VERSION).map_or_else(|_| ThemeBuilder::dark(), |c| ThemeBuilder::get_entry(&c).unwrap_or_else(|(_, b)| b))' \
       --replace-fail 'ThemeBuilder::light()' 'Config::system(cosmic::cosmic_theme::LIGHT_THEME_BUILDER_ID, ThemeBuilder::VERSION).map_or_else(|_| ThemeBuilder::light(), |c| ThemeBuilder::get_entry(&c).unwrap_or_else(|(_, b)| b))'
+    # The host shares its real DMI (see microvm-host.nix), this allows cosmic-settings to read it
+    substituteInPlace cosmic-settings/src/pages/system/info.rs \
+      --replace-fail '"/sys/devices/virtual/dmi/id/"' '"/etc/common/dmi/"'
   '';
 }))
