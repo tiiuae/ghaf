@@ -30,10 +30,10 @@
     "xdg-portal"
     "systemd"
   ];
-  # Delete cosmic-settings' own bundled themes
-  # libcosmic defaults will be used instead for all COSMIC apps
-  # ref: https://github.com/pop-os/libcosmic/blob/2ab0d4c57079f0baf91d24b08a3821984121af62/cosmic-theme/src/model/dark.ron
-  postInstall = (oldAttrs.postInstall or "") + ''
-    rm -rf "$out"/share/cosmic/com.system76.CosmicTheme*
+  postPatch = oldAttrs.postPatch or "" + ''
+    # Reset to the system theme defaults (the Ghaf theme), not libcosmic's built-in one
+    substituteInPlace cosmic-settings/src/pages/desktop/appearance/mod.rs \
+      --replace-fail 'ThemeBuilder::dark()' 'Config::system(cosmic::cosmic_theme::DARK_THEME_BUILDER_ID, ThemeBuilder::VERSION).map_or_else(|_| ThemeBuilder::dark(), |c| ThemeBuilder::get_entry(&c).unwrap_or_else(|(_, b)| b))' \
+      --replace-fail 'ThemeBuilder::light()' 'Config::system(cosmic::cosmic_theme::LIGHT_THEME_BUILDER_ID, ThemeBuilder::VERSION).map_or_else(|_| ThemeBuilder::light(), |c| ThemeBuilder::get_entry(&c).unwrap_or_else(|(_, b)| b))'
   '';
 }))
