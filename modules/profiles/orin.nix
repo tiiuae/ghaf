@@ -319,7 +319,6 @@ in
           # We might be able to enable bluetooth and networkManager
           # together with applets without dbusProxy on Orins
           bluetooth.applet.enable = false;
-          networkManager.applet.enable = false;
         };
       };
 

@@ -20,7 +20,7 @@
     "page-sound"
     # "page-users"
     "page-legacy-applications"
-    # "page-bluetooth"
+    "page-bluetooth"
     "page-networking"
     "page-window-management"
     "page-workspaces"
@@ -30,6 +30,7 @@
     "xdg-portal"
     "systemd"
   ];
+  patches = oldAttrs.patches or [ ] ++ [ ./0001-Support-a-BlueZ-reached-through-a-D-Bus-proxy.patch ];
   postPatch = oldAttrs.postPatch or "" + ''
     # Reset to the system theme defaults (the Ghaf theme), not libcosmic's built-in one
     substituteInPlace cosmic-settings/src/pages/desktop/appearance/mod.rs \
