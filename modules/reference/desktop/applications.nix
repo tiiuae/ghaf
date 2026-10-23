@@ -31,21 +31,6 @@ in
     ];
     ghaf.virtualization.microvm.guivm.applications = [
       {
-        name = ".blueman-manager-wrapped";
-        desktopName = "Bluetooth Settings";
-        categories = [
-          "System"
-          "Settings"
-        ];
-        description = "Manage Bluetooth Devices & Settings";
-        icon = "bluetooth-48";
-        exec = "${pkgs.writeShellScriptBin "bluetooth-settings" ''
-          PULSE_SERVER=audio-vm:${toString config.ghaf.services.audio.server.pulseaudioTcpControlPort} \
-          ${pkgs.blueman}/bin/blueman-manager
-        ''}/bin/bluetooth-settings";
-      }
-
-      {
         name = "ctrl-panel";
         desktopName = "Ghaf Control Panel";
         categories = [

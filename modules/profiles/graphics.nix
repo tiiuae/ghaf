@@ -57,20 +57,6 @@ in
     # which may be wanted in scenarios where net-vm is not used
     networkManager = {
       enable = mkEnableOption "NetworkManager on the system where graphics profile is applied";
-      applet = {
-        enable = mkOption {
-          type = types.bool;
-          default = true;
-          description = "Enable the NetworkManager tray applet (nm-applet)";
-        };
-        useDbusProxy = mkOption {
-          type = types.bool;
-          default = true;
-          description = ''
-            If true, run the applet via a D-Bus proxy to net-vm.
-          '';
-        };
-      };
     };
 
     # If needed we can add an option to enable bluetooth via cosmic,
@@ -81,15 +67,7 @@ in
         enable = mkOption {
           type = types.bool;
           default = true;
-          description = "Enable the Blueman tray applet";
-        };
-
-        useDbusProxy = mkOption {
-          type = types.bool;
-          default = true;
-          description = ''
-            If true, run the applet via a D-Bus proxy to audio-vm.
-          '';
+          description = "Enable the Bluetooth panel applet";
         };
       };
     };

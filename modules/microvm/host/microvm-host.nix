@@ -263,6 +263,15 @@ in
         in
         [
           "d /persist/common 0755 root root -"
+          # Read by cosmic-settings in gui-vm for the About page's hardware model.
+          "d /persist/common/dmi 0755 root root -"
+        ]
+        ++ map (f: "C+ /persist/common/dmi/${f} - - - - /sys/devices/virtual/dmi/id/${f}") [
+          "sys_vendor"
+          "board_name"
+          "board_version"
+        ]
+        ++ [
           "d /persist/sysupdate 0755 root root -"
           "d /persist/storagevm 0755 root root -"
           "d /persist/storagevm/img 0700 microvm kvm -"
