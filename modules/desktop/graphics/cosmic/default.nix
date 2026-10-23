@@ -177,6 +177,7 @@ in
           "ae.tii.CosmicAppletUsbPassthrough"
           "com.system76.CosmicAppletTiling"
           "com.system76.CosmicAppletNetwork"
+          "com.system76.CosmicAppletBluetooth"
           "com.system76.CosmicAppletAudio"
           "com.system76.CosmicAppletBattery"
           "com.system76.CosmicAppletPower"
@@ -225,6 +226,7 @@ in
           "ae.tii.CosmicAppletUsbPassthrough"
           "com.system76.CosmicAppletTiling"
           "com.system76.CosmicAppletNetwork"
+          "com.system76.CosmicAppletBluetooth"
           "com.system76.CosmicAppletAudio"
           "com.system76.CosmicAppletBattery"
           "com.system76.CosmicAppletNotifications"
@@ -450,20 +452,6 @@ in
 
         ${lib.optionalString graphicsProfileCfg.bluetooth.applet.enable ''
           if systemctl -q is-enabled dbus-proxy-bluetooth.service; then
-            # Stop clients before replacing the proxy. Otherwise they can
-            # retain stale BlueZ objects or race adapter power restoration.
-            while read -r user_id _; do
-              ${lib.getExe' pkgs.systemd "systemctl"} --user \
-                --machine="$user_id@.host" stop blueman-applet.service \
-                || echo "Blueman applet did not stop for user $user_id"
-            done < <(${lib.getExe' pkgs.systemd "loginctl"} list-users --no-legend)
-
-            while read -r manager_pid; do
-              if [ -n "$manager_pid" ]; then
-                ${lib.getExe' pkgs.busybox "kill"} "$manager_pid" || true
-              fi
-            done < <(${lib.getExe' pkgs.busybox "pgrep"} -x blueman-manager || true)
-
             # The GIVC socket may reappear before BlueZ is ready. Wait for the
             # source adapter, then rebuild the proxy so it does not retain the
             # stale pre-suspend object map.
@@ -553,14 +541,7 @@ in
           wait "$pipewire_wait_pid" || echo "PipeWire control did not recover before the panel restart"
         fi
         if [ -n "$bluetooth_wait_pid" ]; then
-          if ! wait "$bluetooth_wait_pid"; then
-            echo "Bluetooth proxy did not recover before the applet restart"
-          fi
-          while read -r user_id _; do
-            ${lib.getExe' pkgs.systemd "systemctl"} --user \
-              --machine="$user_id@.host" start blueman-applet.service \
-              || echo "Blueman applet did not start for user $user_id"
-          done < <(${lib.getExe' pkgs.systemd "loginctl"} list-users --no-legend)
+          wait "$bluetooth_wait_pid" || echo "Bluetooth proxy did not recover before the panel restart"
         fi
 
         pid=$(${lib.getExe' pkgs.busybox "pgrep"} -f "cosmic-panel" | ${lib.getExe' pkgs.busybox "head"} -n1)
@@ -644,22 +625,6 @@ in
           after = [ "cosmic-session.target" ];
           wantedBy = [ "cosmic-session.target" ];
         };
-
-      # We use existing blueman services and create overrides for both
-      blueman-applet = {
-        inherit (graphicsProfileCfg.bluetooth.applet) enable;
-        serviceConfig = {
-          Type = "simple";
-          Restart = "on-failure";
-          RestartSec = "5";
-        };
-        partOf = [ "cosmic-session.target" ];
-        wantedBy = [ "cosmic-session.target" ];
-      };
-
-      blueman-manager = {
-        inherit (graphicsProfileCfg.bluetooth.applet) enable;
-      };
     };
 
     systemd.user.targets.ghaf-session = {
