@@ -222,6 +222,7 @@ in
           "com.system76.CosmicAppletInputSources"
           "com.system76.CosmicAppletStatusArea"
           "ae.tii.CosmicAppletKillSwitch"
+          "ae.tii.CosmicAppletUsbPassthrough"
           "com.system76.CosmicAppletTiling"
           "com.system76.CosmicAppletNetwork"
           "com.system76.CosmicAppletAudio"
