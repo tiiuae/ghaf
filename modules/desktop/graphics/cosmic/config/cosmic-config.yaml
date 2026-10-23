@@ -6,6 +6,7 @@ com.system76.CosmicAppletTime:
   show_seconds: false
   show_date_in_top_panel: true
   show_weekday: false
+  format_strftime: ""
 
 com.system76.CosmicAppList:
   favorites: |
@@ -77,6 +78,51 @@ com.system76.CosmicComp:
         workspace_mode: OutputBound,
         workspace_layout: Horizontal,
     )
+  # cosmic-comp ships no system defaults; these are its built-in ones.
+  pinned_workspaces: |
+    []
+  input_touchpad_override: None
+  input_devices: |
+    {}
+  xkb_config: |
+    (
+        rules: "",
+        model: "",
+        layout: "",
+        variant: "",
+        options: None,
+        repeat_delay: 600,
+        repeat_rate: 25,
+    )
+  keyboard_config: |
+    (numlock_state: BootOff)
+  autotile: false
+  active_hint: true
+  focus_follows_cursor: false
+  cursor_follows_focus: false
+  focus_follows_cursor_delay: 250
+  descale_xwayland: fractional
+  xwayland_eavesdropping: |
+    (keyboard: None, pointer: false)
+  edge_snap_threshold: 0
+  accessibility_zoom: |
+    (
+        start_on_login: false,
+        show_overlay: true,
+        increment: 50,
+        view_moves: Continuously,
+        enable_mouse_zoom_shortcuts: true,
+    )
+  appearance_settings: |
+    (
+        clip_floating_windows: true,
+        clip_tiled_windows: true,
+        shadow_tiled_windows: false,
+    )
+  cursor_hide_timeout: None
+  cursor_shake_to_find: true
+  activation_policy: Focus
+  decoration_preference: ClientSide
 
 com.system76.CosmicIdle:
   screen_off_time: None

@@ -293,8 +293,9 @@ pkgs.stdenv.mkDerivation {
   ''
   # Disabled by action, not by binding: an action can have several bindings, so
   # naming them individually goes stale when a default changes. Runs last, so
-  # extraShortcuts are visible in defaults too.
-  + lib.optionalString (disabledShortcuts != [ ]) ''
+  # extraShortcuts are visible in defaults too. Always written: cosmic-comp
+  # logs an error when the key is missing.
+  + ''
     disabled=""
     for action in ${lib.escapeShellArgs disabledShortcuts}; do
       matched=$(grep -F ": $action," ${shortcutsDir}/defaults || true)
