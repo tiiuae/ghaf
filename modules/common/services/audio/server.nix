@@ -173,11 +173,16 @@ in
 
         ghaf = lib.mkMerge [
           {
-            # Open TCP port for the pipewire pulseaudio socket
-            firewall.allowedTCPPorts = with cfg.server; [
-              pulseaudioTcpPort
-              pulseaudioTcpControlPort
-            ];
+            # App VMs play through the pipewire pulseaudio socket; only gui-vm controls it.
+            firewall.allowedTCPPorts =
+              lib.optional (config.ghaf.common.appHosts != [ ]) {
+                port = cfg.server.pulseaudioTcpPort;
+                from = config.ghaf.common.appHosts;
+              }
+              ++ lib.optional (config.ghaf.networking.hosts ? gui-vm) {
+                port = cfg.server.pulseaudioTcpControlPort;
+                from = [ "gui-vm" ];
+              };
           }
           # Enable persistent storage for pipewire state to restore settings on boot
           # This is not necessarily needed as we force the server to restore at 100% volume on boot

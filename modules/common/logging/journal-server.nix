@@ -70,6 +70,7 @@ let
     SyslogLevel = "warning";
   };
 
+  hasGhafFw = options ? ghaf.firewall;
 in
 {
   _file = ./journal-server.nix;
@@ -165,8 +166,19 @@ in
       "d ${logDirectory}/shared 2750 ${unit} systemd-journal -"
     ];
 
-    ghaf.storagevm = lib.optionalAttrs (options ? ghaf.storagevm.directories) {
-      directories = lib.mkIf config.ghaf.storagevm.enable [ logDirectory ];
+    ghaf = {
+      storagevm = lib.optionalAttrs (options ? ghaf.storagevm.directories) {
+        directories = lib.mkIf config.ghaf.storagevm.enable [ logDirectory ];
+      };
+    }
+    # Every VM and ghaf-host uploads its journal here.
+    // lib.optionalAttrs hasGhafFw {
+      firewall.allowedTCPPorts = [
+        {
+          inherit (config.ghaf.logging.listener) port;
+          from = lib.attrNames config.ghaf.networking.hosts;
+        }
+      ];
     };
 
     networking.firewall.allowedTCPPorts = [ config.ghaf.logging.listener.port ];
