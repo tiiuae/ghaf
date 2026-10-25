@@ -43,6 +43,74 @@ let
     table: parent: suffix:
     setupChain parent table "${dynPrefix}${table}-${suffix}" "-A";
 
+  # A port, or a port that only the listed sources may reach.
+  portEntry = types.either types.port (
+    types.submodule {
+      options = {
+        port = mkOption {
+          type = types.port;
+          description = "Port to open.";
+        };
+        from = mkOption {
+          type = types.listOf types.str;
+          example = [
+            "gui-vm"
+            "192.168.100.0/24"
+          ];
+          description = "Sources that may connect: names from ghaf.networking.hosts, IPv4 addresses or subnets.";
+        };
+      };
+    }
+  );
+
+  portOf = entry: if builtins.isInt entry then entry else entry.port;
+
+  sourceAddress =
+    source:
+    let
+      hosts = config.ghaf.networking.hosts or { };
+    in
+    if hosts ? ${source} then
+      hosts.${source}.ipv4
+    else if builtins.match "([0-9]{1,3}\\.){3}[0-9]{1,3}(/[0-9]{1,2})?" source != null then
+      source
+    else
+      throw "ghaf.firewall: `${source}` is neither a host in ghaf.networking.hosts nor an IPv4 address";
+
+  # The sources of every port that names them, merged per port.
+  restrictedPorts =
+    entries:
+    lib.zipAttrsWith (_: sources: lib.unique (lib.concatLists sources)) (
+      map (entry: { ${toString entry.port} = entry.from; }) (lib.filter builtins.isAttrs entries)
+    );
+
+  conflictingPorts =
+    entries:
+    lib.intersectLists (lib.filter builtins.isInt entries) (
+      map (entry: entry.port) (lib.filter builtins.isAttrs entries)
+    );
+
+  # NixOS accepts a port from anyone, whichever module opened it. The chain is
+  # entered with -g, so a source it does not accept falls through to the NixOS
+  # refuse rule instead of returning to the accept chain.
+  restrictRules =
+    proto: entries:
+    lib.concatStrings (
+      lib.mapAttrsToList (
+        port: sources:
+        let
+          chain = "${ghafFwChainPrefix}restrict-${proto}-${port}";
+        in
+        ''
+          ${setupChain null "filter" chain "-I"}
+          ${concatMapStringsSep "\n" (
+            source: "${ipt} -A ${chain} -s ${sourceAddress source} -j ACCEPT"
+          ) sources}
+          ${ipt} -A ${ghafFwChainPrefix}conncheck-accept -p ${proto} --dport ${port} -g ${chain}
+        ''
+      ) (restrictedPorts entries)
+    );
+
   # Chains owned by the uplink applier. Deliberately separate from the dyn-*
   # chains, which belong to the GIVC-fed rule updater and are flushed wholesale
   # by it -- sharing them would mean each mechanism silently discarding the
@@ -456,14 +524,27 @@ in
     IdsEnabled = mkEnableOption "Ids tool";
 
     allowedTCPPorts = mkOption {
-      type = types.listOf types.port;
+      type = types.listOf portEntry;
       default = [ ];
-      description = "Additional TCP ports to allow through the Ghaf firewall.";
+      example = lib.literalExpression ''
+        [
+          22
+          { port = 9011; from = [ "gui-vm" ]; }
+        ]
+      '';
+      description = ''
+        Additional TCP ports to allow through the Ghaf firewall. An entry of the
+        form `{ port; from; }` also limits the port to those sources, even when
+        another module opened it.
+      '';
     };
     allowedUDPPorts = mkOption {
-      type = types.listOf types.port;
+      type = types.listOf portEntry;
       default = [ ];
-      description = "Additional UDP ports to allow through the Ghaf firewall.";
+      description = ''
+        Additional UDP ports to allow through the Ghaf firewall. Entries take
+        the same forms as `allowedTCPPorts`.
+      '';
     };
     extraOptions = mkOption {
       type = types.attrsOf types.anything;
@@ -575,6 +656,19 @@ in
         assertion = !(cfg.updater.enable && !config.ghaf.givc.policyClient.enable);
         message = "Policy Client must be enabled to update firewall rules.";
       }
+      {
+        assertion =
+          conflictingPorts cfg.allowedTCPPorts == [ ] && conflictingPorts cfg.allowedUDPPorts == [ ];
+        message = "ghaf.firewall: ports ${
+          toString (conflictingPorts cfg.allowedTCPPorts ++ conflictingPorts cfg.allowedUDPPorts)
+        } are listed both open to everyone and limited with `from`";
+      }
+      {
+        assertion = lib.all (entry: entry.from != [ ]) (
+          lib.filter builtins.isAttrs (cfg.allowedTCPPorts ++ cfg.allowedUDPPorts)
+        );
+        message = "ghaf.firewall: a port entry with an empty `from` would close the port to everyone";
+      }
     ];
 
     # Include required kernel modules for firewall
@@ -597,8 +691,8 @@ in
         checkReversePath = mkDefault "loose";
         logReversePathDrops = mkDefault true;
         allowPing = mkDefault false;
-        inherit (cfg) allowedTCPPorts;
-        inherit (cfg) allowedUDPPorts;
+        allowedTCPPorts = map portOf cfg.allowedTCPPorts;
+        allowedUDPPorts = map portOf cfg.allowedUDPPorts;
         extraPackages = [
           pkgs.ipset
         ];
@@ -703,6 +797,8 @@ in
           ${concatMapStringsSep "\n" (
             rule: appendBlacklistRule "udp" rule "${ghafFwChainPrefix}conncheck-accept"
           ) cfg.udpBlacklistRules}
+          ${restrictRules "tcp" cfg.allowedTCPPorts}
+          ${restrictRules "udp" cfg.allowedUDPPorts}
 
           # accept the other packets
           ${ipt} -t filter -A ${ghafFwChainPrefix}conncheck-accept -j ACCEPT
