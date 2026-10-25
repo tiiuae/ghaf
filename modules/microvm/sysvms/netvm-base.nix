@@ -229,10 +229,25 @@ in
       ntpPort = 123;
     in
     {
-      allowedTCPPorts = [ dnsPort ];
+      # Out: upstream DNS, and DHCP lease renewals on the uplink.
+      allowedTCPPorts = [
+        dnsPort
+        {
+          port = dnsPort;
+          direction = "output";
+        }
+      ];
       allowedUDPPorts = [
         dnsPort
         ntpPort
+        {
+          port = dnsPort;
+          direction = "output";
+        }
+        {
+          port = 67;
+          direction = "output";
+        }
       ];
     };
 
