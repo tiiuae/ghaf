@@ -227,19 +227,27 @@ in
     let
       dnsPort = 53;
       ntpPort = 123;
+      ntp = {
+        port = ntpPort;
+        from = config.ghaf.time.server.allowedNetworks;
+      };
+      dns = {
+        port = dnsPort;
+        from = lib.attrNames config.ghaf.networking.hosts;
+      };
     in
     {
       # Out: upstream DNS, and DHCP lease renewals on the uplink.
       allowedTCPPorts = [
-        dnsPort
+        dns
         {
           port = dnsPort;
           direction = "output";
         }
       ];
       allowedUDPPorts = [
-        dnsPort
-        ntpPort
+        dns
+        ntp
         {
           port = dnsPort;
           direction = "output";
