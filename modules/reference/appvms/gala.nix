@@ -34,6 +34,25 @@ in
         bootPriority = "low";
         borderColor = "#027d7b";
         vtpm.enable = lib.mkDefault true;
+        extraModules = [
+          # The cloud Android session streams over HTTPS and QUIC.
+          {
+            ghaf.firewall = {
+              allowedTCPPorts = [
+                {
+                  port = 443;
+                  direction = "output";
+                }
+              ];
+              allowedUDPPorts = [
+                {
+                  port = 443;
+                  direction = "output";
+                }
+              ];
+            };
+          }
+        ];
         applications = [
           {
             name = "chrome-gala.atrc.azure-atrc.androidinthecloud.net__-Default";

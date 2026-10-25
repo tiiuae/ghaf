@@ -61,6 +61,14 @@ in
       }
     ];
 
+    # The policy admin pulls policy updates over HTTPS.
+    ghaf.firewall.allowedTCPPorts = mkIf policycfg.enable [
+      {
+        port = 443;
+        direction = "output";
+      }
+    ];
+
     # Configure admin service
     givc.admin = {
       enable = true;

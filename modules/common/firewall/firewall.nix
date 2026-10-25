@@ -43,29 +43,78 @@ let
     table: parent: suffix:
     setupChain parent table "${dynPrefix}${table}-${suffix}" "-A";
 
-  # A port, or a port that only the listed sources may reach.
+  # A port open to everyone, or an entry naming its direction and the other end.
   portEntry = types.either types.port (
     types.submodule {
       options = {
         port = mkOption {
-          type = types.port;
-          description = "Port to open.";
+          type = types.nullOr (
+            types.either types.port (
+              types.submodule {
+                options = {
+                  from = mkOption {
+                    type = types.port;
+                    description = "First port of the range.";
+                  };
+                  to = mkOption {
+                    type = types.port;
+                    description = "Last port of the range.";
+                  };
+                };
+              }
+            )
+          );
+          default = null;
+          example = {
+            from = 8801;
+            to = 8810;
+          };
+          description = "Port to allow. Required and single on input; on output, a range `{ from; to; }` or null for every port.";
+        };
+        direction = mkOption {
+          type = types.enum [
+            "input"
+            "output"
+          ];
+          default = "input";
+          description = "Whether connections come in to this port, or go out from this machine to it.";
         };
         from = mkOption {
-          type = types.listOf types.str;
+          type = types.nullOr (types.listOf types.str);
+          default = null;
           example = [
             "gui-vm"
             "192.168.100.0/24"
           ];
-          description = "Sources that may connect: names from ghaf.networking.hosts, IPv4 addresses or subnets.";
+          description = "On input, the sources that may connect: names from ghaf.networking.hosts, IPv4 addresses or subnets. null admits every source.";
+        };
+        to = mkOption {
+          type = types.nullOr (types.listOf types.str);
+          default = null;
+          description = "On output, the destinations this machine may connect to, in the same forms as `from`. null allows every destination.";
         };
       };
     }
   );
 
-  portOf = entry: if builtins.isInt entry then entry else entry.port;
+  entryOf =
+    entry:
+    if builtins.isInt entry then
+      {
+        port = entry;
+        direction = "input";
+        from = null;
+        to = null;
+      }
+    else
+      entry;
+  # Malformed input entries are left to the assertions rather than rendered.
+  inputEntries =
+    entries:
+    lib.filter (entry: entry.direction == "input" && builtins.isInt entry.port) (map entryOf entries);
+  outputEntries = entries: lib.filter (entry: entry.direction == "output") (map entryOf entries);
 
-  sourceAddress =
+  address =
     source:
     let
       hosts = config.ghaf.networking.hosts or { };
@@ -77,17 +126,22 @@ let
     else
       throw "ghaf.firewall: `${source}` is neither a host in ghaf.networking.hosts nor an IPv4 address";
 
-  # The sources of every port that names them, merged per port.
+  # The sources of every input port that names them, merged per port.
   restrictedPorts =
     entries:
     lib.zipAttrsWith (_: sources: lib.unique (lib.concatLists sources)) (
-      map (entry: { ${toString entry.port} = entry.from; }) (lib.filter builtins.isAttrs entries)
+      map (entry: { ${toString entry.port} = entry.from; }) (
+        lib.filter (entry: entry.from != null) (inputEntries entries)
+      )
     );
 
   conflictingPorts =
     entries:
-    lib.intersectLists (lib.filter builtins.isInt entries) (
-      map (entry: entry.port) (lib.filter builtins.isAttrs entries)
+    let
+      portsWhere = pred: map (entry: entry.port) (lib.filter pred (inputEntries entries));
+    in
+    lib.intersectLists (portsWhere (entry: entry.from == null)) (
+      portsWhere (entry: entry.from != null)
     );
 
   # NixOS accepts a port from anyone, whichever module opened it. The chain is
@@ -103,13 +157,33 @@ let
         in
         ''
           ${setupChain null "filter" chain "-I"}
-          ${concatMapStringsSep "\n" (
-            source: "${ipt} -A ${chain} -s ${sourceAddress source} -j ACCEPT"
-          ) sources}
+          ${concatMapStringsSep "\n" (source: "${ipt} -A ${chain} -s ${address source} -j ACCEPT") sources}
           ${ipt} -A ${ghafFwChainPrefix}conncheck-accept -p ${proto} --dport ${port} -g ${chain}
         ''
       ) (restrictedPorts entries)
     );
+
+  outputRules =
+    proto: entries:
+    concatMapStringsSep "\n" (
+      entry:
+      let
+        rule =
+          dest:
+          "${ipt} -A ${ghafFwChainPrefix}out-filter -p ${proto}"
+          + lib.optionalString (dest != null) " -d ${address dest}"
+          +
+            lib.optionalString (entry.port != null)
+              " --dport ${
+                 if builtins.isInt entry.port then
+                   toString entry.port
+                 else
+                   "${toString entry.port.from}:${toString entry.port.to}"
+               }"
+          + " -j ACCEPT";
+      in
+      if entry.to == null then rule null else concatMapStringsSep "\n" rule entry.to
+    ) (lib.unique (outputEntries entries));
 
   # Chains owned by the uplink applier. Deliberately separate from the dyn-*
   # chains, which belong to the GIVC-fed rule updater and are flushed wholesale
@@ -522,6 +596,7 @@ in
 
     };
     IdsEnabled = mkEnableOption "Ids tool";
+    logRefusedOutput = mkEnableOption "logging outgoing connections the firewall drops; on by default in debug images";
 
     allowedTCPPorts = mkOption {
       type = types.listOf portEntry;
@@ -530,12 +605,16 @@ in
         [
           22
           { port = 9011; from = [ "gui-vm" ]; }
+          { port = 443; direction = "output"; }
         ]
       '';
       description = ''
-        Additional TCP ports to allow through the Ghaf firewall. An entry of the
-        form `{ port; from; }` also limits the port to those sources, even when
-        another module opened it.
+        TCP ports to allow through the Ghaf firewall. A plain port, or an entry
+        without `direction`, admits connections to this machine, only from `from`
+        when given, even when another module opened the port. An entry with
+        `direction = "output"` lets this machine connect out to the port, only at
+        `to` when given; other outgoing connections are dropped, except to Ghaf
+        hosts.
       '';
     };
     allowedUDPPorts = mkOption {
@@ -664,10 +743,26 @@ in
         } are listed both open to everyone and limited with `from`";
       }
       {
-        assertion = lib.all (entry: entry.from != [ ]) (
+        assertion = lib.all (entry: entry.from != [ ] && entry.to != [ ]) (
           lib.filter builtins.isAttrs (cfg.allowedTCPPorts ++ cfg.allowedUDPPorts)
         );
-        message = "ghaf.firewall: a port entry with an empty `from` would close the port to everyone";
+        message = "ghaf.firewall: a port entry with an empty `from` or `to` would match nothing";
+      }
+      {
+        assertion = lib.all (
+          entry:
+          if entry.direction == "input" then
+            builtins.isInt entry.port && entry.to == null
+          else
+            entry.from == null
+        ) (lib.filter builtins.isAttrs (cfg.allowedTCPPorts ++ cfg.allowedUDPPorts));
+        message = "ghaf.firewall: an input entry needs a single `port` and takes `from`; an output entry takes `to`";
+      }
+      {
+        assertion = lib.all (
+          entry: builtins.isAttrs (entry.port or null) -> entry.port.from <= entry.port.to
+        ) (lib.filter builtins.isAttrs (cfg.allowedTCPPorts ++ cfg.allowedUDPPorts));
+        message = "ghaf.firewall: a port range must not end before it starts";
       }
     ];
 
@@ -679,6 +774,7 @@ in
     # BLACKLIST too -- gating on attack-mitigation.enable would leave those
     # configurations on 3600s.
     ghaf.firewall.blacklistTimeout = mkIf (config.ghaf.profiles.debug.enable or false) (mkDefault 60);
+    ghaf.firewall.logRefusedOutput = mkIf (config.ghaf.profiles.debug.enable or false) (mkDefault true);
 
     # Include ethertypes file
     environment.etc.ethertypes.source = "${cfg.iptablesPackage}/etc/ethertypes";
@@ -691,8 +787,8 @@ in
         checkReversePath = mkDefault "loose";
         logReversePathDrops = mkDefault true;
         allowPing = mkDefault false;
-        allowedTCPPorts = map portOf cfg.allowedTCPPorts;
-        allowedUDPPorts = map portOf cfg.allowedUDPPorts;
+        allowedTCPPorts = map (entry: entry.port) (inputEntries cfg.allowedTCPPorts);
+        allowedUDPPorts = map (entry: entry.port) (inputEntries cfg.allowedUDPPorts);
         extraPackages = [
           pkgs.ipset
         ];
@@ -722,7 +818,7 @@ in
           # Set the default policies
           ${ipt} -P INPUT DROP
           ${ipt} -P FORWARD DROP
-          ${ipt} -P OUTPUT ACCEPT
+          ${ipt} -P OUTPUT DROP
 
           # delete ctstate RELATED,ESTABLISHED and lo rules
           ${ipt} -D ${nixosFwPrefix}fw -i lo -j ${nixosFwPrefix}fw-accept
@@ -806,6 +902,9 @@ in
           ${ipt} -t filter -A ${ghafFwChainPrefix}fwd-filter -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 
           ### OUTPUT rules ###
+          ${ipt} -A ${ghafFwChainPrefix}out-filter -o lo -j ACCEPT
+          ${ipt} -A ${ghafFwChainPrefix}out-filter -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+          ${ipt} -A ${ghafFwChainPrefix}out-filter -p icmp -j ACCEPT
 
           ### POSTROUTING rules ###
 
@@ -839,6 +938,16 @@ in
             chain = "${ghafFwChainPrefix}out-filter";
             rules = cfg.extra.output.filter;
           }}
+          ${concatMapStringsSep "\n"
+            (host: "${ipt} -A ${ghafFwChainPrefix}out-filter -d ${host.ipv4} -j ACCEPT")
+            (
+              lib.filter (host: host.ipv4 or null != null) (lib.attrValues (config.ghaf.networking.hosts or { }))
+            )
+          }
+          # Multicast stays on the internal network unless the gateway forwards it.
+          ${ipt} -A ${ghafFwChainPrefix}out-filter -d 224.0.0.0/4 -j ACCEPT
+          ${outputRules "tcp" cfg.allowedTCPPorts}
+          ${outputRules "udp" cfg.allowedUDPPorts}
           ${addIptablesRules {
             table = "nat";
             chain = "${ghafFwChainPrefix}post-nat";
@@ -847,6 +956,12 @@ in
 
         '';
       }
+      (mkIf cfg.logRefusedOutput {
+        # Last, after any dynamic output chain, so it only sees what policy DROP will drop.
+        extraCommands = lib.mkAfter ''
+          ${ipt} -A ${ghafFwChainPrefix}out-filter -m limit --limit 10/min -j LOG --log-prefix "refused output: " --log-level 4
+        '';
+      })
       (mkIf cfg.updater.enable {
         # Create dedicated dynamic chains jumped from the extension chains.
         # Only these ${dynPrefix}* chains are flushed and reloaded on live updates,

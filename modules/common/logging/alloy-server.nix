@@ -62,6 +62,7 @@ let
       target_label  = "transport"
     }
   '';
+  hasGhafFw = options ? ghaf.firewall;
 in
 {
   _file = ./alloy-server.nix;
@@ -320,8 +321,19 @@ in
       };
     };
 
-    ghaf.security.audit.extraRules = [
-      "-w /etc/alloy/logs-aggregator.alloy -p rwxa -k alloy_server_config"
-    ];
+    ghaf = {
+      security.audit.extraRules = [
+        "-w /etc/alloy/logs-aggregator.alloy -p rwxa -k alloy_server_config"
+      ];
+    }
+    # The Loki push endpoint is HTTPS.
+    // lib.optionalAttrs hasGhafFw {
+      firewall.allowedTCPPorts = [
+        {
+          port = 443;
+          direction = "output";
+        }
+      ];
+    };
   };
 }
