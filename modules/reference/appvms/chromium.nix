@@ -71,8 +71,28 @@ in
                   storagevm.maximumSize = 100 * 1024; # 100 GB space for chrome-vm
 
                   firewall = {
-                    allowedUDPPorts = config.ghaf.reference.services.chromecast.udpPorts;
-                    allowedTCPPorts = config.ghaf.reference.services.chromecast.tcpPorts;
+                    # Out: the web over HTTP, HTTPS and QUIC, and the cast devices.
+                    allowedUDPPorts = config.ghaf.reference.services.chromecast.udpPorts ++ [
+                      {
+                        port = 443;
+                        direction = "output";
+                      }
+                    ];
+                    allowedTCPPorts =
+                      config.ghaf.reference.services.chromecast.tcpPorts
+                      ++
+                        map
+                          (port: {
+                            inherit port;
+                            direction = "output";
+                          })
+                          (
+                            [
+                              80
+                              443
+                            ]
+                            ++ config.ghaf.reference.services.chromecast.tcpPorts
+                          );
                   };
                 };
               }
