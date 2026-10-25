@@ -99,8 +99,17 @@ in
 
       ghaf.firewall = {
 
+        # Out: mitmproxy opens the intercepted connections to their servers.
         allowedTCPPorts = [
           mitmproxyport
+          {
+            port = 80;
+            direction = "output";
+          }
+          {
+            port = 443;
+            direction = "output";
+          }
         ]
         ++ lib.optional cfg.webUIEnabled mitmwebUIport;
 
