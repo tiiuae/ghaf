@@ -363,5 +363,16 @@ in
       config.ghaf.common.spire.server.port
       config.ghaf.common.spire.server.healthCheckPort
     ];
+    # Every VM and ghaf-host runs a SPIRE agent, which also probes the health port.
+    ghaf.firewall.allowedTCPPorts =
+      map
+        (port: {
+          inherit port;
+          from = attrNames config.ghaf.networking.hosts;
+        })
+        [
+          config.ghaf.common.spire.server.port
+          config.ghaf.common.spire.server.healthCheckPort
+        ];
   };
 }
