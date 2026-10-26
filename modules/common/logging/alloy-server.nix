@@ -24,6 +24,14 @@ let
   givcHostEnabled = config.ghaf.givc.host.enable;
   needsGivcMount = givcEnabled && !givcHostEnabled;
   hasStructuredJournald = options.services.journald ? settings;
+  # Unsynchronized boot timestamps must not expire before startup import reads them.
+  maxRetention =
+    if cfg.startupLogImport.enable then "0" else config.ghaf.logging.journalRetention.maxRetention;
+  # Journal hash tables are sized from the per-file limit, even for small files.
+  maxFileSize = if cfg.startupLogImport.enable then "16M" else "100M";
+  journalProducers = lib.remove config.networking.hostName (
+    builtins.attrNames config.ghaf.networking.hosts
+  );
   journalRelabelRules = ''
     // Populate service_name before Loki falls back to the journal source job.
     // Later rules are more specific and override earlier fallback values.
@@ -61,6 +69,30 @@ let
       source_labels = ["__journal__transport"]
       target_label  = "transport"
     }
+    ${optionalString cfg.startupLogImport.enable ''
+      rule {
+        source_labels = ["__journal__systemd_unit", "__journal_ghaf_startup_log"]
+        regex = "ghaf-startup-log-import\\.service;1"
+        target_label = "log_path"
+        replacement = "startup"
+      }
+      rule {
+        source_labels = ["log_path"]
+        regex = "startup"
+        target_label = "time_status"
+        replacement = "unsynchronized"
+      }
+      rule {
+        source_labels = ["log_path", "__journal_ghaf_startup_service"]
+        regex = "startup;(.*)"
+        target_label = "service_name"
+      }
+      rule {
+        source_labels = ["log_path", "__journal_ghaf_startup_transport"]
+        regex = "startup;(.*)"
+        target_label = "transport"
+      }
+    ''}
   '';
 in
 {
@@ -154,22 +186,29 @@ in
         if hasStructuredJournald then
           {
             settings.Journal = mkIf config.ghaf.logging.journalRetention.enable {
-              MaxRetentionSec = config.ghaf.logging.journalRetention.maxRetention;
+              MaxRetentionSec = maxRetention;
               MaxFileSec = config.ghaf.logging.journalRetention.MaxFileSec;
               SyncIntervalSec = config.ghaf.logging.journalRetention.syncInterval;
               SystemMaxUse = config.ghaf.logging.journalRetention.maxDiskUsage;
-              SystemMaxFileSize = "100M";
+              SystemMaxFileSize = maxFileSize;
+              # Scale the file-count cap to preserve the previous nominal capacity.
+              SystemMaxFiles = mkIf cfg.startupLogImport.enable "625";
+              Compress = mkIf cfg.startupLogImport.enable "128";
               Storage = "persistent";
             };
           }
         else
           {
             extraConfig = mkIf config.ghaf.logging.journalRetention.enable ''
-              MaxRetentionSec=${config.ghaf.logging.journalRetention.maxRetention}
+              MaxRetentionSec=${maxRetention}
               MaxFileSec=${config.ghaf.logging.journalRetention.MaxFileSec}
               SyncIntervalSec=${config.ghaf.logging.journalRetention.syncInterval}
               SystemMaxUse=${config.ghaf.logging.journalRetention.maxDiskUsage}
-              SystemMaxFileSize=100M
+              SystemMaxFileSize=${maxFileSize}
+              ${optionalString cfg.startupLogImport.enable ''
+                SystemMaxFiles=625
+                Compress=128
+              ''}
               Storage=persistent
             '';
           };
@@ -208,9 +247,19 @@ in
 
           loki.process "system" {
             forward_to = [loki.write.remote.receiver]
-            stage.drop {
-              older_than = "15m"
-            }
+            ${optionalString cfg.startupLogImport.enable ''
+              stage.match {
+                selector = "{log_path!=\"startup\"}"
+                stage.drop {
+                  older_than = "15m"
+                }
+              }
+            ''}
+            ${optionalString (!cfg.startupLogImport.enable) ''
+              stage.drop {
+                older_than = "15m"
+              }
+            ''}
             stage.drop {
               expression = "(GatewayAuthenticator::login|Gateway login succeeded|csd-wrapper|nmcli)"
             }
@@ -220,7 +269,7 @@ in
             ${journalRelabelRules}
             rule {
               source_labels = ["__journal__ghaf_source"]
-              regex = "${lib.concatStringsSep "|" (lib.remove config.networking.hostName (builtins.attrNames config.ghaf.networking.hosts))}"
+              regex = "${lib.concatStringsSep "|" journalProducers}"
               action = "keep"
             }
             rule {
@@ -228,11 +277,28 @@ in
               target_label = "host"
             }
           }
-          loki.source.journal "authenticated" {
-            path          = "/var/log/ghaf-journal/shared"
-            relabel_rules = discovery.relabel.authenticatedJournal.rules
-            max_age       = "168h"
-            forward_to    = [loki.process.system.receiver]
+          ${
+            if cfg.startupLogImport.enable then
+              # Match before seeking: different producers' clock jumps interleave in the shared journal.
+              lib.concatMapStringsSep "\n" (source: ''
+                loki.source.journal "authenticated_${lib.replaceStrings [ "-" ] [ "_" ] source}" {
+                  path          = "/var/log/ghaf-journal/shared"
+                  matches       = "_GHAF_SOURCE=${source}"
+                  labels        = { job = "loki.source.journal.authenticated" }
+                  relabel_rules = discovery.relabel.authenticatedJournal.rules
+                  max_age       = "168h"
+                  forward_to    = [loki.process.system.receiver]
+                }
+              '') journalProducers
+            else
+              ''
+                loki.source.journal "authenticated" {
+                  path          = "/var/log/ghaf-journal/shared"
+                  relabel_rules = discovery.relabel.authenticatedJournal.rules
+                  max_age       = "168h"
+                  forward_to    = [loki.process.system.receiver]
+                }
+              ''
           }
 
           local.file "machine_id" {
@@ -285,6 +351,8 @@ in
     };
 
     systemd.services.alloy = {
+      environment.GOGC = mkIf cfg.startupLogImport.enable (lib.mkDefault "50");
+
       after = [
         "systemd-journald.service"
       ]
