@@ -473,30 +473,27 @@ let
   flashTarget =
     t: qspiOnly:
     let
-      noSBCfg = t.hostConfiguration.extendModules {
-        modules = [
-
-          {
-            ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly;
-          }
-
-        ];
-      };
-      noSB = noSBCfg.pkgs.nvidia-jetpack.signedFlashScript;
+      nvmeFlash =
+        t.hostConfiguration.config.hardware.nvidia-jetpack.som == "orin-nx"
+        && !qspiOnly
+        && !(isVerityTarget t);
+      flashPackage = if nvmeFlash then "signedNvmeFlashScript" else "signedFlashScript";
+      mkFlasher =
+        secureBoot:
+        (t.hostConfiguration.extendModules {
+          modules = [
+            {
+              ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly || nvmeFlash;
+            }
+          ]
+          ++ lib.optional secureBoot {
+            ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkForce true;
+          };
+        }).pkgs.nvidia-jetpack.${flashPackage};
+      noSB = mkFlasher false;
       # Targets that already enable secureboot unconditionally get the identical
       # derivation back from `mkForce true`, so skip the second fixpoint entirely.
-      withSB =
-        if t.secureBootAlwaysOn or false then
-          noSB
-        else
-          (t.hostConfiguration.extendModules {
-            modules = [
-              {
-                ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkForce true;
-                ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly;
-              }
-            ];
-          }).pkgs.nvidia-jetpack.signedFlashScript;
+      withSB = if t.secureBootAlwaysOn or false then noSB else mkFlasher true;
     in
     # Single `*-flash-script` entrypoint that picks between two
     # pre-built QSPI firmware variants at flash time.
