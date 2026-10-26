@@ -9,5 +9,6 @@
     ./journal-client.nix
     ./journal-server.nix
     ./logseald.nix
+    ./startup-log-import.nix
   ];
 }

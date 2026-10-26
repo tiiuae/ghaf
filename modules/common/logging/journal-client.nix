@@ -21,6 +21,14 @@ let
   givcHostEnabled = config.ghaf.givc.host.enable;
   needsGivcMount = givcEnabled && !givcHostEnabled;
   hasStructuredJournald = options.services.journald ? settings;
+  # Unsynchronized boot timestamps must not expire before startup import reads them.
+  maxRetention =
+    if config.ghaf.logging.server.startupLogImport.enable then
+      "0"
+    else
+      config.ghaf.logging.journalRetention.maxRetention;
+  # Journal hash tables are sized from the per-file limit, even for small files.
+  maxFileSize = if config.ghaf.logging.server.startupLogImport.enable then "16M" else "100M";
 
   # The uploader starts before the receiver on admin-vm is listening, fails with
   # "Failed to connect to <addr>:<port> after 0 ms: Could not connect to server",
@@ -111,22 +119,29 @@ in
         if hasStructuredJournald then
           {
             settings.Journal = mkIf config.ghaf.logging.journalRetention.enable {
-              MaxRetentionSec = config.ghaf.logging.journalRetention.maxRetention;
+              MaxRetentionSec = maxRetention;
               MaxFileSec = config.ghaf.logging.journalRetention.MaxFileSec;
               SyncIntervalSec = config.ghaf.logging.journalRetention.syncInterval;
               SystemMaxUse = config.ghaf.logging.journalRetention.maxDiskUsage;
-              SystemMaxFileSize = "100M";
+              SystemMaxFileSize = maxFileSize;
+              # Scale the file-count cap to preserve the previous nominal capacity.
+              SystemMaxFiles = mkIf config.ghaf.logging.server.startupLogImport.enable "625";
+              Compress = mkIf config.ghaf.logging.server.startupLogImport.enable "128";
               Storage = "persistent";
             };
           }
         else
           {
             extraConfig = mkIf config.ghaf.logging.journalRetention.enable ''
-              MaxRetentionSec=${config.ghaf.logging.journalRetention.maxRetention}
+              MaxRetentionSec=${maxRetention}
               MaxFileSec=${config.ghaf.logging.journalRetention.MaxFileSec}
               SyncIntervalSec=${config.ghaf.logging.journalRetention.syncInterval}
               SystemMaxUse=${config.ghaf.logging.journalRetention.maxDiskUsage}
-              SystemMaxFileSize=100M
+              SystemMaxFileSize=${maxFileSize}
+              ${optionalString config.ghaf.logging.server.startupLogImport.enable ''
+                SystemMaxFiles=625
+                Compress=128
+              ''}
               Storage=persistent
             '';
           }
@@ -148,8 +163,12 @@ in
         "network-online.target"
         "local-fs.target"
       ]
-      ++ lib.optionals givcHostEnabled [ "givc-key-setup.service" ];
-      wants = [ "network-online.target" ];
+      ++ lib.optionals givcHostEnabled [ "givc-key-setup.service" ]
+      ++ lib.optional config.ghaf.logging.server.startupLogImport.enable "ghaf-clock-synced.target";
+      wants = [
+        "network-online.target"
+      ]
+      ++ lib.optional config.ghaf.logging.server.startupLogImport.enable "ghaf-clock-synced.target";
       unitConfig = lib.optionalAttrs needsGivcMount {
         RequiresMountsFor = [ "/etc/givc" ];
       };
