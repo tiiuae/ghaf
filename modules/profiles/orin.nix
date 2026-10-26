@@ -413,7 +413,7 @@ in
       lib.getExe (
         pkgs.writeShellApplication {
           name = "install-bootloader-wrapper";
-          runtimeInputs = [ pkgs.systemd ];
+          runtimeInputs = [ config.systemd.package ];
           text = ''
             export SYSTEMD_RELAX_ESP_CHECKS=1
             echo "[ghaf] installing systemd-boot"
