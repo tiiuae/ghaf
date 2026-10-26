@@ -31,6 +31,9 @@ in
 
     microvm.vcpu = lib.mkForce 4;
 
+    # system76-power requires DMI identity, which Orin guests do not expose.
+    hardware.system76.power-daemon.enable = false;
+
     # gpu-screen-recorder is x86_64-only.
     ghaf.graphics.cosmic.screenRecorder.enable = lib.mkForce false;
 
