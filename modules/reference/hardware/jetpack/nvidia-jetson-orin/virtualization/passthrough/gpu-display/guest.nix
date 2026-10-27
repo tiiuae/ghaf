@@ -16,6 +16,16 @@
 }:
 let
   isCrosvm = config.microvm.hypervisor == "crosvm";
+  support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
+  displayCard = support.passthrough.displayCardPath;
+  hasCompositor = config.services.greetd.enable;
+  kmscube-wrapped =
+    pkgs.runCommand "kmscube-nomod" { nativeBuildInputs = [ pkgs.buildPackages.makeWrapper ]; }
+      ''
+        mkdir -p $out/bin
+        makeWrapper ${pkgs.kmscube}/bin/kmscube $out/bin/kmscube \
+          --set LD_PRELOAD ${support.gbmNoModifiersShim}/lib/gbm-nomod-shim.so
+      '';
 in
 {
   imports = [ inputs.jetpack-nixos.nixosModules.orin-virtualization ];
@@ -23,6 +33,26 @@ in
   hardware.nvidia-jetpack.virtualization.gpuPassthroughGuest = {
     enable = true;
     inherit role;
+  };
+
+  environment.systemPackages = [ kmscube-wrapped ];
+
+  systemd.services.kms-owner = lib.mkIf (payload.capabilities.display && !hasCompositor) {
+    description = "Hold DRM master on the nvdisplay card so the panel stays lit";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "systemd-udev-settle.service" ];
+    wants = [ "systemd-udev-settle.service" ];
+    serviceConfig = {
+      ExecStartPre = "${pkgs.bash}/bin/bash -c 'for i in $(seq 1 60); do [ -e ${displayCard} ] && exit 0; sleep 1; done; exit 1'";
+      ExecStart = "${pkgs.bash}/bin/bash -c '${pkgs.coreutils}/bin/sleep infinity | ${kmscube-wrapped}/bin/kmscube -D ${displayCard}'";
+      Restart = "always";
+      RestartSec = "2";
+    };
+  };
+
+  systemd.services.dce-rm-deinit = lib.mkIf payload.needsDceBridge {
+    before =
+      lib.optional (!hasCompositor) "kms-owner.service" ++ lib.optional hasCompositor "greetd.service";
   };
 
   systemd.services.ghaf-crosvm-poweroff = lib.mkIf isCrosvm {

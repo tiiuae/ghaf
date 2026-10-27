@@ -104,6 +104,24 @@ let
 
   assertions = targetAssertions ++ [
     {
+      name = "Ghaf owns the split display workload and DCE shutdown ordering";
+      ok =
+        let
+          display = splitAgx.microvm.vms.disp-vm.evaluatedConfig.config;
+        in
+        display.systemd.services ? kms-owner
+        && lib.elem "kms-owner.service" display.systemd.services.dce-rm-deinit.before;
+    }
+    {
+      name = "combined GUI guests order DCE shutdown after the compositor";
+      ok =
+        let
+          gui = agx.microvm.vms.gui-vm.evaluatedConfig.config;
+        in
+        !(gui.systemd.services ? kms-owner)
+        && lib.elem "greetd.service" gui.systemd.services.dce-rm-deinit.before;
+    }
+    {
       name = "split GPU and display VMs inherit organization SSH keys once";
       ok =
         lib.all
