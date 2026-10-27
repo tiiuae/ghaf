@@ -107,7 +107,7 @@
     "~CAP_SYS_CHROOT"
     "~CAP_BLOCK_SUSPEND"
     "~CAP_LEASE"
-    # "~CAP_MKNOD"
+    "~CAP_MKNOD"
     # "~CAP_CHOWN"
     # "~CAP_FSETID"
     # "~CAP_SETFCAP"

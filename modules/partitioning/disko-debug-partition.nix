@@ -248,6 +248,8 @@ in
                   mountOptions = [
                     "noatime"
                     "nodiratime"
+                    "nodev"
+                    "nosuid"
                   ];
                 };
               };

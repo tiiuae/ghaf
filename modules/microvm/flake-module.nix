@@ -41,6 +41,7 @@
       ./common/store-pmem-ext2.nix
       ./common/store-shared-virtiofs.nix
       ./common/storagevm.nix
+      ./common/virtiofsd.nix
       ./common/vm-crosvm.nix
       ./common/vm-networking.nix
       ./common/vm-qemu.nix
