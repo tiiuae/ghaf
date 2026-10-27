@@ -156,6 +156,33 @@ let
       ok = agxNetVm.ghaf.services.hwinfo-guest.filePath == "/run/ghaf-hwinfo/hwinfo.json";
     }
     {
+      name = "Crosvm guests stop before the GIVC coordinator's shutdown helper";
+      ok =
+        lib.all
+          (
+            host:
+            let
+              shutdownUnits = lib.filterAttrs (
+                name: _: lib.hasPrefix "ghaf-crosvm-shutdown-" name
+              ) host.systemd.services;
+              coordinator = "ghaf-crosvm-shutdown-admin-vm";
+            in
+            shutdownUnits ? ${coordinator}
+            && lib.all (
+              name:
+              if name == coordinator then
+                !lib.any (unit: lib.hasPrefix "ghaf-crosvm-shutdown-" unit) shutdownUnits.${name}.after
+              else
+                lib.elem "${coordinator}.service" shutdownUnits.${name}.after
+            ) (lib.attrNames shutdownUnits)
+          )
+          [
+            agx
+            (hostConfig baseTargets.nvidia-jetson-orin-nx-debug)
+            splitAgx
+          ];
+    }
+    {
       name = "Crosvm shutdown is bounded and reuses the MicroVM helper";
       ok =
         nxGuiShutdown.serviceConfig.TimeoutStopSec == "95"
@@ -183,7 +210,8 @@ let
         qemuFallback.ghaf.hardware.passthrough.deviceManager.backend == "vhotplug"
         && lib.all (vm: vm.microvm.hypervisor == "qemu") (vmConfigs qemuFallback)
         && qemuFallback.systemd.services ? vhotplug
-        && !(qemuFallback.systemd.services ? ghaf-device-manager);
+        && !(qemuFallback.systemd.services ? ghaf-device-manager)
+        && !(qemuFallback.systemd.services ? ghaf-crosvm-shutdown-admin-vm);
     }
   ];
 

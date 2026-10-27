@@ -14,6 +14,9 @@ let
   crosvmVms = lib.filterAttrs (
     _: vm: (lib.ghaf.vm.getConfig vm).microvm.hypervisor == "crosvm"
   ) config.microvm.vms;
+  shutdownLastVms = lib.attrNames (
+    lib.filterAttrs (_: vm: (lib.ghaf.vm.getConfig vm).ghaf.shutdownLast) crosvmVms
+  );
   guestService =
     _name: vm:
     let
@@ -90,7 +93,13 @@ in
           description = "Gracefully shut down Crosvm guest ${name}";
           wantedBy = [ "microvm@${name}.service" ];
           partOf = [ "microvm@${name}.service" ];
-          after = [ "microvm@${name}.service" ];
+          # Keep the GIVC coordinator alive until the other shutdown helpers finish.
+          after = [
+            "microvm@${name}.service"
+          ]
+          ++ lib.optionals (!(lib.elem name shutdownLastVms)) (
+            map (last: "ghaf-crosvm-shutdown-${last}.service") shutdownLastVms
+          );
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = true;
