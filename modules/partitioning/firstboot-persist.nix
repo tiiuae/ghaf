@@ -151,6 +151,10 @@ in
     fileSystems."/persist" = {
       device = "/dev/pool/persist";
       fsType = "btrfs";
+      options = [
+        "nodev"
+        "nosuid"
+      ];
       # Not neededForBoot: systemd waits for the device to appear
       # (created by firstboot-persist on first boot, or LVM activation on subsequent boots)
     };
