@@ -408,6 +408,9 @@ in
 
       time.timeZone = lib.mkDefault globalConfig.platform.timeZone;
 
+      # App VMs have no GPU; skip Mesa's failing hardware and zink probes.
+      environment.sessionVariables.LIBGL_ALWAYS_SOFTWARE = lib.mkDefault "1";
+
       nixpkgs = {
         buildPlatform.system = globalConfig.platform.buildSystem or "x86_64-linux";
         hostPlatform.system = globalConfig.platform.hostSystem or "x86_64-linux";
