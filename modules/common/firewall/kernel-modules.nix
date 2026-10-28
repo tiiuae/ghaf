@@ -55,6 +55,8 @@ in
           IP_SET = module;
           IP_SET_HASH_IP = module;
           IP_SET_HASH_IPMARK = module;
+          IP_SET_HASH_IPPORT = module;
+          IP_SET_HASH_IPPORTNET = module;
           IP_SET_HASH_NET = module;
           IP_SET_HASH_NETPORT = module;
           IP_SET_LIST_SET = module;

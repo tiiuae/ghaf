@@ -146,6 +146,7 @@ let
 
   allowedSet = "${ghafFwChainPrefix}allowed";
   outputSet = "${ghafFwChainPrefix}output";
+  egressChain = "${ghafFwChainPrefix}egress";
 
   ipsetPort =
     proto: port:
@@ -164,6 +165,30 @@ let
     udp = outputEntries cfg.allowedUDPPorts;
   };
 
+  # The output entries of the hosts behind this gateway, each with its protocol
+  # and source address.
+  egressEntries = lib.concatLists (
+    lib.mapAttrsToList (
+      name: hostEntries:
+      lib.concatMap
+        (
+          proto:
+          map (
+            entry:
+            entry
+            // {
+              inherit proto;
+              source = address name;
+            }
+          ) (lib.unique (outputEntries (hostEntries.${proto} or [ ])))
+        )
+        [
+          "tcp"
+          "udp"
+        ]
+    ) (config.ghaf.common.egress or { })
+  );
+
   # The sets this machine's rules match, written to /etc/ghaf/firewall/ipsets
   # and loaded in one go. An empty set is left out with the rule matching it.
   ipsets =
@@ -178,40 +203,57 @@ let
       ];
       # ipset needs a port, so an entry for every port stays a plain rule.
       withPort = lib.filter (entry: entry.port != null);
-      present = lib.filterAttrs (_: set: set.members != [ ]) {
-        ${allowedSet} = {
-          type = "hash:net,port";
-          members = lib.concatLists (
-            lib.mapAttrsToList (
-              proto: ports:
-              lib.concatLists (
-                lib.mapAttrsToList (port: sources: map (source: "${address source},${proto}:${port}") sources) ports
-              )
-            ) limitedPorts
-          );
-        };
-        # Multicast stays on the internal network unless the gateway forwards it.
-        "${outputSet}-hosts" = {
-          type = "hash:net";
-          members = ghafHosts ++ [ "224.0.0.0/4" ];
-        };
-        "${outputSet}-ports" = {
-          type = "hash:net,port";
-          members = lib.unique (
-            lib.concatLists (
+      egressWithPort = withPort egressEntries;
+      present = lib.filterAttrs (_: set: set.members != [ ]) (
+        {
+          ${allowedSet} = {
+            type = "hash:net,port";
+            members = lib.concatLists (
               lib.mapAttrsToList (
-                proto:
-                lib.concatMap (
-                  entry:
-                  map (dest: "${dest},${ipsetPort proto entry.port}") (
-                    if entry.to == null then anywhere else map address entry.to
-                  )
+                proto: ports:
+                lib.concatLists (
+                  lib.mapAttrsToList (port: sources: map (source: "${address source},${proto}:${port}") sources) ports
                 )
-              ) (lib.mapAttrs (_: withPort) ownOutputs)
-            )
-          );
-        };
-      };
+              ) limitedPorts
+            );
+          };
+          # Multicast stays on the internal network unless the gateway forwards it.
+          "${outputSet}-hosts" = {
+            type = "hash:net";
+            members = ghafHosts ++ [ "224.0.0.0/4" ];
+          };
+          "${outputSet}-ports" = {
+            type = "hash:net,port";
+            members = lib.unique (
+              lib.concatLists (
+                lib.mapAttrsToList (
+                  proto:
+                  lib.concatMap (
+                    entry:
+                    map (dest: "${dest},${ipsetPort proto entry.port}") (
+                      if entry.to == null then anywhere else map address entry.to
+                    )
+                  )
+                ) (lib.mapAttrs (_: withPort) ownOutputs)
+              )
+            );
+          };
+        }
+        // lib.optionalAttrs config.networking.nat.enable {
+          ${egressChain} = {
+            type = "hash:ip,port";
+            members = map (entry: "${entry.source},${ipsetPort entry.proto entry.port}") (
+              lib.filter (entry: entry.to == null) egressWithPort
+            );
+          };
+          "${egressChain}-to" = {
+            type = "hash:ip,port,net";
+            members = lib.concatMap (
+              entry: map (dest: "${entry.source},${ipsetPort entry.proto entry.port},${address dest}") entry.to
+            ) (lib.filter (entry: entry.to != null) egressWithPort);
+          };
+        }
+      );
     in
     present
     // {
@@ -246,7 +288,11 @@ let
     ${ipt} -A ${ghafFwChainPrefix}out-filter -m set --match-set ${outputSet} dst,dst -j ACCEPT
     ${lib.concatStrings (
       lib.mapAttrsToList (
-        proto: entries: outputRules proto (lib.filter (entry: entry.port == null) entries) + "\n"
+        proto: entries:
+        outputRules "${ipt} -A ${ghafFwChainPrefix}out-filter" "ACCEPT" proto (
+          lib.filter (entry: entry.port == null) entries
+        )
+        + "\n"
       ) ownOutputs
     )}
   '';
@@ -279,13 +325,13 @@ let
     '';
 
   outputRules =
-    proto: entries:
+    prefix: target: proto: entries:
     concatMapStringsSep "\n" (
       entry:
       let
         rule =
           dest:
-          "${ipt} -A ${ghafFwChainPrefix}out-filter -p ${proto}"
+          "${prefix} -p ${proto}"
           + lib.optionalString (dest != null) " -d ${address dest}"
           +
             lib.optionalString (entry.port != null)
@@ -295,10 +341,36 @@ let
                  else
                    "${toString entry.port.from}:${toString entry.port.to}"
                }"
-          + " -j ACCEPT";
+          + " -j ${target}";
       in
       if entry.to == null then rule null else concatMapStringsSep "\n" rule entry.to
     ) (lib.unique (outputEntries entries));
+
+  # A host behind this gateway gets out only through its own output entries,
+  # even when it loosens its own firewall.
+  egressRules = ''
+    ${concatMapStringsSep "\n" (
+      iface: "${ipt} -A ${ghafFwChainPrefix}fwd-filter -i ${iface} ! -o ${iface} -j ${egressChain}"
+    ) config.networking.nat.internalInterfaces}
+    ${optionalString (
+      ipsets ? ${egressChain}
+    ) "${ipt} -A ${egressChain} -m set --match-set ${egressChain} src,dst -j RETURN"}
+    ${optionalString (
+      ipsets ? "${egressChain}-to"
+    ) "${ipt} -A ${egressChain} -m set --match-set ${egressChain}-to src,dst,dst -j RETURN"}
+    ${concatMapStringsSep "\n" (
+      entry:
+      outputRules "${ipt} -A ${egressChain} -s ${entry.source}" "RETURN" entry.proto [
+        (removeAttrs entry [
+          "proto"
+          "source"
+        ])
+      ]
+    ) (lib.filter (entry: entry.port == null) egressEntries)}
+    ${ipt} -A ${egressChain} -d 224.0.0.0/4 -j RETURN
+    ${optionalString cfg.logRefusedOutput ''${ipt} -A ${egressChain} -m limit --limit 10/min -j LOG --log-prefix "refused forward: " --log-level 4''}
+    ${ipt} -A ${egressChain} -j REJECT --reject-with icmp-admin-prohibited
+  '';
 
   # Chains owned by the uplink applier. Deliberately separate from the dyn-*
   # chains, which belong to the GIVC-fed rule updater and are flushed wholesale
@@ -711,7 +783,7 @@ in
 
     };
     IdsEnabled = mkEnableOption "Ids tool";
-    logRefusedOutput = mkEnableOption "logging outgoing connections the firewall drops; on by default in debug images";
+    logRefusedOutput = mkEnableOption "logging outgoing and forwarded connections the firewall refuses; on by default in debug images";
 
     allowedTCPPorts = mkOption {
       type = types.listOf portEntry;
@@ -955,6 +1027,7 @@ in
           ${setupChain null "filter" "${ghafFwChainPrefix}conncheck-accept" "-I"}
           ${setupChain null "filter" "${ghafFwChainPrefix}blacklist-add" "-I"}
           ${setupChain null "filter" "${ghafFwChainPrefix}ban" "-I"}
+          ${optionalString config.networking.nat.enable (setupChain null "filter" egressChain "-I")}
 
           # The chains matching the sets are empty here, so they can be rebuilt.
           ${concatMapStringsSep "\n" (name: "ipset destroy ${name} 2>/dev/null || true") (
@@ -1022,6 +1095,7 @@ in
           ${ipt} -t filter -A ${ghafFwChainPrefix}conncheck-accept -j ACCEPT
           ### FORWARD rules ###
           ${ipt} -t filter -A ${ghafFwChainPrefix}fwd-filter -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+          ${optionalString config.networking.nat.enable egressRules}
 
           ### OUTPUT rules ###
           ${ipt} -A ${ghafFwChainPrefix}out-filter -o lo -j ACCEPT
