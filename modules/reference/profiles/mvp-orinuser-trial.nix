@@ -22,9 +22,7 @@ in
     ghaf = {
       virtualization = {
         # Enable shared directories for the selected VMs
-        microvm-host.sharedVmDirectory.vms = [
-          "net-vm"
-        ];
+        microvm-host.sharedVmDirectory.vms = [ "net-vm" ] ++ lib.optional guiVmEnabled "flatpak-vm";
 
         microvm.appvm = {
           enable = guiVmEnabled;
