@@ -1,0 +1,28 @@
+From 604e4bedc9fe523306b66feb5dac95bcad4f1ab0 Mon Sep 17 00:00:00 2001
+From: Andre Brandao <144796421+abrandao-census@users.noreply.github.com>
+Date: Mon, 14 Sep 2026 09:04:40 +0000
+Subject: [PATCH 2/2] nvgpu: stub the GPC-disable fuse read for guest
+ passthrough
+
+Fuse MMIO is not readable inside a VM.
+---
+ nvgpu/drivers/gpu/nvgpu/os/linux/fuse.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/nvgpu/drivers/gpu/nvgpu/os/linux/fuse.c b/nvgpu/drivers/gpu/nvgpu/os/linux/fuse.c
+index 2d0175aa1..d78340eaf 100644
+--- a/nvgpu/drivers/gpu/nvgpu/os/linux/fuse.c
++++ b/nvgpu/drivers/gpu/nvgpu/os/linux/fuse.c
+@@ -35,7 +35,8 @@ int nvgpu_tegra_fuse_read_gcplex_config_fuse(struct gk20a *g, u32 *val)
+
+ int nvgpu_tegra_fuse_read_opt_gpc_disable(struct gk20a *g, u32 *val)
+ {
+-	return tegra_fuse_readl(FUSE_OPT_GPC_DISABLE_0, val);
++	*val = 0;
++	return 0;
+ }
+ #ifdef __KERNEL__
+ int nvgpu_tegra_fuse_read_opt_emc_disable(struct gk20a *g, u32 *val)
+--
+2.34.1
+

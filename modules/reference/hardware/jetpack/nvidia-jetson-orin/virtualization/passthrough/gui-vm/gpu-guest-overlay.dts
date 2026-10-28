@@ -1,0 +1,86 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/clock/tegra234-clock.h>
+#include <dt-bindings/gpio/tegra234-gpio.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/mailbox/tegra186-hsp.h>
+#include <dt-bindings/memory/tegra234-mc.h>
+#include <dt-bindings/pinctrl/pinctrl-tegra-io-pad.h>
+#include <dt-bindings/power/tegra234-powergate.h>
+#include <dt-bindings/reset/tegra234-reset.h>
+#include <dt-bindings/thermal/tegra234-bpmp-thermal.h>
+
+&{/} {
+	#address-cells = <0x02>;
+	#size-cells = <0x02>;
+
+    interrupt-parent = <&intc>;
+
+	bpmp: bpmp {
+		compatible = "nvidia,tegra-bpmp-virtio";
+		#clock-cells = <1>;
+		#reset-cells = <1>;
+		#power-domain-cells = <1>;
+		status = "okay";
+	};
+
+	host1x: host1x@13e00000 {
+		compatible = "nvidia,tegra234-host1x";
+		reg = <0x0 0x13e00000 0x0 0x00010000>,
+		      <0x0 0x13e10000 0x0 0x00010000>,
+		      <0x0 0x13e40000 0x0 0x00010000>,
+		      <0x0 0x13ef0000 0x0 0x00060000>;
+		reg-names = "common", "hypervisor", "vm", "actmon";
+		interrupts = <GIC_SPI 116 IRQ_TYPE_LEVEL_HIGH>,
+                     <GIC_SPI 117 IRQ_TYPE_LEVEL_HIGH>,
+                     <GIC_SPI 118 IRQ_TYPE_LEVEL_HIGH>,
+                     <GIC_SPI 119 IRQ_TYPE_LEVEL_HIGH>,
+                     <GIC_SPI 120 IRQ_TYPE_LEVEL_HIGH>,
+                     <GIC_SPI 121 IRQ_TYPE_LEVEL_HIGH>,
+                     <GIC_SPI 122 IRQ_TYPE_LEVEL_HIGH>,
+                     <GIC_SPI 123 IRQ_TYPE_LEVEL_HIGH>,
+                     <GIC_SPI 124 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "syncpt0", "syncpt1", "syncpt2", "syncpt3", "syncpt4",
+				  "syncpt5", "syncpt6", "syncpt7", "host1x";
+		clocks = <&bpmp 46>, <&bpmp 1>;
+		clock-names = "host1x", "actmon";
+		status = "okay";
+	};
+
+	tegra_carveouts: tegra-carveouts {
+		compatible = "nvidia,carveouts";
+		status = "okay";
+	};
+
+    fuse@3810000 {
+		compatible = "nvidia,tegra234-efuse";
+		reg = <0x0 0x03810000 0x0 0x00010000>;
+		status = "disabled";
+	};
+
+    host1x_syncpt: host1x-syncpt@60000000 {
+		compatible = "nvidia,dummy";
+		reg = <0x0 0x60000000 0x0 0x04000000>;
+		status = "okay";
+	};
+
+    ga10b: gpu@17000000 {
+		compatible = "nvidia,ga10b";
+		reg = <0x0 0x17000000 0x0 0x01000000>,
+		      <0x0 0x18000000 0x0 0x01000000>,
+		      <0x0 0x03b41000 0x0 0x00001000>;
+		interrupts = <GIC_SPI 112 IRQ_TYPE_LEVEL_HIGH>,
+                     <GIC_SPI 113 IRQ_TYPE_LEVEL_HIGH>,
+                     <GIC_SPI 114 IRQ_TYPE_LEVEL_HIGH>,
+                     <GIC_SPI 115 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "stall0", "stall1", "stall2", "nonstall";
+		clocks = <&bpmp 304>, <&bpmp 41>, <&bpmp 236>;
+		clock-names = "sysclk", "gpc0clk", "gpc1clk";
+		resets = <&bpmp 19>;
+		power-domains = <&bpmp 35>;
+		nvidia,bpmp = <&bpmp>;
+		dma-coherent;
+		status = "okay";
+	};
+};
