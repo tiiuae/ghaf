@@ -119,7 +119,8 @@ in
             script = ''
               set -euo pipefail
               ${pkgs.systemd}/bin/systemctl stop quiesce-mgbe0.service
-              ${pkgs.systemd}/bin/systemctl start --no-block poweroff.target
+              # GIVC retries must not replace an in-progress shutdown transaction.
+              ${pkgs.systemd}/bin/systemctl start --no-block --job-mode=replace-irreversibly poweroff.target
             '';
           };
 

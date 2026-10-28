@@ -59,7 +59,8 @@ in
     description = "Power off the Orin Crosvm guest";
     serviceConfig.Type = "oneshot";
     script = ''
-      ${lib.getExe' pkgs.systemd "systemctl"} start --no-block poweroff.target
+      # GIVC retries must not replace an in-progress shutdown transaction.
+      ${lib.getExe' pkgs.systemd "systemctl"} start --no-block --job-mode=replace-irreversibly poweroff.target
     '';
   };
   givc.sysvm = lib.mkMerge [
