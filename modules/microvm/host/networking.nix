@@ -60,8 +60,6 @@ in
         blacklistedKernelModules = [ "br_netfilter" ];
 
         kernel.sysctl = {
-          # ip forwarding functionality is needed for iptables
-          "net.ipv4.ip_forward" = 1;
           # reply only if the target IP address is local address configured on the incoming interface
           "net.ipv4.conf.all.arp_ignore" = 1;
         };
