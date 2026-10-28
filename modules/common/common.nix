@@ -123,6 +123,11 @@ in
         default = [ ];
         description = "List of app VMs that have SNI tray icon forwarding enabled.";
       };
+      egress = mkOption {
+        type = types.attrsOf (types.attrsOf (types.listOf types.attrs));
+        default = { };
+        description = "The `tcp` and `udp` output entries of each Ghaf host, by name, which the NAT gateway enforces on forwarded traffic.";
+      };
       extraNetworking = {
         hosts = mkOption {
           type = types.attrsOf lib.types.networking;
@@ -284,6 +289,18 @@ in
                 ) n
               ) config.microvm.vms
             );
+            egress =
+              let
+                outputs = lib.filter (entry: builtins.isAttrs entry && entry.direction == "output");
+                entriesOf = firewall: {
+                  tcp = outputs (firewall.allowedTCPPorts or [ ]);
+                  udp = outputs (firewall.allowedUDPPorts or [ ]);
+                };
+              in
+              lib.mapAttrs (_: v: entriesOf ((lib.ghaf.vm.getConfig v).ghaf.firewall or { })) config.microvm.vms
+              // {
+                ${config.networking.hostName} = entriesOf (config.ghaf.firewall or { });
+              };
             hardware = {
               nics = config.ghaf.hardware.definition.network.pciDevices;
               gpus = config.ghaf.hardware.definition.gpu.pciDevices;
