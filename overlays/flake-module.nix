@@ -53,7 +53,16 @@ in
       final: prev:
       inputs.nixpkgs.lib.optionalAttrs prev.stdenv.hostPlatform.isx86_64 (crosvmGhaf final prev);
 
-    ghaf-device-manager = inputs.ghaf-device-manager.overlays.default;
+    ghaf-device-manager = inputs.nixpkgs.lib.composeManyExtensions [
+      inputs.ghaf-device-manager.overlays.default
+      (_final: prev: {
+        ghaf-device-manager = prev.ghaf-device-manager.overrideAttrs {
+          # The USB authorization pin lacks the cross-build fix from upstream #15.
+          # libudev-sys probes with host rustc; target systemd also provides HWDB.
+          env.RUSTFLAGS = "--cfg hwdb";
+        };
+      })
+    ];
 
     # Jetson-only Python fixes for the EDK2/UEFI firmware build. Deliberately
     # excluded from `default`: it rewrites pythonPackagesExtensions globally.
