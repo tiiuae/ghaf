@@ -184,6 +184,23 @@ in
             }
           ];
 
+      # Standalone admin logins have no /home volume. Keep their home on the
+      # regular persistent storage so its encryption policy also applies.
+      ghaf.storagevm.directories =
+        lib.optional
+          (
+            config.ghaf.users.admin.enable
+            && config.ghaf.users.admin.createHome
+            && !config.ghaf.users.homedUser.enable
+            && !config.ghaf.users.adUsers.enable
+          )
+          {
+            directory = config.users.users.${config.ghaf.users.admin.name}.home;
+            user = config.ghaf.users.admin.name;
+            group = config.users.users.${config.ghaf.users.admin.name}.group;
+            mode = "0700";
+          };
+
       preservation = {
         enable = true;
         preserveAt.${cfg.mountPath} = mkMerge [
