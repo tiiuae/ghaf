@@ -104,6 +104,30 @@ let
 
   assertions = targetAssertions ++ [
     {
+      name = "Orin desktops preserve the login home and expose Flatpak launchers";
+      ok =
+        lib.all
+          (
+            host:
+            let
+              gui = host.microvm.vms.gui-vm.evaluatedConfig.config;
+            in
+            lib.any (
+              directory: (directory.directory or null) == "/home/${gui.ghaf.users.admin.name}"
+            ) gui.ghaf.storagevm.directories
+            && lib.elem "/Shares/Unsafe flatpak-vm share/.flatpak-share" gui.environment.profiles
+            && gui.ghaf.services.power-manager.enable
+            &&
+              gui.systemd.services.gui-shutdown-interceptor.unitConfig.ConditionPathExists
+              == "!/run/ghaf-crosvm-poweroff"
+          )
+          [
+            agx
+            (hostConfig baseTargets.nvidia-jetson-orin-nx-debug)
+            (hostConfig baseTargets.nvidia-jetson-orin-nx-verity-luks-debug)
+          ];
+    }
+    {
       name = "Ghaf owns the split display workload and DCE shutdown ordering";
       ok =
         let
@@ -211,6 +235,11 @@ let
         && lib.all (vm: vm.microvm.hypervisor == "qemu") (vmConfigs qemuFallback)
         && qemuFallback.systemd.services ? vhotplug
         && !(qemuFallback.systemd.services ? ghaf-device-manager)
+        && !qemuFallback.microvm.vms.gui-vm.evaluatedConfig.config.ghaf.services.power-manager.enable
+        && !(
+          qemuFallback.microvm.vms.gui-vm.evaluatedConfig.config.systemd.services ? gui-shutdown-interceptor
+        )
+        && !(qemuFallback.microvm.vms.gui-vm.evaluatedConfig.config.systemd.services ? ghaf-crosvm-poweroff)
         && !(qemuFallback.systemd.services ? ghaf-crosvm-shutdown-admin-vm);
     }
   ];

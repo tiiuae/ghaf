@@ -1,8 +1,14 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 # AArch64 specialization of the generic gui-vm desktop.
-{ lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
+  isCrosvm = config.microvm.hypervisor == "crosvm";
   virt-support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
   cosmicPreload = "${virt-support.gbmNoModifiersShim}/lib/gbm-nomod-shim.so";
 in
@@ -33,6 +39,25 @@ in
 
     # system76-power requires DMI identity, which Orin guests do not expose.
     hardware.system76.power-daemon.enable = false;
+
+    ghaf.services.power-manager = lib.mkIf isCrosvm {
+      enable = true;
+      suspend.enable = false;
+      gui = {
+        gpuSuspend = false;
+        fakeDisplaySuspend = false;
+      };
+    };
+
+    # Host-requested VM stops must not relay another power action to the host.
+    systemd.services.gui-shutdown-interceptor = lib.mkIf isCrosvm {
+      unitConfig.ConditionPathExists = "!/run/ghaf-crosvm-poweroff";
+    };
+    systemd.services.ghaf-crosvm-poweroff = lib.mkIf isCrosvm {
+      preStart = ''
+        ${pkgs.coreutils}/bin/touch /run/ghaf-crosvm-poweroff
+      '';
+    };
 
     # gpu-screen-recorder is x86_64-only.
     ghaf.graphics.cosmic.screenRecorder.enable = lib.mkForce false;
