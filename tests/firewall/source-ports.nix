@@ -76,30 +76,34 @@ let
     serviceConfig.ExecStart = "${lib.getExe pkgs.python3} ${tcpListeners tcpPorts}";
   };
 
+  systemWith =
+    entries:
+    pkgs.nixos {
+      imports = [
+        ../../modules/common/firewall
+        stubs
+      ];
+      ghaf = {
+        networking.hosts.known.ipv4 = "192.168.1.10";
+        firewall = {
+          enable = true;
+          allowedTCPPorts = entries;
+        };
+      };
+      boot.loader.grub.enable = false;
+      fileSystems."/" = {
+        device = "none";
+        fsType = "tmpfs";
+      };
+      system.stateVersion = lib.trivial.release;
+    };
+
   # The assertion messages a configuration with these TCP entries fails with, or
   # null when evaluating its rules throws.
   failures =
     entries:
     let
-      system = pkgs.nixos {
-        imports = [
-          ../../modules/common/firewall
-          stubs
-        ];
-        ghaf = {
-          networking.hosts.known.ipv4 = "192.168.1.10";
-          firewall = {
-            enable = true;
-            allowedTCPPorts = entries;
-          };
-        };
-        boot.loader.grub.enable = false;
-        fileSystems."/" = {
-          device = "none";
-          fsType = "tmpfs";
-        };
-        system.stateVersion = lib.trivial.release;
-      };
+      system = systemWith entries;
       rendered = builtins.tryEval (builtins.deepSeq system.config.networking.firewall.extraCommands true);
     in
     if rendered.success then
@@ -208,8 +212,63 @@ let
       ]
     );
   };
+  # A multiport rule takes at most fifteen ports, and a lone port left over
+  # gets a plain --dport rule: [ multiport rules, single-port rules ].
+  returnRules =
+    count:
+    let
+      lines = lib.filter (lib.hasInfix "-j RETURN") (
+        lib.splitString "\n"
+          (systemWith (
+            map (port: {
+              inherit port;
+              from = [ "known" ];
+            }) (lib.range 2001 (2000 + count))
+          )).config.networking.firewall.extraCommands
+      );
+    in
+    [
+      (lib.length (lib.filter (lib.hasInfix "-m multiport") lines))
+      (lib.length (lib.filter (lib.hasInfix "--dport ") lines))
+    ];
 in
 assert lib.all lib.id misconfigurations;
+assert lib.all
+  (
+    case:
+    lib.assertMsg (returnRules case.ports == case.rules)
+      "firewall-source-ports: ${toString case.ports} limited ports gave ${toString (returnRules case.ports)} [multiport single] rules, not ${toString case.rules}"
+  )
+  [
+    {
+      ports = 1;
+      rules = [
+        0
+        1
+      ];
+    }
+    {
+      ports = 15;
+      rules = [
+        1
+        0
+      ];
+    }
+    {
+      ports = 16;
+      rules = [
+        1
+        1
+      ];
+    }
+    {
+      ports = 17;
+      rules = [
+        2
+        0
+      ];
+    }
+  ];
 pkgs.testers.nixosTest {
   name = "firewall-source-ports";
 
@@ -412,8 +471,8 @@ pkgs.testers.nixosTest {
       with subtest("two services limiting one port admit both their sources"):
           allowed.succeed(tcp(${toString ports.merged}))
           denied.succeed(tcp(${toString ports.merged}))
-          rules = server.succeed("iptables -S ghaf-fw-restrict-tcp-${toString ports.merged}")
-          assert rules.count("-j ACCEPT") == 2, rules
+          members = server.succeed("${pkgs.ipset}/bin/ipset list ghaf-fw-allowed")
+          assert members.count(",tcp:${toString ports.merged}") == 2, members
 
       with subtest("a limited UDP port"):
           allowed.succeed(udp(${toString ports.udpByName}))

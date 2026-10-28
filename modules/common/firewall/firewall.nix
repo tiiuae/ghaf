@@ -144,24 +144,139 @@ let
       portsWhere (entry: entry.from != null)
     );
 
-  # NixOS accepts a port from anyone, whichever module opened it. The chain is
-  # entered with -g, so a source it does not accept falls through to the NixOS
-  # refuse rule instead of returning to the accept chain.
-  restrictRules =
-    proto: entries:
-    lib.concatStrings (
+  allowedSet = "${ghafFwChainPrefix}allowed";
+  outputSet = "${ghafFwChainPrefix}output";
+
+  ipsetPort =
+    proto: port:
+    if builtins.isInt port then
+      "${proto}:${toString port}"
+    else
+      "${proto}:${toString port.from}-${toString port.to}";
+
+  limitedPorts = {
+    tcp = restrictedPorts cfg.allowedTCPPorts;
+    udp = restrictedPorts cfg.allowedUDPPorts;
+  };
+
+  ownOutputs = {
+    tcp = outputEntries cfg.allowedTCPPorts;
+    udp = outputEntries cfg.allowedUDPPorts;
+  };
+
+  # The sets this machine's rules match, written to /etc/ghaf/firewall/ipsets
+  # and loaded in one go. An empty set is left out with the rule matching it.
+  ipsets =
+    let
+      ghafHosts = map (host: host.ipv4) (
+        lib.filter (host: host.ipv4 or null != null) (lib.attrValues (config.ghaf.networking.hosts or { }))
+      );
+      # hash:net,port cannot store a /0, so anywhere is its two halves.
+      anywhere = [
+        "0.0.0.0/1"
+        "128.0.0.0/1"
+      ];
+      # ipset needs a port, so an entry for every port stays a plain rule.
+      withPort = lib.filter (entry: entry.port != null);
+      present = lib.filterAttrs (_: set: set.members != [ ]) {
+        ${allowedSet} = {
+          type = "hash:net,port";
+          members = lib.concatLists (
+            lib.mapAttrsToList (
+              proto: ports:
+              lib.concatLists (
+                lib.mapAttrsToList (port: sources: map (source: "${address source},${proto}:${port}") sources) ports
+              )
+            ) limitedPorts
+          );
+        };
+        # Multicast stays on the internal network unless the gateway forwards it.
+        "${outputSet}-hosts" = {
+          type = "hash:net";
+          members = ghafHosts ++ [ "224.0.0.0/4" ];
+        };
+        "${outputSet}-ports" = {
+          type = "hash:net,port";
+          members = lib.unique (
+            lib.concatLists (
+              lib.mapAttrsToList (
+                proto:
+                lib.concatMap (
+                  entry:
+                  map (dest: "${dest},${ipsetPort proto entry.port}") (
+                    if entry.to == null then anywhere else map address entry.to
+                  )
+                )
+              ) (lib.mapAttrs (_: withPort) ownOutputs)
+            )
+          );
+        };
+      };
+    in
+    present
+    // {
+      ${outputSet} = {
+        type = "list:set";
+        members = lib.filter (name: present ? ${name}) [
+          "${outputSet}-hosts"
+          "${outputSet}-ports"
+        ];
+      };
+    };
+
+  # A list:set names its members, so it is created after them and destroyed first.
+  ipsetNames =
+    let
+      byKind = lib.partition (name: ipsets.${name}.type != "list:set") (lib.attrNames ipsets);
+    in
+    byKind.right ++ byKind.wrong;
+
+  ipsetsFile = pkgs.writeText "ghaf-fw-ipsets" (
+    lib.concatMapStrings (
+      name:
+      let
+        set = ipsets.${name};
+      in
+      "create ${name} ${set.type}${optionalString (set.type != "list:set") " counters"}\n"
+      + lib.concatMapStrings (member: "add ${name} ${member}\n") set.members
+    ) ipsetNames
+  );
+
+  outputSetRules = ''
+    ${ipt} -A ${ghafFwChainPrefix}out-filter -m set --match-set ${outputSet} dst,dst -j ACCEPT
+    ${lib.concatStrings (
       lib.mapAttrsToList (
-        port: sources:
-        let
-          chain = "${ghafFwChainPrefix}restrict-${proto}-${port}";
-        in
-        ''
-          ${setupChain null "filter" chain "-I"}
-          ${concatMapStringsSep "\n" (source: "${ipt} -A ${chain} -s ${address source} -j ACCEPT") sources}
-          ${ipt} -A ${ghafFwChainPrefix}conncheck-accept -p ${proto} --dport ${port} -g ${chain}
-        ''
-      ) (restrictedPorts entries)
-    );
+        proto: entries: outputRules proto (lib.filter (entry: entry.port == null) entries) + "\n"
+      ) ownOutputs
+    )}
+  '';
+
+  # NixOS accepts a port from anyone, whichever module opened it. A source the
+  # set pairs with the port is accepted; any other source on a limited port
+  # returns to the caller and meets the NixOS refuse rule.
+  restrictRules =
+    let
+      # multiport takes at most 15 ports per rule.
+      chunks = list: if list == [ ] then [ ] else [ (lib.take 15 list) ] ++ chunks (lib.drop 15 list);
+      returnRules =
+        proto:
+        concatMapStringsSep "\n" (
+          ports:
+          "${ipt} -A ${ghafFwChainPrefix}conncheck-accept -p ${proto} "
+          + (
+            if lib.length ports == 1 then
+              "--dport ${lib.head ports}"
+            else
+              "-m multiport --dports ${lib.concatStringsSep "," ports}"
+          )
+          + " -j RETURN"
+        ) (chunks (lib.attrNames limitedPorts.${proto}));
+    in
+    lib.optionalString (ipsets ? ${allowedSet}) ''
+      ${ipt} -A ${ghafFwChainPrefix}conncheck-accept -m set --match-set ${allowedSet} src,dst -j ACCEPT
+      ${returnRules "tcp"}
+      ${returnRules "udp"}
+    '';
 
   outputRules =
     proto: entries:
@@ -776,6 +891,8 @@ in
     ghaf.firewall.blacklistTimeout = mkIf (config.ghaf.profiles.debug.enable or false) (mkDefault 60);
     ghaf.firewall.logRefusedOutput = mkIf (config.ghaf.profiles.debug.enable or false) (mkDefault true);
 
+    environment.etc."ghaf/firewall/ipsets".source = ipsetsFile;
+
     # Include ethertypes file
     environment.etc.ethertypes.source = "${cfg.iptablesPackage}/etc/ethertypes";
 
@@ -839,6 +956,12 @@ in
           ${setupChain null "filter" "${ghafFwChainPrefix}blacklist-add" "-I"}
           ${setupChain null "filter" "${ghafFwChainPrefix}ban" "-I"}
 
+          # The chains matching the sets are empty here, so they can be rebuilt.
+          ${concatMapStringsSep "\n" (name: "ipset destroy ${name} 2>/dev/null || true") (
+            lib.reverseList ipsetNames
+          )}
+          ipset -exist restore < ${ipsetsFile}
+
           ${ipt} -t mangle -A ${ghafFwChainPrefix}mangle-drop -j DROP
           ${ipt} -t filter -A ${ghafFwChainPrefix}filter-drop -j DROP
 
@@ -893,8 +1016,7 @@ in
           ${concatMapStringsSep "\n" (
             rule: appendBlacklistRule "udp" rule "${ghafFwChainPrefix}conncheck-accept"
           ) cfg.udpBlacklistRules}
-          ${restrictRules "tcp" cfg.allowedTCPPorts}
-          ${restrictRules "udp" cfg.allowedUDPPorts}
+          ${restrictRules}
 
           # accept the other packets
           ${ipt} -t filter -A ${ghafFwChainPrefix}conncheck-accept -j ACCEPT
@@ -938,16 +1060,7 @@ in
             chain = "${ghafFwChainPrefix}out-filter";
             rules = cfg.extra.output.filter;
           }}
-          ${concatMapStringsSep "\n"
-            (host: "${ipt} -A ${ghafFwChainPrefix}out-filter -d ${host.ipv4} -j ACCEPT")
-            (
-              lib.filter (host: host.ipv4 or null != null) (lib.attrValues (config.ghaf.networking.hosts or { }))
-            )
-          }
-          # Multicast stays on the internal network unless the gateway forwards it.
-          ${ipt} -A ${ghafFwChainPrefix}out-filter -d 224.0.0.0/4 -j ACCEPT
-          ${outputRules "tcp" cfg.allowedTCPPorts}
-          ${outputRules "udp" cfg.allowedUDPPorts}
+          ${outputSetRules}
           ${addIptablesRules {
             table = "nat";
             chain = "${ghafFwChainPrefix}post-nat";
