@@ -99,6 +99,11 @@ in
         enable = lib.mkDefault true;
         bootLabel = lib.mkDefault "Starting desktop...";
       };
+      iconTheme = {
+        package = lib.mkDefault pkgs.cosmic-icons;
+        light = lib.mkDefault "Cosmic";
+        dark = lib.mkDefault "Cosmic";
+      };
     };
     locales.enable = lib.mkDefault true;
 
