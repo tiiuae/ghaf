@@ -155,17 +155,17 @@ in
     iconTheme = {
       package = lib.mkOption {
         type = lib.types.nullOr lib.types.package;
-        default = pkgs.papirus-icon-theme;
+        default = pkgs.adwaita-icon-theme;
         description = "Icon theme package. If null, stylix icon theming will not be used";
       };
       light = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
-        default = "Papirus-Light";
+        default = "Adwaita";
         description = "Icon theme name used in light mode";
       };
       dark = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
-        default = "Papirus-Dark";
+        default = "Adwaita";
         description = "Icon theme name used in dark mode";
       };
     };
