@@ -44,6 +44,7 @@
       ./common/virtiofsd.nix
       ./common/vm-crosvm.nix
       ./common/vm-networking.nix
+      ./common/vm-nix.nix
       ./common/vm-qemu.nix
       ./common/vm-swap.nix
       ./common/vm-tpm.nix
