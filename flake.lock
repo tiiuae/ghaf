@@ -129,16 +129,22 @@
         "flake-utils": [
           "flake-utils"
         ],
+        "givc": [
+          "givc"
+        ],
         "nixpkgs": [
           "nixpkgs"
+        ],
+        "treefmt-nix": [
+          "treefmt-nix"
         ]
       },
       "locked": {
-        "lastModified": 1788216123,
-        "narHash": "sha256-1kcb8NVwbikoaCUARyapINbpXHaj3Lz5mDI2p/+MOsQ=",
+        "lastModified": 1790935875,
+        "narHash": "sha256-e1zgXhgn9JlccqjCPsUe/0GNpChBag/R2xoNp0ErcmA=",
         "owner": "tiiuae",
         "repo": "ghaf-ctrl-panel",
-        "rev": "bfd8ceb203e147ba585fd22bab195bc654229971",
+        "rev": "1a5bc5a56985ee9f49997d21bf100cd789e90693",
         "type": "github"
       },
       "original": {
