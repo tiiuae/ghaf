@@ -849,17 +849,6 @@ in
           };
         }
         {
-          name = "ftpm-config";
-          patch = null;
-          structuredExtraConfig = with lib.kernel; {
-            EXPERT = yes;
-            TCG_FTPM_TEE = module;
-            # Disable TPM hwrng to prevent constant fTPM polling pressure
-            # that can saturate the OP-TEE single-lane fTPM TA under load.
-            HW_RANDOM_TPM = no;
-          };
-        }
-        {
           # Host evdev forwarding requires the receiver-specific HID drivers.
           name = "hid-logitech-unifying";
           patch = null;
@@ -889,8 +878,18 @@ in
             CRYPTO_XTS = yes;
           };
         }
+      ]
+      ++ lib.optionals cfg.optee.ftpm.enable [
+        {
+          name = "ftpm-config";
+          patch = null;
+          structuredExtraConfig = with lib.kernel; {
+            # Disable TPM hwrng to prevent constant fTPM polling pressure
+            # that can saturate the OP-TEE single-lane fTPM TA under load.
+            HW_RANDOM_TPM = no;
+          };
+        }
       ];
-
     };
 
     boot.initrd = {
@@ -1097,6 +1096,9 @@ in
       };
     };
 
+    systemd.services.ftpm-driver = mkIf cfg.optee.ftpm.enable {
+      wantedBy = [ "multi-user.target" ];
+    };
     systemd.services.ghaf-provision-ek-certs = mkIf cfg.optee.ftpm.enable {
       description = "Provision fTPM EK certificates into standard NV indices";
       wantedBy = [ "multi-user.target" ];

@@ -548,16 +548,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1791757732,
-        "narHash": "sha256-gULUdXJf4Ag8KSxRujuKoodezRVo/poHNWfl3b80yHM=",
+        "lastModified": 1792758423,
+        "narHash": "sha256-igZL4qkWvEv9uyHZ68B+1y3g/5P8YY6jgv3bpg2D4UE=",
         "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "1e522ef0a00e1045ff92de3916ddc75e42d859b9",
+        "rev": "65bb48c5e9fe32e044424cc795c5970aaa230c3f",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "october-rebase",
+        "ref": "second-october-rebase",
         "repo": "jetpack-nixos",
         "type": "github"
       }
