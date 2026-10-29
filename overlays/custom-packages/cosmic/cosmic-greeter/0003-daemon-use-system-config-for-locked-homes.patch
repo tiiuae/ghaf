@@ -1,0 +1,71 @@
+From: Ghaf contributors <ghaf@tii.ae>
+Subject: [PATCH] daemon: use system config for users with a locked home
+
+systemd-homed reports an inactive user's home as "/", so loading their
+config as that user fails with EACCES on every helper and leaves the
+greeter with no keyboard layouts and the wrong clock format.
+
+When the home is not owned by the user, skip the per-user load and read
+the CosmicComp (keyboard layouts, zoom) and CosmicAppletTime settings
+from the system defaults instead. Ownership, not readability, is the
+check: "/" is world-readable.
+---
+diff --git a/daemon/src/lib.rs b/daemon/src/lib.rs
+--- a/daemon/src/lib.rs
++++ b/daemon/src/lib.rs
+@@ -101,6 +101,22 @@ impl UserData {
+         }
+     }
+ 
++    pub fn load_system_config(&mut self) {
++        if let Ok(config) =
++            cosmic_config::Config::system("com.system76.CosmicComp", CosmicCompConfig::VERSION)
++        {
++            let config = CosmicCompConfig::get_entry(&config).unwrap_or_else(|(_, c)| c);
++            self.xkb_config_opt = Some(config.xkb_config);
++            self.accessibility_zoom = config.accessibility_zoom;
++        }
++        if let Ok(config) =
++            cosmic_config::Config::system("com.system76.CosmicAppletTime", TimeAppletConfig::VERSION)
++        {
++            self.time_applet_config =
++                TimeAppletConfig::get_entry(&config).unwrap_or_else(|(_, c)| c);
++        }
++    }
++
+     pub fn load_config_as_user(&mut self) {
+         self.icon_opt = None;
+         self.theme_opt = None;
+diff --git a/daemon/src/main.rs b/daemon/src/main.rs
+--- a/daemon/src/main.rs
++++ b/daemon/src/main.rs
+@@ -3,6 +3,7 @@ use cosmic_greeter_daemon::{UserData, UserFilter};
+ use std::error::Error;
+ use std::ffi::CString;
+ use std::future::pending;
++use std::os::unix::fs::MetadataExt;
+ use std::{env, io};
+ use tracing::metadata::LevelFilter;
+ use tracing::warn;
+@@ -85,6 +86,21 @@ impl GreeterProxy {
+         for user in users {
+             let mut user_data = UserData::from(user.clone());
+ 
++            // An inactive homed user's home is "/", not theirs; use system defaults only
++            let home_is_users = std::fs::metadata(&user.dir)
++                .map(|meta| meta.uid() == user.uid)
++                .unwrap_or(false);
++            if !home_is_users {
++                tracing::debug!(
++                    "{}: {:?} is not their home, using system config",
++                    user.name,
++                    user.dir
++                );
++                user_data.load_system_config();
++                user_datas.push(user_data);
++                continue;
++            }
++
+             //IMPORTANT: Assume the identity of the user to ensure we don't read user file data as root
+             run_as_user(&user, || user_data.load_config_as_user())
+                 .map_err(|err| GreeterError::RunAsUser(err.to_string()))?;
