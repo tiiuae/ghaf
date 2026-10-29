@@ -45,7 +45,6 @@ in
     inputs.self.nixosModules.mem-manager
     inputs.self.nixosModules.theming
     ./crosvm-dax.nix
-    ./store-pmem-ext2.nix
     ./networking.nix
     ./shared-mem.nix
     ./boot.nix
