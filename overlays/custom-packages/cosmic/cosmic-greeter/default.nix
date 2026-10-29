@@ -5,7 +5,7 @@ prev.cosmic-greeter.overrideAttrs (oldAttrs: {
   patches = oldAttrs.patches ++ [
     ./0001-Replace-fallback-background-with-Ghaf-default.patch
     ./0002-fix-username-handle-empty-usernames.patch
-    ./0003-skip-config-probe-for-locked-homes.patch
+    ./0003-daemon-use-system-config-for-locked-homes.patch
     ./0004-locker-focus-password-entry-on-session-lock-focus.patch
     ./0005-fix-greeter-cancel-session-on-failed-password-authen.patch
   ];

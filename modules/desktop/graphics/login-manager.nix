@@ -82,6 +82,8 @@ in
     systemd.services.cosmic-greeter-daemon.environment.LD_LIBRARY_PATH = "${pkgs.lib.makeLibraryPath (
       [ pkgs.systemd ] ++ lib.optionals config.ghaf.services.sssd.enable [ pkgs.sssd ]
     )}";
+    # Lets it read our share/cosmic defaults (e.g. xkb_config) for users without overrides
+    systemd.services.cosmic-greeter-daemon.environment.XDG_DATA_DIRS = "/run/current-system/sw/share";
 
     security.pam.services = {
       cosmic-greeter = {
