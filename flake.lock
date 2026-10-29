@@ -384,15 +384,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1790750631,
-        "narHash": "sha256-2jChZikcnI6+vFacvlEGWKYyp4urfTyogK5JNJSq+9Y=",
-        "owner": "tiiuae",
+        "lastModified": 1793176528,
+        "narHash": "sha256-JiV479NI76xqar3Dd3qBY7huV8mzFWFkCCjdfMBHe5Y=",
+        "owner": "jkuro-tii",
         "repo": "ghafpkgs",
-        "rev": "b45de259054ea773cbd664127e240aa4b1af1aa4",
+        "rev": "0b7b70136b261475e4b1efedbfd75473dc28301c",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "jkuro-tii",
+        "ref": "leds-server",
         "repo": "ghafpkgs",
         "type": "github"
       }
