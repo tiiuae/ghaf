@@ -88,7 +88,7 @@ com.system76.CosmicComp:
     (
         rules: "",
         model: "",
-        layout: "",
+        layout: "us",
         variant: "",
         options: None,
         repeat_delay: 600,
