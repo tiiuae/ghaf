@@ -115,6 +115,50 @@ in
   };
 
   config = mkIf cfg.enable {
+    # A socket or event bridge port admits only the VM at its other end; a
+    # listening event bridge names it as its permitted source. The agent port
+    # admits only Ghaf VMs.
+    ghaf.firewall.allowedTCPPorts =
+      let
+        vms = lib.filter (name: config.ghaf.networking.hosts ? ${name}) config.ghaf.common.vms;
+        agents = lib.filter (service: service.enable) [
+          config.givc.sysvm
+          config.givc.appvm
+          config.givc.host
+        ];
+        bridgePeer =
+          bridge:
+          if bridge.transport.name == config.networking.hostName then
+            bridge.consumer.permittedSource
+          else
+            bridge.transport.name;
+        bridges =
+          lib.concatMap
+            (
+              service:
+              lib.optionals (
+                service.enable && service.capabilities.socketProxy.enable
+              ) service.capabilities.socketProxy.sockets
+              ++ lib.optionals (
+                service.enable && (service.capabilities.eventProxy.enable or false)
+              ) service.capabilities.eventProxy.events
+            )
+            [
+              config.givc.sysvm
+              config.givc.appvm
+            ];
+      in
+      map (bridge: {
+        port = lib.toInt (toString bridge.transport.port);
+        from = [ (bridgePeer bridge) ];
+      }) bridges
+      ++ lib.optionals (vms != [ ]) (
+        map (service: {
+          port = lib.toInt service.network.agent.transport.port;
+          from = vms;
+        }) agents
+      );
+
     assertions = [
       {
         assertion = cfg.debug -> (!config.ghaf.logging.enable);

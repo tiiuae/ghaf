@@ -61,6 +61,18 @@ in
       }
     ];
 
+    ghaf.firewall.allowedTCPPorts =
+      # Every Ghaf host's agent registers with the admin service.
+      map (address: {
+        port = lib.toInt address.port;
+        from = lib.attrNames config.ghaf.networking.hosts;
+      }) (lib.filter (address: address.protocol == "tcp") config.ghaf.givc.adminConfig.addresses)
+      # The policy admin pulls policy updates over HTTPS.
+      ++ lib.optional policycfg.enable {
+        port = 443;
+        direction = "output";
+      };
+
     # Configure admin service
     givc.admin = {
       enable = true;

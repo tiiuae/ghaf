@@ -79,7 +79,6 @@ in
       allowedTCPPorts = optionals (
         config.ghaf.security.ssh.debug.enable || config.ghaf.security.ssh.release.enable
       ) [ 22 ];
-      allowedUDPPorts = [ 67 ];
     };
 
     microvm.interfaces = [

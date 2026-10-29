@@ -263,7 +263,7 @@ in
             ];
 
             ghaf = {
-              firewall.extra =
+              firewall =
                 let
                   # WARN: if all the traffic including VPN flowing through proxy is intended,
                   # remove "151.253.154.18" rule and pass "--proxy-server=http://192.168.100.1:3128" to openconnect(VPN) app.
@@ -272,18 +272,24 @@ in
                   vpnIpAddr = "151.253.154.18";
                 in
                 {
-                  input.filter = [
+                  # Outside the tunnel, only the VPN server itself is reachable.
+                  allowedTCPPorts = [
+                    {
+                      port = 80;
+                      direction = "output";
+                      to = [ vpnIpAddr ];
+                    }
+                    {
+                      port = 443;
+                      direction = "output";
+                      to = [ vpnIpAddr ];
+                    }
+                  ];
+                  extra = {
                     # allow everything for local VPN traffic
-                    "-i tun0 -j ${config.ghaf.firewall.chainNamePrefix}conncheck-accept"
-                    "-p tcp -s ${vpnIpAddr} -m multiport --sports 80,443 -j ${config.ghaf.firewall.chainNamePrefix}conncheck-accept"
-                  ];
-
-                  output.filter = [
-                    "-p tcp -d ${vpnIpAddr} -m multiport --dports 80,443 -j ACCEPT"
-                    # Block HTTP and HTTPS if NOT going out via VPN
-                    "! -o tun0 -p tcp -m multiport --dports 80,443 -j nixos-fw-log-refuse"
-                    "! -o tun0 -p udp -m multiport --dports 80,443 -j nixos-fw-log-refuse"
-                  ];
+                    input.filter = [ "-i tun0 -j ${config.ghaf.firewall.chainNamePrefix}conncheck-accept" ];
+                    output.filter = [ "-o tun0 -j ACCEPT" ];
+                  };
                 };
 
               # Enable Policy Client

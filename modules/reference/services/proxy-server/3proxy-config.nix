@@ -126,10 +126,20 @@ in
 
     environment.systemPackages = [ url-fetcher ];
     #Firewall Settings
-    ghaf.firewall.extra.input.filter = [
-      # Allow incoming connections to 3proxy on port ${toString cfg.bindPort} from the client's IP
-      "-p tcp -s 192.168.100.0/24 --dport ${toString cfg.bindPort} -j ${config.ghaf.firewall.chainNamePrefix}conncheck-accept"
-      "-p udp -s 192.168.100.0/24 --dport ${toString cfg.bindPort} -j ${config.ghaf.firewall.chainNamePrefix}conncheck-accept"
+    ghaf.firewall.allowedTCPPorts = [
+      {
+        port = cfg.bindPort;
+        from = [ "192.168.100.0/24" ];
+      }
+      # The allow-listed sites, and the allow-list fetcher.
+      {
+        port = 80;
+        direction = "output";
+      }
+      {
+        port = 443;
+        direction = "output";
+      }
     ];
 
     # Apply the allowListConfig generated from the list

@@ -221,6 +221,14 @@ in
       })
 
       (mkIf cfg.server.enable {
+        # chrony's upstream time sources.
+        ghaf.firewall.allowedUDPPorts = [
+          {
+            port = 123;
+            direction = "output";
+          }
+        ];
+
         # Without its driftfile chronyd re-estimates frequency and skew from
         # scratch on every boot, and until it converges its root dispersion stays
         # above the clients' RootDistanceMaxSec -- so the whole fleet waits on a
