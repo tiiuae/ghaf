@@ -42,6 +42,7 @@
           # firewall = pkgs.callPackage ./firewall { inherit self; };
           cosmic-panels = pkgs.callPackage ./cosmic/panels.nix { inherit self; };
           cosmic-shortcuts = pkgs.callPackage ./cosmic/shortcuts.nix { inherit self; };
+          cosmic-headless-greeter = pkgs.callPackage ./cosmic/headless-greeter.nix { inherit self; };
           flatpak-options = pkgs.callPackage ./flatpak/options.nix { inherit self; };
           microvm-tpm-vmm-parity = pkgs.callPackage ./microvm/tpm-vmm-parity.nix { inherit self; };
           org-config = pkgs.callPackage ./org-config { inherit self; };

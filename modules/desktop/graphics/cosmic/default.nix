@@ -49,6 +49,8 @@ let
     text = cfg.extraAutostart;
   };
 
+  waitForDisplay = pkgs.callPackage ./wait-for-display.nix { };
+
 in
 {
   _file = ./default.nix;
@@ -375,6 +377,9 @@ in
     services = {
       desktopManager.cosmic.enable = true;
       displayManager.cosmic-greeter.enable = true;
+      # COSMIC exits without an output, making greetd recreate the user bus repeatedly.
+      # greetd's INI-style parser requires a single-line command.
+      greetd.settings.default_session.command = lib.mkForce ''${lib.getExe waitForDisplay} /sys/class/drm ${lib.getExe' pkgs.coreutils "env"} XCURSOR_THEME="''${XCURSOR_THEME:-Pop}" ${lib.getExe' config.services.displayManager.cosmic-greeter.package "cosmic-greeter-start"}'';
     };
 
     ghaf.graphics = {
