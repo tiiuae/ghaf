@@ -44,23 +44,29 @@ efi-readvar -v KEK
 efi-readvar -v db
 ```
 
-## Jetson Orin signed flashing workflow
+## Jetson Orin Signed Flashing Workflow
 
 Jetson Orin targets produce two independent build artifacts in CI:
 
 1. The flash script (`nix build .#nvidia-jetson-orin-agx-debug-from-x86_64-flash-script`) which orchestrates NVIDIA's flashing tools.
 2. The filesystem image (`nix build .#nvidia-jetson-orin-agx-debug-from-x86_64`) that contains the ESP and root partitions.
 
-After the filesystem image is signed, pass its Nix store path directly to the flash helper:
+The standard debug image build is unsigned. Neither `nix build` nor
+`nix path-info` signs it. Build the image and flasher separately:
 
 ```sh
-SIGNED_SD_IMAGE=$(nix path-info .#nvidia-jetson-orin-agx-debug-from-x86_64)
-./result/bin/flash-ghaf-host -s "$SIGNED_SD_IMAGE"
+nix build .#nvidia-jetson-orin-agx-debug-from-x86_64 -o orin-agx-image
+nix build .#nvidia-jetson-orin-agx-debug-from-x86_64-flash-script -o orin-agx-flasher
 ```
 
-The `-s/--signed-sd-image` flag extracts `BOOTAA64.EFI` and the kernel from the signed image, wires them into the flashing workdir, and launches NVIDIA's flashing script without requiring any additional staging directories or host key material.
+Before flashing with Secure Boot, sign the image's `BOOTAA64.EFI` and kernel
+through your signing pipeline using a key trusted by the firmware's `db`.
+Pass the resulting signed image directory to `-s/--signed-sd-image`. This flag
+supplies the image and extracts its boot artifacts; it does not sign them or
+enable Secure Boot. NX also needs signing material for its recovery boot, as
+described below.
 
-The argument to `-s/--signed-sd-image` must be the signed image output directory (for example, the value returned by `nix path-info`), not the `*.img.zst` file itself. The directory is expected to contain `esp.offset`, `esp.size`, `root.offset`, and `root.size`, plus either `sd-image/*.img.zst` or `*.img.zst` at the top level. Passing the image file directly will fail with `Signed image directory not found: ...`.
+The argument to `-s/--signed-sd-image` must be the image output directory, not the `*.img.zst` file itself. Preserve `esp.offset`, `esp.size`, `root.offset`, and `root.size` from the unsigned build alongside the signed image, stored as either `sd-image/*.img.zst` or `*.img.zst` at the top level. Passing the image file directly will fail with `Signed image directory not found: ...`.
 
 Whether `-s` is optional depends on how the board sizes its partitions. Every non-verity Orin board pins
 `ghaf.hardware.nvidia.orin.flashScriptOverrides.appPartitionSizeBytes`, so `flash.xml` carries static ESP/APP sizes and the
@@ -72,25 +78,79 @@ which costs roughly 10 GiB of RAM to evaluate and exceeds the CI eval worker's m
 The verity targets use a different partition template that always embeds the image, so for those `-s` stays optional and
 omitting it flashes the bundled image.
 
-`ghaf.hardware.nvidia.orin.secureboot.enable` defaults to `true` only when `ghaf.hardware.nvidia.orin.flashScriptOverrides.signedArtifactsPath` is set at Nix evaluation time; otherwise it defaults to `false`. Key enrollment, ESL generation, and the `UefiDefaultSecurityKeys` overlay are therefore skipped for unsigned builds, so a default `flash-ghaf-host` (no `-s`) boots the device with Secure Boot disabled instead of bricking it to the UEFI shell.
+For standard debug targets, the flasher defaults to firmware without enrollment
+material. `--secure-boot` selects firmware containing the
+`UefiDefaultSecurityKeys` overlay and PK/KEK/db EFI Signature Lists (ESLs).
+The standard TII targets obtain their public enrollment certificates from
+`modules/reference/org/secureboot-keys/`; they do not default to development keys.
+For a development-key test, explicitly override
+`ghaf.hardware.nvidia.orin.secureboot.keysSource` with the matching public
+certificates when building the flasher. Signing the image with development keys
+alone does not make it trusted by the standard flasher.
 
-To make QSPI-side enrollment selectable at flash time without requiring an evaluation-time `signedArtifactsPath`, the `*-flash-script` output ships **two** pre-built QSPI firmware variants behind a single `flash-ghaf-host` entrypoint: one without enrollment material (the default) and one with the `UefiDefaultSecurityKeys` DTBO plus PK/KEK/db ESLs baked in (selected by `--secure-boot`). `-s/--signed-sd-image` is deliberately **not** the selector: with static APP sizing every flash supplies an image with `-s`, signed or not, so keying Secure Boot off it would brick every unsigned flash. The wrapper dispatches on its own `--secure-boot` flag:
+Put the identified AGX into recovery mode and set `USB_INSTANCE` to its verified
+USB path. To flash an unsigned image onto a board with Secure Boot disabled:
 
 ```sh
-nix build .#nvidia-jetson-orin-agx-debug-from-x86_64-flash-script
-SIGNED_SD_IMAGE=$(nix path-info .#nvidia-jetson-orin-agx-debug-from-x86_64)
-
-# Unsigned QSPI, Secure Boot stays disabled. -s is still required: the script embeds no image.
-sudo ./result/bin/flash-ghaf-host -s "$SIGNED_SD_IMAGE"
-
-# SB-enabled QSPI: signed BOOTAA64.EFI swap + PK/KEK/db enrolled on first boot.
-# Pair --secure-boot with a *signed* image, or the enrolled firmware refuses the unsigned BOOTAA64.EFI.
-sudo ./result/bin/flash-ghaf-host --secure-boot -s "$SIGNED_SD_IMAGE"
+sudo ./orin-agx-flasher/bin/flash-ghaf-host \
+  -s "$(readlink -f orin-agx-image)" --usb-instance "$USB_INSTANCE"
 ```
 
-After a successful `-s` flash the device boots into Ghaf with Secure Boot enabled and `efi-readvar` reports the Ghaf UEFI PK → KEK → db certificate chain.
+To flash with Secure Boot, use the separately signed image and matching flasher:
 
-For ad-hoc debugging you can also point `-s` to a copy of the signed build outside the Nix store (for example, `cp -a $(nix path-info …) /tmp/orin-signed` and then pass `/tmp/orin-signed`), which is useful when the original store path is unavailable on the flashing host.
+```sh
+SIGNED_SD_IMAGE=/absolute/path/to/signed-image-directory
+sudo ./orin-agx-flasher/bin/flash-ghaf-host --secure-boot \
+  -s "$SIGNED_SD_IMAGE" --usb-instance "$USB_INSTANCE"
+```
+
+The signed directory may be outside the Nix store. After boot, verify
+`SecureBoot=1`, `SetupMode=0`, and the enrolled PK/KEK/db certificates; a successful
+flash alone does not establish that Secure Boot is enforcing signatures.
+
+### NX Recovery Payload Signing
+
+The standard NX flasher first boots a temporary Linux recovery kernel to write
+the NVMe image, then flashes QSPI firmware. With Secure Boot enabled, that
+recovery payload must also be signed. Supplying a signed final image with `-s`
+does not sign the recovery payload. Without recovery signing, firmware reports
+`Failed to verify kernel image signature`, and the flasher eventually reports
+`The recovery kernel did not expose the NVMe disk.`
+
+Pass NVIDIA's `--uefi-keys` option through `flash-ghaf-host` to sign the recovery
+payload at flash time. Prepare `uefi_keys.conf` with the matching signing material:
+
+```sh
+UEFI_DB_1_KEY_FILE="db.key"
+UEFI_DB_1_CERT_FILE="db.crt"
+UEFI_DEFAULT_PK_ESL="PK.esl"
+UEFI_DEFAULT_KEK_ESL_0="KEK.esl"
+UEFI_DEFAULT_DB_ESL_0="db.esl"
+```
+
+Keep these files in the same directory as the configuration. Generate the ESLs
+from the flasher's public enrollment certificates with `cert-to-efi-sig-list`,
+then run `tools/gen_uefi_keys_dts.sh` from the matching NVIDIA BSP on this
+configuration to generate `UefiDefaultSecurityKeys.dtbo` beside it. An existing
+overlay generated from the same certificates can also be used. Both the recovery
+and final image signing certificates must be trusted by the firmware's `db`.
+Keep private signing keys outside the Nix store.
+
+Build the NX image and flasher using the `nvidia-jetson-orin-nx-debug-from-x86_64`
+and `nvidia-jetson-orin-nx-debug-from-x86_64-flash-script` targets. After separately
+signing the image, put the identified NX into recovery mode and use its verified
+USB path:
+
+```sh
+nix build .#nvidia-jetson-orin-nx-debug-from-x86_64-flash-script -o orin-nx-flasher
+SIGNED_SD_IMAGE=/absolute/path/to/signed-nx-image-directory
+sudo ./orin-nx-flasher/bin/flash-ghaf-host --secure-boot \
+  -s "$SIGNED_SD_IMAGE" --usb-instance "$USB_INSTANCE" \
+  --uefi-keys /absolute/path/to/uefi_keys.conf
+```
+
+`SECURE_BOOT_SIGNING_KEY_DIR`, used by the A/B verity flow below, does not replace
+`--uefi-keys` for this standard NX recovery path.
 
 For CI jobs that still need a deterministic artifact directory (for example when reusing the same signed files across multiple runs), use the extractor helper provided by `jetpack-nixos` and point `ghaf.hardware.nvidia.orin.flashScriptOverrides.signedArtifactsPath` at the staged directory.
 ## Jetson Orin Secure Boot (A/B verity targets)
@@ -120,10 +180,10 @@ fully signed boot chain.
 
 ### Key material
 
-The repository contains two sets of keys:
+The relevant key directories are:
 
-- **`modules/secureboot/keys/`** — Production certificates generated from a
-  NetHSM. Contains only `.crt` and `.auth` files (public material).
+- **`modules/reference/org/secureboot-keys/`** — TII public enrollment material
+  used by the standard Orin targets. Contains no private signing keys.
 
 - **`modules/secureboot/dev-keys/`** — Self-signed development keys for testing.
   Contains both `.crt` (public) and `.key` (private) files. These keys are
@@ -132,17 +192,11 @@ The repository contains two sets of keys:
 
 ### Configuration
 
-Secure Boot is enabled by default for Orin targets via `jetson-orin.nix`:
-
-```nix
-ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkDefault true;
-```
-
-The Orin profile overrides the enrollment certificates to use dev keys:
-
-```nix
-ghaf.hardware.nvidia.orin.secureboot.keysSource = lib.mkDefault ../secureboot/dev-keys;
-```
+The `nvidia-jetson-orin-agx-verity-debug-from-x86_64` target explicitly enables
+Secure Boot and selects `modules/secureboot/dev-keys/` for enrollment and signing.
+These are target-specific settings, not defaults for all Orin images. Standard
+AGX and NX debug images use the signed-image workflow above; secure-update targets
+have their own externally supplied trust configuration.
 
 Available options:
 
@@ -213,15 +267,15 @@ After flashing and booting, verify Secure Boot is active:
 
 ```sh
 # Check UEFI variables
-efi-readvar
+sudo efi-readvar
 
 # Check boot status
-bootctl status | head -10
+sudo bootctl status
 # Should show: Secure Boot: enabled (user)
 
-# Check SetupMode is off (enforcing)
-hexdump -C /sys/firmware/efi/efivars/SetupMode-8be4df61-93ca-11d2-aa0d-00e098032b8c
-# Last byte should be 00 (not in setup mode)
+# Skip the four-byte efivarfs attribute header; expect 1, then 0.
+sudo od -An -j4 -N1 -tu1 /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c
+sudo od -An -j4 -N1 -tu1 /sys/firmware/efi/efivars/SetupMode-8be4df61-93ca-11d2-aa0d-00e098032b8c
 ```
 
 ### Generating new dev keys

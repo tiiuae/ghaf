@@ -7,6 +7,11 @@ SPDX-PackageSupplier = "Technology Innovation Institute <https://tii.ae>"
 SPDX-PackageDownloadLocation = "https://github.com/tiiuae/ghaf"
 
 [[annotations]]
+path = "overlays/linux-dax-empty-entry.patch"
+SPDX-FileCopyrightText = "2026 Seunguk Shin"
+SPDX-License-Identifier = "GPL-2.0-only"
+
+[[annotations]]
 SPDX-License-Identifier = "Apache-2.0"
 SPDX-FileCopyrightText = "2022-2026 TII (SSRC) and the Ghaf contributors"
 precedence = "closest"

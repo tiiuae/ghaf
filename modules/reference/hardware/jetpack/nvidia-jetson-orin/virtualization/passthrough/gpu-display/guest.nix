@@ -1,0 +1,164 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+{
+  bpmpHostPath,
+  crosvmOverlay,
+  dtb,
+  payload,
+  role,
+}:
+{
+  config,
+  inputs,
+  lib,
+  pkgs,
+  ...
+}:
+let
+  isCrosvm = config.microvm.hypervisor == "crosvm";
+  support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
+  displayCard = support.passthrough.displayCardPath;
+  hasCompositor = config.services.greetd.enable;
+  kmscube-wrapped =
+    pkgs.runCommand "kmscube-nomod" { nativeBuildInputs = [ pkgs.buildPackages.makeWrapper ]; }
+      ''
+        mkdir -p $out/bin
+        makeWrapper ${pkgs.kmscube}/bin/kmscube $out/bin/kmscube \
+          --set LD_PRELOAD ${support.gbmNoModifiersShim}/lib/gbm-nomod-shim.so
+      '';
+in
+{
+  imports = [ inputs.jetpack-nixos.nixosModules.orin-virtualization ];
+
+  hardware.nvidia-jetpack.virtualization.gpuPassthroughGuest = {
+    enable = true;
+    inherit role;
+  };
+
+  environment.systemPackages = [ kmscube-wrapped ];
+
+  systemd.services.kms-owner = lib.mkIf (payload.capabilities.display && !hasCompositor) {
+    description = "Hold DRM master on the nvdisplay card so the panel stays lit";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "systemd-udev-settle.service" ];
+    wants = [ "systemd-udev-settle.service" ];
+    serviceConfig = {
+      ExecStartPre = "${pkgs.bash}/bin/bash -c 'for i in $(seq 1 60); do [ -e ${displayCard} ] && exit 0; sleep 1; done; exit 1'";
+      ExecStart = "${pkgs.bash}/bin/bash -c '${pkgs.coreutils}/bin/sleep infinity | ${kmscube-wrapped}/bin/kmscube -D ${displayCard}'";
+      Restart = "always";
+      RestartSec = "2";
+    };
+  };
+
+  systemd.services.dce-rm-deinit = lib.mkIf payload.needsDceBridge {
+    before =
+      lib.optional (!hasCompositor) "kms-owner.service" ++ lib.optional hasCompositor "greetd.service";
+  };
+
+  systemd.services.ghaf-crosvm-poweroff = lib.mkIf isCrosvm {
+    description = "Power off the Orin Crosvm guest";
+    serviceConfig.Type = "oneshot";
+    script = ''
+      # GIVC retries must not replace an in-progress shutdown transaction.
+      ${lib.getExe' pkgs.systemd "systemctl"} start --no-block --job-mode=replace-irreversibly poweroff.target
+    '';
+  };
+  givc.sysvm = lib.mkMerge [
+    { capabilities.services = lib.optionals isCrosvm [ "ghaf-crosvm-poweroff.service" ]; }
+    (lib.mkIf (isCrosvm && !(payload.capabilities.gpu && payload.capabilities.display)) {
+      enable = true;
+      inherit (config.ghaf.givc) debug;
+      network = {
+        agent.transport = {
+          name = config.networking.hostName;
+          addr = config.ghaf.networking.hosts.${config.networking.hostName}.ipv4;
+          port = "9000";
+        };
+        tls.enable = config.ghaf.givc.enableTls;
+        admin.transport = lib.head config.ghaf.givc.adminConfig.addresses;
+      };
+    })
+  ];
+
+  services.udev.extraRules = lib.mkIf (role == "compute") ''
+    ENV{DEVNAME}=="/dev/nvgpu/igpu0/ctrl", TAG+="systemd"
+  '';
+
+  systemd.services.gpu-vm-node-access = lib.mkIf (role == "compute") {
+    description = "Grant video-group access to the passed-through GPU nodes";
+    wantedBy = [ "multi-user.target" ];
+    requires = [ "dev-nvgpu-igpu0-ctrl.device" ];
+    after = [ "dev-nvgpu-igpu0-ctrl.device" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      for node in /dev/nvgpu /dev/nvhost-* /dev/nvmap; do
+        [ -e "$node" ] || continue
+        chgrp -R video "$node"
+        chmod -R g+rw "$node"
+      done
+    '';
+  };
+
+  users.users.ghaf.extraGroups = lib.optionals (role == "compute") [ "video" ];
+
+  ghaf.virtualization.qemu.package = lib.mkIf (!isCrosvm) (
+    lib.mkForce pkgs.ghaf-nvidia-qemu-bpmp-gpu
+  );
+
+  assertions = lib.optionals isCrosvm [
+    {
+      assertion = map (device: device.path) payload.crosvmDevices == payload.hostDevices;
+      message = "Orin Crosvm GPU/display device order drifted from its allocation layout.";
+    }
+  ];
+
+  microvm = lib.mkMerge [
+    {
+      qemu.extraArgs = lib.mkIf (!isCrosvm) (
+        [
+          "-dtb"
+          "${dtb}/${payload.dtbName}"
+        ]
+        ++ payload.vfioArgs
+      );
+    }
+    (lib.mkIf isCrosvm {
+      devices = map (
+        {
+          path,
+          dtSymbol,
+          iommu,
+          mmioBase ? null,
+          mapEarly ? false,
+        }:
+        {
+          bus = "platform";
+          inherit path;
+          crosvm = {
+            inherit
+              dtSymbol
+              iommu
+              mmioBase
+              mapEarly
+              ;
+          };
+        }
+      ) payload.crosvmDevices;
+      crosvm = {
+        inherit (payload.crosvmLayout) memoryBase platformMmio;
+        deviceTreeOverlays = [ "${crosvmOverlay}/${crosvmOverlay.fileName}" ];
+        extraArgs = [
+          "--nvidia-bpmp-host"
+          bpmpHostPath
+        ]
+        ++ lib.optionals payload.needsDceBridge [
+          "--nvidia-dce-host"
+          "/dev/dce-host"
+        ];
+      };
+    })
+  ];
+}

@@ -9,7 +9,7 @@
 let
   cfg = config.ghaf.reference.profiles.mvp-orinuser-trial;
   hostGlobalConfig = config.ghaf.global-config;
-  acceleratedGuiVm = config.ghaf.hardware.nvidia.passthroughs.gui_vm.enable;
+  guiVmEnabled = config.ghaf.virtualization.microvm.guivm.enable;
 in
 {
   _file = ./mvp-orinuser-trial.nix;
@@ -22,12 +22,10 @@ in
     ghaf = {
       virtualization = {
         # Enable shared directories for the selected VMs
-        microvm-host.sharedVmDirectory.vms = [
-          "net-vm"
-        ];
+        microvm-host.sharedVmDirectory.vms = [ "net-vm" ] ++ lib.optional guiVmEnabled "flatpak-vm";
 
         microvm.appvm = {
-          enable = acceleratedGuiVm;
+          enable = guiVmEnabled;
           vms = {
           };
         };
@@ -74,9 +72,9 @@ in
       };
 
       reference = {
-        appvms.enable = acceleratedGuiVm;
-        appvms.chromium.enable = acceleratedGuiVm;
-        appvms.flatpak.enable = acceleratedGuiVm;
+        appvms.enable = guiVmEnabled;
+        appvms.chromium.enable = guiVmEnabled;
+        appvms.flatpak.enable = guiVmEnabled;
 
         services = {
           enable = true;
