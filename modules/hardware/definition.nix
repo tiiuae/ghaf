@@ -431,58 +431,17 @@ in
         };
       };
 
-      gpuvm = {
-        extraModules = mkOption {
-          description = ''
-            Hardware-specific NixOS modules for GPU VM configuration.
-
-            This option allows hardware definitions to provide VM-specific
-            configuration that will be merged with the base GPU VM config.
-
-            Use this ONLY for hardware-specific settings like:
-            - GPU device passthrough (vfio-platform, BPMP guest proxy)
-            - Guest kernel/kernel parameters required by the passthrough
-            - Custom qemu arguments (device tree, machine args)
-
-            For resource allocation (memory, vCPUs) or profile-specific modules,
-            use ghaf.virtualization.vmConfig.sysvms.gpuvm instead.
-          '';
-          type = types.listOf types.unspecified;
-          default = [ ];
-          example = literalExpression ''
-            [
-              ./gpu-config.nix
-              { microvm.qemu.extraArgs = [ ... ]; }
-            ]
-          '';
-        };
+      gpuvm.extraModules = mkOption {
+        description = "Hardware-specific GPU VM modules. Set resources in ghaf.virtualization.vmConfig.sysvms.gpuvm.";
+        type = types.listOf types.unspecified;
+        default = [ ];
       };
 
-      dispvm = {
-        extraModules = mkOption {
-          description = ''
-            Hardware-specific NixOS modules for Disp VM configuration.
-
-            This option allows hardware definitions to provide VM-specific
-            configuration that will be merged with the base Disp VM config.
-
-            Use this ONLY for hardware-specific settings like:
-            - Display device passthrough (vfio-platform, BPMP guest proxy)
-            - Guest kernel/kernel parameters required by the passthrough
-            - Custom qemu arguments (device tree, machine args)
-
-            For resource allocation (memory, vCPUs) or profile-specific modules,
-            use ghaf.virtualization.vmConfig.sysvms.dispvm instead.
-          '';
-          type = types.listOf types.unspecified;
-          default = [ ];
-          example = literalExpression ''
-            [
-              ./disp-config.nix
-              { microvm.qemu.extraArgs = [ ... ]; }
-            ]
-          '';
-        };
+      dispvm.extraModules = mkOption {
+        description = "Hardware-specific display VM modules. Set resources in ghaf.virtualization.vmConfig.sysvms.dispvm.";
+        type = types.listOf types.unspecified;
+        default = [ ];
       };
+
     };
 }

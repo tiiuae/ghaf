@@ -131,6 +131,19 @@
       inputs.self.nixosModules.hardware-aarch64-generic
     ];
 
+    jetpack-orin-gpu-partitioning.imports =
+      map
+        (
+          role:
+          import ./jetpack/nvidia-jetson-orin/virtualization/passthrough/gpu-display/role.nix {
+            inherit role;
+          }
+        )
+        [
+          "gpuvm"
+          "dispvm"
+        ];
+
     polarfire.imports = [ ./polarfire ];
 
   };
