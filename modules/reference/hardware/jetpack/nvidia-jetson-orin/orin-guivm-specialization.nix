@@ -11,6 +11,7 @@ let
   isCrosvm = config.microvm.hypervisor == "crosvm";
   virt-support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
   cosmicPreload = "${virt-support.gbmNoModifiersShim}/lib/gbm-nomod-shim.so";
+  waitForDisplay = pkgs.callPackage ../../../../desktop/graphics/cosmic/wait-for-display.nix { };
 in
 {
   _file = ./orin-guivm-specialization.nix;
@@ -98,6 +99,9 @@ in
     systemd.services.greetd.environment.COSMIC_EGL_RENDER_DEVICE = "renderD129";
     environment.sessionVariables.COSMIC_EGL_RENDER_DEVICE = "renderD129";
     systemd.services.greetd.environment.RUST_LOG = lib.mkForce "error";
+    # A headless Orin greeter exits and recreates its user bus on every restart.
+    services.greetd.settings.default_session.command =
+      lib.mkForce ''${lib.getExe waitForDisplay} /sys/class/drm ${lib.getExe' pkgs.coreutils "env"} XCURSOR_THEME="''${XCURSOR_THEME:-Pop}" ${lib.getExe' config.services.displayManager.cosmic-greeter.package "cosmic-greeter-start"}'';
     environment.sessionVariables.RUST_LOG = lib.mkForce "error";
 
     systemd.services.greetd.environment.COSMIC_POLL_DMABUF_FENCES = "1";
