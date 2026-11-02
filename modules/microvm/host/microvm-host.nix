@@ -375,7 +375,7 @@ in
         in
         [
           "d /persist/storagevm/shared 0755 root root"
-          "d /persist/storagevm/shared/shares 0760 ${loginUserUid} users"
+          "d /persist/storagevm/shared/shares 0750 ${loginUserUid} users"
         ]
         ++ vmDirs;
     })
