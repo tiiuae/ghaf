@@ -119,11 +119,6 @@ in
             BATTERY_GOLDFISH = lib.kernel.module;
           };
         }
-        {
-          name = "chromiumos-virtio-tpm";
-          patch = ../../../../microvm/sysvms/patches/chromiumos-virtio-tpm.patch;
-          structuredExtraConfig.TCG_VIRTIO_VTPM = lib.kernel.module;
-        }
       ];
     };
   };
