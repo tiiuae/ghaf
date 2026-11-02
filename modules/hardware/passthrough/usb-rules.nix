@@ -41,6 +41,7 @@ let
           description = "USB-C alternate modes supported by device";
         }
       ];
+      deny = cfg.guivmDeny;
     }
   ];
 
@@ -109,6 +110,12 @@ in
       description = "USB Device Passthrough Rules for GUIVM";
       type = types.listOf types.attrs;
       default = defaultGuivmUsbRules;
+    };
+
+    guivmDeny = mkOption {
+      description = "USB devices denied from GUIVM by platform-specific policy";
+      type = types.listOf types.attrs;
+      default = [ ];
     };
 
     netvmRules = mkOption {

@@ -1100,7 +1100,7 @@ in
     systemd.services.ghaf-provision-ek-certs = mkIf cfg.optee.ftpm.enable {
       description = "Provision fTPM EK certificates into standard NV indices";
       wantedBy = [ "multi-user.target" ];
-      wants = [ "tee-supplicant.service" ];
+      wants = [ "ftpm-driver.service" ];
       after = [
         "local-fs.target"
         "systemd-modules-load.service"

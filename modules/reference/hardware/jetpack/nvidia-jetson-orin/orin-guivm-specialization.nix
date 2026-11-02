@@ -3,9 +3,8 @@
 # AArch64 specialization of the generic gui-vm desktop.
 { lib, pkgs, ... }:
 let
-  # L4T EGL rejects modifier-backed GBM surfaces.
-  gbm-nomod-shim = pkgs.nvidia-jetpack.orinVirtualizationSupport.gbmNoModifiersShim;
-  cosmicPreload = "${gbm-nomod-shim}/lib/gbm-nomod-shim.so";
+  virt-support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
+  cosmicPreload = "${virt-support.gbmNoModifiersShim}/lib/gbm-nomod-shim.so";
 in
 {
   _file = ./orin-guivm-specialization.nix;
@@ -31,6 +30,9 @@ in
     ];
 
     microvm.vcpu = lib.mkForce 4;
+
+    # system76-power requires DMI identity, which Orin guests do not expose.
+    hardware.system76.power-daemon.enable = false;
 
     # gpu-screen-recorder is x86_64-only.
     ghaf.graphics.cosmic.screenRecorder.enable = lib.mkForce false;
