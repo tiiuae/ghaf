@@ -1,8 +1,14 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 # AArch64 specialization of the generic gui-vm desktop.
-{ lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
+  isCrosvm = config.microvm.hypervisor == "crosvm";
   virt-support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
   cosmicPreload = "${virt-support.gbmNoModifiersShim}/lib/gbm-nomod-shim.so";
 in
@@ -33,6 +39,51 @@ in
 
     # system76-power requires DMI identity, which Orin guests do not expose.
     hardware.system76.power-daemon.enable = false;
+
+    ghaf.services.power-manager = lib.mkIf isCrosvm {
+      enable = true;
+      suspend.enable = false;
+      gui = {
+        gpuSuspend = false;
+        fakeDisplaySuspend = false;
+      };
+    };
+
+    # Run the relay while networking and GIVC are still available during shutdown.
+    systemd.services.gui-shutdown-interceptor = lib.mkIf isCrosvm {
+      wantedBy = lib.mkForce [ "multi-user.target" ];
+      after = [
+        "network.target"
+        "givc-gui-vm.service"
+        "ghaf-crosvm-poweroff.service"
+      ];
+      unitConfig.DefaultDependencies = lib.mkForce true;
+      serviceConfig = {
+        ExecStart = lib.mkForce "${pkgs.coreutils}/bin/true";
+        RemainAfterExit = true;
+        TimeoutSec = lib.mkForce 20;
+        ExecStop = pkgs.writeShellScript "relay-orin-power-action" ''
+          [ ! -d /run/ghaf-crosvm-poweroff ] || exit 0
+          jobs=$(${pkgs.systemd}/bin/systemctl list-jobs --no-legend)
+          action=
+          case "$jobs" in
+            *reboot.target*start*) action=reboot ;;
+            *poweroff.target*start*) action=poweroff ;;
+            *) exit 0 ;;
+          esac
+          ${pkgs.coreutils}/bin/timeout 15 ${pkgs.givc-cli}/bin/givc-cli ${
+            lib.replaceStrings [ "/run" ] [ "/etc" ] config.ghaf.givc.cliArgs
+          } "$action"
+        '';
+      };
+    };
+    # systemd removes this marker if the host-requested shutdown service fails.
+    systemd.services.ghaf-crosvm-poweroff = lib.mkIf isCrosvm {
+      serviceConfig = {
+        RuntimeDirectory = "ghaf-crosvm-poweroff";
+        RemainAfterExit = true;
+      };
+    };
 
     # gpu-screen-recorder is x86_64-only.
     ghaf.graphics.cosmic.screenRecorder.enable = lib.mkForce false;
