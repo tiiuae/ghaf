@@ -1,0 +1,330 @@
+SPDX-FileCopyrightText: 2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: Apache-2.0
+
+Upstream: https://github.com/tiiuae/ghaf-crosvm/pull/20
+Status: pending; drop after merge and input update
+
+Subject: [PATCH] Handle ARM64 cache maintenance on read-only memory slots
+
+DAX executable mappings in recent kernels issue IC IVAU on the PMEM store.
+ARM reports this as a write-like NISV fault. Opt into NISV exits only for VMs registering read-only memory and skip
+only cache-maintenance operations inside registered read-only slots, keeping
+actual stores and unrelated faults as guest external aborts. Synchronize slot tracking with
+KVM registration and removal so vCPUs cannot observe stale permissions.
+
+diff --git a/hypervisor/src/kvm/aarch64.rs b/hypervisor/src/kvm/aarch64.rs
+index 272328978..04f6bc90b 100644
+--- a/hypervisor/src/kvm/aarch64.rs
++++ b/hypervisor/src/kvm/aarch64.rs
+@@ -281,7 +281,70 @@ impl VmAArch64 for KvmVm {
+     }
+ }
+
++impl KvmVm {
++    pub(crate) fn enable_readonly_cache_maintenance(&self) -> Result<()> {
++        if !self.check_raw_capability(KvmCap::ArmNisvToUser)
++            || !self.check_raw_capability(KvmCap::ArmInjectExtDabt)
++        {
++            return Err(Error::new(ENOTSUP));
++        }
++        // SAFETY: this VM capability has no pointer arguments.
++        unsafe { self.enable_raw_capability(KvmCap::ArmNisvToUser, 0, &[0; 4])? };
++        Ok(())
++    }
++}
++
++fn is_readonly_cache_maintenance(
++    esr_iss: u64,
++    fault_ipa: u64,
++    pstate: u64,
++    regions: impl Iterator<Item = (u64, u64)>,
++) -> bool {
++    const ESR_CM: u64 = 1 << 8;
++    const PSTATE_NRW: u64 = 1 << 4;
++    pstate & PSTATE_NRW == 0
++        && esr_iss & ESR_CM != 0
++        && regions
++            .into_iter()
++            .any(|(start, end)| start <= fault_ipa && fault_ipa < end)
++}
++
+ impl KvmVcpu {
++    pub(crate) fn handle_readonly_cache_maintenance(&self, run: &kvm_run) -> Result<VcpuExit> {
++        // SAFETY: the caller checked KVM_EXIT_ARM_NISV before reading this union member.
++        let fault = unsafe { run.__bindgen_anon_1.arm_nisv };
++        let regions = self.readonly_regions.lock();
++        if !is_readonly_cache_maintenance(
++            fault.esr_iss,
++            fault.fault_ipa,
++            self.get_one_reg(VcpuRegAArch64::Pstate)?,
++            regions.values().copied(),
++        ) {
++            let mut events = kvm_vcpu_events::new_zeroed();
++            // SAFETY: these ioctls use a valid vCPU fd and an ABI-sized events structure.
++            if unsafe { ioctl_with_mut_ref(self, KVM_GET_VCPU_EVENTS, &mut events) } != 0 {
++                return errno_result();
++            }
++            events.exception.ext_dabt_pending = 1;
++            // SAFETY: events preserves the kernel state read above and uses the ARM64 ABI.
++            if unsafe { ioctl_with_ref(self, KVM_SET_VCPU_EVENTS, &events) } != 0 {
++                return errno_result();
++            }
++            return Err(Error::new(libc::EAGAIN));
++        }
++
++        // DAX executable mappings invalidate the instruction cache. ARM reports this as a
++        // write fault on a read-only memslot, but there can be no guest-dirty data here.
++        // esr_iss excludes ESR.IL; the AArch64 PSTATE check above guarantees four bytes.
++        let pc = self.get_one_reg(VcpuRegAArch64::Pc)?;
++        self.set_one_reg(
++            VcpuRegAArch64::Pc,
++            pc.checked_add(4).ok_or(Error::new(EINVAL))?,
++        )?;
++        // The exit is fully handled; let the existing retry path re-enter KVM.
++        Err(Error::new(libc::EAGAIN))
++    }
++
+     /// Handles a `KVM_EXIT_SYSTEM_EVENT` with event type `KVM_SYSTEM_EVENT_RESET` with the given
+     /// event flags and returns the appropriate `VcpuExit` value for the run loop to handle.
+     ///
+@@ -1001,6 +1064,46 @@ pub(super) fn chip_to_kvm_chip(chip: IrqSourceChip) -> u32 {
+ mod tests {
+     use super::*;
+
++    #[test]
++    fn readonly_cache_maintenance_boundaries() {
++        let regions = [(0x1000, 0x2000)];
++        for address in [0x1000, 0x1fff] {
++            assert!(is_readonly_cache_maintenance(
++                0x147,
++                address,
++                0,
++                regions.into_iter()
++            ));
++        }
++        for address in [0xfff, 0x2000, u64::MAX] {
++            assert!(!is_readonly_cache_maintenance(
++                0x147,
++                address,
++                0,
++                regions.into_iter()
++            ));
++        }
++        assert!(!is_readonly_cache_maintenance(
++            0x147,
++            0x1000,
++            1 << 4,
++            regions.into_iter()
++        ));
++        // A normal store must receive an abort, even inside the read-only slot.
++        assert!(!is_readonly_cache_maintenance(
++            0x47,
++            0x1000,
++            0,
++            regions.into_iter()
++        ));
++        assert!(!is_readonly_cache_maintenance(
++            0x147,
++            0x1000,
++            0,
++            [].into_iter()
++        ));
++    }
++
+     #[test]
+     fn system_timer_register_mixup() {
+         // Per https://docs.kernel.org/virt/kvm/api.html ARM64 system register encoding docs,
+diff --git a/hypervisor/src/kvm/cap.rs b/hypervisor/src/kvm/cap.rs
+index a2afe122c..4db16d448 100644
+--- a/hypervisor/src/kvm/cap.rs
++++ b/hypervisor/src/kvm/cap.rs
+@@ -123,6 +123,8 @@ pub enum KvmCap {
+     ArmProtectedVm = KVM_CAP_ARM_PROTECTED_VM,
+     X86ProtectedVm = KVM_CAP_X86_PROTECTED_VM,
+     ArmMte = KVM_CAP_ARM_MTE,
++    ArmNisvToUser = KVM_CAP_ARM_NISV_TO_USER,
++    ArmInjectExtDabt = KVM_CAP_ARM_INJECT_EXT_DABT,
+     #[cfg(target_arch = "x86_64")]
+     BusLockDetect = KVM_CAP_X86_BUS_LOCK_EXIT,
+     // TODO(b/388092267): use upstream cap when available
+diff --git a/hypervisor/src/kvm/mod.rs b/hypervisor/src/kvm/mod.rs
+index 16a08755e..5ead5de0e 100644
+--- a/hypervisor/src/kvm/mod.rs
++++ b/hypervisor/src/kvm/mod.rs
+@@ -275,6 +275,8 @@ pub struct KvmVm {
+     vm: SafeDescriptor,
+     guest_mem: GuestMemory,
+     mem_regions: Mutex<BTreeMap<MemSlot, Box<dyn MappedRegion>>>,
++    #[cfg(target_arch = "aarch64")]
++    readonly_regions: Arc<Mutex<BTreeMap<MemSlot, (u64, u64)>>>,
+     /// A min heap of MemSlot numbers that were used and then removed and can now be re-used
+     mem_slot_gaps: Mutex<BinaryHeap<Reverse<MemSlot>>>,
+     caps: KvmVmCaps,
+@@ -305,6 +307,8 @@ impl KvmVm {
+             vm: vm_descriptor,
+             guest_mem,
+             mem_regions: Default::default(),
++            #[cfg(target_arch = "aarch64")]
++            readonly_regions: Default::default(),
+             mem_slot_gaps: Default::default(),
+             caps: Default::default(),
+             force_disable_readonly_mem: cfg.force_disable_readonly_mem,
+@@ -366,6 +370,8 @@ impl KvmVm {
+             id,
+             cap_kvmclock_ctrl: self.caps.kvmclock_ctrl,
+             run_mmap: Arc::new(run_mmap),
++            #[cfg(target_arch = "aarch64")]
++            readonly_regions: self.readonly_regions.clone(),
+         })
+     }
+
+@@ -684,6 +690,10 @@ impl Vm for KvmVm {
+         if self.guest_mem.range_overlap(guest_addr, end_addr) {
+             return Err(Error::new(ENOSPC));
+         }
++        #[cfg(target_arch = "aarch64")]
++        if read_only && !self.force_disable_readonly_mem {
++            self.enable_readonly_cache_maintenance()?;
++        }
+         let mut regions = self.mem_regions.lock();
+         let mut gaps = self.mem_slot_gaps.lock();
+         let slot = match gaps.pop() {
+@@ -691,6 +701,10 @@ impl Vm for KvmVm {
+             None => (regions.len() + self.guest_mem.num_regions() as usize) as MemSlot,
+         };
+
++        // Keep the vCPU's cache-maintenance view in sync with KVM's memslots.
++        #[cfg(target_arch = "aarch64")]
++        let mut readonly_regions = self.readonly_regions.lock();
++
+         // SAFETY:
+         // Safe because we check that the given guest address is valid and has no overlaps. We also
+         // know that the pointer and size are correct because the MemoryMapping interface ensures
+@@ -714,6 +728,10 @@ impl Vm for KvmVm {
+             return Err(e);
+         }
+         regions.insert(slot, mem);
++        #[cfg(target_arch = "aarch64")]
++        if read_only && !self.force_disable_readonly_mem {
++            readonly_regions.insert(slot, (guest_addr.offset(), end_addr.offset()));
++        }
+         Ok(slot)
+     }
+
+@@ -781,6 +799,8 @@ impl Vm for KvmVm {
+
+     fn remove_memory_region(&self, slot: MemSlot) -> Result<Box<dyn MappedRegion>> {
+         let mut regions = self.mem_regions.lock();
++        #[cfg(target_arch = "aarch64")]
++        let mut readonly_regions = self.readonly_regions.lock();
+         if !regions.contains_key(&slot) {
+             return Err(Error::new(ENOENT));
+         }
+@@ -799,6 +819,8 @@ impl Vm for KvmVm {
+             )?;
+         }
+         self.mem_slot_gaps.lock().push(Reverse(slot));
++        #[cfg(target_arch = "aarch64")]
++        readonly_regions.remove(&slot);
+         // This remove will always succeed because of the contains_key check above.
+         Ok(regions.remove(&slot).unwrap())
+     }
+@@ -960,6 +982,8 @@ pub struct KvmVcpu {
+     id: usize,
+     cap_kvmclock_ctrl: bool,
+     run_mmap: Arc<MemoryMapping>,
++    #[cfg(target_arch = "aarch64")]
++    readonly_regions: Arc<Mutex<BTreeMap<MemSlot, (u64, u64)>>>,
+ }
+
+ impl Vcpu for KvmVcpu {
+@@ -1040,6 +1064,10 @@ impl Vcpu for KvmVcpu {
+
+         // Check for architecture-specific VM exit reasons first in case the architecture wants to
+         // override the default handling.
++        #[cfg(target_arch = "aarch64")]
++        if run.exit_reason == KVM_EXIT_ARM_NISV {
++            return self.handle_readonly_cache_maintenance(run);
++        }
+         if let Some(vcpu_exit) = self.handle_vm_exit_arch(run) {
+             return Ok(vcpu_exit);
+         }
+diff --git a/hypervisor/tests/kvm/aarch64.rs b/hypervisor/tests/kvm/aarch64.rs
+index 3a2499c04..334e890ba 100644
+--- a/hypervisor/tests/kvm/aarch64.rs
++++ b/hypervisor/tests/kvm/aarch64.rs
+@@ -10,6 +10,61 @@ use hypervisor::*;
+ use vm_memory::GuestAddress;
+ use vm_memory::GuestMemory;
+
++#[test]
++fn readonly_cache_maintenance_and_data_abort() {
++    use base::MemoryMappingBuilder;
++
++    for (instruction, address, skip) in [
++        (0xd50b7522u32, 0x80020000, true),  // ic ivau, x2
++        (0xa9000440u32, 0x80020000, false), // stp x0, x1, [x2]
++        (0xa9000440u32, 0x80030000, false),
++    ] {
++        let kvm = Kvm::new().unwrap();
++        let gm = GuestMemory::new(&[(GuestAddress(0x80000000), 0x10000)]).unwrap();
++        gm.write_obj_at_addr(instruction, GuestAddress(0x80000000))
++            .unwrap();
++        for address in [0x80000004, 0x80000a00] {
++            gm.write_obj_at_addr(0xf9400060u32, GuestAddress(address))
++                .unwrap(); // ldr x0, [x3]
++        }
++        let vm = KvmVm::new(&kvm, gm, Default::default()).unwrap();
++        let slot = vm
++            .add_memory_region(
++                GuestAddress(0x80020000),
++                Box::new(MemoryMappingBuilder::new(0x1000).build().unwrap()),
++                true,
++                false,
++                MemCacheType::CacheCoherent,
++            )
++            .unwrap();
++        let vcpu = vm.create_vcpu(0).unwrap();
++        vcpu.init(&[]).unwrap();
++        vcpu.set_one_reg(VcpuRegAArch64::Pc, 0x80000000).unwrap();
++        vcpu.set_one_reg(VcpuRegAArch64::Pstate, 0x3c5).unwrap();
++        vcpu.set_one_reg(VcpuRegAArch64::X(2), address).unwrap();
++        vcpu.set_one_reg(VcpuRegAArch64::X(3), 0x90000000).unwrap();
++        vcpu.set_one_reg(
++            VcpuRegAArch64::System(aarch64_sys_reg::VBAR_EL1),
++            0x80000800,
++        )
++        .unwrap();
++        assert_eq!(vcpu.run().unwrap_err().errno(), libc::EAGAIN);
++        if skip {
++            assert_eq!(vcpu.get_one_reg(VcpuRegAArch64::Pc).unwrap(), 0x80000004);
++        }
++        // Pending exception state is applied on the next KVM_RUN.
++        assert!(matches!(vcpu.run().unwrap(), VcpuExit::Mmio));
++        if !skip {
++            assert_eq!(vcpu.get_one_reg(VcpuRegAArch64::Pc).unwrap(), 0x80000a00);
++            let esr = vcpu
++                .get_one_reg(VcpuRegAArch64::System(aarch64_sys_reg::ESR_EL1))
++                .unwrap();
++            assert_eq!(esr & 0x3f, 0x10); // Synchronous external abort.
++        }
++        vm.remove_memory_region(slot).unwrap();
++    }
++}
++
+ #[test]
+ fn set_gsi_routing() {
+     let kvm = Kvm::new().unwrap();
+diff --git a/kvm_sys/src/lib.rs b/kvm_sys/src/lib.rs
+index 65a359fce..fa9ef859d 100644
+--- a/kvm_sys/src/lib.rs
++++ b/kvm_sys/src/lib.rs
+@@ -70,6 +70,8 @@ pub mod aarch64 {
+     use base::ioctl_iow_nr;
+     use base::ioctl_iowr_nr;
+     pub use bindings::*;
++    ioctl_ior_nr!(KVM_GET_VCPU_EVENTS, KVMIO, 0x9f, kvm_vcpu_events);
++    ioctl_iow_nr!(KVM_SET_VCPU_EVENTS, KVMIO, 0xa0, kvm_vcpu_events);
+
+     ioctl_iow_nr!(KVM_ARM_SET_DEVICE_ADDR, KVMIO, 0xab, kvm_arm_device_addr);
+     ioctl_iow_nr!(KVM_ARM_VCPU_INIT, KVMIO, 0xae, kvm_vcpu_init);
