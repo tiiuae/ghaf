@@ -12,6 +12,10 @@
 #
 # This module provides the barrier such consumers order themselves after, and the
 # internal time source that makes the barrier reachable without direct internet.
+#
+# A fleet with no reachable upstream at all is served by ghaf.time.server
+# .operatorClock, which is deliberately a runtime vouch rather than a setting:
+# see the comment on that option.
 {
   config,
   lib,
@@ -27,6 +31,37 @@ let
     optionalString
     types
     ;
+
+  # Survives a reboot only where the RTC does; see server.operatorClock.persist.
+  vouchMarker = "/var/lib/ghaf-time/operator-vouched";
+
+  # The vouch, as a command rather than a setting: a build cannot attest to a
+  # clock. With no argument it serves the clock as it stands, which is the boot
+  # path on hardware whose RTC held the operator's last value.
+  setOperatorClock = pkgs.writeShellApplication {
+    name = "ghaf-set-operator-clock";
+    runtimeInputs = [
+      pkgs.coreutils
+      config.services.chrony.package
+    ];
+    text = ''
+      # usage: ghaf-set-operator-clock [<date -s argument>]
+      if [ "$#" -gt 0 ]; then
+        date -s "$1" >/dev/null
+      fi
+
+      # `local` only now, and never from chrony.conf: between chronyd starting
+      # and this running, the machine must not answer a client with a clock
+      # nobody has vouched for.
+      chronyc -m "local stratum ${toString cfg.server.operatorClock.stratum}" >/dev/null
+      ${lib.optionalString cfg.server.operatorClock.persist ''
+        mkdir -p "$(dirname ${lib.escapeShellArg vouchMarker})"
+        : > ${lib.escapeShellArg vouchMarker}
+      ''}
+      echo "serving the operator's clock at stratum ${toString cfg.server.operatorClock.stratum}:" \
+           "$(date -u -Is)"
+    '';
+  };
 in
 {
   _file = ./default.nix;
@@ -94,6 +129,52 @@ in
     server = {
       enable = mkEnableOption "serving time to the internal network from this machine";
 
+      # Serving a clock no upstream ever confirmed is the one thing this module
+      # refuses by default, so the escape hatch is a runtime act, not a setting.
+      operatorClock = {
+        enable = mkEnableOption ''
+          serving a clock an operator set by hand, for a fleet whose upstream is
+          never reachable.
+
+          chronyd still starts with no `local` reference: until an operator
+          vouches for the clock by running `ghaf-set-operator-clock`, this
+          machine has no source, answers no client, and the barrier holds
+          exactly as it does today. The vouch is the whole difference between
+          "this clock is wrong and nobody has said otherwise" and "a human is
+          accountable for it", and it is why this is safe where a static
+          `local stratum N` is not.
+
+          A reachable upstream still wins, so this is a fallback rather than a
+          replacement for one.
+        '';
+
+        stratum = mkOption {
+          type = types.int;
+          default = 10;
+          description = ''
+            Stratum to report once an operator has vouched. The default is far
+            enough down that any real upstream appearing later takes over.
+          '';
+        };
+
+        persist = mkOption {
+          type = types.bool;
+          default = !cfg.requireSync;
+          defaultText = lib.literalExpression "!config.ghaf.time.requireSync";
+          description = ''
+            Whether a vouch survives a reboot.
+
+            It may only where the hardware keeps time across a power cycle, so
+            this follows the same battery-backed-RTC proxy as `requireSync`: a
+            board without a cell boots at the fallback epoch, and re-serving a
+            vouch there would publish that epoch to the fleet -- the precise
+            failure the barrier exists to catch. Where the RTC is trustworthy
+            the operator's time is still on it after a reboot, so re-serving it
+            is honest and saves asking them again.
+          '';
+        };
+      };
+
       allowedNetworks = mkOption {
         type = types.listOf types.str;
         default = [ "192.168.100.0/24" ];
@@ -108,6 +189,15 @@ in
       # upstream instead. systemd-timesyncd is a client only and cannot answer
       # queries, so the server side runs chrony.
       {
+        # Not in the server branch below: there the implication is already
+        # satisfied, so the assertion could never fail.
+        assertions = [
+          {
+            assertion = cfg.server.operatorClock.enable -> cfg.server.enable;
+            message = "ghaf.time.server.operatorClock serves the fleet from the machine that runs chrony, so it needs ghaf.time.server.enable on the same host.";
+          }
+        ];
+
         systemd.services.ghaf-wait-time-sync = {
           description = "Wait for the system clock to be synchronised";
           wantedBy = [ "ghaf-clock-synced.target" ];
@@ -230,14 +320,22 @@ in
         #
         # rtcfile is persisted for the same reason: it is what lets chronyd
         # correct the RTC at shutdown and trust it at the next boot.
-        ghaf.storagevm.directories = lib.mkIf config.ghaf.storagevm.enable [
-          {
-            directory = "/var/lib/chrony";
-            user = "chrony";
-            group = "chrony";
-            mode = "0750";
+        ghaf.storagevm.directories = lib.mkIf config.ghaf.storagevm.enable (
+          [
+            {
+              directory = "/var/lib/chrony";
+              user = "chrony";
+              group = "chrony";
+              mode = "0750";
+            }
+          ]
+          ++ lib.optional (cfg.server.operatorClock.enable && cfg.server.operatorClock.persist) {
+            directory = dirOf vouchMarker;
+            mode = "0755";
           }
-        ];
+        );
+
+        environment.systemPackages = lib.mkIf cfg.server.operatorClock.enable [ setOperatorClock ];
 
         services.timesyncd.enable = false;
         services.chrony = {
@@ -246,18 +344,6 @@ in
           extraConfig = ''
             ${lib.concatMapStringsSep "\n" (net: "allow ${net}") cfg.server.allowedNetworks}
 
-            # Deliberately no `local stratum N` fallback. It would make chronyd
-            # serve this machine's own clock as authoritative when upstream is
-            # unreachable -- which, on a device with no RTC cell, is the boot-time
-            # fallback epoch. Clients would sync to it, report NTPSynchronized=yes
-            # against a wrong time, and sail straight through the barrier: exactly
-            # the failure this module exists to prevent, only now fleet-wide and
-            # harder to spot. With no upstream the honest outcome is that nothing
-            # synchronises and the barrier holds; ghaf.time.requireSync = false is
-            # the deliberate escape hatch for a device with no time source.
-
-            # The uplink may appear well after chronyd starts, and the first
-            # correction out of the fallback epoch is far too large for slewing.
             makestep 1.0 -1
           '';
         };
@@ -303,6 +389,23 @@ in
             '';
           }
         ];
+      })
+
+      # Its own mkMerge element
+      (mkIf (cfg.server.enable && cfg.server.operatorClock.enable && cfg.server.operatorClock.persist) {
+        systemd.services.ghaf-restore-operator-clock = {
+          description = "Serve the operator's vouched clock again after a reboot";
+          wantedBy = [ "ghaf-clock-synced.target" ];
+          before = [ "ghaf-wait-time-sync.service" ];
+          after = [ "chronyd.service" ];
+          requires = [ "chronyd.service" ];
+          unitConfig.ConditionPathExists = vouchMarker;
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            ExecStart = lib.getExe setOperatorClock;
+          };
+        };
       })
     ]
   );
