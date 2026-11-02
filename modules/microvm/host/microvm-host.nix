@@ -370,7 +370,7 @@ in
       systemd.tmpfiles.rules =
         let
           vmDirs = map (
-            n: "d /persist/storagevm/shared/shares/Unsafe\\x20${n}\\x20share/ 0760 ${loginUserUid} users"
+            n: "d /persist/storagevm/shared/shares/Unsafe\\x20${n}\\x20share/ 0770 ${loginUserUid} users"
           ) cfg.sharedVmDirectory.vms;
         in
         [

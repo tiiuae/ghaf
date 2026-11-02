@@ -330,7 +330,7 @@ in
           enable = true;
           networkSupport = true;
           sharedVmDirectory = {
-            enable = false;
+            enable = config.ghaf.virtualization.microvm.guivm.enable;
           };
         };
 
