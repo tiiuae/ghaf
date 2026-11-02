@@ -2,27 +2,44 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Flake module for exporting overlays
-{ inputs, ... }: {
+{
+  inputs,
+  ...
+}:
+let
+  crosvmPkg = _final: prev: {
+    crosvm = prev.crosvm.overrideAttrs (old: {
+      src = inputs.ghaf-crosvm;
+      patches = prev.lib.unique (
+        (old.patches or [ ])
+        # TODO: drop after https://github.com/tiiuae/ghaf-crosvm/pull/20 merges and the input is bumped.
+        ++ prev.lib.optionals prev.stdenv.hostPlatform.isAarch64 [
+          ./crosvm-pmem-ext2-low-address.patch
+          ./crosvm-dce-defer-thread.patch
+          ./crosvm-arm64-readonly-cache-maintenance.patch
+        ]
+      );
+      cargoDeps = prev.rustPlatform.fetchCargoVendor {
+        src = inputs.ghaf-crosvm;
+        hash = "sha256-lU30pTzJ1hYyHcpFKemZou9d2ZqSlFu4JC+IUe2Gm5A=";
+      };
+      cargoBuildFeatures = (old.cargoBuildFeatures or (old.buildFeatures or [ ])) ++ [
+        "pci-hotplug"
+        "power-monitor-sysfs"
+        "vtpm"
+      ];
+      buildInputs = (old.buildInputs or [ ]) ++ [ prev.dbus ];
+    });
+  };
+in
+{
   flake.overlays = {
     cross-compilation = import ./cross-compilation;
     custom-packages = import ./custom-packages;
+    crosvm-ghaf = crosvmPkg;
     crosvm =
-      _final: prev:
-      inputs.nixpkgs.lib.optionalAttrs prev.stdenv.hostPlatform.isx86_64 {
-        crosvm = prev.crosvm.overrideAttrs (old: {
-          src = inputs.ghaf-crosvm;
-          cargoDeps = prev.rustPlatform.fetchCargoVendor {
-            src = inputs.ghaf-crosvm;
-            hash = "sha256-lU30pTzJ1hYyHcpFKemZou9d2ZqSlFu4JC+IUe2Gm5A=";
-          };
-          cargoBuildFeatures = (old.cargoBuildFeatures or (old.buildFeatures or [ ])) ++ [
-            "pci-hotplug"
-            "power-monitor-sysfs"
-            "vtpm"
-          ];
-          buildInputs = (old.buildInputs or [ ]) ++ [ prev.dbus ];
-        });
-      };
+      final: prev:
+      inputs.nixpkgs.lib.optionalAttrs prev.stdenv.hostPlatform.isx86_64 (crosvmPkg final prev);
 
     ghaf-device-manager =
       _final: prev:

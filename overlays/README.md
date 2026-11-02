@@ -46,6 +46,15 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
 
 ## Backports carried in overlays
 
+- [Orin Crosvm runtime fixes](https://github.com/tiiuae/ghaf-crosvm/pull/20) (open)
+
+  `crosvm-pmem-ext2-low-address.patch` keeps the store within the ARM64 linear
+  mapping range. `crosvm-dce-defer-thread.patch` starts the DCE relay after device
+  processes are created. `crosvm-arm64-readonly-cache-maintenance.patch` handles
+  read-only cache maintenance and injects guest aborts for other NISV faults.
+  These patches apply only to AArch64. Remove each when its corresponding commit
+  is merged and included in the `ghaf-crosvm` input.
+
 - [execline: prepend target triple to pkg-config calls when cross](https://github.com/NixOS/nixpkgs/pull/560025)
 
   `overlays/cross-compilation/default.nix` adds `buildPackages.pkg-config` to
@@ -57,6 +66,10 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
 
 A rev pin freezes *every* change in that input, not just the one being carried, so it must be
 repointed at the branch head as soon as the PR merges.
+
+- [microvm.nix Crosvm platform support](https://github.com/microvm-nix/microvm.nix/pull/586)
+  is pinned to a fixed revision in the input URL. Restore the upstream input after
+  the PR merges and includes the read-only DAX share validation.
 
 ## carried in tiiuae/nixpkgs/...
 
