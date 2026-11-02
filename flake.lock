@@ -808,16 +808,17 @@
         "spectrum": "spectrum"
       },
       "locked": {
-        "lastModified": 1793281488,
-        "narHash": "sha256-ErGIqtoWEX9KKC8NFtJDx2pGGG02Cr6LGxrvzLd2sqA=",
-        "owner": "microvm-nix",
+        "lastModified": 1794384819,
+        "narHash": "sha256-ZPwyBSit4bjEVdNyJWE2ngJ/EOd7vJOLZUjqHl6mCGM=",
+        "owner": "vadika",
         "repo": "microvm.nix",
-        "rev": "b7bd556974fa8a171b5b639200e81d52244dfde4",
+        "rev": "22347b5f6f01bd20ec111a178f99b44f43adbc7e",
         "type": "github"
       },
       "original": {
-        "owner": "microvm-nix",
+        "owner": "vadika",
         "repo": "microvm.nix",
+        "rev": "22347b5f6f01bd20ec111a178f99b44f43adbc7e",
         "type": "github"
       }
     },
