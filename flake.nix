@@ -166,8 +166,7 @@
     # Nvidia Orin support for NixOS
     jetpack-nixos = {
       #url = "github:anduril/jetpack-nixos";
-      # TODO: restore second-october-rebase after https://github.com/tiiuae/jetpack-nixos/pull/22 merges.
-      url = "github:tiiuae/jetpack-nixos/feat/orin-proxy-lifecycle";
+      url = "github:tiiuae/jetpack-nixos/second-october-rebase";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
