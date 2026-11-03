@@ -35,7 +35,8 @@ let
   inherit (config.ghaf.hardware.nvidia.orin.diskEncryption) luksUuid;
 
   cryptsetup =
-    (pkgs.callPackage "${toString pkgs.path}/pkgs/by-name/cr/cryptsetup/package.nix" { }).overrideAttrs
+    (pkgs.buildPackages.callPackage "${toString pkgs.path}/pkgs/by-name/cr/cryptsetup/package.nix" { })
+    .overrideAttrs
       (oldAttrs: {
         # /run/cryptsetup (the upstream default) is not writable inside the
         # image build, and /build only exists on sandboxed-to-/build builders.
