@@ -23,6 +23,7 @@ let
   inherit (config.networking) hostName;
   inherit (config.ghaf.common.extraNetworking) enableStaticArp;
   hasNetvm = lib.hasAttr "net-vm" config.microvm.vms;
+  dhcpServer = !hasNetvm && !enableStaticArp;
   hasVms = config.microvm.vms != { };
 in
 {
@@ -59,8 +60,6 @@ in
         blacklistedKernelModules = [ "br_netfilter" ];
 
         kernel.sysctl = {
-          # ip forwarding functionality is needed for iptables
-          "net.ipv4.ip_forward" = 1;
           # reply only if the target IP address is local address configured on the incoming interface
           "net.ipv4.conf.all.arp_ignore" = 1;
         };
@@ -175,7 +174,7 @@ in
         allowedTCPPorts = optionals (
           config.ghaf.security.ssh.debug.enable || config.ghaf.security.ssh.release.enable
         ) [ 22 ];
-        allowedUDPPorts = optionals (!hasNetvm) [ 67 ];
+        allowedUDPPorts = optionals dhcpServer [ 67 ];
       };
 
       boot.kernel.sysctl = optionalAttrs enableStaticArp {
@@ -198,7 +197,7 @@ in
           gateway = optionals hasNetvm [ "${hosts."net-vm".ipv4}" ];
           networkConfig = {
             DHCP = hasNetvm && !enableStaticArp;
-            DHCPServer = !hasNetvm && !enableStaticArp;
+            DHCPServer = dhcpServer;
           };
           extraConfig = lib.concatStringsSep "\n" (
             mapAttrsToList (_: entry: ''
