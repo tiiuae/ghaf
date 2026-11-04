@@ -238,7 +238,6 @@ in
       # Enable dm-verity and compress initrd
       initrd = {
         systemd = {
-          enable = true;
           dmVerity.enable = true;
           ghaf-store-veritysetup-generator.enable = true;
         };

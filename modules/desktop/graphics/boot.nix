@@ -160,7 +160,6 @@ in
             ]
         );
         consoleLogLevel = mkDefault 0;
-        initrd.verbose = false;
       };
       systemd.services.plymouth-quit = {
         after = mkIf (cfg.waitForService != null && cfg.waitForService != "") [ cfg.waitForService ];

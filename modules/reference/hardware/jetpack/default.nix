@@ -19,6 +19,8 @@
   # setuptools (see overlays/jetpack-python/default.nix).
   nixpkgs.overlays = [
     self.overlays.jetpack-python
+    self.overlays.jetpack-nvdisplay
+    self.overlays.jetpack-uefi
   ];
 
   # NVIDIA's L4T udev rules give the GPU debug/profiling nodes to a "debug" group

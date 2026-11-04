@@ -213,7 +213,11 @@ in
             '';
           };
 
-      alloy.enable = true;
+      alloy = {
+        enable = true;
+        # alloy only accepts the loki.write WAL block at experimental stability.
+        extraFlags = [ "--stability.level=experimental" ];
+      };
     };
 
     environment.etc = {
