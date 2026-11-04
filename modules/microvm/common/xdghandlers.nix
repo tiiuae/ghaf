@@ -60,6 +60,7 @@ let
   xdgOpenImage = mkXdgFileOpener {
     name = "xdg-open-image";
     inherit (cfg.image) package;
+    serviceType = "forking";
     env.RUST_LOG = "error";
   };
 
@@ -129,7 +130,7 @@ in
     };
     image = {
       enable = lib.mkEnableOption "XDG Image Handler";
-      package = lib.mkPackageOption pkgs "oculante" { } // {
+      package = lib.mkPackageOption pkgs "cosmic-viewer" { } // {
         readOnly = true;
       };
     };

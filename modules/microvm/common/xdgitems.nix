@@ -20,38 +20,27 @@ let
     optionalAttrs
     optionals
     ;
-  # Taken from supported MIME types by Oculante
-  # Ref.: https://github.com/woelper/oculante/blob/master/res/oculante.desktop
+  # Taken from supported MIME types by COSMIC Viewer
+  # Ref.: https://github.com/pop-os/cosmic-viewer/blob/master/res/com.system76.CosmicViewer.desktop
   supportedImageMimeTypes = [
-    "image/bmp"
-    "image/gif"
-    "image/vnd.microsoft.icon"
     "image/jpeg"
-    "image/jp2"
     "image/png"
-    "image/pnm"
-    "image/x-tga"
-    "image/jxl"
-    "image/avif"
-    "image/tiff"
+    "image/gif"
     "image/webp"
-    "image/octet-stream"
-    "image/svg+xml"
-    "image/exr"
-    "image/x-exr"
-    "image/x-dcraw"
-    "image/x-nikon-nef"
-    "image/x-canon-cr2"
-    "image/x-adobe-dng"
-    "image/x-epson-erf"
-    "image/x-fuji-raf"
-    "image/x-sony-arw"
-    "image/x-sony-srf"
-    "image/x-sony-sr2"
-    "image/x-panasonic-raw"
-    "image/x-portable-pixmap"
+    "image/bmp"
+    "image/tiff"
+    "image/x-icon"
+    "image/avif"
+    "image/heif"
     "image/heic"
+    "image/jxl"
+    "image/svg+xml"
+    "image/x-portable-pixmap"
+    "image/x-portable-graymap"
+    "image/x-portable-bitmap"
+    "image/x-portable-anymap"
     "image/x-qoi"
+    "image/vnd.radiance"
   ];
 
   # Taken from supported MIME types by COSMIC Player
