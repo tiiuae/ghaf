@@ -52,11 +52,20 @@
       inputs.ghafpkgs.overlays.default
       inputs.ctrl-panel.overlays.default
       inputs.givc.overlays.default
-      (_final: prev: {
-        ota-update = prev.ota-update.overrideAttrs (old: {
-          patches = (old.patches or [ ]) ++ [ ./ota-update-require-esp.patch ];
-        });
-      })
+      (
+        _final: prev:
+        let
+          patchUpdater =
+            package:
+            package.overrideAttrs (old: {
+              patches = (old.patches or [ ]) ++ [ ./ota-update-require-esp.patch ];
+            });
+        in
+        {
+          ota-update = patchUpdater prev.ota-update;
+          ota-update-debug = patchUpdater prev.ota-update-debug;
+        }
+      )
       inputs.gp-gui.overlays.default
       inputs.wireguard-gui.overlays.default
       inputs.vhotplug.overlays.default
