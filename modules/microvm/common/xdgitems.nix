@@ -83,6 +83,7 @@ let
     "video/divx"
     "video/fli"
     "video/flv"
+    "video/matroska"
     "video/mp2t"
     "video/mp4"
     "video/mp4v-es"

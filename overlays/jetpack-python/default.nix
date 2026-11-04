@@ -21,5 +21,6 @@
   pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
     (import ./setuptools-pkg-resources)
     (import ./threadpoolctl-no-check)
+    (import ./typer-file-error)
   ];
 })

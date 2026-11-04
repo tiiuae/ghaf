@@ -30,6 +30,19 @@
     );
   });
 
+  # TODO: drop once nixpkgs applies libgomp/uid-buffer-size.patch to the non-ng gcc build.
+  gcc16 =
+    if final.stdenv.buildPlatform == final.stdenv.hostPlatform then
+      prev.gcc16
+    else
+      prev.gcc16.override {
+        cc = prev.gcc16.cc.overrideAttrs (oldAttrs: {
+          patches = (oldAttrs.patches or [ ]) ++ [
+            "${final.path}/pkgs/development/compilers/gcc/ng/16/libgomp/uid-buffer-size.patch"
+          ];
+        });
+      };
+
   packagekit = prev.packagekit.overrideAttrs (oldAttrs: {
     nativeBuildInputs = (oldAttrs.nativeBuildInputs or [ ]) ++ [ final.buildPackages.python3 ];
   });
