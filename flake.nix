@@ -204,6 +204,8 @@
     # Packages managment similar to nixpkgs, applied to flake parts
     pkgs-by-name-for-flake-parts.url = "github:drupol/pkgs-by-name-for-flake-parts";
 
+    import-tree.url = "github:denful/import-tree";
+
     # For preserving data across NixOS rebuilds
     preservation = {
       url = "github:nix-community/preservation";
@@ -304,13 +306,7 @@
         ];
 
         imports = [
-          ./overlays/flake-module.nix
-          ./lib/builders/flake-module.nix
-          ./modules/flake-module.nix
-          ./nix/flake-module.nix
-          ./packages/flake-module.nix
-          ./targets/flake-module.nix
-          ./tests/flake-module.nix
+          (inputs.import-tree.filter (extendedLib.hasSuffix "flake-module.nix") ./.)
         ];
 
         # Export the extended lib for explicit use
