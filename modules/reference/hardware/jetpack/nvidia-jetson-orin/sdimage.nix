@@ -286,7 +286,9 @@ in
             rm -f "$GHAF_LUKS_PASSPHRASE_FILE"
           ''}
         '';
-        postBuildCommands = ''
+        postBuildCommands = lib.optionalString (config.hardware.nvidia-jetpack.som == "orin-nx") ''
+          cp -r ${pkgs.nvidia-jetpack.nvmeFlashRecoveryInputs} $out/recovery
+        '' + ''
           fdisk_output=$(fdisk -l "$img")
 
           # Offsets and sizes are in 512 byte sectors
