@@ -286,29 +286,31 @@ in
             rm -f "$GHAF_LUKS_PASSPHRASE_FILE"
           ''}
         '';
-        postBuildCommands = lib.optionalString (config.hardware.nvidia-jetpack.som == "orin-nx") ''
-          cp -r ${pkgs.nvidia-jetpack.nvmeFlashRecoveryInputs} $out/recovery
-        '' + ''
-          fdisk_output=$(fdisk -l "$img")
+        postBuildCommands =
+          lib.optionalString (config.hardware.nvidia-jetpack.som == "orin-nx") ''
+            cp -r ${pkgs.nvidia-jetpack.nvmeFlashRecoveryInputs} $out/recovery
+          ''
+          + ''
+            fdisk_output=$(fdisk -l "$img")
 
-          # Offsets and sizes are in 512 byte sectors
-          blocksize=512
+            # Offsets and sizes are in 512 byte sectors
+            blocksize=512
 
-          # ESP partition offset and sector count
-          part_esp=$(echo -n "$fdisk_output" | tail -n 2 | head -n 1 | tr -s ' ')
-          part_esp_begin=$(echo -n "$part_esp" | cut -d ' ' -f2)
-          part_esp_count=$(echo -n "$part_esp" | cut -d ' ' -f4)
+            # ESP partition offset and sector count
+            part_esp=$(echo -n "$fdisk_output" | tail -n 2 | head -n 1 | tr -s ' ')
+            part_esp_begin=$(echo -n "$part_esp" | cut -d ' ' -f2)
+            part_esp_count=$(echo -n "$part_esp" | cut -d ' ' -f4)
 
-          # root-partition offset and sector count
-          part_root=$(echo -n "$fdisk_output" | tail -n 1 | head -n 1 | tr -s ' ')
-          part_root_begin=$(echo -n "$part_root" | cut -d ' ' -f3)
-          part_root_count=$(echo -n "$part_root" | cut -d ' ' -f4)
+            # root-partition offset and sector count
+            part_root=$(echo -n "$fdisk_output" | tail -n 1 | head -n 1 | tr -s ' ')
+            part_root_begin=$(echo -n "$part_root" | cut -d ' ' -f3)
+            part_root_count=$(echo -n "$part_root" | cut -d ' ' -f4)
 
-          echo -n $part_esp_begin > $out/esp.offset
-          echo -n $part_esp_count > $out/esp.size
-          echo -n $part_root_begin > $out/root.offset
-          echo -n $part_root_count > $out/root.size
-        '';
+            echo -n $part_esp_begin > $out/esp.offset
+            echo -n $part_esp_count > $out/esp.size
+            echo -n $part_root_begin > $out/root.offset
+            echo -n $part_root_count > $out/root.size
+          '';
       };
 
     #TODO: should we use the default
