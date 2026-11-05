@@ -16,6 +16,7 @@ let
     ;
   cfg = config.ghaf.logging.journalServer;
   retention = config.ghaf.logging.journalRetention;
+  maxFileSize = if config.ghaf.logging.server.startupLogImport.enable then "16M" else "100M";
   givcEnabled = config.ghaf.givc.enable;
   givcHostEnabled = config.ghaf.givc.host.enable;
   needsGivcMount = givcEnabled && !givcHostEnabled;
@@ -33,7 +34,13 @@ let
         ${lib.escapeShellArgs (
           lib.optionals retention.enable [
             "--max-use=${retention.maxDiskUsage}"
-            "--max-file-size=100M"
+            "--max-file-size=${maxFileSize}"
+          ]
+          ++ lib.optionals (retention.enable && config.ghaf.logging.server.startupLogImport.enable) [
+            "--max-files=625"
+          ]
+          # Receiver file ages use sender timestamps, which may precede clock sync.
+          ++ lib.optionals (retention.enable && !config.ghaf.logging.server.startupLogImport.enable) [
             "--max-retention=${retention.maxRetention}"
             "--max-file-age=${retention.MaxFileSec}"
           ]
