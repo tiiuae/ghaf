@@ -117,8 +117,16 @@ does not sign the recovery payload. Without recovery signing, firmware reports
 `Failed to verify kernel image signature`, and the flasher eventually reports
 `The recovery kernel did not expose the NVMe disk.`
 
-Pass NVIDIA's `--uefi-keys` option through `flash-ghaf-host` to sign the recovery
-payload at flash time. Prepare `uefi_keys.conf` with the matching signing material:
+NX image results include `recovery/Image`, `recovery/initrd`, and
+`recovery/cmdline` for offline signing. Place the signed recovery boot image at
+`recovery/boot.img` in the signed image directory, with its UUID in
+`recovery/flash-id`. The recovery boot image's kernel command line must include
+the matching `flash-id=<UUID>`. The flasher uses this bundle without requiring
+private UEFI signing keys on the flashing host.
+
+Without an offline recovery bundle, pass NVIDIA's `--uefi-keys` option through
+`flash-ghaf-host` to sign the recovery payload at flash time. Prepare
+`uefi_keys.conf` with the matching signing material:
 
 ```sh
 UEFI_DB_1_KEY_FILE="db.key"
@@ -150,7 +158,7 @@ sudo ./orin-nx-flasher/bin/flash-ghaf-host --secure-boot \
 ```
 
 `SECURE_BOOT_SIGNING_KEY_DIR`, used by the A/B verity flow below, does not replace
-`--uefi-keys` for this standard NX recovery path.
+`--uefi-keys` when signing this standard NX recovery payload at flash time.
 
 For CI jobs that still need a deterministic artifact directory (for example when reusing the same signed files across multiple runs), use the extractor helper provided by `jetpack-nixos` and point `ghaf.hardware.nvidia.orin.flashScriptOverrides.signedArtifactsPath` at the staged directory.
 ## Jetson Orin Secure Boot (A/B verity targets)
