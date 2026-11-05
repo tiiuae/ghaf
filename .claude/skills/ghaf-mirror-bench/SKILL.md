@@ -35,6 +35,22 @@ The interface is not in these commands on purpose — the script asks, see below
 # See what it would do, touch nothing (also prints the preflight)
 .claude/skills/ghaf-mirror-bench/scripts/run-mirror-bench.sh --ip <netvm-ip> --dry-run
 
+# Many short flows instead of one long one. Plain HTTP on :8000 falls under the
+# flowBytes default; HTTPS on :8443 under the TLS handshake limit, like browsing
+.claude/skills/ghaf-mirror-bench/scripts/run-mirror-bench.sh --ip <netvm-ip> \
+  --load short-flows --flow-rate 100
+.claude/skills/ghaf-mirror-bench/scripts/run-mirror-bench.sh --ip <netvm-ip> \
+  --load short-tls-flows --flow-rate 100
+
+# Loads combine: a full link and new flows at once, the worst case for flowBytes.
+# --flow-rate applies to each short-flow load; each gets its own result row
+.claude/skills/ghaf-mirror-bench/scripts/run-mirror-bench.sh --ip <netvm-ip> \
+  --load iperf,short-flows,short-tls-flows --flow-rate 100
+
+# On an image built with flowBytes, the same run without it, for the A/B
+.claude/skills/ghaf-mirror-bench/scripts/run-mirror-bench.sh --ip <netvm-ip> \
+  --load short-tls-flows --classifier matchall
+
 # Bandwidth sweep with plots
 .claude/skills/ghaf-mirror-bench/scripts/run-mirror-bench.sh --ip <netvm-ip> \
   --mode sweep --sweep-max 900M --sweep-step 50M
@@ -137,10 +153,16 @@ a way to set snaplen without rebuilding.
   CPU usage / host (%):         ...
   TX throughput (Mbps):         ...
   Latency avg (ms):             ...
+  Packet loss (%):              ...
   RAM used (MiB):               ...
   iperf3 BW (Mbps):             ...
+  Short HTTP flows (/s):        ...
+  Short TLS flows (/s):         ...
   Mirror tap TX (info, Mbps):   412.50 ± 9.10
 ```
+
+The short-flow rows appear only with those loads and show the rate actually reached. One
+below `--flow-rate` means the load was not generated as asked.
 
 Delta is OFF → ON, so positive means mirroring costs that much. `±` is stddev across pairs:
 a delta smaller than the stddev is noise, not a measurement, and the fix is more
@@ -161,6 +183,28 @@ It costs `steps × iterations × 2 × window` seconds — the script prints an E
 starting, and a full-range sweep at default settings runs for hours. Narrow the range or
 drop `--iterations` for a first look. It requires iperf3; `--no-iperf` is rejected for this
 mode because throughput penalty is most of what it plots.
+
+## Battery cost
+
+The bench does not read power itself; measure it with an external power meter between the
+laptop and AC. Hold mirroring in one state for the whole run with `--phase-mode off-only` /
+`on-only`. Charge the battery full first, or the meter counts charging too.
+
+```bash
+R=".claude/skills/ghaf-mirror-bench/scripts/run-mirror-bench.sh --ip <netvm-ip> --iface <nic> --window 60 --iterations 5"
+
+# 1. Short flows (200 HTTP + 200 TLS /s)
+$R --load short-flows,short-tls-flows --flow-rate 200 --phase-mode off-only
+$R --load short-flows,short-tls-flows --flow-rate 200 --phase-mode on-only
+
+# 2. Full link
+$R --load iperf --phase-mode off-only
+$R --load iperf --phase-mode on-only
+```
+
+Take the meter's average from about 30 s into each run, so the warm-up stays out of it. The
+result is the `on-only` minus `off-only` watts per load. Runs are not interleaved, so
+take each load's pair back to back.
 
 ## `bench-server unreachable` invalidates the run — stop and restart it
 

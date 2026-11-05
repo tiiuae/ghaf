@@ -53,6 +53,7 @@
         internal = lib.mkDefault config.ghaf.virtualization.microvm.idsvm.passiveMonitor.internal;
         snaplen = lib.mkDefault config.ghaf.virtualization.microvm.idsvm.passiveMonitor.snaplen;
         netem = lib.mkDefault config.ghaf.virtualization.microvm.idsvm.passiveMonitor.netem;
+        flowBytes = lib.mkDefault config.ghaf.virtualization.microvm.idsvm.passiveMonitor.flowBytes;
       };
 
       logging.listener.address = lib.mkIf (

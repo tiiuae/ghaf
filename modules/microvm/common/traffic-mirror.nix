@@ -57,6 +57,21 @@ let
           -c ${mirrorTruncSrc} -o $out
       '';
 
+  flowHeadObjs = pkgs.callPackage ./mirror-flow-head { inherit (cfg.sender) flowBytes flowLimits; };
+
+  # The catch-all filter whose mirred action clones packets to the tap.
+  mirrorMatch =
+    hook:
+    if cfg.sender.flowBytes == null then
+      "matchall"
+    else
+      "bpf obj ${flowHeadObjs}/${hook}.o sec classifier";
+
+  # Where tc pins the map the ingress and egress classifiers share.
+  flowMapPin = "/sys/fs/bpf/tc/globals/mirror_flows";
+
+  usesBpf = cfg.sender.snaplen != null || cfg.sender.flowBytes != null;
+
   # Shared by all three scripts below. No message prefix: systemd already tags
   # each line with the unit's own name in the journal.
   scriptPrelude = ''
@@ -78,6 +93,11 @@ let
       tc_try tc qdisc del dev mirror root
       tc qdisc add dev mirror root netem ${cfg.sender.netem} \
         || error "failed to add netem qdisc on mirror"
+
+      ${lib.optionalString (cfg.sender.flowBytes != null) ''
+        # tc reuses a pinned map by name, so a map from an older build would outlive a rebuild.
+        rm -f ${flowMapPin}
+      ''}
 
       ${lib.optionalString (cfg.sender.snaplen != null) ''
         # Truncate to ${toString cfg.sender.snaplen} bytes on the tap's egress, before the netem
@@ -148,10 +168,10 @@ let
           # matchall instead of u32 match-all: skips u32's hash-dispatch setup
           # for a rule that unconditionally matches every remaining packet.
           tc filter add dev "$name" ingress protocol all pref 10 \
-            matchall action mirred egress mirror dev mirror \
+            ${mirrorMatch "ingress"} action mirred egress mirror dev mirror \
             || error "failed to add ingress filter on $name"
           tc filter add dev "$name" egress protocol all pref 10 \
-            matchall action mirred egress mirror dev mirror \
+            ${mirrorMatch "egress"} action mirred egress mirror dev mirror \
             || error "failed to add egress filter on $name"
 
           ${lib.optionalString cfg.sender.rps.enable ''
@@ -225,10 +245,10 @@ let
       tc filter add dev "$name" egress protocol ipv6 pref 4 flower action pass \
         || error "failed to add IPv6-exclude filter on $name egress"
       tc filter add dev "$name" ingress protocol all pref 10 \
-        matchall action mirred egress mirror dev mirror \
+        ${mirrorMatch "ingress"} action mirred egress mirror dev mirror \
         || error "failed to add ingress filter on $name"
       tc filter add dev "$name" egress protocol all pref 10 \
-        matchall action mirred egress mirror dev mirror \
+        ${mirrorMatch "egress"} action mirred egress mirror dev mirror \
         || error "failed to add egress filter on $name"
       echo "now mirroring $name -> mirror"
     '';
@@ -258,6 +278,10 @@ let
         tc_try tc qdisc del dev mirror clsact
       ''}
 
+      ${lib.optionalString (cfg.sender.flowBytes != null) ''
+        rm -f ${flowMapPin}
+      ''}
+
       tc_try tc qdisc del dev mirror root
       echo "teardown complete"
     '';
@@ -280,6 +304,54 @@ in
           truncation.
 
           Leave as null to mirror whole packets without truncation.
+        '';
+      };
+      flowBytes = lib.mkOption {
+        type = lib.types.nullOr lib.types.ints.positive;
+        default = null;
+        example = 1048576;
+        description = ''
+          Mirror only the head of each flow this host opened: the first this
+          many bytes per direction, unless flowLimits sets a limit for the
+          flow's port. Incoming traffic of flows the host did not open is not
+          mirrored. An eBPF classifier keys flows by their IPv4 5-tuple and
+          mirrors whatever it cannot key.
+
+          Leave as null to mirror every packet.
+        '';
+      };
+      flowLimits = lib.mkOption {
+        type = lib.types.listOf (
+          lib.types.submodule {
+            options = {
+              proto = lib.mkOption {
+                type = lib.types.enum [
+                  "tcp"
+                  "udp"
+                ];
+              };
+              port = lib.mkOption {
+                type = lib.types.port;
+                description = "The port the flow was opened to.";
+              };
+              bytes = lib.mkOption {
+                type = lib.types.nullOr lib.types.ints.positive;
+                default = null;
+                description = "Bytes to mirror per direction; null for no byte limit.";
+              };
+              packets = lib.mkOption {
+                type = lib.types.nullOr lib.types.ints.positive;
+                default = null;
+                description = "Packets to mirror per direction; null for no packet limit.";
+              };
+            };
+          }
+        );
+        default = import ./mirror-flow-head/limits.nix;
+        defaultText = lib.literalExpression "import ./mirror-flow-head/limits.nix";
+        description = ''
+          Per-port limits that replace flowBytes, sized to what the IDS rules
+          inspect. An entry with neither limit mirrors the whole flow.
         '';
       };
       rps = {
@@ -329,7 +401,7 @@ in
                 PSAMPLE = module;
                 NET_SCH_INGRESS = module;
               }
-              // lib.optionalAttrs (cfg.sender.snaplen != null) {
+              // lib.optionalAttrs usesBpf {
                 NET_CLS_BPF = module;
                 BPF_SYSCALL = yes;
               };
@@ -345,7 +417,7 @@ in
           "psample"
           "sch_ingress"
         ]
-        ++ lib.optional (cfg.sender.snaplen != null) "cls_bpf";
+        ++ lib.optional usesBpf "cls_bpf";
       };
 
       # Mirror interface MAC

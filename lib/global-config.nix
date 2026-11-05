@@ -213,6 +213,15 @@ rec {
             validated for this target's hardware.
           '';
         };
+        flowBytes = mkOption {
+          type = types.nullOr types.ints.positive;
+          default = null;
+          example = 65536;
+          description = ''
+            Mirror only the head of each flow the monitored vm opened; see
+            `trafficMirror.sender.flowBytes`. Leave as null to mirror every packet.
+          '';
+        };
       };
 
       # Graphics/boot UI settings

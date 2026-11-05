@@ -56,6 +56,7 @@
           uplink-resolver = pkgs.callPackage ./uplink-resolver { };
           attack-mitigation-arp-spoofing = pkgs.callPackage ./attack-mitigation/arp-spoofing.nix { };
           attack-mitigation-mac-ip-spoofing = pkgs.callPackage ./attack-mitigation/mac-ip-spoofing.nix { };
+          traffic-mirror-flow-head = pkgs.callPackage ./traffic-mirror/flow-head.nix { };
           logging-recovery = pkgs.callPackage ./logging { };
           logging-logseald = pkgs.callPackage ./logseald { inherit self; };
           boot-health = pkgs.callPackage ./boot-health.nix { };

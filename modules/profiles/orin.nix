@@ -392,6 +392,7 @@ in
               # Validated on Orin AGX across 50M-1G: cuts mirroring's host CPU
               # overhead from 9.26% to under 3%, with no packet loss.
               netem = "slot 400ms 600ms packets 49152 limit 65536";
+              flowBytes = 65536;
             };
           };
 

@@ -29,6 +29,10 @@ SWEEP_STEP=""
 OUT=""
 PASSWORD="ghaf"
 IPERF_SERVER=""
+LOAD="iperf"
+FLOW_RATE=""
+CLASSIFIER=""
+PHASE_MODE=""
 NO_IPERF=0
 NO_HOST_BENCH=0
 DRY_RUN=0
@@ -47,7 +51,21 @@ Usage: run-mirror-bench.sh [OPTIONS] [-- EXTRA_BENCH_ARGS...]
       --mode <ab|sweep>  ab: interleaved Mirror ON/OFF pairs (default)
                          sweep: bandwidth sweep with plots (needs iperf3)
       --iperf-server <H> Use this iperf3 server instead of starting one here
-      --no-iperf         Skip iperf3 entirely (ping/CPU/RAM only; not for sweep)
+      --load <iperf|short-flows|short-tls-flows>[,...]
+                         iperf: one long flow per window (default)
+                         short-flows: many 100 KiB HTTP flows, served from here
+                         on :8000 (or from --iperf-server, if given, on :8000)
+                         short-tls-flows: the same over HTTPS on :8443, with a
+                         throwaway self-signed certificate
+                         Several, comma-separated, run together in each window
+      --flow-rate <N>    New short flows per second (default: the bench's, 100)
+      --classifier <deployed|matchall>
+                         matchall swaps the image's flowBytes classifier for
+                         plain matchall, to compare both on one image
+      --phase-mode <paired|on-only|off-only>
+                         on-only/off-only keep mirroring on or off for the
+                         whole run, e.g. for an external power meter (ab only)
+      --no-iperf        Skip iperf3 entirely (ping/CPU/RAM only; not for sweep)
       --no-host-bench    Skip host CPU measurement via ids-bench-server
   -o, --out <DIR>        Output directory (default: ghaf-bench/<timestamp>)
   -p, --password <PW>    ghaf/admin password on the device (default: ghaf)
@@ -112,6 +130,22 @@ while [ $# -gt 0 ]; do
     IPERF_SERVER="$2"
     shift 2
     ;;
+  --load)
+    LOAD="$2"
+    shift 2
+    ;;
+  --flow-rate)
+    FLOW_RATE="$2"
+    shift 2
+    ;;
+  --classifier)
+    CLASSIFIER="$2"
+    shift 2
+    ;;
+  --phase-mode)
+    PHASE_MODE="$2"
+    shift 2
+    ;;
   --no-iperf)
     NO_IPERF=1
     shift
@@ -152,6 +186,30 @@ ab | sweep) ;;
   exit 1
   ;;
 esac
+
+HAS_IPERF=0
+HAS_HTTP=0
+HAS_TLS=0
+IFS=',' read -ra LOADS <<<"$LOAD"
+for l in "${LOADS[@]}"; do
+  case "$l" in
+  iperf) HAS_IPERF=1 ;;
+  short-flows) HAS_HTTP=1 ;;
+  short-tls-flows) HAS_TLS=1 ;;
+  *)
+    echo "--load takes 'iperf', 'short-flows' and 'short-tls-flows', comma-separated, got '$l'" >&2
+    exit 1
+    ;;
+  esac
+done
+if [ $((HAS_HTTP + HAS_TLS)) -gt 0 ] && [ "$NO_IPERF" = 1 ]; then
+  echo "--load $LOAD cannot be combined with --no-iperf" >&2
+  exit 1
+fi
+if [ "$MODE" = sweep ] && [ "$HAS_IPERF" = 0 ]; then
+  echo "--mode sweep needs iperf in --load: it sweeps iperf3's bandwidth" >&2
+  exit 1
+fi
 
 # Same merge semantics as collect-logs.sh and ghaf-hw-test: local wins per
 # field, and a null in local does not blank a value set in the shared file.
@@ -409,16 +467,22 @@ fi
 # --------------------------------------------------------- local iperf3 server
 
 IPERF_PID=""
+HTTP_PID=""
+HTTPS_PID=""
+HTTP_DIR=""
+LOCAL_SERVER=0
 MIRROR_TOUCHED=0
 
 # Reached only through the trap below, which shellcheck cannot see.
 # shellcheck disable=SC2317,SC2329
 cleanup() {
   local rc=$?
-  if [ -n "$IPERF_PID" ]; then
-    kill "$IPERF_PID" 2>/dev/null || true
-    wait "$IPERF_PID" 2>/dev/null || true
-  fi
+  for pid in "$IPERF_PID" "$HTTP_PID" "$HTTPS_PID"; do
+    [ -n "$pid" ] || continue
+    kill "$pid" 2>/dev/null || true
+    wait "$pid" 2>/dev/null || true
+  done
+  [ -n "$HTTP_DIR" ] && rm -rf "$HTTP_DIR"
   # An interrupt in an OFF window would leave mirroring off silently.
   if [ "$MIRROR_TOUCHED" = 1 ] && [ "$rc" -ne 0 ]; then
     echo
@@ -451,7 +515,51 @@ if [ "$NO_IPERF" = 0 ] && [ -z "$IPERF_SERVER" ]; then
     echo "Pass --iperf-server explicitly, or --no-iperf." >&2
     exit 1
   }
+  LOCAL_SERVER=1
 
+  started() {
+    echo "==> Started local $2 server on $IPERF_SERVER:$3"
+    sleep 1
+    kill -0 "$1" 2>/dev/null && return 0
+    echo "Could not start a server on $IPERF_SERVER:$3:" >&2
+    echo "  ss -tlnp | grep $3" >&2
+    return 1
+  }
+
+  if [ $((HAS_HTTP + HAS_TLS)) -gt 0 ] && [ "$DRY_RUN" = 0 ]; then
+    HTTP_DIR=$(mktemp -d)
+    mkdir "$HTTP_DIR/www"
+    head -c 102400 /dev/zero >"$HTTP_DIR/www/flow"
+    if [ "$HAS_HTTP" = 1 ]; then
+      python3 -m http.server 8000 --bind "$IPERF_SERVER" --directory "$HTTP_DIR/www" >/dev/null 2>&1 &
+      HTTP_PID=$!
+      started "$HTTP_PID" HTTP 8000 || exit 1
+    fi
+    if [ "$HAS_TLS" = 1 ]; then
+      OPENSSL=$(command -v openssl || nix-shell -p openssl --run 'command -v openssl' 2>/dev/null | tail -1)
+      "$OPENSSL" req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=ghaf-bench \
+        -keyout "$HTTP_DIR/key.pem" -out "$HTTP_DIR/cert.pem" >/dev/null 2>&1
+      python3 - "$IPERF_SERVER" 8443 "$HTTP_DIR" >/dev/null 2>&1 <<'PY' &
+import functools
+import http.server
+import ssl
+import sys
+
+addr, port, root = sys.argv[1], int(sys.argv[2]), sys.argv[3]
+handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=f"{root}/www")
+server = http.server.ThreadingHTTPServer((addr, port), handler)
+ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+ctx.load_cert_chain(f"{root}/cert.pem", f"{root}/key.pem")
+server.socket = ctx.wrap_socket(server.socket, server_side=True)
+server.serve_forever()
+PY
+      HTTPS_PID=$!
+      started "$HTTPS_PID" HTTPS 8443 || exit 1
+    fi
+  fi
+fi
+
+if [ "$LOCAL_SERVER" = 1 ] && [ "$HAS_IPERF" = 1 ]; then
   IPERF3_BIN=$(resolve_iperf3) || {
     echo "iperf3 not available locally (tried PATH and nix-shell -p iperf3)." >&2
     echo "Pass --iperf-server <host> to use one elsewhere, or --no-iperf." >&2
@@ -486,6 +594,10 @@ BENCH_ARGS=()
 [ -n "$ITERATIONS" ] && BENCH_ARGS+=(--iterations "$ITERATIONS")
 [ -n "$IPERF_SERVER" ] && BENCH_ARGS+=(--iperf-server "$IPERF_SERVER")
 [ "$NO_HOST_BENCH" = 0 ] && BENCH_ARGS+=(--host-bench)
+[ "$LOAD" != iperf ] && BENCH_ARGS+=(--load "$LOAD")
+[ -n "$CLASSIFIER" ] && BENCH_ARGS+=(--classifier "$CLASSIFIER")
+[ -n "$FLOW_RATE" ] && BENCH_ARGS+=(--flow-rate "$FLOW_RATE")
+[ -n "$PHASE_MODE" ] && BENCH_ARGS+=(--phase-mode "$PHASE_MODE")
 if [ "$MODE" = sweep ]; then
   BENCH_ARGS+=(--sweep --sweep-max "$SWEEP_MAX")
   [ -n "$SWEEP_MIN" ] && BENCH_ARGS+=(--sweep-min "$SWEEP_MIN")
@@ -509,7 +621,9 @@ if [ "$MODE" = sweep ]; then
      BEGIN{printf "%d", int((n(mx)-n(mn))/n(st))+1}')
   ETA=$(((STEPS * N * 2 * W) + (STEPS * N * 2) + (2 * W)))
 else
-  ETA=$(((N * 2 * W) + (N * 2)))
+  P=2
+  case "$PHASE_MODE" in on-only | off-only) P=1 ;; esac
+  ETA=$(((N * P * W) + (N * P)))
 fi
 
 [ -z "$OUT" ] && OUT="ghaf-bench/$(date +%Y%m%d-%H%M%S)"
@@ -541,6 +655,8 @@ mkdir -p "$OUT"
   echo "netem:       $([ "$OVERRIDE_NETEM" = 1 ] && echo "overridden via --" || echo "$NETEM_LIVE (deployed)")"
   echo "rps:         $RPS_LIVE (deployed)"
   echo "iperf3:      ${IPERF_SERVER:-none}"
+  echo "load:        $LOAD"
+  echo "classifier:  ${CLASSIFIER:-deployed}"
   echo "trunc_obj:   $TRUNC_OBJ"
   echo "bench_args:  $QUOTED"
 } >"$OUT/manifest.txt"

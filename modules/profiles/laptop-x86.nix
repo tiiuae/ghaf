@@ -292,6 +292,7 @@ in
               # Validated on Darter Pro's builtin ethernet across 50M-1G with
               # no netem drops.
               netem = "slot 10ms 20ms packets 300 limit 2000";
+              flowBytes = 65536;
             };
           };
 

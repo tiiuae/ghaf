@@ -34,6 +34,8 @@ let
       iproute2
       iputils
       iperf3
+      curl
+      conntrack-tools
       gawk
       openssh
       gnuplot
@@ -106,6 +108,12 @@ let
       NETEM_OFF=0
       RPS=""
       TRUNCATION=""
+      PHASE_MODE="paired"
+      LOAD="iperf"
+      FLOW_RATE=100
+      FLOW_NAMES=()
+      FLOW_URLS=()
+      CLASSIFIER="deployed"
 
       TARGETS=(
         "8.8.8.8"
@@ -120,8 +128,16 @@ let
         --iface         Physical NIC to monitor (auto-detected if not set)
         --window        Measurement window per ON/OFF slot in sec (default: 30)
         --iterations    Number of ON/OFF pairs (default: 10)
+        --phase-mode    paired|on-only|off-only - which phases each iteration runs (default: paired)
         --targets       Comma-separated IPs/hosts
         --iperf-server  iperf3 server host/IP (optional, runs at full speed)
+        --load          iperf|short-flows|short-tls-flows - one long iperf3 flow, or many
+                        short flows fetched from http://<iperf-server>:8000/flow or
+                        https://<iperf-server>:8443/flow (default: iperf); several,
+                        comma-separated, run together in each window
+        --flow-rate     New short flows per second with the short-flow loads (default: 100)
+        --classifier    deployed|matchall - mirror with the image's catch-all filter, or swap
+                        it for plain matchall to compare against flowBytes (default: deployed)
         --bandwidth     iperf3 target bandwidth (e.g. 100M, 500M; default: unlimited)
         --mss           TCP MSS for iperf3 (default: OS default ~1460; use e.g. 512 to send small packets)
         --host-bench    Host IP for ids-bench-server CPU measurement (e.g. 192.168.100.1)
@@ -174,6 +190,10 @@ let
           --iface)        IFACE="$2";        shift 2 ;;
           --window)       WINDOW="$2";       shift 2 ;;
           --iterations)   ITERATIONS="$2";   shift 2 ;;
+          --phase-mode)   PHASE_MODE="$2";   shift 2 ;;
+          --load)         LOAD="$2";         shift 2 ;;
+          --flow-rate)    FLOW_RATE="$2";    shift 2 ;;
+          --classifier)   CLASSIFIER="$2";   shift 2 ;;
           --iperf-server) IPERF_SERVER="''${2//[[:space:]]/}"; shift 2 ;;
           --bandwidth)    IPERF_BW="$2";     shift 2 ;;
           --mss)          IPERF_MSS="$2";    shift 2 ;;
@@ -203,6 +223,35 @@ let
           *) err "unknown option: $1"; usage ;;
         esac
       done
+
+      case "$PHASE_MODE" in
+        paired|on-only|off-only) ;;
+        *) err "--phase-mode must be paired, on-only or off-only, got '$PHASE_MODE'"; exit 1 ;;
+      esac
+      # The sweep plots ON-OFF deltas, so it needs both phases.
+      if [[ "$SWEEP" -eq 1 && "$PHASE_MODE" != "paired" ]]; then
+        err "--sweep requires --phase-mode paired"
+        exit 1
+      fi
+      has_load() { [[ ",$LOAD," == *",$1,"* ]]; }
+      IFS=',' read -ra loads <<< "$LOAD"
+      for l in "''${loads[@]}"; do
+        case "$l" in
+          iperf) ;;
+          short-flows) FLOW_NAMES+=(http); FLOW_URLS+=("http://$IPERF_SERVER:8000/flow") ;;
+          short-tls-flows) FLOW_NAMES+=(tls); FLOW_URLS+=("https://$IPERF_SERVER:8443/flow") ;;
+          *) err "--load takes iperf, short-flows and short-tls-flows, comma-separated, got '$l'"; exit 1 ;;
+        esac
+      done
+      if [[ ''${#FLOW_URLS[@]} -gt 0 ]]; then
+        [[ -n "$IPERF_SERVER" ]] || { err "--load $LOAD requires --iperf-server"; exit 1; }
+        [[ "$FLOW_RATE" =~ ^[1-9][0-9]*$ ]] || { err "--flow-rate must be a positive integer, got '$FLOW_RATE'"; exit 1; }
+      fi
+      [[ "$SWEEP" -eq 0 ]] || has_load iperf || { err "--sweep requires iperf in --load"; exit 1; }
+      case "$CLASSIFIER" in
+        deployed|matchall) ;;
+        *) err "--classifier must be deployed or matchall, got '$CLASSIFIER'"; exit 1 ;;
+      esac
 
       if [[ -z "$IFACE" ]]; then
         # Not `| head -1`: the producer's SIGPIPE would be fatal under pipefail.
@@ -241,8 +290,29 @@ let
       }
       apply_rps
 
+      # net-vm's conntrack table (7680) fills at ~64 new flows/s and would cap
+      # the short-flow loads; raise it for this run only.
+      CONNTRACK_MAX=$(sysctl -n net.netfilter.nf_conntrack_max 2>/dev/null || true)
+      if [[ -n "$CONNTRACK_MAX" && "$CONNTRACK_MAX" -lt 65536 ]]; then
+        sysctl -qw net.netfilter.nf_conntrack_max=65536
+        info "conntrack max raised $CONNTRACK_MAX -> 65536 for this run"
+      else
+        CONNTRACK_MAX=""
+      fi
+
       TMPDIR=$(mktemp -d)
-      trap 'rm -rf "$TMPDIR"' EXIT
+      cleanup() {
+        rm -rf "$TMPDIR"
+        if [[ -n "$CONNTRACK_MAX" ]]; then
+          # The short flows' TIME_WAIT entries would fill the restored table and drop new connections.
+          if [[ ''${#FLOW_URLS[@]} -gt 0 ]]; then
+            conntrack -D -p tcp -d "$IPERF_SERVER" --dport 8000 >/dev/null 2>&1 || true
+            conntrack -D -p tcp -d "$IPERF_SERVER" --dport 8443 >/dev/null 2>&1 || true
+          fi
+          sysctl -qw net.netfilter.nf_conntrack_max="$CONNTRACK_MAX" || true
+        fi
+      }
+      trap cleanup EXIT
 
       ping_target() {
         local target="$1"
@@ -361,7 +431,8 @@ let
         mkdir -p "$slot"
 
         local cpu_idle_before cpu_total_before rx_before tx_before mem_before mirror_rx_before
-        read -r cpu_idle_before cpu_total_before < <(awk '/^cpu /{idle=$5;s=0;for(i=2;i<=NF;i++)s+=$i;print idle,s;exit}' /proc/stat)
+        # Fields 10-11 (guest, guest_nice) are already counted in user and nice.
+        read -r cpu_idle_before cpu_total_before < <(awk '/^cpu /{idle=$5;s=0;for(i=2;i<=9;i++)s+=$i;print idle,s;exit}' /proc/stat)
         rx_before=$(awk -v d="$IFACE:" '$1==d{print $2}' /proc/net/dev)
         tx_before=$(awk -v d="$IFACE:" '$1==d{print $10}' /proc/net/dev)
         mem_before=$(awk '/^MemTotal:/{t=$2}/^MemAvailable:/{a=$2}END{print t-a}' /proc/meminfo)
@@ -375,7 +446,7 @@ let
         done
 
         local iperf_bw="N/A" iperf_retr="N/A"
-        if [[ -n "$IPERF_SERVER" ]]; then
+        if [[ -n "$IPERF_SERVER" ]] && has_load iperf; then
           local mss_arg="" bw_arg=""
           [[ -n "$IPERF_MSS" ]] && mss_arg="-M $IPERF_MSS"
           [[ -n "$IPERF_BW"  ]] && bw_arg="-b $IPERF_BW"
@@ -384,6 +455,23 @@ let
             | awk '/sender/{print $7,$9}' > "$slot/iperf" &
           pids+=($!)
         fi
+
+        local idx w per workers=$(((FLOW_RATE + 24) / 25))
+        for idx in "''${!FLOW_URLS[@]}"; do
+          # Connection: close makes every fetch its own TCP flow, and --rate keeps
+          # the flow count equal across ON and OFF windows. One serial curl falls
+          # behind on a busy link, and stdbuf keeps the count of one timeout kills.
+          (
+            for ((w = 0; w < workers; w++)); do
+              per=$((FLOW_RATE / workers + (w < FLOW_RATE % workers)))
+              timeout "$((WINDOW + 5))" stdbuf -oL curl -sk -o /dev/null -w '%{http_code}\n' \
+                -H 'Connection: close' --rate "$per/s" \
+                "''${FLOW_URLS[idx]}?[1-$((per * WINDOW))]" &
+            done
+            wait
+          ) | grep -c '^200$' > "$slot/flows_''${FLOW_NAMES[idx]}" &
+          pids+=($!)
+        done
 
         if [[ -n "$HOST_BENCH" ]]; then
           (
@@ -401,7 +489,7 @@ let
         for pid in "''${pids[@]}"; do wait "$pid" || true; done
 
         local cpu_idle_after cpu_total_after rx_after tx_after mem_after mirror_rx_after
-        read -r cpu_idle_after cpu_total_after < <(awk '/^cpu /{idle=$5;s=0;for(i=2;i<=NF;i++)s+=$i;print idle,s;exit}' /proc/stat)
+        read -r cpu_idle_after cpu_total_after < <(awk '/^cpu /{idle=$5;s=0;for(i=2;i<=9;i++)s+=$i;print idle,s;exit}' /proc/stat)
         rx_after=$(awk -v d="$IFACE:" '$1==d{print $2}' /proc/net/dev)
         tx_after=$(awk -v d="$IFACE:" '$1==d{print $10}' /proc/net/dev)
         mem_after=$(awk '/^MemTotal:/{t=$2}/^MemAvailable:/{a=$2}END{print t-a}' /proc/meminfo)
@@ -419,6 +507,15 @@ let
         if [[ -n "$IPERF_SERVER" && -s "$slot/iperf" ]]; then
           read -r iperf_bw iperf_retr < "$slot/iperf"
         fi
+
+        local name flows
+        for name in "''${FLOW_NAMES[@]}"; do
+          flows="N/A"
+          if [[ -s "$slot/flows_$name" ]]; then
+            flows=$(awk -v w="$WINDOW" '{printf "%.1f", $1/w}' "$slot/flows_$name")
+          fi
+          echo "$flows" >> "$accdir/flows_$name"
+        done
 
         local agg_loss="N/A" agg_lat="N/A"
         if [[ "$FLOOD" -eq 0 ]] && ls "$slot"/ping_* &>/dev/null; then
@@ -480,10 +577,26 @@ let
         }'
       }
 
+      # ids-mirror installs the image's catch-all filter on every start; matchall
+      # replaces it so one image measures both with and without flowBytes.
+      apply_classifier() {
+        [[ "$CLASSIFIER" == "matchall" ]] || return 0
+        local name hook
+        for name in $(mirror_candidate_ifaces); do
+          for hook in ingress egress; do
+            tc filter del dev "$name" "$hook" pref 10 2>/dev/null || true
+            tc filter add dev "$name" "$hook" protocol all pref 10 \
+              matchall action mirred egress mirror dev mirror 2>/dev/null || true
+          done
+        done
+      }
+
       mirror_on() {
-        systemctl start ids-mirror 2>/dev/null || true
+        # restart, not start: a filter an earlier run swapped in must not survive into this window.
+        systemctl restart ids-mirror 2>/dev/null || true
         apply_netem
         apply_truncation
+        apply_classifier
       }
 
       mirror_off() {
@@ -513,6 +626,16 @@ let
         done
       }
 
+      for url in "''${FLOW_URLS[@]}"; do
+        curl -sfk -o /dev/null "$url" \
+          || { err "cannot fetch $url for --load $LOAD"; exit 1; }
+      done
+
+      load_rows=()
+      for idx in "''${!FLOW_URLS[@]}"; do
+        load_rows+=("Load|short flows, $FLOW_RATE/s from ''${FLOW_URLS[idx]}")
+      done
+
       if [[ "$SWEEP" -eq 1 ]]; then
         # preflight
         [[ -n "$IPERF_SERVER" ]] || { err "--sweep requires --iperf-server"; exit 1; }
@@ -538,9 +661,11 @@ let
         # header
         rows=(
           "iperf3 server|$IPERF_SERVER"
+          "''${load_rows[@]}"
           "Iterations|$ITERATIONS × ''${WINDOW}s per step"
           "irqbalance|net-vm=$(irqbalance_local)''${IRQBALANCE_HOST:+  host=$IRQBALANCE_HOST}"
           "truncation|$(truncation_status)"
+          "classifier|$CLASSIFIER"
           "netem|$(netem_status)"
           "rps|$(rps_status)"
         )
@@ -585,6 +710,10 @@ let
           iperf_off=$(mean_val "$sOFF/iperf_bw")
           printf "            cpu_delta=%-8s  host_cpu_delta=%-8s  ram_delta=%-8s  iperf_ON=%-8s  iperf_OFF=%s Mbps\n" \
             "$cpu_d" "$host_cpu_d" "$ram_d" "$iperf_on" "$iperf_off"
+          for name in "''${FLOW_NAMES[@]}"; do
+            printf "            %s_flows_ON=%s/s  %s_flows_OFF=%s/s\n" \
+              "$name" "$(mean_val "$sON/flows_$name")" "$name" "$(mean_val "$sOFF/flows_$name")"
+          done
           # record this step's result for the plots below
           awk -v bw="$bw_mbps" -v cpu="$cpu_d" -v hcpu="$host_cpu_d" -v ram="$ram_d" \
               -v ion="$iperf_on" -v ioff="$iperf_off" \
@@ -640,7 +769,9 @@ let
         exit 0
       fi
 
-      [[ -n "$IPERF_SERVER" ]] && check_iperf3_server "$IPERF_SERVER"
+      if [[ -n "$IPERF_SERVER" ]] && has_load iperf; then
+        check_iperf3_server "$IPERF_SERVER"
+      fi
 
       if [[ "$FLOOD" -eq 1 ]]; then
         MODE_DESC="flood (1400-byte, max rate)"
@@ -648,7 +779,9 @@ let
         MODE_DESC="normal (64-byte, 5 pkt/s)"
       fi
 
-      TOTAL=$(( ITERATIONS * 2 * WINDOW ))
+      PHASES=1
+      [[ "$PHASE_MODE" == "paired" ]] && PHASES=2
+      TOTAL=$(( ITERATIONS * PHASES * WINDOW ))
       if [[ -n "$HOST_BENCH" ]]; then
         query_host_bench
         # The server serves one connection then restarts ~1s later; wait it
@@ -660,13 +793,18 @@ let
       [[ -n "$TARGET_NAME" ]] && rows+=("Target|$TARGET_NAME")
       rows+=(
         "Mode|$MODE_DESC"
-        "Window|''${WINDOW}s × ''${ITERATIONS} pairs = ''${TOTAL}s total"
+        "Window|''${WINDOW}s × ''${ITERATIONS} × ''${PHASES} phases = ''${TOTAL}s total"
+        "Phase mode|$PHASE_MODE"
       )
-      [[ -n "$IPERF_SERVER" ]] && rows+=("iperf3|$IPERF_SERVER  MSS=''${IPERF_MSS:-default}  BW=''${IPERF_BW:-unlimited}")
+      rows+=("''${load_rows[@]}")
+      if [[ -n "$IPERF_SERVER" ]] && has_load iperf; then
+        rows+=("iperf3|$IPERF_SERVER  MSS=''${IPERF_MSS:-default}  BW=''${IPERF_BW:-unlimited}")
+      fi
       [[ -n "$HOST_BENCH" ]] && rows+=("host bench|$HOST_BENCH")
       rows+=(
         "irqbalance|net-vm=$(irqbalance_local)''${IRQBALANCE_HOST:+  host=$IRQBALANCE_HOST}"
         "truncation|$(truncation_status)"
+        "classifier|$CLASSIFIER"
         "netem|$(netem_status)"
         "rps|$(rps_status)"
       )
@@ -678,71 +816,74 @@ let
       mkdir -p "$ON_DIR" "$OFF_DIR"
 
       for i in $(seq 1 "$ITERATIONS"); do
-        echo "  Pair $i/$ITERATIONS — Mirror ON..."
-        mirror_on; sleep 1
-        measure_window "$ON_DIR"
-        print_netem_stats
+        if [[ "$PHASE_MODE" != "off-only" ]]; then
+          echo "  Pair $i/$ITERATIONS — Mirror ON..."
+          mirror_on; sleep 1
+          measure_window "$ON_DIR"
+          print_netem_stats
+        fi
 
-        echo "  Pair $i/$ITERATIONS — Mirror OFF..."
-        mirror_off; sleep 1
-        measure_window "$OFF_DIR"
+        if [[ "$PHASE_MODE" != "on-only" ]]; then
+          echo "  Pair $i/$ITERATIONS — Mirror OFF..."
+          mirror_off; sleep 1
+          measure_window "$OFF_DIR"
+        fi
       done
 
-      mirror_on
+      # Leave the device mirroring as the image configures it, without this run's overrides.
+      systemctl restart ids-mirror 2>/dev/null || true
 
       row() {
         printf "  %-28s  %-20s  %-20s  %s\n" "$@"
       }
 
+      # label file [delta-unit]: only the columns this phase mode measured.
+      metric() {
+        case "$PHASE_MODE" in
+          on-only)  row "$1" "$(stats "$ON_DIR/$2")" ;;
+          off-only) row "$1" "$(stats "$OFF_DIR/$2")" ;;
+          *)
+            row "$1" "$(stats "$ON_DIR/$2")" "$(stats "$OFF_DIR/$2")" \
+              "''${3:+$(delta "$OFF_DIR/$2" "$ON_DIR/$2")$3}"
+            ;;
+        esac
+      }
+
       echo ""
       echo "========================================================"
-      echo "  Results (mean ± stddev over $ITERATIONS pairs)"
+      echo "  Results (mean ± stddev over $ITERATIONS iterations)"
       echo "========================================================"
-      row "Metric" "Mirror ON" "Mirror OFF" "Delta"
-      row "------" "---------" "----------" "-----"
-      row \
-        "CPU usage / net-vm (%):" \
-        "$(stats "$ON_DIR/cpu")" \
-        "$(stats "$OFF_DIR/cpu")" \
-        "$(delta "$OFF_DIR/cpu" "$ON_DIR/cpu")%"
-      if [[ -n "$HOST_BENCH" ]]; then
-        row \
-          "CPU usage / host (%):" \
-          "$(stats "$ON_DIR/host_cpu")" \
-          "$(stats "$OFF_DIR/host_cpu")" \
-          "$(delta "$OFF_DIR/host_cpu" "$ON_DIR/host_cpu")%"
-      fi
-      row \
-        "TX throughput (Mbps):" \
-        "$(stats "$ON_DIR/tx")" \
-        "$(stats "$OFF_DIR/tx")" \
-        "$(delta "$OFF_DIR/tx" "$ON_DIR/tx") Mbps"
+      case "$PHASE_MODE" in
+        on-only)
+          row "Metric" "Mirror ON"
+          row "------" "---------"
+          ;;
+        off-only)
+          row "Metric" "Mirror OFF"
+          row "------" "----------"
+          ;;
+        *)
+          row "Metric" "Mirror ON" "Mirror OFF" "Delta"
+          row "------" "---------" "----------" "-----"
+          ;;
+      esac
+      metric "CPU usage / net-vm (%):" cpu "%"
+      [[ -n "$HOST_BENCH" ]] && metric "CPU usage / host (%):" host_cpu "%"
+      metric "TX throughput (Mbps):" tx " Mbps"
       if [[ "$FLOOD" -eq 0 ]]; then
-        row \
-          "Latency avg (ms):" \
-          "$(stats "$ON_DIR/lat")" \
-          "$(stats "$OFF_DIR/lat")" \
-          "$(delta "$OFF_DIR/lat" "$ON_DIR/lat") ms"
-        row \
-          "Packet loss (%):" \
-          "$(stats "$ON_DIR/loss")" \
-          "$(stats "$OFF_DIR/loss")"
+        metric "Latency avg (ms):" lat " ms"
+        metric "Packet loss (%):" loss
       fi
-      row \
-        "RAM used (MiB):" \
-        "$(stats "$ON_DIR/mem")" \
-        "$(stats "$OFF_DIR/mem")" \
-        "$(delta "$OFF_DIR/mem" "$ON_DIR/mem") MiB"
-      if [[ -n "$IPERF_SERVER" ]]; then
-        row \
-          "iperf3 BW (Mbps):" \
-          "$(stats "$ON_DIR/iperf_bw")" \
-          "$(stats "$OFF_DIR/iperf_bw")" \
-          "$(delta "$OFF_DIR/iperf_bw" "$ON_DIR/iperf_bw") Mbps"
+      metric "RAM used (MiB):" mem " MiB"
+      [[ -n "$IPERF_SERVER" ]] && has_load iperf && metric "iperf3 BW (Mbps):" iperf_bw " Mbps"
+      for name in "''${FLOW_NAMES[@]}"; do
+        metric "Short ''${name^^} flows (/s):" "flows_$name" " /s"
+      done
+      if [[ "$PHASE_MODE" != "off-only" ]]; then
+        printf "  %-28s  %s\n" \
+          "Mirror tap TX (info, Mbps):" \
+          "$(stats "$ON_DIR/mirror_rx")"
       fi
-      printf "  %-28s  %s\n" \
-        "Mirror tap TX (info, Mbps):" \
-        "$(stats "$ON_DIR/mirror_rx")"
       echo ""
     '';
   };
@@ -766,12 +907,13 @@ let
 
       measure_cpu() {
         local window="$1" idle_b total_b idle_a total_a
+        # Fields 10-11 (guest, guest_nice) repeat the VMs' vCPU time already in user and nice.
         read -r idle_b total_b < <(
-          awk '/^cpu /{s=0;for(i=2;i<=NF;i++)s+=$i;print $5,s;exit}' /proc/stat
+          awk '/^cpu /{s=0;for(i=2;i<=9;i++)s+=$i;print $5,s;exit}' /proc/stat
         )
         sleep "$window"
         read -r idle_a total_a < <(
-          awk '/^cpu /{s=0;for(i=2;i<=NF;i++)s+=$i;print $5,s;exit}' /proc/stat
+          awk '/^cpu /{s=0;for(i=2;i<=9;i++)s+=$i;print $5,s;exit}' /proc/stat
         )
         awk -v bi="$idle_b" -v bt="$total_b" -v ai="$idle_a" -v at="$total_a" \
           'BEGIN{d=at-bt;printf "%.2f\n",(d>0)?(1-(ai-bi)/d)*100:0}'

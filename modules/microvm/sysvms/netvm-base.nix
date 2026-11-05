@@ -258,6 +258,7 @@ in
     enable = globalConfig.idsvm.passiveMonitor.enable or false;
     mirrorExternalInterfaces = globalConfig.idsvm.passiveMonitor.external or false;
     snaplen = globalConfig.idsvm.passiveMonitor.snaplen or null;
+    flowBytes = globalConfig.idsvm.passiveMonitor.flowBytes or null;
     netem = lib.mkIf (
       globalConfig.idsvm.passiveMonitor.netem or null != null
     ) globalConfig.idsvm.passiveMonitor.netem;
