@@ -202,7 +202,7 @@ apply_configuration() {
   [[ -z $USERNAME ]] && USERNAME=$(config_get "user_config.username" "")
   [[ -z $REALNAME ]] && REALNAME=$(config_get "user_config.realname" "")
   [[ -z $HOME_SIZE ]] && HOME_SIZE=$(config_get "user_config.home_size" "10000")
-  [[ -z $USER_ID ]] && USER_ID=$(config_get "user_config.uid" "")
+  [[ -z $USER_ID ]] && USER_ID=$(config_get "user_config.uid" "1000")
   [[ -z $FS_TYPE ]] && FS_TYPE=$(config_get "user_config.fs_type" "ext4")
   [[ -z $USER_SHELL ]] && USER_SHELL=$(config_get "user_config.shell" "/run/current-system/sw/bin/bash")
   [[ -z $USER_GROUPS ]] && USER_GROUPS=$(config_get "user_config.groups" "users")
@@ -634,19 +634,19 @@ query_ldap() {
   local ad_user="$3"
   local name_filter="$4"
 
-  # Build LDAP filter for users (supports both AD and RFC2307)
-  local ldap_filter="(|(objectClass=user)(objectClass=posixAccount))"
-  if [[ -n $name_filter ]]; then
-    local name_filter_escaped
-    name_filter_escaped=$(echo "$name_filter" |
-      awk '{gsub(/\\/, "\\\\"); gsub(/\(/, "\\("); \
-            gsub(/\)/, "\\)"); gsub(/\*/, "\\*"); print}')
-    ldap_filter="(&$ldap_filter(|"
-    ldap_filter+="(sAMAccountName=*$name_filter_escaped*)"
-    ldap_filter+="(displayName=*$name_filter_escaped*)"
-    ldap_filter+="(uid=*$name_filter_escaped*)"
-    ldap_filter+="(cn=*$name_filter_escaped*)))"
+  # Require search filter (do not search all users)
+  if [[ -z $name_filter ]]; then
+    show_error "Search filter cannot be empty"
+    return 1
   fi
+
+  local name_filter_escaped
+  name_filter_escaped=$(echo "$name_filter" |
+    awk '{gsub(/\\/, "\\\\"); gsub(/\(/, "\\("); \
+          gsub(/\)/, "\\)"); gsub(/\*/, "\\*"); print}')
+
+  # Match AD users by sAMAccountName
+  local ldap_filter="(&(objectClass=user)(!(objectClass=computer))(sAMAccountName=*$name_filter_escaped*))"
 
   # Ensure we have a valid Kerberos ticket for GSSAPI authentication
   if ! klist -s 2>/dev/null; then
@@ -697,30 +697,31 @@ query_ldap() {
   if ! ldap_output=$(timeout "$LDAP_SEARCH_TIMEOUT" ldapsearch -H "$server" -b "$base_dn" \
     -Y GSSAPI \
     "$ldap_filter" \
-    sAMAccountName displayName uid cn uidNumber gidNumber homeDirectory loginShell \
+    sAMAccountName displayName cn \
     -LLL -o ldif_wrap=no 2>&1); then
     show_error "LDAP query failed: $ldap_output"
     return 1
   fi
 
-  # Parse LDAP output and format as pipe-delimited (RFC2307 compliant)
+  # Parse LDAP output and format as pipe-delimited (sAMAccountName and displayName)
   echo "$ldap_output" |
     awk -v OFS='|' '
-      /^uid: / { uid = substr($0, index($0, ": ") + 2) }
-      /^cn: / { cn = substr($0, index($0, ": ") + 2) }
-      /^uidNumber: / { uidNumber = substr($0, index($0, ": ") + 2) }
-      /^gidNumber: / { gidNumber = substr($0, index($0, ": ") + 2) }
-      /^homeDirectory: / { homeDirectory = substr($0, index($0, ": ") + 2) }
-      /^loginShell: / { loginShell = substr($0, index($0, ": ") + 2) }
+      BEGIN { IGNORECASE = 1 }
+      { sub(/\r$/, "") }
+      tolower($0) ~ /^samaccountname: / { sam = substr($0, index($0, ": ") + 2) }
+      tolower($0) ~ /^displayname: / { disp = substr($0, index($0, ": ") + 2) }
+      tolower($0) ~ /^cn: / { cn = substr($0, index($0, ": ") + 2) }
       /^$/ {
-        if (uid && uidNumber) {
-          print uid, (cn ? cn : uid), uidNumber, gidNumber, homeDirectory, loginShell
+        if (sam != "" && sam !~ /\$$/) {
+          real = (disp != "" ? disp : (cn != "" ? cn : sam))
+          print sam, real
         }
-        uid = cn = uidNumber = gidNumber = homeDirectory = loginShell = ""
+        sam = disp = cn = ""
       }
       END {
-        if (uid && uidNumber) {
-          print uid, (cn ? cn : uid), uidNumber, gidNumber, homeDirectory, loginShell
+        if (sam != "" && sam !~ /\$$/) {
+          real = (disp != "" ? disp : (cn != "" ? cn : sam))
+          print sam, real
         }
       }'
 }
@@ -1237,11 +1238,16 @@ screen_ad_user_search() {
   fi
 
   # Get search filter
-  local search_filter
-  search_filter=$(prompt_input "Enter user search filter:" "leave blank for all users") || {
-    goto_state "MAIN_MENU"
-    return
-  }
+  local search_filter=""
+  while [[ -z $search_filter ]]; do
+    search_filter=$(prompt_input "Enter username to search:" "username") || {
+      goto_state "MAIN_MENU"
+      return
+    }
+    if [[ -z $search_filter ]]; then
+      show_error "Search filter cannot be empty. Please enter a username."
+    fi
+  done
 
   # Perform LDAP search
   show_info "Searching LDAP for users..."
@@ -1274,21 +1280,38 @@ screen_ad_user_search() {
   local users_found=false
   local -a ad_users=()
 
-  while IFS='|' read -r name display_name user_id group_id home_dir shell; do
+  while IFS='|' read -r name display_name; do
     [[ -z $name ]] && continue
     users_found=true
-    ad_users+=("$name|$display_name|$user_id|$group_id|$home_dir|$shell")
+    ad_users+=("$name|$display_name")
   done <<<"$ldap_results"
 
   if ! $users_found; then
-    show_warning "No users found with current filter"
-    goto_state "AD_USER_SEARCH"
+    show_warning "No users found matching '$search_filter'"
+    local choices=("Search again")
+    if [[ ! -r $KERBEROS_KEYTAB && -n $AD_USERNAME ]]; then
+      choices+=("Change user")
+    fi
+    choices+=("Back to menu")
+
+    local choice
+    choice=$(prompt_choice "No matching users. Choose action:" \
+      "${choices[@]}") || goto_state "MAIN_MENU"
+
+    case "$choice" in
+    "Search again") goto_state "AD_USER_SEARCH" ;;
+    "Change user")
+      AD_USERNAME=""
+      goto_state "AD_USER_SEARCH"
+      ;;
+    "Back to menu") goto_state "MAIN_MENU" ;;
+    esac
     return
   fi
 
   # Present users for selection
   for user_entry in "${ad_users[@]}"; do
-    IFS='|' read -r name display_name user_id group_id home_dir shell <<<"$user_entry"
+    IFS='|' read -r name display_name <<<"$user_entry"
 
     clear
     show_header "Active Directory User Search"
@@ -1296,10 +1319,8 @@ screen_ad_user_search() {
     show_section \
       "Username:     $name" \
       "Display Name: $display_name" \
-      "UID:          $user_id" \
-      "GID:          $group_id" \
-      ${home_dir:+"Home Dir:     $home_dir"} \
-      ${shell:+"Shell:        $shell"}
+      "UID:          $USER_ID" \
+      "Groups:       $USER_GROUPS"
 
     # Check if user already exists
     if homectl inspect "$name" >/dev/null 2>&1; then
@@ -1319,27 +1340,9 @@ screen_ad_user_search() {
       USERNAME=""
       REALNAME=""
 
-      # Set user variables from LDAP data
+      # Set user variables from AD account
       [[ -n $name ]] && USERNAME="$name"
       [[ -n $display_name ]] && REALNAME="$display_name"
-
-      # Only set USER_ID if it wasn't set before (config/cmdline)
-      if [[ -z $USER_ID && -n $user_id ]]; then
-        USER_ID="$user_id"
-        debug "Using uidNumber from LDAP: $user_id"
-      elif [[ -n $user_id && $USER_ID != "$user_id" ]]; then
-        show_warning "LDAP uidNumber ($user_id) differs from configured UID ($USER_ID)"
-        show_warning "Using configured value instead"
-      fi
-
-      # Warn about unused attributes
-      if [[ -n $group_id ]]; then
-        show_warning "LDAP gidNumber ($group_id) is not used by systemd-homed"
-      fi
-
-      # Set optional attributes
-      [[ -n $home_dir ]] && USER_HOME_DIRECTORY="$home_dir"
-      [[ -n $shell ]] && USER_SHELL="$shell"
 
       # Validate required fields
       if [[ -z $USERNAME ]]; then
@@ -1347,11 +1350,7 @@ screen_ad_user_search() {
         continue
       fi
       if [[ -z $REALNAME ]]; then
-        show_warning "No display name found, using username as display name"
         REALNAME="$USERNAME"
-      fi
-      if [[ -z $USER_ID ]]; then
-        show_warning "No uidNumber found in LDAP, systemd-homed will auto-assign UID"
       fi
 
       if create_user; then
