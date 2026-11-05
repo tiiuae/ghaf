@@ -505,60 +505,6 @@ in
         };
       };
 
-    # Kerberos configuration '/etc/krb5.conf' auto-populated from domain settings
-    security.krb5 = optionalAttrs hasKerberosRealm {
-      enable = true;
-      settings = {
-        libdefaults = {
-          default_realm = lib.head (
-            lib.filter (realm: realm != null) (map (d: cfg.domains.${d}.krb5.realm) (lib.attrNames cfg.domains))
-          );
-          default_ccache_name = if hasKcm then "KCM:" else "FILE:/run/user/%{uid}/krb5cc_%{uid}";
-          dns_lookup_kdc = true;
-          dns_lookup_realm = true;
-        };
-        realms = lib.listToAttrs (
-          map (
-            domainName:
-            let
-              domain = cfg.domains.${domainName};
-              kdcServers = if domain.krb5.server != [ ] then domain.krb5.server else domain.ad.controllers;
-              adminServer =
-                if kdcServers != [ ] then
-                  lib.head kdcServers
-                else
-                  throw (
-                    "Cannot determine admin_server for realm ${domain.krb5.realm} "
-                    + "as no kdc or ad controllers are configured."
-                  );
-            in
-            lib.nameValuePair "${domain.krb5.realm}" {
-              kdc = kdcServers;
-              admin_server = adminServer;
-              kpasswd_server = if domain.krb5.kpasswd != [ ] then domain.krb5.kpasswd else kdcServers;
-            }
-          ) (lib.filter (name: cfg.domains.${name}.krb5.realm != null) (lib.attrNames cfg.domains))
-        );
-        domain_realm = lib.listToAttrs (
-          lib.flatten (
-            map (
-              domainName:
-              let
-                domain = cfg.domains.${domainName};
-              in
-              if domain.ad.domain != null && domain.krb5.realm != null then
-                [
-                  (lib.nameValuePair ".${domain.ad.domain}" domain.krb5.realm)
-                  (lib.nameValuePair "${domain.ad.domain}" domain.krb5.realm)
-                ]
-              else
-                [ ]
-            ) (lib.attrNames cfg.domains)
-          )
-        );
-      };
-    };
-
     # Override upstream KCM exec
     systemd.services.sssd-kcm.serviceConfig = {
       ExecStartPre = lib.mkForce "";
