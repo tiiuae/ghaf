@@ -24,7 +24,7 @@ button event.
 
 ---
 diff --git a/cosmic-panel-bin/src/xdg_shell_wrapper/client/handlers/touch.rs b/cosmic-panel-bin/src/xdg_shell_wrapper/client/handlers/touch.rs
-index 64c4278..3baa89c 100644
+index 5dfd389..4e858ba 100644
 --- a/cosmic-panel-bin/src/xdg_shell_wrapper/client/handlers/touch.rs
 +++ b/cosmic-panel-bin/src/xdg_shell_wrapper/client/handlers/touch.rs
 @@ -1,3 +1,4 @@
@@ -32,11 +32,12 @@ index 64c4278..3baa89c 100644
  use crate::xdg_shell_wrapper::server_state::{SeatPair, ServerPointerFocus};
  use crate::xdg_shell_wrapper::shared_state::GlobalState;
  use crate::xdg_shell_wrapper::space::WrapperSpace;
-@@ -6,23 +7,64 @@ use sctk::reexports::client::protocol::wl_surface::WlSurface;
+@@ -6,24 +7,64 @@ use sctk::reexports::client::protocol::wl_surface::WlSurface;
  use sctk::reexports::client::protocol::wl_touch::WlTouch;
  use sctk::reexports::client::{Connection, QueueHandle};
  use sctk::seat::touch::TouchHandler;
-+use smithay::backend::input::ButtonState;
+-use smithay::backend::input::InputTime;
++use smithay::backend::input::{ButtonState, InputTime};
 +use smithay::input::pointer::{ButtonEvent, MotionEvent};
  use smithay::input::touch::{self, TouchHandle};
  use smithay::utils::{Point, SERIAL_COUNTER};
@@ -88,7 +89,7 @@ index 64c4278..3baa89c 100644
 +            self,
 +            &ButtonEvent {
 +                serial: SERIAL_COUNTER.next_serial(),
-+                time,
++                time: InputTime::from_millis(time),
 +                button: BTN_LEFT,
 +                state: if press { ButtonState::Pressed } else { ButtonState::Released },
 +            },
@@ -100,7 +101,7 @@ index 64c4278..3baa89c 100644
  impl TouchHandler for GlobalState {
      fn down(
          &mut self,
-@@ -35,34 +77,55 @@ impl TouchHandler for GlobalState {
+@@ -36,34 +77,55 @@ impl TouchHandler for GlobalState {
          id: i32,
          location: (f64, f64),
      ) {
@@ -137,7 +138,7 @@ index 64c4278..3baa89c 100644
 -                    location: c_pos.to_f64() + Point::from(location),
 +                    location,
                      serial: SERIAL_COUNTER.next_serial(),
-                     time,
+                     time: InputTime::from_millis(time),
                  },
              );
              touch.frame(self);
@@ -157,7 +158,7 @@ index 64c4278..3baa89c 100644
 +                ptr.motion(
 +                    self,
 +                    Some((surface, s_pos)),
-+                    &MotionEvent { location, serial: SERIAL_COUNTER.next_serial(), time },
++                    &MotionEvent { location, serial: SERIAL_COUNTER.next_serial(), time: InputTime::from_millis(time) },
 +                );
 +                ptr.frame(self);
 +
@@ -166,7 +167,7 @@ index 64c4278..3baa89c 100644
          }
      }
  
-@@ -75,6 +138,8 @@ impl TouchHandler for GlobalState {
+@@ -76,6 +138,8 @@ impl TouchHandler for GlobalState {
          time: u32,
          id: i32,
      ) {
@@ -175,8 +176,8 @@ index 64c4278..3baa89c 100644
          let (_, touch) = get_touch_handle(self, touch);
  
          touch.up(
-@@ -85,6 +150,15 @@ impl TouchHandler for GlobalState {
-                 time,
+@@ -86,6 +150,15 @@ impl TouchHandler for GlobalState {
+                 time: InputTime::from_millis(time),
              },
          );
 +        touch.frame(self);
@@ -191,7 +192,7 @@ index 64c4278..3baa89c 100644
      }
  
      fn motion(
-@@ -96,6 +170,7 @@ impl TouchHandler for GlobalState {
+@@ -97,6 +170,7 @@ impl TouchHandler for GlobalState {
          id: i32,
          location: (f64, f64),
      ) {
@@ -199,7 +200,7 @@ index 64c4278..3baa89c 100644
          let (seat_name, touch) = get_touch_handle(self, touch);
  
          if let Some(surface) = self.client_state.touch_surfaces.get(&id)
-@@ -105,16 +180,26 @@ impl TouchHandler for GlobalState {
+@@ -106,16 +180,26 @@ impl TouchHandler for GlobalState {
                  surface.clone(),
              )
          {
@@ -211,10 +212,10 @@ index 64c4278..3baa89c 100644
 -                &touch::MotionEvent {
 -                    slot: Some(id as u32).into(),
 -                    location: c_pos.to_f64() + Point::from(location),
--                    time,
+-                    time: InputTime::from_millis(time),
 -                },
 +                Some((surface.clone(), s_pos)),
-+                &touch::MotionEvent { slot: Some(id as u32).into(), location, time },
++                &touch::MotionEvent { slot: Some(id as u32).into(), location, time: InputTime::from_millis(time) },
              );
              touch.frame(self);
 +
@@ -225,14 +226,14 @@ index 64c4278..3baa89c 100644
 +                ptr.motion(
 +                    self,
 +                    Some((surface, s_pos)),
-+                    &MotionEvent { location, serial: SERIAL_COUNTER.next_serial(), time },
++                    &MotionEvent { location, serial: SERIAL_COUNTER.next_serial(), time: InputTime::from_millis(time) },
 +                );
 +                ptr.frame(self);
 +            }
          }
      }
  
-@@ -142,8 +227,19 @@ impl TouchHandler for GlobalState {
+@@ -143,8 +227,19 @@ impl TouchHandler for GlobalState {
      }
  
      fn cancel(&mut self, _conn: &Connection, _qh: &QueueHandle<Self>, touch: &WlTouch) {
@@ -253,10 +254,10 @@ index 64c4278..3baa89c 100644
  }
  
 diff --git a/cosmic-panel-bin/src/xdg_shell_wrapper/client/state.rs b/cosmic-panel-bin/src/xdg_shell_wrapper/client/state.rs
-index 6bcbbe8..6f719ea 100644
+index 49f8918..e7ea5df 100644
 --- a/cosmic-panel-bin/src/xdg_shell_wrapper/client/state.rs
 +++ b/cosmic-panel-bin/src/xdg_shell_wrapper/client/state.rs
-@@ -170,6 +170,9 @@ pub struct ClientState {
+@@ -171,6 +171,9 @@ pub struct ClientState {
      pub(crate) touch_surfaces: HashMap<i32, WlSurface>,
      pub(crate) blur_enabled: bool,
  
@@ -266,7 +267,7 @@ index 6bcbbe8..6f719ea 100644
      pub delayed_surface_motion: HashMap<SmithayWlSurface, (PointerEvent, WlPointer, u128)>,
  
      pub(crate) pending_layer_surfaces: Vec<(
-@@ -324,6 +327,7 @@ impl ClientState {
+@@ -325,6 +328,7 @@ impl ClientState {
  
                  outputs: Default::default(),
                  touch_surfaces: HashMap::new(),
@@ -274,5 +275,3 @@ index 6bcbbe8..6f719ea 100644
                  registry_state,
                  multipool: None,
                  cursor_surface: None,
--- 
-2.51.2

@@ -86,7 +86,9 @@
 
     # A set of useful nix packages and utilities for ghaf
     ghafpkgs = {
-      url = "github:tiiuae/ghafpkgs";
+      # TODO: return to tiiuae/ghafpkgs once
+      # https://github.com/tiiuae/ghafpkgs/pull/412 is merged
+      url = "github:kajusnau/ghafpkgs/fix/dbus-proxy-fdo-sni-names";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
@@ -166,7 +168,7 @@
     # Nvidia Orin support for NixOS
     jetpack-nixos = {
       #url = "github:anduril/jetpack-nixos";
-      url = "github:tiiuae/jetpack-nixos/october-rebase";
+      url = "github:tiiuae/jetpack-nixos/second-october-rebase";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

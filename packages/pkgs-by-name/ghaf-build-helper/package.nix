@@ -159,8 +159,9 @@ writeShellApplication {
           fi
           echo ""
           echo "--- Package diff ---"
+          # dix 3 takes a diff subcommand; older targets still carry the bare form.
           # shellcheck disable=SC2086,SC2029
-          ssh $NIX_SSHOPTS root@ghaf-host dix "$old" "$new" || true
+          ssh $NIX_SSHOPTS root@ghaf-host "dix diff '$old' '$new' 2>/dev/null || dix '$old' '$new'" || true
         }
 
         # Detect whether the requested action is "switch"

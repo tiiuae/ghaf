@@ -53,6 +53,8 @@ in
 {
   _file = ./default.nix;
 
+  imports = [ ./osk-auto.nix ];
+
   options.ghaf.graphics.cosmic = {
     enable = mkEnableOption "the COSMIC desktop environment in Ghaf";
 

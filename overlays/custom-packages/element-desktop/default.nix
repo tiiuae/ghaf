@@ -16,10 +16,10 @@ in
   patches = [ ./element-main.patch ];
   # https://github.com/NixOS/nixpkgs/pull/160462
   installPhase = old.installPhase + ''
-    # Element loads the packed webapp.asar before this symlink, which only
-    # keeps a second copy of element-web in the closure.
-    rm $out/share/element/webapp
+    # App VMs have no keyring; without this Element blocks on a consent
+    # dialog for its basic_text fallback on first launch.
     wrapProgram $out/bin/element-desktop \
+      --add-flags --storage-mode=allow-plaintext \
       --suffix PATH : ${prev.lib.makeBinPath [ prev.xdg-utils ]} \
       --set LIBGL_ALWAYS_SOFTWARE 1 \
       --set ELECTRON_DISABLE_GPU true \

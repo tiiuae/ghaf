@@ -36,9 +36,12 @@
     # Applied by modules/reference/hardware/jetpack/default.nix.
     jetpack-python = import ./jetpack-python;
 
-    # Jetson-only build fix for the L4T OOT modules against kernels >= 6.12.97.
+    # Jetson-only build fix for the L4T OOT modules (pahole.sh exec bit).
     # Also applied by modules/reference/hardware/jetpack/default.nix.
     jetpack-nvdisplay = import ./jetpack-nvdisplay;
+
+    # Jetson-only cross build fix for the UEFI firmware's BaseTools.
+    jetpack-uefi = import ./jetpack-uefi;
 
     # This is a composition of all the overlays that are used in the project
     # and is used to export a simple default interface.

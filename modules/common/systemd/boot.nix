@@ -76,7 +76,6 @@ in
     boot.initrd = {
       services.lvm.enable = true;
       systemd = {
-        enable = true;
         inherit package;
         inherit suppressedUnits;
         emergencyAccess = cfgBase.withDebug;
