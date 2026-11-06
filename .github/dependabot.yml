@@ -4,6 +4,9 @@ updates:
       directory: /
       schedule:
           interval: weekly
+      ignore:
+          # Issuer updates require coordinating Jenkins's trustedWorkflowSha.
+          - dependency-name: tiiuae/ghaf-infra/.github/workflows/issue-source-vsa.yml
       groups:
           # init/autobuild/analyze share a config file stamped with the action
           # version; a partial bump makes analyze reject init's config.
