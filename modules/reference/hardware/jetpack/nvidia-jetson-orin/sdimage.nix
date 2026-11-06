@@ -35,7 +35,8 @@ let
   inherit (config.ghaf.hardware.nvidia.orin.diskEncryption) luksUuid;
 
   cryptsetup =
-    (pkgs.callPackage "${toString pkgs.path}/pkgs/by-name/cr/cryptsetup/package.nix" { }).overrideAttrs
+    (pkgs.buildPackages.callPackage "${toString pkgs.path}/pkgs/by-name/cr/cryptsetup/package.nix" { })
+    .overrideAttrs
       (oldAttrs: {
         # /run/cryptsetup (the upstream default) is not writable inside the
         # image build, and /build only exists on sandboxed-to-/build builders.
@@ -159,6 +160,10 @@ in
               cp -v ${config.system.build.uki}/${config.system.boot.loader.ukiFile} \
                     firmware/EFI/Linux/${config.system.boot.loader.ukiFile}
 
+              # Jetson UEFI falls back to its shell when freshly erased
+              # variables contain no boot entry. Launch the removable loader.
+              printf '%s\r\n' '\EFI\BOOT\BOOT${lib.toUpper efiArch}.EFI' > firmware/startup.nsh
+
               # Minimal loader configuration
               cat > firmware/loader/loader.conf << EOF
               timeout 0
@@ -281,27 +286,31 @@ in
             rm -f "$GHAF_LUKS_PASSPHRASE_FILE"
           ''}
         '';
-        postBuildCommands = ''
-          fdisk_output=$(fdisk -l "$img")
+        postBuildCommands =
+          lib.optionalString (config.hardware.nvidia-jetpack.som == "orin-nx") ''
+            cp -r ${pkgs.nvidia-jetpack.nvmeFlashRecoveryInputs} $out/recovery
+          ''
+          + ''
+            fdisk_output=$(fdisk -l "$img")
 
-          # Offsets and sizes are in 512 byte sectors
-          blocksize=512
+            # Offsets and sizes are in 512 byte sectors
+            blocksize=512
 
-          # ESP partition offset and sector count
-          part_esp=$(echo -n "$fdisk_output" | tail -n 2 | head -n 1 | tr -s ' ')
-          part_esp_begin=$(echo -n "$part_esp" | cut -d ' ' -f2)
-          part_esp_count=$(echo -n "$part_esp" | cut -d ' ' -f4)
+            # ESP partition offset and sector count
+            part_esp=$(echo -n "$fdisk_output" | tail -n 2 | head -n 1 | tr -s ' ')
+            part_esp_begin=$(echo -n "$part_esp" | cut -d ' ' -f2)
+            part_esp_count=$(echo -n "$part_esp" | cut -d ' ' -f4)
 
-          # root-partition offset and sector count
-          part_root=$(echo -n "$fdisk_output" | tail -n 1 | head -n 1 | tr -s ' ')
-          part_root_begin=$(echo -n "$part_root" | cut -d ' ' -f3)
-          part_root_count=$(echo -n "$part_root" | cut -d ' ' -f4)
+            # root-partition offset and sector count
+            part_root=$(echo -n "$fdisk_output" | tail -n 1 | head -n 1 | tr -s ' ')
+            part_root_begin=$(echo -n "$part_root" | cut -d ' ' -f3)
+            part_root_count=$(echo -n "$part_root" | cut -d ' ' -f4)
 
-          echo -n $part_esp_begin > $out/esp.offset
-          echo -n $part_esp_count > $out/esp.size
-          echo -n $part_root_begin > $out/root.offset
-          echo -n $part_root_count > $out/root.size
-        '';
+            echo -n $part_esp_begin > $out/esp.offset
+            echo -n $part_esp_count > $out/esp.size
+            echo -n $part_root_begin > $out/root.offset
+            echo -n $part_root_count > $out/root.size
+          '';
       };
 
     #TODO: should we use the default

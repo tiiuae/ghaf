@@ -341,17 +341,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1792582453,
-        "narHash": "sha256-1k5ozQQjztdIUhb/4gg0bRBh6jQRv5XYeHZtKwisvEQ=",
+        "lastModified": 1793784874,
+        "narHash": "sha256-TJYSDwgsBSPII80YF2jyOWhCt9ybUzgz8piv1U4CzDc=",
         "owner": "tiiuae",
         "repo": "ghaf-device-manager",
-        "rev": "b0fb434b2fe904c3b630de3962bc17734ade4320",
+        "rev": "56a0add52c928c6cad99b6222e34cf180e62842f",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
+        "ref": "main",
         "repo": "ghaf-device-manager",
-        "rev": "b0fb434b2fe904c3b630de3962bc17734ade4320",
         "type": "github"
       }
     },
@@ -548,16 +548,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1791757732,
-        "narHash": "sha256-gULUdXJf4Ag8KSxRujuKoodezRVo/poHNWfl3b80yHM=",
+        "lastModified": 1793960329,
+        "narHash": "sha256-Jd8js82Mcg5psg0YZqdjU+Z2Vjl7UU8iYP0SOEzwJKc=",
         "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "1e522ef0a00e1045ff92de3916ddc75e42d859b9",
+        "rev": "e1afeffa0f1e5133b652252376043e1665044096",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "october-rebase",
+        "ref": "second-october-rebase",
         "repo": "jetpack-nixos",
         "type": "github"
       }
@@ -590,15 +590,16 @@
         "spectrum": "spectrum"
       },
       "locked": {
-        "lastModified": 1791551030,
-        "narHash": "sha256-jTx3O3MKqPjv+cDfBFQ5zlKECBEwzF91scC+mSumZyE=",
-        "owner": "microvm-nix",
+        "lastModified": 1791877069,
+        "narHash": "sha256-JCI1hRfKEkdgKSUG+YoICH53X43MAlU2FUfY80KcnXE=",
+        "owner": "vadika",
         "repo": "microvm.nix",
-        "rev": "f13928fe9900e91709d7ce581eefa47eaafa79e1",
+        "rev": "c29fef54a82d15cfb18e5e40d86ef8b1b43169db",
         "type": "github"
       },
       "original": {
-        "owner": "microvm-nix",
+        "owner": "vadika",
+        "ref": "feat/crosvm-platform-upstream",
         "repo": "microvm.nix",
         "type": "github"
       }

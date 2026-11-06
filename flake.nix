@@ -165,14 +165,14 @@
 
     # Nvidia Orin support for NixOS
     jetpack-nixos = {
-      #url = "github:anduril/jetpack-nixos";
-      url = "github:tiiuae/jetpack-nixos/october-rebase";
+      url = "github:tiiuae/jetpack-nixos/second-october-rebase";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # For building and managing VMs
     microvm = {
-      url = "github:microvm-nix/microvm.nix";
+      # TODO: restore the upstream input after microvm.nix#586 merges.
+      url = "github:vadika/microvm.nix/feat/crosvm-platform-upstream";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -225,7 +225,7 @@
     };
 
     ghaf-device-manager = {
-      url = "github:tiiuae/ghaf-device-manager/b0fb434b2fe904c3b630de3962bc17734ade4320";
+      url = "github:tiiuae/ghaf-device-manager/main";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

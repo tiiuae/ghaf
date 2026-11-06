@@ -45,6 +45,22 @@ in
   };
 
   config = mkMerge [
+    # Preserve the shared x86 kernel and patch order; add the driver for other TPM guests.
+    (mkIf
+      (
+        vmm == "crosvm"
+        && (pkgs.stdenv.hostPlatform.isx86_64 || cfg.passthrough.enable || cfg.emulated.enable)
+      )
+      {
+        boot.kernelPatches = lib.mkAfter [
+          {
+            name = "chromiumos-virtio-tpm";
+            patch = ../sysvms/patches/chromiumos-virtio-tpm.patch;
+            structuredExtraConfig.TCG_VIRTIO_VTPM = lib.kernel.module;
+          }
+        ];
+      }
+    )
     (mkIf (cfg.passthrough.enable || cfg.emulated.enable) {
       assertions = [
         {

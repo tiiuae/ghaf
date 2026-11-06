@@ -55,6 +55,7 @@ in
     ./crosvm-dax.nix
     ./networking.nix
     ./shared-mem.nix
+    ./crosvm-shutdown.nix
     ./boot.nix
     ./vtpm-proxy.nix
   ];
@@ -369,12 +370,12 @@ in
       systemd.tmpfiles.rules =
         let
           vmDirs = map (
-            n: "d /persist/storagevm/shared/shares/Unsafe\\x20${n}\\x20share/ 0760 ${loginUserUid} users"
+            n: "d /persist/storagevm/shared/shares/Unsafe\\x20${n}\\x20share/ 0770 ${loginUserUid} users"
           ) cfg.sharedVmDirectory.vms;
         in
         [
           "d /persist/storagevm/shared 0755 root root"
-          "d /persist/storagevm/shared/shares 0760 ${loginUserUid} users"
+          "d /persist/storagevm/shared/shares 0770 ${loginUserUid} users"
         ]
         ++ vmDirs;
     })

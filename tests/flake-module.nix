@@ -42,9 +42,11 @@
           # firewall = pkgs.callPackage ./firewall { inherit self; };
           cosmic-panels = pkgs.callPackage ./cosmic/panels.nix { inherit self; };
           cosmic-shortcuts = pkgs.callPackage ./cosmic/shortcuts.nix { inherit self; };
+          cosmic-headless-greeter = pkgs.callPackage ./cosmic/headless-greeter.nix { inherit self; };
           flatpak-options = pkgs.callPackage ./flatpak/options.nix { inherit self; };
           microvm-tpm-vmm-parity = pkgs.callPackage ./microvm/tpm-vmm-parity.nix { inherit self; };
           org-config = pkgs.callPackage ./org-config { inherit self; };
+          orin-crosvm-targets = pkgs.callPackage ./orin-crosvm-targets.nix { inherit self; };
           uplink-resolver = pkgs.callPackage ./uplink-resolver { };
           attack-mitigation-arp-spoofing = pkgs.callPackage ./attack-mitigation/arp-spoofing.nix { };
           attack-mitigation-mac-ip-spoofing = pkgs.callPackage ./attack-mitigation/mac-ip-spoofing.nix { };
