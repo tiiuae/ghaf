@@ -165,8 +165,7 @@
 
     # Nvidia Orin support for NixOS
     jetpack-nixos = {
-      # Restore second-october-rebase after jetpack-nixos#27 merges.
-      url = "github:vadika/jetpack-nixos/fix/recovery-inputs-native-build";
+      url = "github:tiiuae/jetpack-nixos/second-october-rebase";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

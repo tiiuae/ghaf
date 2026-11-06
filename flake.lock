@@ -548,16 +548,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1793917087,
+        "lastModified": 1793960329,
         "narHash": "sha256-Jd8js82Mcg5psg0YZqdjU+Z2Vjl7UU8iYP0SOEzwJKc=",
-        "owner": "vadika",
+        "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "d7759c699e0d628e73e3329326a2c31c2ec4ac8e",
+        "rev": "e1afeffa0f1e5133b652252376043e1665044096",
         "type": "github"
       },
       "original": {
-        "owner": "vadika",
-        "ref": "fix/recovery-inputs-native-build",
+        "owner": "tiiuae",
+        "ref": "second-october-rebase",
         "repo": "jetpack-nixos",
         "type": "github"
       }
