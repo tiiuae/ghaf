@@ -146,6 +146,8 @@ in
     ];
 
     hardware.nvidia-jetpack.firmware.optee = {
+      # Keep OP-TEE secure storage across A/B slot updates.
+      supplicant.fsParentPath = "/persist/data/tee";
       pkcs11Support = cfg.pkcs11.enable;
       extraMakeFlags =
         (lib.optionals cfg.pkcs11.enable [
