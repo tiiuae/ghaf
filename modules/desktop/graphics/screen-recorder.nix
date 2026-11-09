@@ -35,7 +35,7 @@ let
       video="$HOME/Videos/ghaf-screen-capture_$(date +"%Y-%m-%d_%H-%M-%S").mp4"
 
       # Start recording
-      if gpu-screen-recorder \
+      gpu-screen-recorder \
           -w portal \
           -c mp4 \
           -k h264 \
@@ -48,7 +48,11 @@ let
           -q very_high \
           -a device:default_output \
           -o "$video" &
-      then
+      recorder=$!
+
+      # Backgrounding always succeeds, so check the recorder survived startup
+      sleep 1
+      if kill -0 "$recorder" 2>/dev/null; then
           notify-send -h byte:urgency:0 -t 5000 -h "string:image-path:gpu-screen-recorder" -a "GPU Screen Recorder" \
               "Screen recording started" "Use CTRL+SHIFT+ALT+R to stop recording"
       else
