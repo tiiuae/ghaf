@@ -23,7 +23,7 @@ writeShellApplication {
         -h, --help            Show this help message and exit.
 
     Examples:
-        $(basename "$0") slack
+        $(basename "$0") Slack
         $(basename "$0") --list
     EOF
     }
@@ -31,7 +31,7 @@ writeShellApplication {
     extract_exec() {
         awk -F= '
         /^Exec=/ {
-            cmd=$2
+            cmd=substr($0, 6)
             gsub(/ %[fFuUdDnNickvm]/, "", cmd)
             print cmd
             exit
@@ -113,7 +113,7 @@ writeShellApplication {
                     break
                 fi
             done
-            if [[ -z "$WAYLAND_DISPLAY" ]]; then
+            if [[ -z "''${WAYLAND_DISPLAY:-}" ]]; then
                 echo "No Wayland socket found, continuing without WAYLAND_DISPLAY"
             fi
         fi
