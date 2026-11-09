@@ -118,16 +118,6 @@ let
     "application/x-smil"
     "text/google-video-pointer"
     "x-content/video-dvd"
-    "x-scheme-handler/pnm"
-    "x-scheme-handler/mms"
-    "x-scheme-handler/net"
-    "x-scheme-handler/rtp"
-    "x-scheme-handler/rtmp"
-    "x-scheme-handler/rtsp"
-    "x-scheme-handler/mmsh"
-    "x-scheme-handler/uvox"
-    "x-scheme-handler/icy"
-    "x-scheme-handler/icyx"
   ];
 
   # Maps a list of MIME types to a default application as an attribute set.
@@ -235,6 +225,7 @@ let
 
           if [[ "$resourceType" == "url" ]]; then
             open_url
+            exit 0
           fi
         '';
       in
