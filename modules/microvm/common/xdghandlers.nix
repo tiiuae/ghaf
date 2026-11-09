@@ -28,6 +28,12 @@ let
       text =
         let
           envFlags = lib.concatStringsSep " " (lib.mapAttrsToList (k: v: "--setenv=${k}=${v}") env);
+          # media-vm serves every AppVM, so nothing saved may outlive the viewer or reach a source VM.
+          sandboxFlags = lib.concatStringsSep " " [
+            "--property=TemporaryFileSystem=/home/${config.ghaf.users.appUser.name}:mode=0700"
+            "--property=ReadOnlyPaths=/run/xdg"
+            "--property=PrivateTmp=yes"
+          ];
         in
         ''
           file="$1"
@@ -39,7 +45,7 @@ let
           trap cleanup EXIT
 
           echo "${name}: Opening file $file using ${package.name}"
-          systemd-run --unit=${name} --property=ExitType=cgroup --wait --service-type=${serviceType} --user ${envFlags} -- ${execCmd} "$file"
+          systemd-run --collect --property=ExitType=cgroup --wait --service-type=${serviceType} --user ${envFlags} ${sandboxFlags} -- ${execCmd} "$file"
         '';
     };
 
@@ -60,7 +66,6 @@ let
   xdgOpenImage = mkXdgFileOpener {
     name = "xdg-open-image";
     inherit (cfg.image) package;
-    serviceType = "forking";
     env.RUST_LOG = "error";
   };
 
