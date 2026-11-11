@@ -46,15 +46,6 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
 
 ## Backports carried in overlays
 
-- [Orin Crosvm runtime fixes](https://github.com/tiiuae/ghaf-crosvm/pull/20) (open)
-
-  `crosvm-pmem-ext2-low-address.patch` keeps the store within the ARM64 linear
-  mapping range. `crosvm-dce-defer-thread.patch` starts the DCE relay after device
-  processes are created. `crosvm-arm64-readonly-cache-maintenance.patch` handles
-  read-only cache maintenance and injects guest aborts for other NISV faults.
-  These patches apply only to AArch64. Remove each when its corresponding commit
-  is merged and included in the `ghaf-crosvm` input.
-
 - [execline: prepend target triple to pkg-config calls when cross](https://github.com/NixOS/nixpkgs/pull/560025)
 
   `overlays/cross-compilation/default.nix` adds `buildPackages.pkg-config` to
