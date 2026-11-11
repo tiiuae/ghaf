@@ -284,6 +284,9 @@ in
   config = lib.mkIf cfg.enable (
     lib.mkMerge [
       {
+        # Desktop defaults can enable qt5ct even with the Stylix target disabled.
+        qt.enable = lib.mkIf isCross false;
+
         stylix = {
           enable = cfg.stylix.enable;
 
