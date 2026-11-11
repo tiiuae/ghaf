@@ -60,7 +60,7 @@ def journal(boot, *matches):
 def startup_entry(entry):
     timestamp = int(entry["__REALTIME_TIMESTAMP"])
     original = datetime.datetime.fromtimestamp(
-        timestamp // 1_000_000, datetime.timezone.utc
+        timestamp // 1_000_000, datetime.UTC
     ).strftime("%Y-%m-%dT%H:%M:%S")
     original += f".{timestamp % 1_000_000:06d}Z"
     return {
