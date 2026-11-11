@@ -259,6 +259,7 @@ in
             microvm.devices = [ ];
             imports = [
               ../services/pac/pac.nix
+              ../services/proxy/client.nix
               ../services/wireguard-gui/wireguard-gui.nix
             ];
 
@@ -305,6 +306,7 @@ in
                     proxyPort = config.ghaf.reference.services.proxy-server.bindPort;
                   };
                 };
+                proxy-client.enable = true;
 
                 # Enable WireGuard GUI
                 wireguard-gui = {
