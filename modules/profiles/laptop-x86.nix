@@ -4,6 +4,7 @@
   config,
   lib,
   inputs,
+  pkgs,
   ...
 }:
 let
@@ -84,13 +85,10 @@ in
             inputs.self.nixosModules.microvm-nix
             inputs.self.nixosModules.guivm-base
             inputs.self.nixosModules.guivm-features
-            # Import nixpkgs config module to get overlays
             {
-              nixpkgs = {
-                hostPlatform.system = "x86_64-linux";
-                inherit (config.nixpkgs) overlays;
-                inherit (config.nixpkgs) config;
-              };
+              nixpkgs.pkgs = lib.mkDefault pkgs;
+              # Stylix overlays would force a separate package set just to theme gtksourceview.
+              stylix.overlays.enable = lib.mkDefault false;
             }
           ];
           specialArgs = lib.ghaf.vm.mkSpecialArgs {
@@ -110,14 +108,7 @@ in
             inputs.self.nixosModules.microvm-nix
             inputs.self.nixosModules.adminvm-base
             inputs.self.nixosModules.adminvm-features
-            # Import nixpkgs config module to get overlays
-            {
-              nixpkgs = {
-                hostPlatform.system = "x86_64-linux";
-                inherit (config.nixpkgs) overlays;
-                inherit (config.nixpkgs) config;
-              };
-            }
+            { nixpkgs.pkgs = lib.mkDefault pkgs; }
           ];
           specialArgs = lib.ghaf.vm.mkSpecialArgs {
             inherit lib inputs;
@@ -134,7 +125,7 @@ in
           modules = [
             inputs.self.nixosModules.microvm-nix
             inputs.self.nixosModules.idsvm-base
-            # Import nixpkgs config module to get overlays
+            # microvm.optimize adds an overlay in idsvm-base, forcing a separate package set.
             {
               nixpkgs = {
                 hostPlatform.system = "x86_64-linux";
@@ -159,14 +150,7 @@ in
             inputs.self.nixosModules.microvm-nix
             inputs.self.nixosModules.audiovm-base
             inputs.self.nixosModules.audiovm-features
-            # Import nixpkgs config module to get overlays
-            {
-              nixpkgs = {
-                hostPlatform.system = "x86_64-linux";
-                inherit (config.nixpkgs) overlays;
-                inherit (config.nixpkgs) config;
-              };
-            }
+            { nixpkgs.pkgs = lib.mkDefault pkgs; }
           ];
           specialArgs = lib.ghaf.vm.mkSpecialArgs {
             inherit lib inputs;
@@ -185,14 +169,7 @@ in
             inputs.self.nixosModules.microvm-nix
             inputs.self.nixosModules.netvm-base
             inputs.self.nixosModules.netvm-features
-            # Import nixpkgs config module to get overlays
-            {
-              nixpkgs = {
-                hostPlatform.system = "x86_64-linux";
-                inherit (config.nixpkgs) overlays;
-                inherit (config.nixpkgs) config;
-              };
-            }
+            { nixpkgs.pkgs = lib.mkDefault pkgs; }
           ];
           specialArgs = lib.ghaf.vm.mkSpecialArgs {
             inherit lib inputs;
@@ -221,13 +198,9 @@ in
             modules = [
               inputs.self.nixosModules.microvm-nix
               inputs.self.nixosModules.appvm-base
-              # Import nixpkgs config module to get overlays
               {
-                nixpkgs = {
-                  hostPlatform.system = "x86_64-linux";
-                  inherit (config.nixpkgs) overlays;
-                  inherit (config.nixpkgs) config;
-                };
+                nixpkgs.pkgs = lib.mkDefault pkgs;
+                stylix.overlays.enable = lib.mkDefault false;
               }
             ]
             ++ resolved.extraModules;
