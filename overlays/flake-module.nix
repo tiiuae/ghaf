@@ -10,15 +10,6 @@ let
   crosvmPkg = _final: prev: {
     crosvm = prev.crosvm.overrideAttrs (old: {
       src = inputs.ghaf-crosvm;
-      patches = prev.lib.unique (
-        (old.patches or [ ])
-        # TODO: drop after https://github.com/tiiuae/ghaf-crosvm/pull/20 merges and the input is bumped.
-        ++ prev.lib.optionals prev.stdenv.hostPlatform.isAarch64 [
-          ./crosvm-pmem-ext2-low-address.patch
-          ./crosvm-dce-defer-thread.patch
-          ./crosvm-arm64-readonly-cache-maintenance.patch
-        ]
-      );
       cargoDeps = prev.rustPlatform.fetchCargoVendor {
         src = inputs.ghaf-crosvm;
         hash = "sha256-lU30pTzJ1hYyHcpFKemZou9d2ZqSlFu4JC+IUe2Gm5A=";

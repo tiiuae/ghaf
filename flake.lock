@@ -426,11 +426,11 @@
     "ghaf-crosvm": {
       "flake": false,
       "locked": {
-        "lastModified": 1793262604,
-        "narHash": "sha256-DiuwDdUh32cwDkes1yFQ9LGO0NvE+ZTsWRQk8yo/y7A=",
+        "lastModified": 1794395287,
+        "narHash": "sha256-oHFA7ZJ3bjtG1++YkT/Aga8BERTZO1pQD2zrkg5JgPc=",
         "ref": "main",
-        "rev": "aa517c2d275c55d28bbf7384ce216027807cbb00",
-        "revCount": 11742,
+        "rev": "7b3fe507fb1633a208c62bf2bccee107d82cda18",
+        "revCount": 11746,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/tiiuae/ghaf-crosvm"
