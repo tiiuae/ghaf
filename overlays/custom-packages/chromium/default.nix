@@ -10,8 +10,9 @@
 #      toolchain) actions -- those then see only aarch64 libc headers and die
 #      on aarch64 SVE types (`unknown type name '__SVFloat32_t'`). Patch
 #      run_bindgen.py so invocations whose clang --target matches the build
-#      platform get the build glibc via BINDGEN_EXTRA_CLANG_ARGS (-isystem
-#      wins over the wrapper's -idirafter); target invocations are untouched.
+#      platform get the build target and glibc via BINDGEN_EXTRA_CLANG_ARGS.
+#      This overrides the wrapper's appended AArch64 target, and -isystem
+#      wins over its -idirafter. Target invocations are untouched.
 #   2. dawn's pure-Go codegen host tool: the nixpkgs go attempts external
 #      linking unconditionally, and with the cross derivation's CC pointing at
 #      aarch64 clang the link feeds amd64 objects to the aarch64 linker.
@@ -58,7 +59,7 @@ let
             ln -sfn ${prev.buildPackages.rustc.unwrapped}/bin/rustc third_party/rust-toolchain/bin/rustc
             substituteInPlace build/rust/gni_impl/run_bindgen.py --replace-fail \
               "env = os.environ" \
-              "env = os.environ; env.update({'BINDGEN_EXTRA_CLANG_ARGS': '-isystem ${lib.getDev prev.pkgsBuildBuild.stdenv.cc.libc}/include'} if any(a.startswith('--target=${stdenv.buildPlatform.parsed.cpu.name}') for a in genargs) else {})"
+              "env = os.environ; env.update({'BINDGEN_EXTRA_CLANG_ARGS': '--target=${stdenv.buildPlatform.config} -isystem ${lib.getDev prev.pkgsBuildBuild.stdenv.cc.libc}/include'} if any(a.startswith('--target=${stdenv.buildPlatform.parsed.cpu.name}') for a in genargs) else {})"
           '';
         preConfigure = (old.preConfigure or "") + ''
           export CGO_ENABLED=0
