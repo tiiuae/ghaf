@@ -13,10 +13,8 @@
   ];
 
   # jetpack-nixos' EDK2/UEFI firmware build needs a setuptools that still ships
-  # pkg_resources. That acts on pythonPackagesExtensions, i.e. on every Python
-  # package in the instance, so it is scoped to the Jetson targets rather than
-  # living in overlays.default -- globally it breaks packages that need a newer
-  # setuptools (see overlays/jetpack-python/default.nix).
+  # pkg_resources. Keep the fixes scoped to its Python 3.12 interpreter and
+  # Jetson targets (see overlays/jetpack-python/default.nix).
   nixpkgs.overlays = [
     self.overlays.jetpack-python
     self.overlays.jetpack-nvdisplay
