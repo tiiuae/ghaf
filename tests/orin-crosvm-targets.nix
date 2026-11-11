@@ -233,7 +233,11 @@ let
     {
       name = "MGBE0 timeouts retain the DMA owner instead of force-stopping it";
       ok =
-        agxNetService.serviceConfig.KillMode == "none" && agxNetService.unitConfig.SurviveFinalKillSignal;
+        agxNetService.serviceConfig.KillMode == "none"
+        && agxNetService.unitConfig.SurviveFinalKillSignal
+        && lib.any (
+          command: lib.hasInfix "guard-crosvm-net-vm-start" command
+        ) agxNetService.serviceConfig.ExecStartPre;
     }
     {
       name = "Crosvm shutdown is bounded and reuses the MicroVM helper";

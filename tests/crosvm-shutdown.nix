@@ -51,8 +51,33 @@ let
       retrySec = 0;
       deadlineSec = 3;
     };
+  startGuard = import ../modules/microvm/host/crosvm-start-guard.nix {
+    inherit pkgs;
+    name = "test-vm";
+    cgroupRoot = "cgroup";
+    selfCgroup = "self-cgroup";
+  };
+  start = pkgs.writeShellScript "test-crosvm-start" ''
+    echo "$$" > cgroup/system.slice/microvm@test-vm.service/.control/cgroup.procs
+    exec ${startGuard}
+  '';
 in
 runCommand "crosvm-shutdown" { } ''
+  mkdir -p cgroup/system.slice/microvm@test-vm.service/{.control,vcpu}
+  echo '0::/system.slice/microvm@test-vm.service/.control' > self-cgroup
+  : > cgroup/system.slice/microvm@test-vm.service/cgroup.procs
+  : > cgroup/system.slice/microvm@test-vm.service/vcpu/cgroup.procs
+  ${start}
+  for location in cgroup.procs vcpu/cgroup.procs; do
+    echo 12345 > "cgroup/system.slice/microvm@test-vm.service/$location"
+    if ${start} > log 2>&1; then exit 1; fi
+    grep -q 'retains process 12345' log
+    : > "cgroup/system.slice/microvm@test-vm.service/$location"
+    ${start}
+  done
+  echo '0::/' > self-cgroup
+  if ${start} > log 2>&1; then exit 1; fi
+  grep -q 'cannot inspect' log
   mkdir -p state/test-vm/booted/bin
   cat > state/test-vm/booted/bin/microvm-shutdown <<'HELPER'
   #!${pkgs.runtimeShell}
