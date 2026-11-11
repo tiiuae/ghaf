@@ -28,6 +28,7 @@ let
   nixosFwPrefix = "nixos-";
   ghafFwChainPrefix = cfg.chainNamePrefix;
   dynPrefix = "${ghafFwChainPrefix}dyn-";
+  policyPrefix = "${ghafFwChainPrefix}policy-";
   ipt = cfg.cmd;
 
   # Remove, (re)create, and optionally hook a chain. flag is "-I" or "-A".
@@ -39,9 +40,22 @@ let
     ) "${ipt} -t ${table} ${flag} ${hook} -j ${name} 2>/dev/null || true"}
   '';
 
-  setupDynChain =
-    table: parent: suffix:
-    setupChain parent table "${dynPrefix}${table}-${suffix}" "-A";
+  # Never flushed here, so rules added at runtime survive a reload.
+  setupDynChain = table: parent: suffix: ''
+    ${ipt} -t ${table} -N ${dynPrefix}${table}-${suffix} 2>/dev/null || true
+    ${ipt} -t ${table} -A ${parent} -j ${dynPrefix}${table}-${suffix}
+  '';
+
+  setupPolicyChain =
+    table: suffix:
+    let
+      dyn = "${dynPrefix}${table}-${suffix}";
+      policy = "${policyPrefix}${table}-${suffix}";
+    in
+    ''
+      ${ipt} -t ${table} -N ${policy} 2>/dev/null || true
+      ${ipt} -t ${table} -C ${dyn} -j ${policy} 2>/dev/null || ${ipt} -t ${table} -A ${dyn} -j ${policy}
+    '';
 
   # A port open to everyone, or an entry naming its direction and the other end.
   portEntry = types.either types.port (
@@ -579,18 +593,20 @@ let
       TRANSFORM=$(mktemp)
       trap 'rm -f "$TRANSFORM"' EXIT
 
-      # Rewrite built-in chain targets (INPUT, OUTPUT, ...) to their ghaf-fw-dyn-*
+      # Rewrite built-in chain targets (INPUT, OUTPUT, ...) to their ${policyPrefix}*
       # counterparts so rules land in sub-chains instead of the base firewall chains.
       # Built-in chain policy lines (:INPUT ...) and flush commands (-F INPUT) are
       # dropped — the base firewall manages those.
       awk '
+        # iptables caps chain names at 28 characters.
+        BEGIN { short["INPUT"] = "in"; short["OUTPUT"] = "out"; short["FORWARD"] = "fwd"; short["PREROUTING"] = "pre"; short["POSTROUTING"] = "post" }
         /^\*(filter|nat|mangle|raw)/ { table = substr($0, 2); print; next }
         /^COMMIT/ { print; next }
         /^-F (INPUT|OUTPUT|FORWARD|PREROUTING|POSTROUTING)( |$)/ { next }
         /^:(INPUT|OUTPUT|FORWARD|PREROUTING|POSTROUTING)( |$)/ { next }
         /^-A / {
           if ($2 ~ /^(INPUT|OUTPUT|FORWARD|PREROUTING|POSTROUTING)$/) {
-            dyn = "${dynPrefix}" table "-" tolower($2)
+            dyn = "${policyPrefix}" table "-" short[$2]
             if (!(dyn in ok)) {
               ok[dyn] = (system("${ipt} -t " table " -L " dyn " >/dev/null 2>&1") == 0)
               if (!ok[dyn]) {
@@ -605,10 +621,10 @@ let
         { print }
       ' "${rulePath}" > "$TRANSFORM"
 
-      # Flush all ghaf-fw-dyn-* chains before applying the new rules so stale
+      # Flush all ${policyPrefix}* chains before applying the new rules so stale
       # entries from the previous run don't accumulate
       for tbl in filter nat mangle raw; do
-        ${ipt} -t "$tbl" -S 2>/dev/null | awk '/^-N ${dynPrefix}/ { print $2 }' | while IFS= read -r chn; do
+        ${ipt} -t "$tbl" -S 2>/dev/null | awk '/^-N ${policyPrefix}/ { print $2 }' | while IFS= read -r chn; do
           log_info "Flushing chain $chn (table $tbl)"
           ${ipt} -t "$tbl" -F "$chn" 2>/dev/null || true
         done
@@ -907,6 +923,7 @@ in
       default = { };
       description = "Extra firewall rules";
     };
+    dynamicChains.enable = mkEnableOption "chains for rules added at runtime, kept across firewall reloads";
     updater.enable = mkEnableOption "live update firewall rules";
     updater.url = mkOption {
       type = types.str;
@@ -958,6 +975,7 @@ in
 
     # Include required kernel modules for firewall
     ghaf.firewall.kernel-modules.enable = true;
+    ghaf.firewall.dynamicChains.enable = mkIf cfg.updater.enable true;
 
     # Debug images: bound the outage for a source that backs off. Set here, not
     # in attack-mitigation.nix, because tcpBlacklistRules/udpBlacklistRules feed
@@ -1102,8 +1120,10 @@ in
 
           ### OUTPUT rules ###
           ${ipt} -A ${ghafFwChainPrefix}out-filter -o lo -j ACCEPT
-          ${ipt} -A ${ghafFwChainPrefix}out-filter -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-          ${ipt} -A ${ghafFwChainPrefix}out-filter -p icmp -j ACCEPT
+          # Ahead of every other accept, so a runtime kill-switch sees all outgoing traffic.
+          ${optionalString cfg.dynamicChains.enable (
+            setupDynChain "filter" "${ghafFwChainPrefix}out-filter" "out"
+          )}
 
           ### POSTROUTING rules ###
 
@@ -1146,23 +1166,34 @@ in
 
         '';
       }
-      (mkIf cfg.logRefusedOutput {
-        # Last, after any dynamic output chain, so it only sees what policy DROP will drop.
+      {
+        # Last, after any dynamic output chain, so policy rules also cut open
+        # connections and ICMP; LOG then only sees what policy DROP will drop.
         extraCommands = lib.mkAfter ''
-          ${ipt} -A ${ghafFwChainPrefix}out-filter -m limit --limit 10/min -j LOG --log-prefix "refused output: " --log-level 4
+          ${ipt} -A ${ghafFwChainPrefix}out-filter -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+          ${ipt} -A ${ghafFwChainPrefix}out-filter -p icmp -j ACCEPT
+          ${optionalString cfg.logRefusedOutput ''${ipt} -A ${ghafFwChainPrefix}out-filter -m limit --limit 10/min -j LOG --log-prefix "refused output: " --log-level 4''}
+        '';
+      }
+      (mkIf cfg.dynamicChains.enable {
+        extraCommands = ''
+          ${setupDynChain "filter" "${ghafFwChainPrefix}in-filter" "in"}
+          ${setupDynChain "filter" "${ghafFwChainPrefix}fwd-filter" "fwd"}
+          ${setupDynChain "mangle" "${ghafFwChainPrefix}pre-mangle" "pre"}
+          ${setupDynChain "nat" "${ghafFwChainPrefix}pre-nat" "pre"}
+          ${setupDynChain "nat" "${ghafFwChainPrefix}post-nat" "post"}
         '';
       })
       (mkIf cfg.updater.enable {
-        # Create dedicated dynamic chains jumped from the extension chains.
-        # Only these ${dynPrefix}* chains are flushed and reloaded on live updates,
-        # keeping all core chains (${ghafFwChainPrefix}ban, ${ghafFwChainPrefix}conncheck-accept, etc.) intact.
+        # The updater flushes only its own ${policyPrefix}* chains, hooked last
+        # in the dynamic chains, so rules others add there stay ahead of policy.
         extraCommands = ''
-          ${setupDynChain "filter" "${ghafFwChainPrefix}in-filter" "input"}
-          ${setupDynChain "filter" "${ghafFwChainPrefix}fwd-filter" "forward"}
-          ${setupDynChain "filter" "${ghafFwChainPrefix}out-filter" "output"}
-          ${setupDynChain "mangle" "${ghafFwChainPrefix}pre-mangle" "prerouting"}
-          ${setupDynChain "nat" "${ghafFwChainPrefix}pre-nat" "prerouting"}
-          ${setupDynChain "nat" "${ghafFwChainPrefix}post-nat" "postrouting"}
+          ${setupPolicyChain "filter" "in"}
+          ${setupPolicyChain "filter" "fwd"}
+          ${setupPolicyChain "filter" "out"}
+          ${setupPolicyChain "mangle" "pre"}
+          ${setupPolicyChain "nat" "pre"}
+          ${setupPolicyChain "nat" "post"}
         '';
       })
       cfg.extraOptions
