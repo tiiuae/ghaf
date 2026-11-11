@@ -74,6 +74,11 @@ in
                 TimeoutStopSec = lib.mkForce "95";
                 # A timed-out quiesce must not turn into systemd killing an active DMA owner.
                 KillMode = lib.mkIf (requiresQuiesce vm) (lib.mkForce "none");
+                ExecStartPre = lib.mkIf (requiresQuiesce vm) (
+                  lib.mkBefore [
+                    (import ./crosvm-start-guard.nix { inherit pkgs name; })
+                  ]
+                );
                 ExecStop = lib.mkForce [
                   ""
                   (mkVerifyScript name)
