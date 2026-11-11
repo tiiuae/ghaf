@@ -3,24 +3,21 @@
 #
 # Python fixes needed only to build jetpack-nixos' UEFI/EDK2 firmware.
 #
-# These are deliberately NOT part of `overlays.default`. Every entry reaches into
-# `pythonPackagesExtensions`, which rewrites *every* Python package in the pkgs
-# instance -- and `setuptools-pkg-resources` in particular pins setuptools back
-# to 80.x, which breaks any package requiring a newer one (hpack 4.2.0 wants
-# >= 82, and takes h2 -> twisted -> s-tui -> system-path down with it).
-#
-# That pin also makes every Python package a cache miss, so packages that are
-# normally substituted now build from source and run their test suites;
-# `threadpoolctl-no-check` deals with the fallout of that.
-#
-# Only the Jetson targets build the EDK2 firmware, so this overlay is applied by
-# the jetpack module (modules/reference/hardware/jetpack/default.nix) instead of
-# globally, the same way `overlays.cross-compilation` is applied only for the
-# `-from-x86_64` variants.
+# Apply only to the Python 3.12 interpreter used by stuart.nix. Applying even
+# test-only overrides to the image's default Python changes SCons dependencies,
+# then PipeWire, GTK and Chromium, losing their binary-cache matches.
+# The Jetpack module keeps this overlay out of non-Jetson targets.
 (_final: prev: {
   pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
-    (import ./setuptools-pkg-resources)
-    (import ./threadpoolctl-no-check)
-    (import ./typer-file-error)
+    (
+      pythonFinal: pythonPrev:
+      prev.lib.optionalAttrs (pythonPrev.pythonAtLeast "3.12" && pythonPrev.pythonOlder "3.13") (
+        prev.lib.composeManyExtensions [
+          (import ./setuptools-pkg-resources)
+          (import ./threadpoolctl-no-check)
+          (import ./typer-file-error)
+        ] pythonFinal pythonPrev
+      )
+    )
   ];
 })

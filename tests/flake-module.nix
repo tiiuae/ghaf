@@ -48,6 +48,7 @@
           org-config = pkgs.callPackage ./org-config { inherit self; };
           orin-crosvm-targets = pkgs.callPackage ./orin-crosvm-targets.nix { inherit self; };
           crosvm-shutdown = pkgs.callPackage ./crosvm-shutdown.nix { inherit self; };
+          chromium-package-parity = pkgs.callPackage ./chromium-package-parity.nix { inherit self; };
           uplink-resolver = pkgs.callPackage ./uplink-resolver { };
           attack-mitigation-arp-spoofing = pkgs.callPackage ./attack-mitigation/arp-spoofing.nix { };
           attack-mitigation-mac-ip-spoofing = pkgs.callPackage ./attack-mitigation/mac-ip-spoofing.nix { };
