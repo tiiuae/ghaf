@@ -285,6 +285,8 @@ in
     lib.mkMerge [
       {
         # Desktop defaults can enable qt5ct even with the Stylix target disabled.
+        # Cross images intentionally omit Qt platform theming until qt5ct/qt6ct
+        # cross-build; keep this aligned with the Stylix restriction below.
         qt.enable = lib.mkIf isCross false;
 
         stylix = {
