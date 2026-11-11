@@ -35,6 +35,7 @@
     papirus-icon-theme = import ./papirus-icon-theme { inherit prev; };
     qt6Packages = import ./qt6Packages { inherit prev; };
     spire4ghaf = import ./spire4ghaf { inherit prev; };
+    switcheroo-control = import ./switcheroo-control { inherit prev; };
     udiskie = import ./udiskie { inherit prev; };
     waypipe = import ./waypipe { inherit prev; };
     yad = import ./yad { inherit prev; };
