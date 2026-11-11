@@ -37,6 +37,19 @@ in
       default = [ ];
       description = "Wireguard server ports";
     };
+    endpointPorts = lib.mkOption {
+      type = lib.types.submodule {
+        options = {
+          from = lib.mkOption { type = lib.types.port; };
+          to = lib.mkOption { type = lib.types.port; };
+        };
+      };
+      default = {
+        from = 51820;
+        to = 51830;
+      };
+      description = "UDP port range of the peers' endpoints";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -60,7 +73,19 @@ in
         }
       ];
 
-      firewall.allowedUDPPorts = cfg.serverPorts;
+      firewall = {
+        allowedUDPPorts = cfg.serverPorts ++ [
+          {
+            port = cfg.endpointPorts;
+            direction = "output";
+          }
+        ];
+        # Kernel sockets have no owner, so only WireGuard's own packets pass.
+        extra.output.filter = [
+          "-p udp --dport ${toString cfg.endpointPorts.from}:${toString cfg.endpointPorts.to} -m owner --uid-owner 0-4294967294 -j REJECT"
+        ];
+        dynamicChains.enable = true;
+      };
     };
 
     systemd.tmpfiles.rules = [

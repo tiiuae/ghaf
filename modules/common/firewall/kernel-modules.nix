@@ -51,6 +51,7 @@ in
           NETFILTER_XT_MATCH_MARK = module;
           NETFILTER_XT_MATCH_STATE = module;
           NETFILTER_XT_MATCH_CONNMARK = module;
+          NETFILTER_XT_MATCH_OWNER = module;
 
           IP_SET = module;
           IP_SET_HASH_IP = module;
