@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 
-"""Evaluate flake outputs using nix-eval-jobs with index-based sharding."""
+"""Evaluate flake outputs using nix-eval-jobs with target-family sharding."""
 
 import json
 import shutil
@@ -15,109 +15,146 @@ from typing import Any
 
 # One worker: the default is one per core, which commits the whole 4-vCPU/16 GB
 # `ubuntu-24.04-arm` runner. nix-eval-jobs 2.35.3 made --max-memory-size a real
-# budget, so it has to clear the heaviest attribute -- the `-installer` images
-# measure 9.5-10.2 GiB each under nix-eval-jobs (`nix eval` understates by ~3 GiB).
+# budget, so it has to clear the heaviest family -- intel-laptop-extras-debug with
+# its installer peaks at about 7.9 GiB under nix-eval-jobs (`nix eval` understates).
 EVAL_WORKERS = 1
 EVAL_MAX_MEMORY_MB = 12288
 
-SELECT_EXPR = """
-flake: let
-  lib = flake.inputs.nixpkgs.lib;
-  jobId = {job_id};
-  totalJobs = {total_jobs};
 
-  # Shard an attrset: keep attrs where (globalIdx + localIdx) mod totalJobs == jobId
-  shardAttrs = globalIdx: attrs:
-    let
-      names = builtins.attrNames attrs;
-      selected = lib.imap0 (i: name:
-        if lib.mod (globalIdx + i) totalJobs == jobId then name else null
-      ) names;
-    in lib.getAttrs (builtins.filter (x: x != null) selected) attrs;
-
-  # Apply sharding across all systems for an output type
-  shardOutput = outputName:
-    let
-      output = flake.${{outputName}} or {{}};
-      systems = builtins.attrNames output;
-      offsets = builtins.foldl' (acc: sys:
-        acc // {{ ${{sys}} = acc._idx; _idx = acc._idx + builtins.length (builtins.attrNames output.${{sys}}); }}
-      ) {{ _idx = 0; }} systems;
-    in builtins.mapAttrs (sys: attrs: shardAttrs offsets.${{sys}} attrs) output;
-
-in {{
-  packages = shardOutput "packages";
-  devShells = shardOutput "devShells";
-}}
-"""
+def evaluation_groups(
+    job_id: int, total_jobs: int, public_config: str
+) -> list[tuple[str, str, list[str]]]:
+    """Select target families without evaluating their derivations."""
+    selected = []
+    for output in ("packages", "devShells"):
+        names = json.loads(
+            subprocess.check_output(
+                [
+                    "nix",
+                    "eval",
+                    "--json",
+                    f".#{output}",
+                    "--override-input",
+                    "secure-ab-build-config",
+                    f"path:{public_config}",
+                    "--apply",
+                    "builtins.mapAttrs (_: builtins.attrNames)",
+                    "--accept-flake-config",
+                ],
+                text=True,
+            )
+        )
+        index = 0
+        for system, attrs in sorted(names.items()):
+            families: dict[str, list[str]] = {}
+            for name in attrs:
+                family = (
+                    "netboot-installer"
+                    if name.endswith("-netboot-installer")
+                    else name.removesuffix("-installer").removesuffix("-ghafImage")
+                )
+                families.setdefault(family, []).append(name)
+            for family in families.values():
+                if index % total_jobs == job_id:
+                    selected.append((output, system, family))
+                index += 1
+    return selected
 
 
 def run_eval(
     job_id: int, total_jobs: int, public_config: str
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Run nix-eval-jobs and return (successes, errors)."""
-    select_expr = SELECT_EXPR.format(job_id=job_id, total_jobs=total_jobs)
-
-    cmd = [
-        "nix",
-        "run",
-        "--inputs-from",
-        ".#",
-        "nixpkgs#nix-eval-jobs",
-        "--",
-        "--flake",
-        ".#",
-        "--override-input",
-        "secure-ab-build-config",
-        f"path:{public_config}",
-        "--no-instantiate",
-        "--select",
-        select_expr,
-        "--force-recurse",
-        "--accept-flake-config",
-        "--workers",
-        str(EVAL_WORKERS),
-        "--max-memory-size",
-        str(EVAL_MAX_MEMORY_MB),
-        "--option",
-        "allow-import-from-derivation",
-        "false",
-    ]
-
-    successes = []
-    errors = []
+    """Evaluate each target family in a fresh process."""
+    successes: list[dict[str, Any]] = []
+    errors: list[dict[str, Any]] = []
     start_time = time.time()
+    groups = evaluation_groups(job_id, total_jobs, public_config)
+    if not groups:
+        return successes, errors
 
-    print("[+] Starting nix-eval-jobs...", flush=True)
+    nix_eval_jobs = (
+        Path(
+            subprocess.check_output(
+                [
+                    "nix",
+                    "build",
+                    "--no-link",
+                    "--print-out-paths",
+                    "--inputs-from",
+                    ".#",
+                    "nixpkgs#nix-eval-jobs",
+                    "--accept-flake-config",
+                ],
+                text=True,
+            ).strip()
+        )
+        / "bin"
+        / "nix-eval-jobs"
+    )
 
-    with subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True) as proc:
-        assert proc.stdout is not None
-        for line in proc.stdout:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                result = json.loads(line)
-                elapsed = time.time() - start_time
-                attr = result.get("attr", "?")
-                if "error" in result:
-                    errors.append(result)
-                    print(f"[{elapsed:6.1f}s] ✗ {attr}")
-                else:
-                    successes.append(result)
-                    print(f"[{elapsed:6.1f}s] ✓ {attr}")
-            except json.JSONDecodeError:
-                # Not JSON, probably a warning
-                print(line, file=sys.stderr)
+    print(f"[+] Evaluating {len(groups)} target families...", flush=True)
 
-        exit_code = proc.wait()
-        if exit_code != 0 and not errors:
-            errors.append(
-                {
-                    "attr": "nix-eval-jobs",
-                    "error": f"Process exited with code {exit_code}",
-                }
-            )
+    for output, system, names in groups:
+        attrs = " ".join(json.dumps(name) for name in names)
+        select_expr = (
+            f"flake: {{ {output}.{system} = flake.inputs.nixpkgs.lib.getAttrs "
+            f"[ {attrs} ] flake.{output}.{system}; }}"
+        )
+        cmd = [
+            str(nix_eval_jobs),
+            "--flake",
+            ".#",
+            "--override-input",
+            "secure-ab-build-config",
+            f"path:{public_config}",
+            "--no-instantiate",
+            "--select",
+            select_expr,
+            "--force-recurse",
+            "--accept-flake-config",
+            "--workers",
+            str(EVAL_WORKERS),
+            "--max-memory-size",
+            str(EVAL_MAX_MEMORY_MB),
+            "--option",
+            "allow-import-from-derivation",
+            "false",
+        ]
+        group_errors = []
+        pending = [f"{output}.{system}.{name}" for name in names]
+        with subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True) as proc:
+            assert proc.stdout is not None
+            for line in proc.stdout:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    result = json.loads(line)
+                    elapsed = time.time() - start_time
+                    attr = result.get("attr", "?")
+                    if attr in pending:
+                        pending.remove(attr)
+                    if "error" in result:
+                        group_errors.append(result)
+                        print(f"[{elapsed:6.1f}s] ✗ {attr}", flush=True)
+                    else:
+                        successes.append(result)
+                        print(f"[{elapsed:6.1f}s] ✓ {attr}", flush=True)
+                except json.JSONDecodeError:
+                    print(line, file=sys.stderr)
+
+            exit_code = proc.wait()
+            if exit_code != 0:
+                if not pending and not group_errors:
+                    pending = [f"{output}.{system}.{names[0]}"]
+                group_errors.extend(
+                    {
+                        "attr": attr,
+                        "error": f"Process exited with code {exit_code}",
+                    }
+                    for attr in pending
+                )
+        errors.extend(group_errors)
 
     return successes, errors
 
