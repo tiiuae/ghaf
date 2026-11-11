@@ -13,6 +13,8 @@ prev.osquery.overrideAttrs (old: {
   patches = (old.patches or [ ]) ++ [
     ./hostname-file.patch
   ];
+  # osquery 5.24 removed ebpfpub and OSQUERY_BUILD_BPF; dropping the obsolete
+  # BPF-off workaround does not enable the removed eBPF event component.
   postPatch =
     (old.postPatch or "")
     + lib.optionalString aarch64Target ''
