@@ -92,10 +92,7 @@ in
       };
     };
 
-    systemd.services."givc-${hostName}" = {
-      environment.GHAF_LOCAL_UPDATE_ROLE = "receiver";
-      serviceConfig.ExecStartPre = [ "${pkgs.ota-update}/bin/ota-update image local recover-received" ];
-    };
+    givc.sysvm.capabilities.update.localRole = "receiver";
     systemd.tmpfiles.rules = [ "d /persist/sysupdate/local 0700 root root -" ];
 
     givc.dbusproxy = {
