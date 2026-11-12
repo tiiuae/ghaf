@@ -258,6 +258,13 @@ unlock unattended.</p>
 <ul>
 <li>Check device-independent <a href="#prerequisites">prerequisites</a>.</li>
 <li>If you use a new device, <a href="#flashing-nvidia-jetson-orin-agx">flash bootloader firmware</a> first. Then you can <a href="#building-and-running-ghaf-image-for-nvidia-jetson-orin-agx">build and run a Ghaf image</a>.</li>
+<li>When migrating an existing Orin <strong>verity or secure-A/B</strong> installation to CAN
+passthrough, reflash QSPI from the same Ghaf revision before updating the image.
+Those targets boot the firmware device tree, so an image-only update does not
+install the CAN IOMMU mappings and NetVM cannot start without them. After this
+migration, image-only updates can use the installed CAN-capable firmware.
+Other Orin targets carry the device tree in their own UKI and do not need a
+QSPI reflash for this CAN migration.</li>
 </ul>
 <div class="sl-heading-wrapper level-h4"><h4 id="flashing-nvidia-jetson-orin-agx">Flashing NVIDIA Jetson Orin AGX</h4><a class="sl-anchor-link" href="#flashing-nvidia-jetson-orin-agx"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Flashing NVIDIA Jetson Orin AGX”</span></a></div>
 <ol>
