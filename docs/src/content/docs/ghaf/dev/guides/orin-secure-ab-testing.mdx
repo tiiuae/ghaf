@@ -41,6 +41,15 @@ can put newly discovered HTTP/PXE entries ahead of NVMe; recovering with a cold
 cycle is not automatic rollback acceptance.
 For the AGX test configuration, verify the optional fTPM feature is disabled.
 
+The first installation must flash QSPI firmware from the same Ghaf revision as
+the image. Existing installations created before CAN passthrough was enabled
+must also reflash QSPI before accepting an image-only update that enables CAN.
+The A/B UKI uses the firmware device tree; an OTA image does not add the CAN
+IOMMU mappings to that tree. Without them, CAN binding fails and prevents NetVM,
+networking, and SSH from starting. This migration is a manual prerequisite; the
+updater does not check it automatically. Subsequent image-only updates can use
+the installed CAN-capable firmware.
+
 ## Flash once
 
 ### Build the initial flasher

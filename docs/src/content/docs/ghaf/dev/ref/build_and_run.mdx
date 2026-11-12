@@ -216,6 +216,13 @@ Before you begin:
 
 - Check device-independent [prerequisites](#prerequisites).
 - If you use a new device, [flash bootloader firmware](#flashing-nvidia-jetson-orin-agx) first. Then you can [build and run a Ghaf image](#building-and-running-ghaf-image-for-nvidia-jetson-orin-agx).
+- When migrating an existing Orin **verity or secure-A/B** installation to CAN
+  passthrough, reflash QSPI from the same Ghaf revision before updating the image.
+  Those targets boot the firmware device tree, so an image-only update does not
+  install the CAN IOMMU mappings and NetVM cannot start without them. After this
+  migration, image-only updates can use the installed CAN-capable firmware.
+  Other Orin targets carry the device tree in their own UKI and do not need a
+  QSPI reflash for this CAN migration.
 
 #### Flashing NVIDIA Jetson Orin AGX
 
