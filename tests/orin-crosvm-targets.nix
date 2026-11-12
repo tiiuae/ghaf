@@ -43,6 +43,8 @@ let
         && host.ghaf.virtualization.vmConfig.defaultAppVmVmm == "crosvm"
         && host.ghaf.hardware.passthrough.deviceManager.backend == "ghaf-device-manager"
         && host.ghaf.hardware.nvidia.passthroughs.gui_vm.enable
+        && host.ghaf.hardware.nvidia.passthroughs.mttcan_net_vm.enable
+        && host.hardware.nvidia-jetpack.virtualization.mttcanHost.enable
         && host.ghaf.virtualization.microvm.guivm.enable
         && !host.ghaf.profiles.graphics.enable
         && !host.ghaf.graphics.cosmic.enable
@@ -76,8 +78,15 @@ let
   agx = hostConfig baseTargets.nvidia-jetson-orin-agx-release;
   agxNetVm = agx.microvm.vms."net-vm".evaluatedConfig.config;
   agxNetService = agx.systemd.services."microvm@net-vm";
-  nxGuiShutdown =
-    (hostConfig baseTargets.nvidia-jetson-orin-nx-debug).systemd.services."ghaf-crosvm-shutdown-gui-vm";
+  nx = hostConfig baseTargets.nvidia-jetson-orin-nx-debug;
+  nxNetVm = nx.microvm.vms."net-vm".evaluatedConfig.config;
+  nxNetService = nx.systemd.services."microvm@net-vm";
+  nxPlatformDevices = lib.filter (device: device.bus == "platform") nxNetVm.microvm.devices;
+  nxMttcanDevices = lib.filter (device: lib.hasSuffix ".mttcan" device.path) nxPlatformDevices;
+  nxMttcanModulePackages = lib.filter (
+    package: (package.pname or "") == "l4t-mttcan-modules"
+  ) nxNetVm.boot.extraModulePackages;
+  nxGuiShutdown = nx.systemd.services."ghaf-crosvm-shutdown-gui-vm";
   nxGuiShutdownScript = nxGuiShutdown.serviceConfig.ExecStop;
   splitAgx =
     (baseTargets.nvidia-jetson-orin-agx-debug.extendModules {
@@ -120,6 +129,49 @@ let
     }).config;
 
   assertions = targetAssertions ++ [
+    {
+      name = "CAN tools ship only in debug NetVMs";
+      ok = lib.all (
+        target:
+        let
+          guest = target.config.microvm.vms.net-vm.evaluatedConfig.config;
+        in
+        lib.any (package: (package.pname or "") == "can-utils") guest.environment.systemPackages
+        == guest.ghaf.profiles.debug.enable
+      ) (builtins.attrValues baseTargets);
+    }
+    {
+      name = "NX CAN preserves the default kernel and NetVM cannot control SoC memory bandwidth";
+      ok =
+        nxNetVm.boot.kernelPackages.kernel.version
+        == baseTargets.nvidia-jetson-orin-nx-debug.pkgs.linuxPackages.kernel.version
+        && !nx.hardware.nvidia-jetpack.virtualization.bpmpHost.consumers.net-vm.allowMemoryControl
+        && !agx.hardware.nvidia-jetpack.virtualization.bpmpHost.consumers.net-vm.allowMemoryControl;
+    }
+    {
+      name = "CAN shutdown is ordered and tolerates unprobed controllers";
+      ok =
+        lib.all
+          (
+            guest:
+            let
+              unit = guest.systemd.services.quiesce-mttcan;
+            in
+            lib.hasPrefix "-" unit.serviceConfig.ExecStop
+            && lib.elem "NetworkManager.service" unit.after
+            && lib.elem "givc-net-vm.service" unit.after
+          )
+          [
+            nxNetVm
+            agxNetVm
+          ];
+    }
+    {
+      name = "QEMU rollback warns that CAN passthrough is unavailable";
+      ok = lib.any (
+        warning: lib.hasInfix "Orin MTTCAN passthrough requires Crosvm" warning
+      ) qemuFallback.warnings;
+    }
     {
       name = "Orin desktops preserve the login home and expose Flatpak launchers";
       ok =
@@ -192,12 +244,54 @@ let
       ok = lib.all (unit: lib.elem unit agxNetService.requires) [
         "bindMgbe0.service"
         "prepareMgbe0CrosvmOverlay.service"
+        "bindMttcan.service"
         "ghaf-device-manager.service"
       ];
     }
     {
-      name = "AGX NetVM consumes the Jetpack-owned Crosvm MGBE overlay";
-      ok = agxNetVm.microvm.crosvm.deviceTreeOverlays == [ "/run/mgbe0-net-vm.dtbo" ];
+      name = "AGX NetVM consumes the Jetpack-owned MGBE and MTTCAN overlays";
+      ok =
+        lib.elem "/run/mgbe0-net-vm.dtbo" agxNetVm.microvm.crosvm.deviceTreeOverlays
+        && lib.any (
+          overlay: lib.hasInfix "mttcan-crosvm-overlay.dtbo" (toString overlay)
+        ) agxNetVm.microvm.crosvm.deviceTreeOverlays;
+    }
+    {
+      name = "NX NetVM waits for MTTCAN binding and owns both controllers";
+      ok =
+        lib.elem "bindMttcan.service" nxNetService.requires
+        && lib.length nxMttcanDevices == 2
+        && lib.any (
+          device: device.path == "c310000.mttcan" && device.crosvm.dtSymbol == "mttcan0"
+        ) nxMttcanDevices
+        && lib.any (
+          device: device.path == "c320000.mttcan" && device.crosvm.dtSymbol == "mttcan1"
+        ) nxMttcanDevices
+        && lib.all (module: lib.elem module nxNetVm.boot.kernelModules) [
+          "nvpps"
+          "mttcan"
+        ]
+        && lib.length nxMttcanModulePackages == 1;
+    }
+    {
+      name = "NX NetVM BPMP policy contains both MTTCAN controllers";
+      ok =
+        lib.all (id: lib.elem id nx.hardware.nvidia-jetpack.virtualization.bpmpHost.consumers.net-vm.clocks)
+          [
+            9
+            10
+            11
+            12
+            94
+            284
+            285
+          ]
+        &&
+          lib.all (id: lib.elem id nx.hardware.nvidia-jetpack.virtualization.bpmpHost.consumers.net-vm.resets)
+            [
+              4
+              5
+            ];
     }
     {
       name = "AGX NetVM consumes host hardware information over virtiofs";
@@ -265,6 +359,7 @@ let
       name = "explicit QEMU overrides retain the supported rollback path";
       ok =
         qemuFallback.ghaf.hardware.passthrough.deviceManager.backend == "vhotplug"
+        && !qemuFallback.hardware.nvidia-jetpack.virtualization.mttcanHost.enable
         && lib.all (vm: vm.microvm.hypervisor == "qemu") (vmConfigs qemuFallback)
         && qemuFallback.systemd.services ? vhotplug
         && !(qemuFallback.systemd.services ? ghaf-device-manager)

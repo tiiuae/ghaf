@@ -9,6 +9,9 @@
 
   ghaf = {
     hardware = {
+      # Initial installation must flash QSPI with the CAN passthrough tree.
+      nvidia.passthroughs.mttcan_net_vm.enable = true;
+
       nvidia.orin = {
         enable = true;
         kernelVersion = "upstream-6";

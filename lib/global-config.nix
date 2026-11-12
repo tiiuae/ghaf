@@ -741,6 +741,13 @@ rec {
   #
   # ═══════════════════════════════════════════════════════════════════════════
   vm = {
+    resolveSysVmVmm =
+      { config, vmName }:
+      let
+        selected = config.ghaf.virtualization.vmConfig.sysvms.${vmName}.vmm or null;
+      in
+      if selected == null then config.ghaf.virtualization.vmConfig.defaultSysVmVmm else selected;
+
     # Create specialArgs for VM modules
     # This ensures consistent propagation of global config to VMs
     #
@@ -909,11 +916,7 @@ rec {
 
         hwModules = hwDef.extraModules or [ ];
         vmConfigModules = vmCfg.extraModules or [ ];
-        selectedVmm =
-          if (vmCfg.vmm or null) != null then
-            vmCfg.vmm
-          else
-            config.ghaf.virtualization.vmConfig.defaultSysVmVmm;
+        selectedVmm = lib.ghaf.vm.resolveSysVmVmm { inherit config vmName; };
         # System VM registry keys consistently drop the hyphen from the unit
         # name (for example, `audiovm` -> `audio-vm`). Derive the unit name from
         # that convention instead of maintaining another per-VM lookup table.

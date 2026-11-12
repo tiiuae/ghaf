@@ -19,6 +19,7 @@ in
     ./host/uarta-host
     ./passthrough/uarti-net-vm
     ./passthrough/mgbe0-net-vm
+    ./passthrough/mttcan-net-vm
     ./passthrough/gpu-display
   ];
 

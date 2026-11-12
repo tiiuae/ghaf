@@ -17,14 +17,11 @@
 let
   cfg = config.ghaf.hardware.nvidia.passthroughs.mgbe0_net_vm;
   virt-support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
-  configuredNetVmVmm = config.ghaf.virtualization.vmConfig.sysvms.netvm.vmm or null;
   isCrosvm =
-    (
-      if configuredNetVmVmm == null then
-        config.ghaf.virtualization.vmConfig.defaultSysVmVmm
-      else
-        configuredNetVmVmm
-    ) == "crosvm";
+    lib.ghaf.vm.resolveSysVmVmm {
+      inherit config;
+      vmName = "netvm";
+    } == "crosvm";
   mgbe0 = virt-support.passthrough.mgbe0;
   hostServices = [
     "bindMgbe0.service"
