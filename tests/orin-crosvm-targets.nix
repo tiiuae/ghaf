@@ -356,6 +356,20 @@ let
         && lib.all (vm: vm.microvm.hypervisor == "crosvm") splitVmConfigs;
     }
     {
+      name = "GPU guests protect VFIO-backed CMA from ordinary virtio buffers";
+      ok =
+        let
+          reserve = vm: vm.boot.kernel.sysctl."vm.lowmem_reserve_ratio" or null;
+        in
+        lib.all (
+          target: reserve target.config.microvm.vms.gui-vm.evaluatedConfig.config == "1 256 32 0 0"
+        ) (builtins.attrValues baseTargets)
+        && reserve splitAgx.microvm.vms.gpu-vm.evaluatedConfig.config == "1 256 32 0 0"
+        && reserve splitAgx.microvm.vms.disp-vm.evaluatedConfig.config != "1 256 32 0 0"
+        && reserve agxNetVm != "1 256 32 0 0"
+        && reserve agx != "1 256 32 0 0";
+    }
+    {
       name = "explicit QEMU overrides retain the supported rollback path";
       ok =
         qemuFallback.ghaf.hardware.passthrough.deviceManager.backend == "vhotplug"
