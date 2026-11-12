@@ -138,17 +138,17 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1794481781,
-        "narHash": "sha256-3P+n8oPnFmdEbUHwIvIjgIiYkdApkRMnGFznnH3s3OY=",
+        "lastModified": 1794486166,
+        "narHash": "sha256-w7Wc6QFa0hTWdjZjFySCTW9hs2UacZ0hqfJfnhFTfpo=",
         "owner": "tiiuae",
         "repo": "ghaf-ctrl-panel",
-        "rev": "0394e8d9f61504d85e804d5437ed5fea9caf8b68",
+        "rev": "e5cacc52c9d613dd27890f1b2361380d239eb278",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
         "repo": "ghaf-ctrl-panel",
-        "rev": "0394e8d9f61504d85e804d5437ed5fea9caf8b68",
+        "rev": "e5cacc52c9d613dd27890f1b2361380d239eb278",
         "type": "github"
       }
     },
