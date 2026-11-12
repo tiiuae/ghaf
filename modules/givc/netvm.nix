@@ -67,6 +67,7 @@ in
             map (profile: "${profile}.service") config.ghaf.services.performance.net.tuned.profileNames
           );
         hwid.enable = true;
+        update.enable = true;
 
         socketProxy = {
           enable = true;
@@ -90,6 +91,9 @@ in
 
       };
     };
+
+    givc.sysvm.capabilities.update.localRole = "receiver";
+    systemd.tmpfiles.rules = [ "d /persist/sysupdate/local 0700 root root -" ];
 
     givc.dbusproxy = {
       enable = true;
