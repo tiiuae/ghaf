@@ -130,7 +130,7 @@
     # Ghaf Inter VM communication and control library
     givc = {
       # TODO: refresh the pin after https://github.com/tiiuae/ghaf-givc/pull/540 merges.
-      url = "github:tiiuae/ghaf-givc/4c25aad6f65fcaa8870b769bb9efa39cc47d0868";
+      url = "github:tiiuae/ghaf-givc/a20232c3a0a65711ea471468a17f8f77fee7719f";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
