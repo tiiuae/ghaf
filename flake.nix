@@ -37,6 +37,7 @@
         # second nixpkgs in the lock and that is the cheaper of the two.
         # nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
+        git-hooks.follows = "git-hooks-nix";
       };
     };
 

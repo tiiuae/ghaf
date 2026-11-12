@@ -108,8 +108,8 @@ index 000000000..8bc4879b4
 +
 +type keyManagerV1 struct{}
 +
-+func (keyManagerV1) New() catalog.Facade { return new(keymanager.V1) }
-+func (keyManagerV1) Deprecated() bool    { return false }
++func (keyManagerV1) New() catalog.Facade        { return new(keymanager.V1) }
++func (keyManagerV1) Deprecated() (bool, string) { return false, "" }
 diff --git a/pkg/agent/catalog/nodeattestor.go b/pkg/agent/catalog/nodeattestor.go
 index 97af6912a..d80524d8b 100644
 --- a/pkg/agent/catalog/nodeattestor.go
@@ -166,8 +166,8 @@ index 000000000..493ffde36
 +
 +type nodeAttestorV1 struct{}
 +
-+func (nodeAttestorV1) New() catalog.Facade { return new(nodeattestor.V1) }
-+func (nodeAttestorV1) Deprecated() bool    { return false }
++func (nodeAttestorV1) New() catalog.Facade        { return new(nodeattestor.V1) }
++func (nodeAttestorV1) Deprecated() (bool, string) { return false, "" }
 diff --git a/pkg/agent/catalog/svidstore.go b/pkg/agent/catalog/svidstore.go
 index 6d9c20745..a0d656524 100644
 --- a/pkg/agent/catalog/svidstore.go
@@ -216,8 +216,8 @@ index 000000000..87ee3e725
 +
 +type svidStoreV1 struct{}
 +
-+func (svidStoreV1) New() catalog.Facade { return new(svidstore.V1) }
-+func (svidStoreV1) Deprecated() bool    { return false }
++func (svidStoreV1) New() catalog.Facade        { return new(svidstore.V1) }
++func (svidStoreV1) Deprecated() (bool, string) { return false, "" }
 diff --git a/pkg/agent/catalog/workloadattestor.go b/pkg/agent/catalog/workloadattestor.go
 index 4e367815b..94d36ac54 100644
 --- a/pkg/agent/catalog/workloadattestor.go
@@ -270,8 +270,8 @@ index 000000000..3eecbd7b4
 +
 +type workloadAttestorV1 struct{}
 +
-+func (workloadAttestorV1) New() catalog.Facade { return new(workloadattestor.V1) }
-+func (workloadAttestorV1) Deprecated() bool    { return false }
++func (workloadAttestorV1) New() catalog.Facade        { return new(workloadattestor.V1) }
++func (workloadAttestorV1) Deprecated() (bool, string) { return false, "" }
 diff --git a/pkg/server/catalog/bundlepublisher.go b/pkg/server/catalog/bundlepublisher.go
 index e98c8164c..ed58536f7 100644
 --- a/pkg/server/catalog/bundlepublisher.go
@@ -319,8 +319,8 @@ index 000000000..5ad254e4b
 +
 +type bundlePublisherV1 struct{}
 +
-+func (bundlePublisherV1) New() catalog.Facade { return new(bundlepublisher.V1) }
-+func (bundlePublisherV1) Deprecated() bool    { return false }
++func (bundlePublisherV1) New() catalog.Facade        { return new(bundlepublisher.V1) }
++func (bundlePublisherV1) Deprecated() (bool, string) { return false, "" }
 diff --git a/pkg/server/catalog/keymanager.go b/pkg/server/catalog/keymanager.go
 index 13338bc96..cb16bfbda 100644
 --- a/pkg/server/catalog/keymanager.go
@@ -372,8 +372,8 @@ index 000000000..17727a4a5
 +
 +type keyManagerV1 struct{}
 +
-+func (keyManagerV1) New() catalog.Facade { return new(keymanager.V1) }
-+func (keyManagerV1) Deprecated() bool    { return false }
++func (keyManagerV1) New() catalog.Facade        { return new(keymanager.V1) }
++func (keyManagerV1) Deprecated() (bool, string) { return false, "" }
 diff --git a/pkg/server/catalog/nodeattestor.go b/pkg/server/catalog/nodeattestor.go
 index 2e9d540a6..0e40ef6ee 100644
 --- a/pkg/server/catalog/nodeattestor.go
@@ -432,8 +432,8 @@ index 000000000..fb43da4bf
 +
 +type nodeAttestorV1 struct{}
 +
-+func (nodeAttestorV1) New() catalog.Facade { return new(nodeattestor.V1) }
-+func (nodeAttestorV1) Deprecated() bool    { return false }
++func (nodeAttestorV1) New() catalog.Facade        { return new(nodeattestor.V1) }
++func (nodeAttestorV1) Deprecated() (bool, string) { return false, "" }
 diff --git a/pkg/server/catalog/notifier.go b/pkg/server/catalog/notifier.go
 index 0f61612c0..0e2c048a2 100644
 --- a/pkg/server/catalog/notifier.go
@@ -449,7 +449,7 @@ new file mode 100644
 index 000000000..346b57a5b
 --- /dev/null
 +++ b/pkg/server/catalog/notifier_base.go
-@@ -0,0 +1,36 @@
+@@ -0,0 +1,38 @@
 +//go:build !withplugins
 +
 +package catalog
@@ -485,7 +485,9 @@ index 000000000..346b57a5b
 +type notifierV1 struct{}
 +
 +func (notifierV1) New() catalog.Facade { return new(notifier.V1) }
-+func (notifierV1) Deprecated() bool    { return false }
++func (notifierV1) Deprecated() (bool, string) {
++	return true, "use the BundlePublisher plugin type instead"
++}
 diff --git a/pkg/server/catalog/upstreamauthority.go b/pkg/server/catalog/upstreamauthority.go
 index 2f77a7838..185cb1a59 100644
 --- a/pkg/server/catalog/upstreamauthority.go
@@ -540,8 +542,8 @@ index 000000000..b7a4defbc
 +
 +type upstreamAuthorityV1 struct{}
 +
-+func (upstreamAuthorityV1) New() catalog.Facade { return new(upstreamauthority.V1) }
-+func (upstreamAuthorityV1) Deprecated() bool    { return false }
++func (upstreamAuthorityV1) New() catalog.Facade        { return new(upstreamauthority.V1) }
++func (upstreamAuthorityV1) Deprecated() (bool, string) { return false, "" }
 -- 
 2.51.2
 
