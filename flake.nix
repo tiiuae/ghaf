@@ -43,7 +43,7 @@
     # VM control interface for Ghaf
     ctrl-panel = {
       # TODO: refresh the pin after https://github.com/tiiuae/ghaf-ctrl-panel/pull/286 merges.
-      url = "github:tiiuae/ghaf-ctrl-panel/2689a066883faba06c5c428ba5bb64e11cca4e82";
+      url = "github:tiiuae/ghaf-ctrl-panel/0394e8d9f61504d85e804d5437ed5fea9caf8b68";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
@@ -130,7 +130,7 @@
     # Ghaf Inter VM communication and control library
     givc = {
       # TODO: refresh the pin after https://github.com/tiiuae/ghaf-givc/pull/540 merges.
-      url = "github:tiiuae/ghaf-givc/dfee44088c5ae73af6b53560ab7a7a871d29f44a";
+      url = "github:tiiuae/ghaf-givc/2ac4b3342067e3899552bd0429456c8a970d0f05";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
