@@ -67,6 +67,7 @@ in
             map (profile: "${profile}.service") config.ghaf.services.performance.net.tuned.profileNames
           );
         hwid.enable = true;
+        update.enable = true;
 
         socketProxy = {
           enable = true;
@@ -90,6 +91,12 @@ in
 
       };
     };
+
+    systemd.services."givc-${hostName}" = {
+      environment.GHAF_LOCAL_UPDATE_ROLE = "receiver";
+      serviceConfig.ExecStartPre = [ "${pkgs.ota-update}/bin/ota-update image local recover-received" ];
+    };
+    systemd.tmpfiles.rules = [ "d /persist/sysupdate/local 0700 root root -" ];
 
     givc.dbusproxy = {
       enable = true;

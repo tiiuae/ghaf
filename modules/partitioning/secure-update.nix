@@ -42,6 +42,7 @@ let
     else
       throw "${cfg.target}: secure-ab-build-config is missing ${name}; override it with a public configuration exported by ghaf-secure-ab-config.";
   updaterEnvironment = {
+    GHAF_LOCAL_UPDATE_ROLE = "host";
     GHAF_UPDATE_TRUSTED_KEY = "/etc/ghaf/update/update.pub";
     GHAF_UKI_TRUSTED_CERT = "/etc/ghaf/update/db.crt";
     GHAF_UPDATE_TARGET = cfg.target;
@@ -161,11 +162,20 @@ in
       # and provide a simple runtime inventory value.
       "ghaf/update/generation".text = toString cfg.generation;
     };
+    systemd.tmpfiles.rules = [
+      "d /persist/ota-local 0700 root root -"
+      "d /persist/ota-local/admissions 0700 root root -"
+      "d /persist/ota-local/candidates 0700 root root -"
+    ];
     environment.sessionVariables = updaterEnvironment;
     # Remote OTA commands are children of the host GIVC agent, not login
     # shells, so environment.sessionVariables alone does not reach them.
-    systemd.services."givc-${config.givc.host.network.agent.transport.name}".environment =
-      lib.mkIf config.givc.host.enable updaterEnvironment;
+    systemd.services."givc-${config.givc.host.network.agent.transport.name}" =
+      lib.mkIf config.givc.host.enable
+        {
+          environment = updaterEnvironment;
+          serviceConfig.ExecStartPre = [ "${pkgs.ota-update}/bin/ota-update image local recover-host" ];
+        };
     environment.systemPackages = [ pkgs.sbsigntool ];
   };
 }
