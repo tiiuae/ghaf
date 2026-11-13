@@ -130,6 +130,19 @@ let
 
   assertions = targetAssertions ++ [
     {
+      name = "Orin hosts retain the JetPack kernel and guests follow the Nixpkgs default";
+      ok = lib.all (
+        target:
+        let
+          host = target.config;
+        in
+        host.boot.kernelPackages.kernel.version == target.pkgs.nvidia-jetpack.kernel.version
+        && lib.all (
+          guest: guest.boot.kernelPackages.kernel.version == target.pkgs.linuxPackages.kernel.version
+        ) (vmConfigs host)
+      ) (builtins.attrValues baseTargets);
+    }
+    {
       name = "CAN tools ship only in debug NetVMs";
       ok = lib.all (
         target:
