@@ -87,7 +87,7 @@ let
                             port = "9011"; # GIVC audiovm proxy port
                             protocol = "tcp";
                           };
-                          socket = "/tmp/dbusproxy_snd.sock"; # D-Bus proxy for PulseAudio/Blueman
+                          socket = "/tmp/dbusproxy_snd.sock"; # D-Bus proxy for PulseAudio/BlueZ
                         }
                       ];
                     };
@@ -193,20 +193,6 @@ let
                     };
                   };
                 };
-
-                # Add some launchers for host GUI
-                graphics.launchers = lib.optionals withGraphics [
-                  {
-                    name = ".blueman-manager-wrapped";
-                    desktopName = "Bluetooth Settings";
-                    description = "Manage Bluetooth Devices & Settings";
-                    icon = "bluetooth-48";
-                    exec = "${pkgs.writeShellScriptBin "bluetooth-settings" ''
-                      PULSE_SERVER=audio-vm:${toString config.ghaf.services.audio.server.pulseaudioTcpControlPort} \
-                      ${pkgs.blueman}/bin/blueman-manager
-                    ''}/bin/bluetooth-settings";
-                  }
-                ];
 
                 # Add simple login user for testing purposes
                 users.managed = [
