@@ -51,10 +51,16 @@ in
           NETFILTER_XT_MATCH_MARK = module;
           NETFILTER_XT_MATCH_STATE = module;
           NETFILTER_XT_MATCH_CONNMARK = module;
+          NETFILTER_XT_MATCH_OWNER = module;
 
           IP_SET = module;
           IP_SET_HASH_IP = module;
           IP_SET_HASH_IPMARK = module;
+          IP_SET_HASH_IPPORT = module;
+          IP_SET_HASH_IPPORTNET = module;
+          IP_SET_HASH_NET = module;
+          IP_SET_HASH_NETPORT = module;
+          IP_SET_LIST_SET = module;
 
           NF_CONNTRACK = module;
           NF_CONNTRACK_AMANDA = module;

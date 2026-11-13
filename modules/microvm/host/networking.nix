@@ -23,6 +23,7 @@ let
   inherit (config.networking) hostName;
   inherit (config.ghaf.common.extraNetworking) enableStaticArp;
   hasNetvm = lib.hasAttr "net-vm" config.microvm.vms;
+  dhcpServer = !hasNetvm && !enableStaticArp;
   hasVms = config.microvm.vms != { };
 in
 {
@@ -59,8 +60,6 @@ in
         blacklistedKernelModules = [ "br_netfilter" ];
 
         kernel.sysctl = {
-          # ip forwarding functionality is needed for iptables
-          "net.ipv4.ip_forward" = 1;
           # reply only if the target IP address is local address configured on the incoming interface
           "net.ipv4.conf.all.arp_ignore" = 1;
         };
@@ -171,12 +170,22 @@ in
         firewall.enable = mkDefault false;
       };
 
-      ghaf.firewall = {
-        allowedTCPPorts = optionals (
-          config.ghaf.security.ssh.debug.enable || config.ghaf.security.ssh.release.enable
-        ) [ 22 ];
-        allowedUDPPorts = optionals (!hasNetvm) [ 67 ];
-      };
+      ghaf.firewall =
+        let
+          # Without a net-vm the host holds the uplink and resolves upstream itself.
+          dns = optionals (!hasNetvm) [
+            {
+              port = 53;
+              direction = "output";
+            }
+          ];
+        in
+        {
+          allowedTCPPorts =
+            optionals (config.ghaf.security.ssh.debug.enable || config.ghaf.security.ssh.release.enable) [ 22 ]
+            ++ dns;
+          allowedUDPPorts = optionals dhcpServer [ 67 ] ++ dns;
+        };
 
       boot.kernel.sysctl = optionalAttrs enableStaticArp {
         # only reply on same interface
@@ -196,9 +205,10 @@ in
             { Address = "${hosts.${hostName}.ipv4}/${toString hosts.${hostName}.ipv4SubnetPrefixLength}"; }
           ];
           gateway = optionals hasNetvm [ "${hosts."net-vm".ipv4}" ];
+          dns = optionals hasNetvm [ "${hosts."net-vm".ipv4}" ];
           networkConfig = {
             DHCP = hasNetvm && !enableStaticArp;
-            DHCPServer = !hasNetvm && !enableStaticArp;
+            DHCPServer = dhcpServer;
           };
           extraConfig = lib.concatStringsSep "\n" (
             mapAttrsToList (_: entry: ''

@@ -42,6 +42,16 @@ For more information, see the config file documentation:
 - [wireguard config file](https://wiresock.net/documentation/wireguard/config.html)
 </Aside>
 
+<Aside type="caution">
+- The peer's `Endpoint` port must be in the UDP range `51820`–`51830`. To change it, set
+`endpointPorts` in the VM's nix config:
+```nix
+ghaf.reference.services.wireguard-gui.endpointPorts = {
+  from = 51820;
+  to = 51830;
+};
+```
+</Aside>
 
 ## ⚙️ Configuration Scenarios
 

@@ -86,6 +86,34 @@ in
           }
         ];
         extraModules = [
+          # HTTPS and QUIC, STUN/TURN for calls, and Zoom's web media ports.
+          {
+            ghaf.firewall = {
+              allowedTCPPorts = [
+                {
+                  port = 443;
+                  direction = "output";
+                }
+              ];
+              allowedUDPPorts = [
+                {
+                  port = 443;
+                  direction = "output";
+                }
+                {
+                  port = 3478;
+                  direction = "output";
+                }
+                {
+                  port = {
+                    from = 8801;
+                    to = 8810;
+                  };
+                  direction = "output";
+                }
+              ];
+            };
+          }
           {
             imports = [
               ../programs/google-chrome.nix
