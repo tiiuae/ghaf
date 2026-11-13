@@ -8,6 +8,16 @@
   final: prev:
   prev.lib.optionalAttrs (prev.stdenv.buildPlatform != prev.stdenv.hostPlatform) {
     # keep-sorted start block=yes newline_separated=yes
+    # `go` is spliced build->target here, so GO_EXTLINK_ENABLED=1 is baked into it
+    # and the cmake code generators link their amd64 objects with the cross CC,
+    # which rejects -m64. Keep the generators pure Go and internally linked.
+    aws-lc = prev.aws-lc.overrideAttrs (oldAttrs: {
+      env = (oldAttrs.env or { }) // {
+        CGO_ENABLED = "0";
+        GOFLAGS = "-ldflags=-linkmode=internal";
+      };
+    });
+
     # cosmic-reader add missing pkg-config nativeBuildInput dependency
     cosmic-reader = prev.cosmic-reader.overrideAttrs (oldAttrs: {
       nativeBuildInputs =
@@ -33,18 +43,10 @@
       );
     });
 
-    # TODO: drop once nixpkgs applies libgomp/uid-buffer-size.patch to the non-ng gcc build.
-    gcc16 =
-      if final.stdenv.buildPlatform == final.stdenv.hostPlatform then
-        prev.gcc16
-      else
-        prev.gcc16.override {
-          cc = prev.gcc16.cc.overrideAttrs (oldAttrs: {
-            patches = (oldAttrs.patches or [ ]) ++ [
-              "${final.path}/pkgs/development/compilers/gcc/ng/16/libgomp/uid-buffer-size.patch"
-            ];
-          });
-        };
+    # nixpkgs enables introspection whenever an emulator exists but never adds
+    # mesonEmulatorHook, so meson's can_run_host_binaries() check aborts. Our only
+    # consumer, libadwaita, vendors ministream with introspection=disabled anyway.
+    ministream = prev.ministream.override { withIntrospection = false; };
 
     packagekit = prev.packagekit.overrideAttrs (oldAttrs: {
       nativeBuildInputs = (oldAttrs.nativeBuildInputs or [ ]) ++ [ final.buildPackages.python3 ];
@@ -72,5 +74,16 @@
     });
 
     # keep-sorted end
+  }
+  // prev.lib.optionalAttrs (prev.stdenv.targetPlatform != prev.stdenv.hostPlatform) {
+    # bindgen is a native build input, so it comes from pkgsBuildHost where only
+    # targetPlatform marks the cross. nixpkgs takes --target from targetPlatform
+    # but its include flags from rustc's clang, which there is the x86_64 one.
+    rust-bindgen-unwrapped = prev.rust-bindgen-unwrapped.overrideAttrs (oldAttrs: {
+      passthru = (oldAttrs.passthru or { }) // {
+        # llvmPackages_23 is what rustc pins, so bindgen keeps its own libclang.
+        clang = final.llvmPackages_23.clang;
+      };
+    });
   }
 )
