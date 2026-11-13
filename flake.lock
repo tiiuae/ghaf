@@ -540,16 +540,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1793872965,
-        "narHash": "sha256-+O2thm6lAGkfipjXfgSxsC/DKyxqqzdxZsRi79t0+nE=",
-        "owner": "kajusnau",
+        "lastModified": 1794479248,
+        "narHash": "sha256-gjSrc0k2EL2yp8xfg2N8gJZCZljCvQXj6YuM9a29XS8=",
+        "owner": "jkuro-tii",
         "repo": "ghafpkgs",
-        "rev": "83cb15e7352262d9766bb870d8d0c34f76db3c05",
+        "rev": "84fa4003a2003728b841536126309f0c5b6060c3",
         "type": "github"
       },
       "original": {
-        "owner": "kajusnau",
-        "ref": "fix/dbus-proxy-fdo-sni-names",
+        "owner": "jkuro-tii",
+        "ref": "leds-server",
         "repo": "ghafpkgs",
         "type": "github"
       }
