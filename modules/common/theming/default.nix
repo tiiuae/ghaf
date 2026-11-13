@@ -116,6 +116,9 @@ in
   imports = [
     inputs.stylix.nixosModules.stylix
     ./cosmic
+    # Stylix overlays, on even with Stylix disabled, would force a separate
+    # package set in every VM just to theme gtksourceview.
+    { stylix.overlays.enable = lib.mkDefault false; }
   ];
 
   options.ghaf.theming = {
