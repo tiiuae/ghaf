@@ -44,12 +44,7 @@ let
       modules = [
         inputs.self.nixosModules.microvm-nix
         module
-        {
-          nixpkgs = {
-            hostPlatform.system = "aarch64-linux";
-            inherit (config.nixpkgs) overlays config;
-          };
-        }
+        { nixpkgs.pkgs = lib.mkDefault pkgs; }
       ];
       specialArgs = lib.ghaf.vm.mkSpecialArgs {
         inherit lib inputs;
@@ -162,14 +157,7 @@ in
           modules = [
             inputs.self.nixosModules.microvm-nix
             inputs.self.nixosModules.netvm-base
-            # Import nixpkgs config module to get overlays
-            {
-              nixpkgs = {
-                hostPlatform.system = "aarch64-linux";
-                inherit (config.nixpkgs) overlays;
-                inherit (config.nixpkgs) config;
-              };
-            }
+            { nixpkgs.pkgs = lib.mkDefault pkgs; }
           ];
           specialArgs = lib.ghaf.vm.mkSpecialArgs {
             inherit lib inputs;
@@ -187,14 +175,7 @@ in
           modules = [
             inputs.self.nixosModules.microvm-nix
             inputs.self.nixosModules.adminvm-base
-            # Import nixpkgs config module to get overlays
-            {
-              nixpkgs = {
-                hostPlatform.system = "aarch64-linux";
-                inherit (config.nixpkgs) overlays;
-                inherit (config.nixpkgs) config;
-              };
-            }
+            { nixpkgs.pkgs = lib.mkDefault pkgs; }
           ];
           specialArgs = lib.ghaf.vm.mkSpecialArgs {
             inherit lib inputs;
@@ -215,6 +196,7 @@ in
             inputs.self.nixosModules.guivm-base
             inputs.self.nixosModules.guivm-features
             inputs.self.nixosModules.orin-guivm-specialization
+            # orin-guivm-specialization adds overlays, forcing a separate package set.
             {
               nixpkgs = {
                 hostPlatform.system = "aarch64-linux";
@@ -243,13 +225,7 @@ in
             modules = [
               inputs.self.nixosModules.microvm-nix
               inputs.self.nixosModules.appvm-base
-              {
-                nixpkgs = {
-                  hostPlatform.system = "aarch64-linux";
-                  inherit (config.nixpkgs) overlays;
-                  inherit (config.nixpkgs) config;
-                };
-              }
+              { nixpkgs.pkgs = lib.mkDefault pkgs; }
             ]
             ++ resolved.extraModules;
             specialArgs = lib.ghaf.vm.mkSpecialArgs {
