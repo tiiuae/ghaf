@@ -120,10 +120,7 @@ in
         user = config.ghaf.users.proxyUser.name;
         socket = "/tmp/dbusproxy_snd.sock";
         policy = {
-          talk = [
-            "org.bluez.*"
-            "org.blueman.Mechanism.*"
-          ];
+          talk = [ "org.bluez.*" ];
         };
       };
     };

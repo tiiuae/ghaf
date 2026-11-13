@@ -31,12 +31,21 @@ let
           # media-vm serves every AppVM, so nothing saved may outlive the viewer or reach a source VM.
           sandboxFlags = lib.concatStringsSep " " [
             "--property=TemporaryFileSystem=/home/${config.ghaf.users.appUser.name}:mode=0700"
-            "--property=ReadOnlyPaths=/run/xdg"
+            # Hide files opened from other VMs
+            "--property=TemporaryFileSystem=/run/xdg:ro"
+            "--property=BindReadOnlyPaths=\"$srcDir\""
             "--property=PrivateTmp=yes"
           ];
         in
         ''
           file="$1"
+          srcDir=$(dirname "$file")
+          unit="${name}-$(printf '%s' "$file" | sha256sum | cut -c1-16)"
+
+          if systemctl --user is-active -q "$unit"; then
+            echo "${name}: $file is already open"
+            exit 0
+          fi
 
           cleanup() {
             echo "${name}: Done, cleaning up and exiting"
@@ -45,7 +54,7 @@ let
           trap cleanup EXIT
 
           echo "${name}: Opening file $file using ${package.name}"
-          systemd-run --collect --property=ExitType=cgroup --wait --service-type=${serviceType} --user ${envFlags} ${sandboxFlags} -- ${execCmd} "$file"
+          systemd-run --unit="$unit" --collect --property=ExitType=cgroup --wait --service-type=${serviceType} --user ${envFlags} ${sandboxFlags} -- ${execCmd} "$file"
         '';
     };
 

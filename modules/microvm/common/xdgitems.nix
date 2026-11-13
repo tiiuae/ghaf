@@ -259,9 +259,16 @@ let
               pdf|image|video)
                 echo "Opening $filePath as $type"
                 mkdir -p "/run/xdg/$type"
-                cp -f "$filePath" "/run/xdg/$type/$fileName"
+                # Name the copy after the full path, so same-named files stay apart
+                local id tmp
+                id=$(printf '%s' "$filePath" | sha256sum | cut -c1-16)
+                tmp=$(mktemp -p "/run/xdg/$type" .XXXXXXXX)
+                cp -f "$filePath" "$tmp"
+                chmod 0644 "$tmp"
+                # Replace atomically, so a viewer that has the file open keeps reading the old copy
+                mv -f "$tmp" "/run/xdg/$type/$id-$fileName"
 
-                local dst="/run/xdg/$type/${config.ghaf.storagevm.name}/$fileName"
+                local dst="/run/xdg/$type/${config.ghaf.storagevm.name}/$id-$fileName"
                 ${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} \
                   start app --vm media-vm "xdg-$type" -- "$dst"
                 ;;
