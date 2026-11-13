@@ -121,14 +121,8 @@ in
           modules = [
             inputs.self.nixosModules.microvm-nix
             inputs.self.nixosModules.idsvm-base
-            # microvm.optimize adds an overlay in idsvm-base, forcing a separate package set.
-            {
-              nixpkgs = {
-                hostPlatform.system = "x86_64-linux";
-                inherit (config.nixpkgs) overlays;
-                inherit (config.nixpkgs) config;
-              };
-            }
+            # microvm.optimize adds an overlay in idsvm-base, so this still extends to a separate set.
+            { nixpkgs.pkgs = lib.mkDefault pkgs; }
           ];
           specialArgs = lib.ghaf.vm.mkSpecialArgs {
             inherit lib inputs;
