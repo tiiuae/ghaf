@@ -177,6 +177,8 @@ in
                 '';
             };
             startLimitIntervalSec = 0;
+            after = [ "ghaf-session.target" ];
+            bindsTo = [ "ghaf-session.target" ];
             partOf = [ "ghaf-session.target" ];
             wantedBy = [ "ghaf-session.target" ];
           };
