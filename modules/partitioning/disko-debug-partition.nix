@@ -139,6 +139,16 @@ in
       !config.ghaf.partitioning.verity.enable
     ) config.system.build.diskoImages;
     disko = {
+      # disko re-evaluates the system to build the image; reuse this package set there,
+      # unless the builder is another platform and disko switches to its packages.
+      imageBuilder.extraConfig.nixpkgs =
+        lib.mkIf
+          (config.disko.imageBuilder.pkgs.stdenv.hostPlatform.system == pkgs.stdenv.hostPlatform.system)
+          {
+            inherit pkgs;
+            overlays = lib.mkForce [ ];
+            config = lib.mkForce { };
+          };
       imageBuilder.extraPostVM = lib.mkIf (cfg.imageBuilder.compression.algorithm == "zstd") ''
         ${lib.getExe pkgs.bmaptool} create "$out/${diskName}.raw" -o "$out/ghaf-image.bmap"
         cores="''${NIX_BUILD_CORES:-1}"
