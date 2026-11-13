@@ -49,7 +49,7 @@ in
       # The debug-tools module is shared; the Orin option may not exist elsewhere.
       # Fall back to false so tpm2-tools is added only when fTPM is enabled.
       ++ lib.optional (config.ghaf.hardware.nvidia.orin.optee.ftpm.enable or false) tpm2-tools
-      ++ rmDesktopEntries [
+      ++ rmDesktopEntries pkgs [
         htop
       ]
       ++ lib.optionals (config.nixpkgs.hostPlatform.system != "aarch64-linux") [

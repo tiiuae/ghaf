@@ -16,15 +16,15 @@ in
   options.ghaf.development.debug.tools.net.enable = lib.mkEnableOption "Network Debugging Tools";
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages =
-      lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux")
-        (rmDesktopEntries [
-          # Useful in NetVM
-          pkgs.ethtool
-          pkgs.ookla-speedtest
-          pkgs.iperf
-          pkgs.dig
-          pkgs.iftop
-        ]);
+    environment.systemPackages = lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux") (
+      rmDesktopEntries pkgs [
+        # Useful in NetVM
+        pkgs.ethtool
+        pkgs.ookla-speedtest
+        pkgs.iperf
+        pkgs.dig
+        pkgs.iftop
+      ]
+    );
   };
 }

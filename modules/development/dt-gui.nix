@@ -19,14 +19,16 @@ in
     environment.systemPackages =
       with pkgs;
       [ lswt ]
-      ++ lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux") (rmDesktopEntries [
-        intel-gpu-tools
-        vulkan-tools
-        glmark2
-        clinfo
-        ydotool
-        evtest
-        #nvtopPackages.full
-      ]);
+      ++ lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux") (
+        rmDesktopEntries pkgs [
+          intel-gpu-tools
+          vulkan-tools
+          glmark2
+          clinfo
+          ydotool
+          evtest
+          #nvtopPackages.full
+        ]
+      );
   };
 }
