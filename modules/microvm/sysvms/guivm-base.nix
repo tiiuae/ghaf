@@ -329,15 +329,6 @@ in
 
   time.timeZone = lib.mkIf (!timezoneEnabled) (lib.mkDefault globalConfig.platform.timeZone);
 
-  services = {
-    # We dont enable services.blueman because it adds blueman desktop entry
-    dbus.packages = [ pkgs.blueman ];
-  };
-
-  systemd = {
-    packages = [ pkgs.blueman ];
-  };
-
   environment = {
     systemPackages = [
       pkgs.ctrl-panel
