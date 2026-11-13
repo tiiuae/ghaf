@@ -16,10 +16,15 @@ let
       gpu-screen-recorder
       libnotify
       killall
+      util-linux
       xdg-utils
     ];
 
     text = ''
+      # Ignore presses while a previous one is still starting the recording
+      exec 9>"$XDG_RUNTIME_DIR/ghaf-screen-record.lock"
+      flock -n 9 || exit 0
+
       # If gpu-screen-recorder is already running, stop it and exit
       if killall -SIGINT -q gpu-screen-recorder; then
           action=$(notify-send -h byte:urgency:0 -t 5000 -h "string:image-path:gpu-screen-recorder" -A "open=open" \
@@ -47,15 +52,23 @@ let
           -encoder gpu \
           -q very_high \
           -a device:default_output \
-          -o "$video" &
+          -o "$video" 9>&- &
       recorder=$!
 
-      # Backgrounding always succeeds, so check the recorder survived startup
-      sleep 1
-      if kill -0 "$recorder" 2>/dev/null; then
-          notify-send -h byte:urgency:0 -t 5000 -h "string:image-path:gpu-screen-recorder" -a "GPU Screen Recorder" \
-              "Screen recording started" "Use CTRL+SHIFT+ALT+R to stop recording"
-      else
+      # The recorder writes the file only once the portal picker is accepted
+      while kill -0 "$recorder" 2>/dev/null; do
+          if [[ -s "$video" ]]; then
+              notify-send -h byte:urgency:0 -t 5000 -h "string:image-path:gpu-screen-recorder" -a "GPU Screen Recorder" \
+                  "Screen recording started" "Use CTRL+SHIFT+ALT+R to stop recording"
+              exit 0
+          fi
+          sleep 0.2
+      done
+
+      # 60 means the portal picker was cancelled
+      rc=0
+      wait "$recorder" || rc=$?
+      if [[ $rc -ne 0 && $rc -ne 60 ]]; then
           notify-send -h byte:urgency:0 -t 5000 -h "string:image-path:gpu-screen-recorder" -a "GPU Screen Recorder" \
               "Screen recording failed" "Failed to start screen recording"
           exit 1
