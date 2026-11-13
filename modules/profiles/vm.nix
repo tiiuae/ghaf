@@ -9,6 +9,7 @@
   config,
   lib,
   inputs,
+  pkgs,
   ...
 }:
 let
@@ -66,13 +67,7 @@ in
         modules = [
           inputs.self.nixosModules.microvm-nix
           inputs.self.nixosModules.netvm-base
-          {
-            nixpkgs = {
-              hostPlatform.system = "x86_64-linux";
-              inherit (config.nixpkgs) overlays;
-              inherit (config.nixpkgs) config;
-            };
-          }
+          { nixpkgs.pkgs = lib.mkDefault pkgs; }
         ];
         specialArgs = lib.ghaf.vm.mkSpecialArgs {
           inherit lib inputs;
@@ -91,13 +86,7 @@ in
           inputs.self.nixosModules.microvm-nix
           inputs.self.nixosModules.audiovm-base
           inputs.self.nixosModules.audiovm-features
-          {
-            nixpkgs = {
-              hostPlatform.system = "x86_64-linux";
-              inherit (config.nixpkgs) overlays;
-              inherit (config.nixpkgs) config;
-            };
-          }
+          { nixpkgs.pkgs = lib.mkDefault pkgs; }
         ];
         specialArgs = lib.ghaf.vm.mkSpecialArgs {
           inherit lib inputs;
@@ -116,13 +105,7 @@ in
           inputs.self.nixosModules.microvm-nix
           inputs.self.nixosModules.adminvm-base
           inputs.self.nixosModules.adminvm-features
-          {
-            nixpkgs = {
-              hostPlatform.system = "x86_64-linux";
-              inherit (config.nixpkgs) overlays;
-              inherit (config.nixpkgs) config;
-            };
-          }
+          { nixpkgs.pkgs = lib.mkDefault pkgs; }
         ];
         specialArgs = lib.ghaf.vm.mkSpecialArgs {
           inherit lib inputs;
@@ -146,13 +129,7 @@ in
           modules = [
             inputs.self.nixosModules.microvm-nix
             inputs.self.nixosModules.appvm-base
-            {
-              nixpkgs = {
-                hostPlatform.system = "x86_64-linux";
-                inherit (config.nixpkgs) overlays;
-                inherit (config.nixpkgs) config;
-              };
-            }
+            { nixpkgs.pkgs = lib.mkDefault pkgs; }
           ]
           ++ resolved.extraModules;
           specialArgs = lib.ghaf.vm.mkSpecialArgs {
