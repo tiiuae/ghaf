@@ -646,6 +646,8 @@ in
     # TODO: Revisit below when https://github.com/NixOS/nixpkgs/pull/539810 is available
     services.gnome.gnome-keyring.enable = lib.mkForce false;
     services.power-profiles-daemon.enable = lib.mkForce false;
+    # Qt apps run in app VMs and read their own theme config
+    qt.enable = false;
     # Fails to build in cross-compilation for Orins
     services.orca.enable = pkgs.stdenv.hostPlatform.isx86_64;
   };
