@@ -120,13 +120,15 @@ let
           DESKTOP_DIR="$UNSAFE_SHARE_DIR/share/applications"
           EXPORTS_DIR="/var/lib/flatpak/exports/share"
 
+          rm -rf "$UNSAFE_SHARE_DIR"
+          # COSMIC lists icon themes once per login, so hicolor must exist before the first install
+          install -Dm644 ${pkgs.hicolor-icon-theme}/share/icons/hicolor/index.theme \
+            "$UNSAFE_SHARE_DIR/share/icons/hicolor/index.theme"
+
           [[ ! -d "$EXPORTS_DIR" ]] && exit 0
 
-          rm -rf "$UNSAFE_SHARE_DIR"
-          mkdir -p "$UNSAFE_SHARE_DIR"
-
           # Copy flatpak export shares to the Unsafe share
-          cp -rL "$EXPORTS_DIR" "$UNSAFE_SHARE_DIR" \
+          cp -rL "$EXPORTS_DIR/." "$UNSAFE_SHARE_DIR/share" \
             && echo "Copied flatpak 'exports/share' to $UNSAFE_SHARE_DIR" \
             || echo "Failed to copy flatpak desktop entries to $UNSAFE_SHARE_DIR"
           # gui-vm can neither D-Bus activate the apps nor hand them files yet
