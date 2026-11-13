@@ -19,7 +19,7 @@ in
     environment.systemPackages =
       lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux")
         (rmDesktopEntries [
-          pkgs.v4l-utils
+          (pkgs.v4l-utils.override { withGUI = false; })
           pkgs.ffmpeg
         ]);
   };
