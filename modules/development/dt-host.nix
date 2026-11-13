@@ -46,19 +46,21 @@ in
     ];
 
     environment.systemPackages =
-      (rmDesktopEntries [
+      (rmDesktopEntries pkgs [
         # EFI tools for enrolling certs
         pkgs.efitools
       ])
-      ++ lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux") (rmDesktopEntries [
-        rm-linux-bootmgrs
-        # To inspect LUKS partitions metadata
-        pkgs.cryptsetup
-        pkgs.lvm2
-        # check hardware info
-        pkgs.lshw
-        # List microvm status
-        pkgs.ghaf-vms
-      ]);
+      ++ lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux") (
+        rmDesktopEntries pkgs [
+          rm-linux-bootmgrs
+          # To inspect LUKS partitions metadata
+          pkgs.cryptsetup
+          pkgs.lvm2
+          # check hardware info
+          pkgs.lshw
+          # List microvm status
+          pkgs.ghaf-vms
+        ]
+      );
   };
 }

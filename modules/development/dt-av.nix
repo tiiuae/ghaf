@@ -16,11 +16,11 @@ in
   options.ghaf.development.debug.tools.av.enable = lib.mkEnableOption "Camera Debugging Tools";
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages =
-      lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux")
-        (rmDesktopEntries [
-          (pkgs.v4l-utils.override { withGUI = false; })
-          pkgs.ffmpeg
-        ]);
+    environment.systemPackages = lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux") (
+      rmDesktopEntries pkgs [
+        (pkgs.v4l-utils.override { withGUI = false; })
+        pkgs.ffmpeg
+      ]
+    );
   };
 }
