@@ -14,6 +14,7 @@
       prev.lib.optionalAttrs (pythonPrev.pythonAtLeast "3.12" && pythonPrev.pythonOlder "3.13") (
         prev.lib.composeManyExtensions [
           (import ./setuptools-pkg-resources)
+          (import ./filelock-cleanup-test)
           (import ./threadpoolctl-no-check)
           (import ./typer-file-error)
         ] pythonFinal pythonPrev
