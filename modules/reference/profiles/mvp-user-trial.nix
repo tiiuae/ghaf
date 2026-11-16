@@ -88,12 +88,6 @@ in
                     dendrite
                     proxy
                     ;
-                  google-chromecast = {
-                    inherit (config.ghaf.reference.services.google-chromecast) enable vmName;
-                  };
-                  chromecast = {
-                    inherit (config.ghaf.reference.services.chromecast) internalNic;
-                  };
                 };
               };
             }
@@ -185,10 +179,7 @@ in
           enable = true;
           dendrite = false;
           proxy.enable = true;
-          google-chromecast = {
-            enable = true;
-            vmName = "chrome-vm";
-          };
+          google-chromecast.enable = true;
           wireguard-gui = true;
         };
 
