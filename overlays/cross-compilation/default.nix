@@ -76,6 +76,12 @@
     # keep-sorted end
   }
   // prev.lib.optionalAttrs (prev.stdenv.targetPlatform != prev.stdenv.hostPlatform) {
+    # TODO: drop once nixpkgs fixes https://github.com/NixOS/nixpkgs/issues/474411.
+    # Both Python installers write IBus.py to the same path in parallel.
+    ibus = prev.ibus.overrideAttrs (oldAttrs: {
+      configureFlags = (oldAttrs.configureFlags or [ ]) ++ [ "--disable-python2" ];
+    });
+
     # bindgen is a native build input, so it comes from pkgsBuildHost where only
     # targetPlatform marks the cross. nixpkgs takes --target from targetPlatform
     # but its include flags from rustc's clang, which there is the x86_64 one.
