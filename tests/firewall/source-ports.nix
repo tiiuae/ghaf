@@ -23,6 +23,7 @@ let
     outRangeLast = 9106;
     udpOut = 9201;
     udpUndeclared = 9202;
+    udpSource = 9301;
   };
 
   # firewall.nix reads these from givc and hosts.nix; declaring just what it
@@ -153,6 +154,18 @@ let
         port = 443;
         direction = "output";
         from = [ "known" ];
+      }
+    ] "an input entry needs a single `port`")
+    (rejected "an input entry by source port" [
+      {
+        port = 124;
+        filter = "src";
+      }
+    ] "an input entry needs a single `port`")
+    (rejected "an output entry by source port without a port" [
+      {
+        direction = "output";
+        filter = "src";
       }
     ] "an input entry needs a single `port`")
     (rejected "an input entry without a port" [
@@ -407,6 +420,11 @@ pkgs.testers.nixosTest {
               port = ports.udpOut;
               direction = "output";
             }
+            {
+              port = ports.udpSource;
+              direction = "output";
+              filter = "src";
+            }
           ];
           extra.input.filter = [
             "-p tcp --dport ${toString ports.extraInput} -j ghaf-fw-conncheck-accept"
@@ -467,11 +485,11 @@ pkgs.testers.nixosTest {
           )
 
       # Only sends: the result is whether the local firewall let the datagram out.
-      def udp_send(host, port):
+      def udp_send(host, port, source=0):
           return (
               "python3 -c 'import socket; s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); "
               "s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(\"${nodes.server.networking.primaryIPAddress}\")); "
-              f"s.sendto(b\"x\", (\"{host}\", {port}))'"
+              f"s.bind((\"\", {source})); s.sendto(b\"x\", (\"{host}\", {port}))'"
           )
 
       start_all()
@@ -537,6 +555,9 @@ pkgs.testers.nixosTest {
       with subtest("UDP output follows the same entries"):
           server.succeed(udp_send("denied", ${toString ports.udpOut}))
           server.succeed(f"({udp_send('denied', ${toString ports.udpUndeclared})} 2>&1 || true) | grep 'Operation not permitted'")
+
+      with subtest("an output entry by source port reaches any destination port"):
+          server.succeed(udp_send("denied", ${toString ports.udpUndeclared}, ${toString ports.udpSource}))
 
       with subtest("ICMP leaves to any destination"):
           server.succeed("ping -4 -c 1 -W 3 denied")

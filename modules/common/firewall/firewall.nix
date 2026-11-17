@@ -109,6 +109,14 @@ let
           default = null;
           description = "On output, the destinations this system may connect to, in the same forms as `from`. null allows every destination.";
         };
+        filter = mkOption {
+          type = types.enum [
+            "dst"
+            "src"
+          ];
+          default = "dst";
+          description = "On output, whether `port` is the destination port or the local port the traffic leaves from.";
+        };
       };
     }
   );
@@ -130,6 +138,7 @@ let
         direction = "input";
         from = null;
         to = null;
+        filter = "dst";
       }
     else
       entry;
@@ -172,6 +181,10 @@ let
   allowedSet = "${ghafFwChainPrefix}allowed";
   outputSet = "${ghafFwChainPrefix}output";
   egressChain = "${ghafFwChainPrefix}egress";
+
+  # The sets match a destination port, so an entry for every port or by source
+  # port stays a plain rule.
+  plainEntry = entry: entry.port == null || entry.filter == "src";
 
   ipsetPort =
     proto: port:
@@ -226,8 +239,7 @@ let
         "0.0.0.0/1"
         "128.0.0.0/1"
       ];
-      # ipset needs a port, so an entry for every port stays a plain rule.
-      withPort = lib.filter (entry: entry.port != null);
+      withPort = lib.filter (entry: !plainEntry entry);
       egressWithPort = withPort egressEntries;
       present = lib.filterAttrs (_: set: set.members != [ ]) (
         {
@@ -315,7 +327,7 @@ let
       lib.mapAttrsToList (
         proto: entries:
         outputRules "${ipt} -A ${ghafFwChainPrefix}out-filter" "ACCEPT" proto (
-          lib.filter (entry: entry.port == null) entries
+          lib.filter plainEntry entries
         )
         + "\n"
       ) ownOutputs
@@ -360,7 +372,7 @@ let
           + lib.optionalString (dest != null) " -d ${address dest}"
           +
             lib.optionalString (entry.port != null)
-              " --dport ${
+              " --${if entry.filter == "src" then "s" else "d"}port ${
                  if builtins.isInt entry.port then
                    toString entry.port
                  else
@@ -391,7 +403,7 @@ let
           "source"
         ])
       ]
-    ) (lib.filter (entry: entry.port == null) egressEntries)}
+    ) (lib.filter plainEntry egressEntries)}
     ${ipt} -A ${egressChain} -d 224.0.0.0/4 -j RETURN
     ${ipt} -A ${egressChain} -p icmp -j RETURN
     ${optionalString cfg.logRefusedOutput ''${ipt} -A ${egressChain} -m limit --limit 10/min -j LOG --log-prefix "refused forward: " --log-level 4''}
@@ -972,11 +984,11 @@ in
         assertion = lib.all (
           entry:
           if entry.direction == "input" then
-            builtins.isInt entry.port && entry.to == null
+            builtins.isInt entry.port && entry.to == null && entry.filter == "dst"
           else
-            entry.from == null
+            entry.from == null && (entry.filter == "src" -> entry.port != null)
         ) (lib.filter builtins.isAttrs (cfg.allowedTCPPorts ++ cfg.allowedUDPPorts));
-        message = "ghaf.firewall: an input entry needs a single `port` and takes `from`; an output entry takes `to`";
+        message = "ghaf.firewall: an input entry needs a single `port` and takes `from`; an output entry takes `to`, and a `port` with `filter = \"src\"`";
       }
       {
         assertion = lib.all (
