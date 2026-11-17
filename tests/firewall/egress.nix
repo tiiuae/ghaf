@@ -15,6 +15,7 @@ let
     rangeLast = 9106;
     udp = 9201;
     udpUndeclared = 9202;
+    udpSource = 9301;
   };
 
   # firewall.nix reads these from givc and hosts.nix; declaring just what it
@@ -83,6 +84,7 @@ let
       direction = "output";
       from = null;
       to = null;
+      filter = "dst";
     }
     // entry;
 
@@ -154,7 +156,13 @@ pkgs.testers.nixosTest {
                 };
               }
             ];
-            udp = map output [ { port = ports.udp; } ];
+            udp = map output [
+              { port = ports.udp; }
+              {
+                port = ports.udpSource;
+                filter = "src";
+              }
+            ];
           };
           # No port: every UDP port, at outside only.
           stranger.udp = map output [ { to = [ outside ]; } ];
@@ -183,10 +191,10 @@ pkgs.testers.nixosTest {
           return f"python3 -c 'import socket; socket.create_connection((\"{outside_ip}\", {port}), timeout=3)'"
 
       # Sends a datagram and waits for the echo.
-      def udp(port):
+      def udp(port, source=0):
           return (
               "python3 -c 'import socket; s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); "
-              f"s.settimeout(3); s.connect((\"{outside_ip}\", {port})); s.send(b\"x\"); s.recv(64)'"
+              f"s.bind((\"\", {source})); s.settimeout(3); s.connect((\"{outside_ip}\", {port})); s.send(b\"x\"); s.recv(64)'"
           )
 
       # The gateway answers with icmp-admin-prohibited, which the sender sees as
@@ -220,6 +228,9 @@ pkgs.testers.nixosTest {
           with subtest("UDP follows the same entries"):
               inside.succeed(udp(${toString ports.udp}))
               inside.succeed(rejected(udp(${toString ports.udpUndeclared})))
+
+          with subtest("an entry by source port reaches any destination port"):
+              inside.succeed(udp(${toString ports.udpUndeclared}, ${toString ports.udpSource}))
 
           with subtest("entries apply only to their own host"):
               stranger.succeed(rejected(tcp(${toString ports.anywhere})))

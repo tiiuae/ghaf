@@ -15,6 +15,28 @@ in
   options.ghaf.reference.programs.chromium = {
     enable = lib.mkEnableOption "Chromium program settings";
     openInNormalExtension = lib.mkEnableOption "browser extension to open links in the normal browser";
+    webRtcUdpPorts = lib.mkOption {
+      type = lib.types.nullOr (
+        lib.types.submodule {
+          options = {
+            from = lib.mkOption {
+              type = lib.types.port;
+              description = "First port of the range.";
+            };
+            to = lib.mkOption {
+              type = lib.types.port;
+              description = "Last port of the range.";
+            };
+          };
+        }
+      );
+      # Above the kernel's ephemeral range, so no other socket takes them.
+      default = {
+        from = 61000;
+        to = 61099;
+      };
+      description = "Local UDP port range WebRTC is held to, and may send from to any destination; null leaves WebRTC unconstrained.";
+    };
   };
   config = lib.mkIf cfg.enable {
     programs.chromium = {
@@ -34,8 +56,19 @@ in
             [ "${pkgs.chrome-extensions.open-normal.id};http://localhost:8080/update.xml" ]
           else
             [ ];
+      }
+      // lib.optionalAttrs (cfg.webRtcUdpPorts != null) {
+        WebRtcUdpPortRange = "${toString cfg.webRtcUdpPorts.from}-${toString cfg.webRtcUdpPorts.to}";
       };
     };
+
+    ghaf.firewall.allowedUDPPorts = lib.mkIf (cfg.webRtcUdpPorts != null) [
+      {
+        port = cfg.webRtcUdpPorts;
+        direction = "output";
+        filter = "src";
+      }
+    ];
 
     environment.etc = lib.mkIf (cfg.openInNormalExtension && config.ghaf.givc.enable) {
       "chromium/native-messaging-hosts/fi.ssrc.open_normal.json" = {
