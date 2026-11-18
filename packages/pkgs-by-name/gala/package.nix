@@ -96,12 +96,12 @@ stdenv.mkDerivation (finalAttrs: {
   src =
     if stdenv.hostPlatform.isAarch64 then
       pkgs.fetchurl {
-        url = "https://vedenemo.dev/files/gala/dev.scpp.saca.gala-0.1.30.1-arm64.zip";
+        url = "https://hel1.your-objectstorage.com/gala/dev.scpp.saca.gala-0.1.30.1-arm64.zip";
         sha256 = "1c1ka8nlxr3ws1faixp1hxxg5i622pqr9mwrxqpqnq6d8hhqva80";
       }
     else
       pkgs.fetchurl {
-        url = "https://vedenemo.dev/files/gala/dev.scpp.saca.gala-0.1.30.1-amd64.zip";
+        url = "https://hel1.your-objectstorage.com/gala/dev.scpp.saca.gala-0.1.30.1-amd64.zip";
         sha256 = "1dhsgqqfmvlxlvlw36vzwmmmf3113nn8is3c2didwqgx845zgkd4";
       };
 
