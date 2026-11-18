@@ -1,0 +1,192 @@
+---
+title: Release ghaf-26.11.1
+sidebar:
+  order: 9963
+  badge:
+    text: Latest
+    variant: success
+
+---
+
+This is monthly Ghaf release which has been fully tested on Nvidia Orin NX, Nvidia Orin AGX, Lenovo X1 Carbon Gen11 and System76 Darter Pro platforms
+
+## Release Tag
+
+https://github.com/tiiuae/ghaf/releases/tag/ghaf-26.11.1
+
+## Supported Hardware
+
+Reference HW platforms:
+* Lenovo ThinkPad X1 Carbon Gen 11
+* System76 Darter Pro
+* Nvidia Jetson Orin NX & AGX
+
+Generic HW support:
+
+* Generic x86_64 systems supporting UEFI boot and hardware virtualization
+* Hardware compatibility may vary depending on graphics, networking, audio, and peripheral devices
+
+## What's New
+
+### 🚀  Features
+
+- **active-directory**: Add GPO-based access control with SSSD - ([f2bb6ee](https://github.com/tiiuae/ghaf/commit/f2bb6eec850a3304b4bdc0142561e5794fac1616))
+- **active-directory**: Add UID override and join OU - ([f260a33](https://github.com/tiiuae/ghaf/commit/f260a339e2cfd532184fa9a49c03548166268e9a))
+- **active-directory**: Update ghaf-test server config - ([4c3f9fc](https://github.com/tiiuae/ghaf/commit/4c3f9fc7ef941bcdbb5d028f3c31dd202b20d321))
+- **common**: Add shared bash defaults for host and vms - ([a32df1e](https://github.com/tiiuae/ghaf/commit/a32df1eedf626b7d966d70109920e023a9d92c22))
+- **cosmic**: Show the host hardware model in cosmic-settings - ([20549e7](https://github.com/tiiuae/ghaf/commit/20549e7d09cdd1098062ae54f08bf54afcc3ddf2))
+- **cosmic**: Replace blueman with the cosmic bluetooth applet - ([65ee5df](https://github.com/tiiuae/ghaf/commit/65ee5df8e6af0568df0eead2d8736f96b26b35d5))
+- **cosmic**: Show the on-screen keyboard on touch-only devices - ([30cc4fd](https://github.com/tiiuae/ghaf/commit/30cc4fd61b95fac5320cd3ebe63fe36ff042fdd2))
+- **crosvm**: Give each VM its own pmem-backed /nix/store - ([23597a1](https://github.com/tiiuae/ghaf/commit/23597a165614f6c84f41195da887ef67c151067b))
+- **crosvm**: Page out pmem store metadata to zswap - ([bd0b780](https://github.com/tiiuae/ghaf/commit/bd0b7804cb5a11cb3257837c02a429e662dcdd9c))
+- **crosvm**: Cache each VM's pmem store image in persist - ([ee336e1](https://github.com/tiiuae/ghaf/commit/ee336e1608ad5b2c98de1648882a94bb3cbf4627))
+- **firewall**: Stop guests spoofing MAC and IP on the VM bridge - ([1a3cb31](https://github.com/tiiuae/ghaf/commit/1a3cb3124797944fcd900a333d4ad7407c39348c))
+- **installer**: Add fwupd tool to installer img - ([aa13647](https://github.com/tiiuae/ghaf/commit/aa13647bba15f1b3dff27d6c1b28215d4d3c7ea7))
+- **installer**: Replace the shell help with Ghaf-specific text - ([c2093bb](https://github.com/tiiuae/ghaf/commit/c2093bb9513bcf01f11e8287706af2b26fb13098))
+- **microvm**: Warn when guest VMs need separate kernels - ([f70ce0f](https://github.com/tiiuae/ghaf/commit/f70ce0f47f3a880a567d3f92a84fa4b48c90a55f))
+- **microvm**: Coordinate AArch64 Crosvm shutdown - ([0294366](https://github.com/tiiuae/ghaf/commit/0294366c0f9516766726f48c8d18a6844ddab81c))
+- **nvidia**: Pass Orin CAN controllers to NetVM - ([0fb017c](https://github.com/tiiuae/ghaf/commit/0fb017cfeca48240c8003947f327826a76402d73))
+- **orin**: Adopt JetPack-backed Crosvm VM composition - ([d17fd61](https://github.com/tiiuae/ghaf/commit/d17fd61b3b87cb0545b9e8ede9f33dc552280d63))
+- **theming**: Generate full cosmic theme defaults from ghaf themes - ([76be5ba](https://github.com/tiiuae/ghaf/commit/76be5baf6535d6307df704e72cb957737e78cb90))
+- **time**: Setting offline vouch times - ([947d87d](https://github.com/tiiuae/ghaf/commit/947d87d55fd7d0648312b38e39a45da10fa22210))
+- **usb**: Add authorization support - ([6f89f51](https://github.com/tiiuae/ghaf/commit/6f89f51f8a5297487fb9553f8524ca37270104ce))
+- **xdg**: Replace oculante with cosmic-viewer - ([99604b5](https://github.com/tiiuae/ghaf/commit/99604b5cbad358f4448d1134424910583cc928ff))
+
+### 🐛 Bug Fixes
+
+- **active-directory**: Enable domain config and krb5 for homed users - ([9675e78](https://github.com/tiiuae/ghaf/commit/9675e7892ca3eb40ec6cca5438dc4f34190ba111))
+- **apparmor**: Drop dead chromium sandbox rule from chrome profile - ([271f1c2](https://github.com/tiiuae/ghaf/commit/271f1c2bd359b16abbe83db2872ba969bfa82170))
+- **apparmor**: Attach chrome profile only where chrome is enabled - ([840710b](https://github.com/tiiuae/ghaf/commit/840710b144184f2e0dce9b764a9f0dcf47c7be56))
+- **appvm**: Use software rendering for mesa in app vms - ([32086fd](https://github.com/tiiuae/ghaf/commit/32086fd3ec64d30bce380ef9c916a75dcd108ddc))
+- **audio**: Media-vm doesn't have audio - ([96fd12d](https://github.com/tiiuae/ghaf/commit/96fd12d03352b537a657ebcd5d1ce99bc2b83b60))
+- **chromium**: Preserve the host bindgen target in cross builds - ([c541b20](https://github.com/tiiuae/ghaf/commit/c541b205aa359f318538bbff69835e18264d3e06))
+- **chromium**: Reuse native target packages in cross images - ([4f5f54d](https://github.com/tiiuae/ghaf/commit/4f5f54dfb9791bfdc05dffa1485cd1aa650be400))
+- **chromium**: Preserve overlays and native build parity - ([291d8d5](https://github.com/tiiuae/ghaf/commit/291d8d5be2794c7cf02f84221bf6c2406d0ab285))
+- **cosmic**: Only import SSH_AUTH_SOCK into the session when it is set - ([09b38b4](https://github.com/tiiuae/ghaf/commit/09b38b445458859903a15defaeb6874c85c5dc35))
+- **cosmic**: Extend notifications daemon panel connect timeout - ([05dbcc4](https://github.com/tiiuae/ghaf/commit/05dbcc44424b6dfe4007d1d6e475b77e774d8e9e))
+- **cosmic**: Keep the ghaf wallpaper folder in cosmic-settings - ([1a63807](https://github.com/tiiuae/ghaf/commit/1a63807040b4451fa6531737128ab21b2623f16d))
+- **cosmic**: Complete the cosmic config defaults - ([86d6243](https://github.com/tiiuae/ghaf/commit/86d6243c0bb3fa2c3f731b75d7657076e8c108e0))
+- **cosmic**: Set en-US as the default keyboard layout - ([f1b1902](https://github.com/tiiuae/ghaf/commit/f1b19025b251fb80fde3bf12f74dab8981ac1ee1))
+- **cosmic**: Wait for a display before starting the greeter - ([fcb0c1f](https://github.com/tiiuae/ghaf/commit/fcb0c1f25b75b27e29107174a08edba6df2fc195))
+- **cosmic-greeter**: Read system config defaults in the daemon - ([5ed6f3a](https://github.com/tiiuae/ghaf/commit/5ed6f3a032ba566810db05ecb5fd39860dff167b))
+- **cross-compile**: Fix the issue with cross compilation - ([b8441bd](https://github.com/tiiuae/ghaf/commit/b8441bdbc2bc499537d8668d6f73bd3128e639eb))
+- **crosvm**: Support Orin ARM64 PMEM and DAX - ([6ed796a](https://github.com/tiiuae/ghaf/commit/6ed796a423fad0b31e4a73acd58a450500cf0740))
+- **crosvm**: Refuse restart while a retained VMM survives - ([fc93f42](https://github.com/tiiuae/ghaf/commit/fc93f42aae7ac2b5f5965d2148343cd19e0f77f2))
+- **desktop**: Start greetd without the idle delay - ([dd2a504](https://github.com/tiiuae/ghaf/commit/dd2a5041cdf8811baae779b49906adec428c9a9e))
+- **device-manager**: Enable AArch64 cross builds - ([e3434a1](https://github.com/tiiuae/ghaf/commit/e3434a1ccb6d6f229d31ee2caa62741baf386815))
+- **disko**: Use zstd -6 without --long for image compression - ([0ef077a](https://github.com/tiiuae/ghaf/commit/0ef077a240ecc3eb05846d455020134ed3dfdc1f))
+- **flatpak**: Drop launch keys gui-vm can't use - ([e4cefd5](https://github.com/tiiuae/ghaf/commit/e4cefd5697c77b3d618a027999bf7fd3b28c3181))
+- **ghaf-build-helper**: Support the dix 3 diff subcommand - ([4d0fb95](https://github.com/tiiuae/ghaf/commit/4d0fb95686698cfa78927dca4b6a3a1c5b979a00))
+- **ghaf-open**: Fix app launching and the help example - ([083aa38](https://github.com/tiiuae/ghaf/commit/083aa389e5789ed586c91b7ee7afc99788e45fce))
+- **guivm**: Add dynamic hostname prefix for AD - ([6d49c4a](https://github.com/tiiuae/ghaf/commit/6d49c4ab5c85099f687321f13563d21a350b4b32))
+- **jetpack**: Backport filelock cleanup test correction - ([9deaac6](https://github.com/tiiuae/ghaf/commit/9deaac63c29b8dfef6600f5863966469b111c6fc))
+- **logging**: Bind shared journal entries to GIVC identities - ([5cb1aa0](https://github.com/tiiuae/ghaf/commit/5cb1aa01a863c346422b8e6dba7804e10d0e8d0f))
+- **logging**: Persist journal upload cursors across reboots - ([05b9696](https://github.com/tiiuae/ghaf/commit/05b9696f2e17a2956872c8191bc1e7dd52db514e))
+- **logging**: Preserve old startup logs in loki - ([6eb6682](https://github.com/tiiuae/ghaf/commit/6eb6682f1094c839a229159099e85248b4882876))
+- **logging**: Fix the logging timestamp - ([a82d714](https://github.com/tiiuae/ghaf/commit/a82d71443495a4ff6f711e388856b0308fdbd7ff))
+- **microvm**: Speed up crosvm guest boot - ([f0ccd93](https://github.com/tiiuae/ghaf/commit/f0ccd93c46f2062ea0c77092c7fbdd8d270dfc8f))
+- **microvm**: Provide virtio TPM drivers to Orin guests - ([6329e26](https://github.com/tiiuae/ghaf/commit/6329e26ece0d91fdf24d3921af3495dbb7a62201))
+- **optee**: Move Orin secure storage to persistent data partition - ([14ffe77](https://github.com/tiiuae/ghaf/commit/14ffe77bc72ae12d2012e596d4339a4bea26e3e7))
+- **orin**: Chromiumvm crubit buildInput issue fix - ([4121aef](https://github.com/tiiuae/ghaf/commit/4121aef4f182b8186995c51c35ffeb19b9dbd786))
+- **orin**: Re-enable fTPM support on NVIDIA Orin - ([3369e60](https://github.com/tiiuae/ghaf/commit/3369e60c81b8018700f8e688840d4daafd051a64))
+- **orin**: Add the LUKS keyring token only on first boot - ([4dd9838](https://github.com/tiiuae/ghaf/commit/4dd983893ea00047037d5414c0980b37fee3e36a))
+- **orin**: Preserve the flashed bootloader across deployment - ([33ebaf1](https://github.com/tiiuae/ghaf/commit/33ebaf1dd3bb494b6b9cc6d55289a575357c86a9))
+- **orin**: Expose Flatpak launchers to the desktop - ([9849af2](https://github.com/tiiuae/ghaf/commit/9849af202f4998a02d2b513e6517457395871ca9))
+- **orin**: Relay desktop power actions to the host - ([9c97138](https://github.com/tiiuae/ghaf/commit/9c97138ab5092a563e5339b93c0d965ec6b29ed1))
+- **orin**: Use native cryptsetup for image encryption - ([bb9c7f7](https://github.com/tiiuae/ghaf/commit/bb9c7f702e41dc8167eebc9e25e720bb85b4addc))
+- **orin**: Support signed RCM artifacts for NX NVMe flashing - ([19ee566](https://github.com/tiiuae/ghaf/commit/19ee5669a2c97a8adbee81da6245735bd29cdba3))
+- **orin**: Pin native-compatible recovery inputs - ([6ecb0c8](https://github.com/tiiuae/ghaf/commit/6ecb0c8d76f71e7a67ef38369d4ffa430d16a967))
+- **osquery**: Remove the obsolete eBPF cross-build workaround - ([863292f](https://github.com/tiiuae/ghaf/commit/863292f3359e804a98d409abd3276298aae4b9c9))
+- **partitioning**: Keep deferred encryption skips off the boot screen - ([03fe047](https://github.com/tiiuae/ghaf/commit/03fe047f7c7cdbb8884d39daa5d0d271b0bf797e))
+- **screen-recorder**: Show an error if recording fails to start - ([8f8eb7d](https://github.com/tiiuae/ghaf/commit/8f8eb7d35d4e004cab6163bc821c42b9df949e50))
+- **security**: Block device node access through shared storage - ([6a08a0f](https://github.com/tiiuae/ghaf/commit/6a08a0f640fee2573b1990baba1493f0ca8d014b))
+- **spire**: Coordinate identity recovery after clock changes - ([d4839f2](https://github.com/tiiuae/ghaf/commit/d4839f24892fbe07bb41b7c1ef566b17b685e5f0))
+- **storage**: Persist standalone admin homes - ([26f176a](https://github.com/tiiuae/ghaf/commit/26f176afe5d9aa04f0bdd49784ca65e7777a9714))
+- **switcheroo-control**: Provide native GLib for cross builds - ([5ae775c](https://github.com/tiiuae/ghaf/commit/5ae775cf90ccddc986c0f690c986cc6ebee5d195))
+- **systemd**: Use OpenSSL for importd - ([814e089](https://github.com/tiiuae/ghaf/commit/814e089bea86bc56e3a736f731d42389ef7bc706))
+- **theming**: Use a black background for the Plymouth splash - ([768bdeb](https://github.com/tiiuae/ghaf/commit/768bdebbd575db562ff8d0c4f999cc3f2afd86d7))
+- **theming**: Keep Qt helpers disabled in cross builds - ([37f86ba](https://github.com/tiiuae/ghaf/commit/37f86ba608f43fbc632128f97b5635ab2b7a5175))
+- **time**: Wake chronyd on net-vm uplink and DNS changes - ([f10f1eb](https://github.com/tiiuae/ghaf/commit/f10f1eb7fb72a4b5a4c7bbb0a7c699f5ba381640))
+- **usb**: Remove tag from usb rule - ([2777b93](https://github.com/tiiuae/ghaf/commit/2777b934ee3bd0fb735998113c790ae9e2403a42))
+- **usb-serial**: Set the serial baud without breaking the VT TERM - ([d077d18](https://github.com/tiiuae/ghaf/commit/d077d18597f00439262f0dcf9f5a77e349a47490))
+- **wayland**: Add pointer check for released wl_map - ([0b7c361](https://github.com/tiiuae/ghaf/commit/0b7c361fb4927291af6278f73c37b3e161fff2a8))
+- **waypipe**: Properly remove stale waypipe socket - ([0fafd12](https://github.com/tiiuae/ghaf/commit/0fafd1201d9608eddbf51ace55741df67b5498c5))
+- **xdg**: Isolate file viewers and let several open at once - ([ade9cca](https://github.com/tiiuae/ghaf/commit/ade9cca6b45929356b8c5e9678019da760775e4b))
+- **xdg**: Fix errors when opening links - ([d15f140](https://github.com/tiiuae/ghaf/commit/d15f140a9d234a6abd841250ab74f71371a17f19))
+
+### 🚜 Refactor
+
+- **element-desktop**: Drop the unused element-web copy and source maps - ([f535b88](https://github.com/tiiuae/ghaf/commit/f535b88cd664373e9b4998a67fc968b82978f6ed))
+- **eval**: Use host packages for laptop VMs - ([f2bd58d](https://github.com/tiiuae/ghaf/commit/f2bd58de78b0079f4f2824093f3f1b1bf1b4e39a))
+- **firewall**: Move the tap ARP filter into attack-mitigation - ([a9f4d2e](https://github.com/tiiuae/ghaf/commit/a9f4d2eec2bc31dc3cb6bc24e612694b973a32ca))
+- **hybrid-gpu**: Drop unused compute libs from nvidia driver - ([de20a3c](https://github.com/tiiuae/ghaf/commit/de20a3c0c7901a8bcb15ac0afbdf7d9c6f4e63d4))
+- **installer**: Trim installer - ([57d3ed4](https://github.com/tiiuae/ghaf/commit/57d3ed48fa239c55abc1531e164a59adbbd74e9a))
+- **intel-gpu**: Drop the unused OpenCL runtime - ([eb918f7](https://github.com/tiiuae/ghaf/commit/eb918f7c254f432fc355dfa4211edccf256f99ee))
+- **microvm**: Build one kernel for all x86 guests - ([53cfe47](https://github.com/tiiuae/ghaf/commit/53cfe47f9831ffd1de1f15608e5ee54b277f4f84))
+- **microvm**: Pin nixpkgs in vms by reference - ([02eb866](https://github.com/tiiuae/ghaf/commit/02eb866de1d6e9cab80665fc71120d54b2c880b5))
+- **overlays**: Scope the libwayland patch to COSMIC apps - ([f9d1321](https://github.com/tiiuae/ghaf/commit/f9d13211c468c8abc67f0305da1077fa43f40e53))
+- **theming**: Replace papirus with build-time launcher icons - ([ae26b2f](https://github.com/tiiuae/ghaf/commit/ae26b2f830b5bdc75cfb3d7d4b25c54cc3666de9))
+- Use zstd for zram compression - ([629dcdf](https://github.com/tiiuae/ghaf/commit/629dcdf8268d2a0492614826e4888fe62829c82f))
+
+### 📚 Documentation
+
+- **orin**: Explain signed image and recovery flashing - ([c3ba2a7](https://github.com/tiiuae/ghaf/commit/c3ba2a78e395eea1f29bfa24dd3267d2c310d8f1))
+- **orin**: Explain offline recovery signing - ([9095518](https://github.com/tiiuae/ghaf/commit/90955186f1322f22888c2dbb5f38eabbe45a5177))
+- Add 26.09.1 release note - ([5dcdd22](https://github.com/tiiuae/ghaf/commit/5dcdd22df8724c7197304ce5052060ad7ec8bf86))
+
+### ⏩ Dependency Updates
+
+- **crosvm**: Move back to ghaf-crosvm main - ([6189fa6](https://github.com/tiiuae/ghaf/commit/6189fa66017c4d26b6fb121775f04cd303c6ff11))
+- **crosvm**: Bump ghaf-crosvm to latest - ([cf45259](https://github.com/tiiuae/ghaf/commit/cf45259950b5a15933cdd7724d75830ea30892e4))
+- **docs**: Update the docs and dependncies - ([b4fc56c](https://github.com/tiiuae/ghaf/commit/b4fc56c7929313ee7601d1a830bed33f56cd714d))
+- **flake**: Update all flake inputs - ([6481cf2](https://github.com/tiiuae/ghaf/commit/6481cf29606b010d7602bb997cbf87e575da295d))
+- **ghaf-device-manager**: Follow main - ([595292a](https://github.com/tiiuae/ghaf/commit/595292a63acc1c7b8915e4ebbc90f28369d3ebd3))
+- **ghafpkgs**: Bump ghafpkgs to latest - ([bb90a39](https://github.com/tiiuae/ghaf/commit/bb90a397c0ffb55b7b24d3f04fa5eebea7b0e3c1))
+- **jetpack-nixos**: Rebase on upstream - ([8781e28](https://github.com/tiiuae/ghaf/commit/8781e28a3a329ff7da6f1ad8fd26a03b72a10958))
+- **jetpack-nixos**: Rebase on upstream - ([685557a](https://github.com/tiiuae/ghaf/commit/685557a5a2aa29f646a2fddfcebc3107a51619e4))
+- **jetpack-nixos**: Follow merged Orin integration - ([e98f64f](https://github.com/tiiuae/ghaf/commit/e98f64fd01d1602b4ba5eac467fc5ddd883d0426))
+- **logseald**: Update revision - ([8448612](https://github.com/tiiuae/ghaf/commit/844861213bc09d3baa7995ea2d13f8803a16fdff))
+- Version number - ([942bf06](https://github.com/tiiuae/ghaf/commit/942bf068807a9555bdf705ca59c86d6588b4172a))
+- Microvm.nix - ([fc13a53](https://github.com/tiiuae/ghaf/commit/fc13a5352be997e1a3d4dca22512c23e89cb98c7))
+- Microvm.nix - ([36ab4df](https://github.com/tiiuae/ghaf/commit/36ab4df36d06a07c918ea7fe4cd64ebd014cd2a1))
+- Mid november bump - ([cced605](https://github.com/tiiuae/ghaf/commit/cced605b573561197b9ff6198d1bb981b8e1df66))
+- Version number - ([f7c4020](https://github.com/tiiuae/ghaf/commit/f7c4020750aa886d544e147736ccf597d996e524))
+
+### 🧪 Testing
+
+- **firewall**: Cover ARP and MAC/IP spoofing on the VM bridge - ([9309efd](https://github.com/tiiuae/ghaf/commit/9309efdda0d0aacc5ae035497590ff34b65d9b45))
+- **orin**: Cover exported Crosvm targets - ([544e8f1](https://github.com/tiiuae/ghaf/commit/544e8f1754d6db89eec4bc60894214cf54803d33))
+
+### ⚙️ Miscellaneous Tasks
+
+- **crosvm**: Use the pmem-ext2-64bit fork branch - ([bffe916](https://github.com/tiiuae/ghaf/commit/bffe9160dc4e8f17653163a8ca4e758078a93c90))
+- **dependabot**: Group action bumps and use 7-day cooldowns - ([88408d6](https://github.com/tiiuae/ghaf/commit/88408d6c630eb54dc2cfd8cd79f215d0ac396238))
+- **eval**: Evaluate each target family in a fresh evaluator - ([fe5b56a](https://github.com/tiiuae/ghaf/commit/fe5b56a607e3b7b865b33ea1bec7a0512b57f398))
+- **microvm**: Pin Crosvm platform support - ([5a3883e](https://github.com/tiiuae/ghaf/commit/5a3883e33edcbad6edb08a6319ab30444fd9309f))
+- **orin**: Restore the merged upstream Jetpack input - ([63733bc](https://github.com/tiiuae/ghaf/commit/63733bc613f5def7cf26b78561b35862b5045d09))
+- **packages**: Clarify Qt and osquery review decisions - ([05dac93](https://github.com/tiiuae/ghaf/commit/05dac9375ed8c7e275d90e1cf33480950e1eaf74))
+- **slsa**: Use new reusable workflow for source VSA - ([278876e](https://github.com/tiiuae/ghaf/commit/278876e37d24812a72074680fd3f749f28b341ce))
+- **theming**: Use a black console background - ([2721e96](https://github.com/tiiuae/ghaf/commit/2721e96e5bf086bf44802f6523ad8452d59d7a06))
+
+## Bug fixes
+
+Fixed bugs that were present in the previous release
+
+* Nvidia: Display does not work
+
+# Known Issues and Limitations
+
+| Issue                                                                                                     | Status      | Comments                                                                   |
+| --------------------------------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------- |
+| **x86**                                                                                             |             |                                                                            |
+| GALA does not work | In Progress | Issue is under investigation
+| User can not enroll fingerprints after suspension | In Progress | Issue is under investigation |
+| **NVIDIA Jetson AGX Orin / Orin NX**                                                                      |             |                                                                            |
+| Flash with secure boot fails on Orin NX | In Progress | Fix is on its way |
+| General instabilities in gui-vm | In Progress | Issues are under investigation |
+
+## Installation Instructions
+
+Released images are available at https://archive.vedenemo.dev/
+
+Download the required image and use the following instructions: [Build and Run](https://ghaf.tii.ae/ghaf/dev/ref/build_and_run)
