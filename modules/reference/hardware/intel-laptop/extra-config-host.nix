@@ -32,4 +32,11 @@
 
   # Add system76 and system76-io kernel modules to host
   hardware.system76.kernel-modules.enable = true;
+
+  # Deauthorizing the X1 Carbon's LJCA camera bridge mid ov2740 probe hangs
+  # i2c_del_adapter and with it ghaf-device-manager. The MIPI camera is unused.
+  boot.blacklistedKernelModules = [
+    "usb_ljca"
+    "ov2740"
+  ];
 }
