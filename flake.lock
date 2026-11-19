@@ -808,7 +808,7 @@
         "nixpkgs": [
           "nixpkgs"
         ],
-        "spectrum": "spectrum"
+        "spectrum": []
       },
       "locked": {
         "lastModified": 1794384819,
@@ -1076,22 +1076,6 @@
         "type": "path"
       },
       "parent": []
-    },
-    "spectrum": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1786032750,
-        "narHash": "sha256-+Ba/kIn5BjvV7PN8bWOo7RoqgTY/Yv2M7qeMf3wS2Ag=",
-        "ref": "refs/heads/main",
-        "rev": "77d2389874bb092b8dbf05ecc5b1030372e80e98",
-        "revCount": 1417,
-        "type": "git",
-        "url": "https://spectrum-os.org/git/spectrum"
-      },
-      "original": {
-        "type": "git",
-        "url": "https://spectrum-os.org/git/spectrum"
-      }
     },
     "srvos": {
       "inputs": {
