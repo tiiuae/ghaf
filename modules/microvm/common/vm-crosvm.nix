@@ -11,11 +11,6 @@ in
 {
   _file = ./vm-crosvm.nix;
 
-  # Crosvm's serial console makes systemd's per-unit shutdown status output
-  # expensive. The messages remain available in the guest journal; suppressing
-  # only their console rendering avoids adding seconds to every guest shutdown.
-  systemd.settings.Manager.ShowStatus = lib.mkIf isCrosvm false;
-
   # The host runs THP in madvise mode and crosvm does not advise by default, so guest
   # RAM ends up entirely 4 KiB-backed. --hugepages issues MADV_HUGEPAGE on it.
   microvm.crosvm.extraArgs = lib.optionals isCrosvm [ "--hugepages" ];
