@@ -56,10 +56,6 @@ jobs:
         uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
         with:
           egress-policy: audit
-      - name: Apt install
-        run: sudo apt-get update; sudo apt-get install -y inxi git
-      - name: Print runner system info
-        run: sudo inxi -c0 --width -1 --basic --memory-short
       - uses: webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555 # v0.10.0
         with:
           ssh-private-key: |
