@@ -602,13 +602,13 @@
       "locked": {
         "lastModified": 1794384819,
         "narHash": "sha256-ZPwyBSit4bjEVdNyJWE2ngJ/EOd7vJOLZUjqHl6mCGM=",
-        "owner": "vadika",
+        "owner": "microvm-nix",
         "repo": "microvm.nix",
         "rev": "22347b5f6f01bd20ec111a178f99b44f43adbc7e",
         "type": "github"
       },
       "original": {
-        "owner": "vadika",
+        "owner": "microvm-nix",
         "repo": "microvm.nix",
         "rev": "22347b5f6f01bd20ec111a178f99b44f43adbc7e",
         "type": "github"

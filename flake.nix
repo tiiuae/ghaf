@@ -177,8 +177,8 @@
 
     # For building and managing VMs
     microvm = {
-      # TODO: restore upstream after https://github.com/microvm-nix/microvm.nix/pull/586 merges.
-      url = "github:vadika/microvm.nix/22347b5f6f01bd20ec111a178f99b44f43adbc7e";
+      # TODO: drop the pin after https://github.com/microvm-nix/microvm.nix/pull/586 merges.
+      url = "github:microvm-nix/microvm.nix/22347b5f6f01bd20ec111a178f99b44f43adbc7e";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
