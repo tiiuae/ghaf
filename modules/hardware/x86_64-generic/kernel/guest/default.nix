@@ -60,11 +60,6 @@ in
     boot = {
       inherit kernelPackages;
 
-      # Stop systemd stalling on crosvm's slow serial console during boot.
-      kernelParams = lib.optionals isCrosvm [
-        "systemd.show_status=error"
-      ];
-
       # Keep the initrd's early mounts from hitting systemd's mount rate limit.
       initrd.systemd.managerEnvironment = lib.mkIf isCrosvm {
         SYSTEMD_DEFAULT_MOUNT_RATE_LIMIT_BURST = "50";
