@@ -13,6 +13,7 @@
   {
     aggregateModules = import ./aggregate-modules-compat { inherit prev; };
     chromium = import ./chromium { inherit prev; };
+    cosmic-app-library = import ./cosmic/cosmic-app-library { inherit prev; };
     cosmic-applets = import ./cosmic/cosmic-applets { inherit prev; };
     cosmic-comp = import ./cosmic/cosmic-comp { inherit prev; };
     cosmic-greeter = import ./cosmic/cosmic-greeter { inherit prev; };
