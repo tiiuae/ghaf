@@ -79,17 +79,39 @@ in
   #TODO Should this be alos bound to only x86?
   config = mkIf cfg.enable (mkMerge [
     {
-      # NixOS starts serial gettys without a baud rate. Set it on this unit only:
-      # services.getty.extraArgs also reaches the VT gettys and corrupts their TERM.
-      systemd.services."serial-getty@" = {
-        enable = true;
-        serviceConfig.ExecStart = lib.mkForce [
-          ""
-          "${lib.getExe' pkgs.util-linux "agetty"} ${lib.escapeShellArgs gettyArgs} %I 115200 $TERM"
-        ];
-      };
+      # Splash sets loglevel=0
+      boot.consoleLogLevel = 4;
 
       services.udev.extraRules = concatMapStrings mkUdevRule usbSerialAdapters;
+
+      # Host has no display, its shutdown splash only hides serial output
+      systemd.services =
+        lib.genAttrs [ "plymouth-halt" "plymouth-kexec" "plymouth-poweroff" "plymouth-reboot" ] (_: {
+          enable = false;
+        })
+        // {
+          # NixOS starts serial gettys without a baud rate. Set it on this unit only:
+          # services.getty.extraArgs also reaches the VT gettys and corrupts their TERM.
+          "serial-getty@" = {
+            enable = true;
+            serviceConfig.ExecStart = lib.mkForce [
+              ""
+              "${lib.getExe' pkgs.util-linux "agetty"} ${lib.escapeShellArgs gettyArgs} %I 115200 $TERM"
+            ];
+          };
+
+          # plymouth-quit disables systemd status, re-enable it for shutdown
+          show-shutdown-status = {
+            wantedBy = [ "multi-user.target" ];
+            after = [ "multi-user.target" ];
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+              ExecStart = lib.getExe' pkgs.coreutils "true";
+              ExecStop = "${lib.getExe' pkgs.util-linux "kill"} -s RTMIN+20 1";
+            };
+          };
+        };
     }
 
     (lib.optionalAttrs hasUsbAuthorization {
