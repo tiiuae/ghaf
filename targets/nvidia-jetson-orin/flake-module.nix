@@ -376,6 +376,7 @@ let
           # value and a bit-identical derivation -- at the cost of a second full
           # Jetson fixpoint (several GB of eval). Keep this in sync with that line.
           secureBootAlwaysOn = true;
+          isSecureAB = true;
         }
       )
       [
@@ -473,81 +474,126 @@ let
   flashTarget =
     t: qspiOnly:
     let
-      nvmeFlash =
-        t.hostConfiguration.config.hardware.nvidia-jetpack.som == "orin-nx"
-        && !qspiOnly
-        && !(isVerityTarget t);
-      flashPackage = if nvmeFlash then "signedNvmeFlashScript" else "signedFlashScript";
+      isNx = t.hostConfiguration.config.hardware.nvidia-jetpack.som == "orin-nx";
+      defaultStorage = if isNx then "nvme" else "emmc";
+      secureVerity = t.isSecureAB or false;
       mkFlasher =
-        secureBoot:
-        (t.hostConfiguration.extendModules {
-          modules = [
-            {
-              ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly || nvmeFlash;
+        secureBoot: storage:
+        let
+          nvmeFlash = storage == "nvme" && !qspiOnly;
+          externalFlash = storage != "emmc" && !qspiOnly;
+          host = t.hostConfiguration.extendModules {
+            modules = [
+              {
+                ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly || externalFlash;
+              }
+            ]
+            ++ lib.optional secureVerity {
+              hardware.nvidia-jetpack.firmware.initialBootOrder = lib.mkForce (
+                [ storage ]
+                ++ lib.remove storage [
+                  "emmc"
+                  "nvme"
+                  "usb"
+                  "sd"
+                ]
+              );
+              ghaf.hardware.nvidia.orin.flashScriptOverrides.deviceDiskRootfsPartition =
+                lib.mkForce
+                  {
+                    emmc = "mmcblk0p2";
+                    nvme = "nvme0n1p2";
+                    usb = "sda2";
+                  }
+                  .${storage};
             }
-          ]
-          ++ lib.optional secureBoot {
-            ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkForce true;
+            ++ lib.optional secureBoot {
+              ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkForce true;
+            };
           };
-        }).pkgs.nvidia-jetpack.${flashPackage};
-      noSB = mkFlasher false;
+        in
+        if storage == "usb" && !qspiOnly && isVerityTarget t then
+          import ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/usb-verity-flash.nix {
+            inherit (host) config pkgs;
+          }
+        else if nvmeFlash && isVerityTarget t then
+          import ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/nvme-verity-flash.nix {
+            inherit (host) config pkgs;
+            jetpackSource = jetpack-nixos;
+          }
+        else
+          host.pkgs.nvidia-jetpack.${if nvmeFlash then "signedNvmeFlashScript" else "signedFlashScript"};
+      noSB = mkFlasher false defaultStorage;
       # Targets that already enable secureboot unconditionally get the identical
       # derivation back from `mkForce true`, so skip the second fixpoint entirely.
-      withSB = if t.secureBootAlwaysOn or false then noSB else mkFlasher true;
+      withSB = if t.secureBootAlwaysOn or false then noSB else mkFlasher true defaultStorage;
     in
-    # Single `*-flash-script` entrypoint that picks between two
-    # pre-built QSPI firmware variants at flash time.
-    #
-    # Why two variants instead of one profile-level toggle:
-    #
-    # `ghaf.hardware.nvidia.orin.secureboot.enable` is evaluated at Nix
-    # build time. When true, it bakes the `UefiDefaultSecurityKeys`
-    # device-tree overlay and PK/KEK/db ESLs into the QSPI firmware, so
-    # the device enrolls keys and turns Secure Boot on at first boot.
-    # Flipping it on unconditionally in the Orin profile would brick the
-    # default unsigned flash path: the QSPI carries enrollment material
-    # but BOOTAA64.EFI is unsigned, leaving the board in the UEFI
-    # Interactive Shell with no recoverable boot entry.
-    #
-    # The QSPI variant has to be selected *before* the inner script runs
-    # (it cannot be influenced at run time), which is what the wrapper
-    # does on its own `--secure-boot` flag:
-    #
-    #   - default        → unsigned QSPI (no DTBO, no ESLs)
-    #   - --secure-boot  → SB-enabled QSPI (DTBO + ESLs); pair it with a
-    #                      *signed* sd-image via `-s`, or the enrolled
-    #                      firmware will refuse the unsigned BOOTAA64.EFI
-    #                      and fall through to PXE/UEFI shell.
-    #
-    # `-s/--signed-sd-image` itself is deliberately NOT the selector:
-    # with `appPartitionSizeBytes` set the flash script carries no
-    # embedded image and `-s` is how *every* flash (signed or not)
-    # supplies one, so keying Secure Boot off it bricked all unsigned
-    # flashes.
-    #
-    # Use the `-u` flag if the image contains a UKI.
-    #
-    # Both variants share substituted store paths (jetpack-nixos
-    # `flashScript` is a thin wrapper around the same per-target
-    # derivations), so the second build is mostly a Nix-eval cost.
-    pkgsX86.writeShellApplication {
-      name = "flash-ghaf-host";
-      text = ''
-        sb=0
-        args=()
-        for arg in "$@"; do
-          case "$arg" in
-            --secure-boot) sb=1 ;;
-            *) args+=("$arg") ;;
-          esac
-        done
-        if [ "$sb" = 1 ]; then
-          exec ${lib.getExe withSB} "''${args[@]}"
-        else
-          exec ${lib.getExe noSB} "''${args[@]}"
-        fi
-      '';
-    };
+    if secureVerity then
+      import ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/verity-flash-wrapper.nix {
+        pkgs = pkgsX86;
+        inherit defaultStorage;
+        flashers = lib.genAttrs (
+          lib.optional (!isNx) "emmc"
+          ++ [
+            "nvme"
+            "usb"
+          ]
+        ) (mkFlasher true);
+      }
+    else
+      # Single `*-flash-script` entrypoint that picks between two
+      # pre-built QSPI firmware variants at flash time.
+      #
+      # Why two variants instead of one profile-level toggle:
+      #
+      # `ghaf.hardware.nvidia.orin.secureboot.enable` is evaluated at Nix
+      # build time. When true, it bakes the `UefiDefaultSecurityKeys`
+      # device-tree overlay and PK/KEK/db ESLs into the QSPI firmware, so
+      # the device enrolls keys and turns Secure Boot on at first boot.
+      # Flipping it on unconditionally in the Orin profile would brick the
+      # default unsigned flash path: the QSPI carries enrollment material
+      # but BOOTAA64.EFI is unsigned, leaving the board in the UEFI
+      # Interactive Shell with no recoverable boot entry.
+      #
+      # The QSPI variant has to be selected *before* the inner script runs
+      # (it cannot be influenced at run time), which is what the wrapper
+      # does on its own `--secure-boot` flag:
+      #
+      #   - default        → unsigned QSPI (no DTBO, no ESLs)
+      #   - --secure-boot  → SB-enabled QSPI (DTBO + ESLs); pair it with a
+      #                      *signed* sd-image via `-s`, or the enrolled
+      #                      firmware will refuse the unsigned BOOTAA64.EFI
+      #                      and fall through to PXE/UEFI shell.
+      #
+      # `-s/--signed-sd-image` itself is deliberately NOT the selector:
+      # with `appPartitionSizeBytes` set the flash script carries no
+      # embedded image and `-s` is how *every* flash (signed or not)
+      # supplies one, so keying Secure Boot off it bricked all unsigned
+      # flashes.
+      #
+      # Use the `-u` flag if the image contains a UKI.
+      #
+      # Both variants share substituted store paths (jetpack-nixos
+      # `flashScript` is a thin wrapper around the same per-target
+      # derivations), so the second build is mostly a Nix-eval cost.
+      pkgsX86.writeShellApplication {
+        name = "flash-ghaf-host";
+        text = ''
+          sb=0
+          args=()
+          for arg in "$@"; do
+            case "$arg" in
+              --secure-boot) sb=1 ;;
+              *) args+=("$arg") ;;
+            esac
+          done
+          if [ "$sb" = 1 ]; then
+            exec ${lib.getExe withSB} "''${args[@]}"
+          else
+            exec ${lib.getExe noSB} "''${args[@]}"
+          fi
+        '';
+      };
 
   # Filter verity targets without forcing every hostConfiguration.config during
   # package-set evaluation.
@@ -593,12 +639,7 @@ in
             t:
             #Note: secureTarget does not toggle between secureboot on/off!!
             lib.nameValuePair "${t.name}-flash-qspi" (lazyPackage "${t.name}-flash-qspi" (flashTarget t true))
-            # `onlyQSPI` is read only by partition-template.nix, whose config is
-            # gated on `!verity`; the verity partition template never reads it. A
-            # verity `-flash-qspi` is therefore the same derivation as its
-            # `-flash-script`, so emitting it costs a full Jetson eval for a
-            # duplicate.
-          ) (builtins.filter (t: !(isVerityTarget t)) flashCrossTargets)
+          ) (builtins.filter (t: !(isVerityTarget t) || (t.isSecureAB or false)) flashCrossTargets)
         )
         # OTA update artifacts for verity targets
         // builtins.listToAttrs (

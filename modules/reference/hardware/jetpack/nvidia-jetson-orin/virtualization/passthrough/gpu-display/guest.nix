@@ -104,6 +104,12 @@ in
 
   users.users.ghaf.extraGroups = lib.optionals (role == "compute") [ "video" ];
 
+  # The low DMA zone is VFIO-backed CMA outside Crosvm's virtio memory map.
+  # Keep ordinary page-cache allocations in the high, virtio-accessible RAM.
+  boot.kernel.sysctl."vm.lowmem_reserve_ratio" = lib.mkIf (
+    isCrosvm && payload.capabilities.gpu
+  ) "1 256 32 0 0";
+
   ghaf.virtualization.qemu.package = lib.mkIf (!isCrosvm) (
     lib.mkForce pkgs.ghaf-nvidia-qemu-bpmp-gpu
   );

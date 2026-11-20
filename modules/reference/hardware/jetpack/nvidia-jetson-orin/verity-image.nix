@@ -77,6 +77,7 @@ let
 
 in
 {
+  imports = [ ./verity-boot-storage.nix ];
   config = lib.mkIf cfg.enable {
     system.build.verityImages = runVM (
       buildPkgs.runCommand "verity-images"
