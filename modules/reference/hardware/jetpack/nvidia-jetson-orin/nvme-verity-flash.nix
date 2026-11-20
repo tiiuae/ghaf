@@ -93,7 +93,7 @@ native.writeShellApplication {
       [[ -b "$disk" ]] && break
       sleep 1
     done
-    [[ -b "$disk" ]] || { echo "Recovery did not expose the NX NVMe disk" >&2; exit 1; }
+    [[ -b "$disk" ]] || { echo "Recovery did not expose exactly one NVMe disk" >&2; exit 1; }
     ${lib.getExe writer} "$disk" "$verity_work/bootloader/esp.img" "$verity_work/bootloader/system.img"
     shopt -s nullglob
     control=(/dev/serial/by-id/usb-NixOS_NVMe-flash_"$flash_id"-if*)

@@ -142,7 +142,11 @@ let
         python3 ${./splice-flash-xml.py} \
           --device-type "${if isNvme then "nvme" else "sdmmc_user"}" \
           ${lib.optionalString cfg.flashScriptOverrides.onlyQSPI "--remove-device"} \
-          --set "APP.size=$(cat ${verityImages}/system.raw_size)" \
+          ${
+            lib.optionalString (
+              !cfg.flashScriptOverrides.onlyQSPI
+            ) ''--set "APP.size=$(cat ${verityImages}/system.raw_size)"''
+          } \
           ${xmlFile} \
           ${pkgs.writeText "verity-storage.json" (builtins.toJSON partitionsStorage)} \
           "$out"

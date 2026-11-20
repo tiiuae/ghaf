@@ -39,6 +39,12 @@ pkgs.testers.nixosTest {
         machine.succeed("cmp /tmp/esp /dev/vdb1 && cmp /tmp/app /dev/vdb2")
         machine.succeed("test $(blkid -s LABEL -o value /dev/vdb1) = ESP && cryptsetup open --key-file /tmp/key /dev/vdb2 flash-test && cryptsetup close flash-test")
         assert other == machine.succeed("sha256sum /dev/vdc")
+    with subtest("reject an unlocked LUKS target even without mounts"):
+        machine.succeed("cryptsetup open --key-file /tmp/key /dev/vdb2 active-target")
+        written = machine.succeed("sha256sum /dev/vdb")
+        machine.fail("write-verity-nvme /dev/vdb /tmp/esp /tmp/app")
+        assert written == machine.succeed("sha256sum /dev/vdb")
+        machine.succeed("cryptsetup close active-target")
     with subtest("reject mounted target partitions"):
         machine.succeed("mkdir -p /mnt && mount -o ro /dev/vdb1 /mnt")
         written = machine.succeed("sha256sum /dev/vdb")

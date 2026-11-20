@@ -11,8 +11,14 @@ pkgs.writeShellApplication {
   ];
   text = ''
     disk=$1 esp=$2 app=$3
-    test -b "$disk"
-    test "$(blockdev --getss "$disk")" = 512
+    [[ -b "$disk" && $(lsblk -dn -o TYPE "$disk") == disk ]]
+    [[ $(blockdev --getss "$disk") == 512 ]] || {
+      echo "Initial installation requires 512-byte logical sectors" >&2; exit 1;
+    }
+    if lsblk -nr -o TYPE "$disk" | grep -qvE '^(disk|part)$'; then
+      echo "Refusing to overwrite a disk with active device mappings: $disk" >&2
+      exit 1
+    fi
     if lsblk -nr -o MOUNTPOINTS "$disk" | grep -q '[^[:space:]]'; then
       echo "Refusing to overwrite a mounted disk: $disk" >&2
       exit 1
