@@ -100,8 +100,23 @@ in
                   xdghandlers.url.enable = true;
                   firewall = {
                     updater.enable = true;
-                    allowedUDPPorts = config.ghaf.reference.services.chromecast.udpPorts;
-                    allowedTCPPorts = config.ghaf.reference.services.chromecast.tcpPorts;
+                    # Out: the web over HTTP, HTTPS and QUIC.
+                    allowedUDPPorts = [
+                      {
+                        port = 443;
+                        direction = "output";
+                      }
+                    ];
+                    allowedTCPPorts =
+                      map
+                        (port: {
+                          inherit port;
+                          direction = "output";
+                        })
+                        [
+                          80
+                          443
+                        ];
                   };
                   storagevm.maximumSize = 100 * 1024; # 100 GB space for google-chrome-vm
                 };
@@ -136,6 +151,7 @@ in
             microvm.devices = [ ];
             imports = [
               ../services/wireguard-gui/wireguard-gui.nix
+              ../services/chromecast/chromecast.nix
             ];
             # Enable WireGuard GUI
             ghaf.reference.services.wireguard-gui = {
@@ -144,6 +160,8 @@ in
                 51822
               ];
             };
+            ghaf.reference.services.google-chromecast.enable =
+              config.ghaf.reference.services.google-chromecast.enable;
           }
         ];
       };

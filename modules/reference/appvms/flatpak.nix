@@ -416,6 +416,26 @@ in
             "kill"
           ];
         extraModules = [
+          # Flathub and app downloads, and QUIC for browsers.
+          {
+            ghaf.firewall = {
+              allowedTCPPorts = [
+                {
+                  port = [
+                    80
+                    443
+                  ];
+                  direction = "output";
+                }
+              ];
+              allowedUDPPorts = [
+                {
+                  port = 443;
+                  direction = "output";
+                }
+              ];
+            };
+          }
           {
             ghaf.givc.sni.enable = true;
             services = {

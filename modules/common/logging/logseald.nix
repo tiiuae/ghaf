@@ -31,14 +31,6 @@ let
     "::"
     "[::]"
   ];
-  sealerFirewallRules =
-    if hasGhafFirewall then
-      map (
-        address:
-        "-p tcp -s ${address} --dport ${toString cfg.endpoint.port} -m conntrack --ctstate NEW -j ${config.ghaf.firewall.chainNamePrefix}conncheck-accept"
-      ) cfg.sealer.allowedProducerAddresses
-    else
-      [ ];
   credentialDirectory = service: "/run/credentials/${service}.service";
   producerCredentialDirectory = credentialDirectory "logseald-producer";
   sealerCredentialDirectory = credentialDirectory "logseald-sealer";
@@ -538,7 +530,12 @@ in
         };
       }
       (optionalAttrs hasGhafFirewall {
-        ghaf.firewall.extra.input.filter = sealerFirewallRules;
+        ghaf.firewall.allowedTCPPorts = [
+          {
+            inherit (cfg.endpoint) port;
+            from = cfg.sealer.allowedProducerAddresses;
+          }
+        ];
       })
       (optionalAttrs (!hasGhafFirewall) {
         networking.firewall.allowedTCPPorts = [ cfg.endpoint.port ];

@@ -19,35 +19,33 @@ in
   imports = [
     ./dendrite-pinecone/dendrite-pinecone.nix
     ./dendrite-pinecone/dendrite-config.nix
-    ./proxy-server/3proxy-config.nix
+    ./proxy/server.nix
     ./smcroute/smcroute.nix
     ./ollama/ollama.nix
     ./chromecast/chromecast.nix
-    ./chromecast/chromecast-config.nix
     ./nw-packet-forwarder/nw-packet-forwarder.nix
     ./wireguard-gui/wireguard-gui-config.nix
   ];
   options.ghaf.reference.services = {
     enable = mkEnableOption "Ghaf reference services";
     dendrite = mkEnableOption "the dendrite-pinecone service";
-    proxy-business = mkEnableOption "the proxy server service";
-    google-chromecast = mkOption {
-      description = "Google Chromecast service configuration";
-      type = types.submodule {
-        options = {
-          enable = mkEnableOption "Chromecast service";
-
-          vmName = mkOption {
-            type = types.str;
-            example = "chrome-vm";
-            description = "The name of the chromium/chrome VM to setup chromecast for.";
-            default = "chrome-vm";
-          };
-        };
+    proxy = {
+      enable = mkEnableOption "the proxy server service";
+      server = mkOption {
+        type = types.str;
+        default = "net-vm";
+        description = "The VM that runs the proxy server.";
       };
-      default = {
-        enable = false;
-        vmName = "chrome-vm";
+      clients = mkOption {
+        type = types.listOf types.str;
+        # Collected on the host and forwarded to the server VM, which cannot see the other VMs.
+        default = lib.attrNames (
+          lib.filterAttrs (
+            _: vm: (lib.ghaf.vm.getConfig vm).ghaf.reference.services.proxy-client.enable or false
+          ) (config.microvm.vms or { })
+        );
+        defaultText = lib.literalExpression "VMs that set ghaf.reference.services.proxy-client.enable";
+        description = "VMs that reach the internet through the proxy server.";
       };
     };
     alpaca-ollama = mkEnableOption "Alpaca/ollama service";
@@ -56,19 +54,12 @@ in
   config = mkIf cfg.enable {
     ghaf.reference.services = {
       dendrite-pinecone.enable = mkForce (cfg.dendrite && isNetVM);
-      proxy-server.enable = mkForce (cfg.proxy-business && isNetVM);
-      chromecast = mkIf (cfg.google-chromecast.enable && isNetVM) {
-        enable = mkForce true;
-        vmName = mkForce cfg.google-chromecast.vmName;
+      proxy-server = {
+        enable = mkForce (cfg.proxy.enable && config.system.name == cfg.proxy.server);
+        inherit (cfg.proxy) clients;
       };
       ollama.enable = mkForce (cfg.alpaca-ollama && isGuiVM);
       wireguard-gui-config.enable = mkForce cfg.wireguard-gui;
     };
-    assertions = [
-      {
-        assertion = cfg.chromecast.vmName != null;
-        message = "Either chrome or chromium VM must be enabled (vmName cannot be null) for chromecast feature.";
-      }
-    ];
   };
 }

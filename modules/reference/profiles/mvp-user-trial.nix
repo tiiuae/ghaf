@@ -86,14 +86,8 @@ in
                   inherit (config.ghaf.reference.services)
                     enable
                     dendrite
-                    proxy-business
+                    proxy
                     ;
-                  google-chromecast = {
-                    inherit (config.ghaf.reference.services.google-chromecast) enable vmName;
-                  };
-                  chromecast = {
-                    inherit (config.ghaf.reference.services.chromecast) internalNic;
-                  };
                 };
               };
             }
@@ -184,11 +178,8 @@ in
         services = {
           enable = true;
           dendrite = false;
-          proxy-business = lib.mkForce config.ghaf.virtualization.microvm.appvm.vms.business.enable;
-          google-chromecast = {
-            enable = true;
-            vmName = "chrome-vm";
-          };
+          proxy.enable = true;
+          google-chromecast.enable = true;
           wireguard-gui = true;
         };
 

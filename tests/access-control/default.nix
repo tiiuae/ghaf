@@ -109,7 +109,7 @@ pkgs.testers.nixosTest {
         ghaf.type = "admin-vm";
         networking.hostName = "adminvm";
 
-        ghaf.networking.hosts = commonHosts;
+        ghaf.networking.hosts = lib.mkForce commonHosts;
         ghaf.common.vms = [
           "guivm"
           "appvm"
@@ -170,7 +170,7 @@ pkgs.testers.nixosTest {
         ghaf.type = "system-vm";
         networking.hostName = "guivm";
 
-        ghaf.networking.hosts = commonHosts;
+        ghaf.networking.hosts = lib.mkForce commonHosts;
 
         networking.interfaces.eth1.ipv4.addresses = lib.mkOverride 0 [
           {
@@ -208,7 +208,7 @@ pkgs.testers.nixosTest {
         ghaf.type = "host";
         networking.hostName = "host";
 
-        ghaf.networking.hosts = commonHosts;
+        ghaf.networking.hosts = lib.mkForce commonHosts;
 
         networking.interfaces.eth1.ipv4.addresses = lib.mkOverride 0 [
           {
@@ -254,7 +254,7 @@ pkgs.testers.nixosTest {
         ghaf.type = "app-vm";
         networking.hostName = "appvm";
 
-        ghaf.networking.hosts = commonHosts;
+        ghaf.networking.hosts = lib.mkForce commonHosts;
 
         networking.interfaces.eth1.ipv4.addresses = lib.mkOverride 0 [
           {
