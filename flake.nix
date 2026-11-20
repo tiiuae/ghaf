@@ -177,6 +177,8 @@
       # TODO: restore upstream after https://github.com/microvm-nix/microvm.nix/pull/586 merges.
       url = "github:vadika/microvm.nix/22347b5f6f01bd20ec111a178f99b44f43adbc7e";
       inputs.nixpkgs.follows = "nixpkgs";
+      # Ghaf does not use Spectrum's Cloud Hypervisor graphics package.
+      inputs.spectrum.follows = "";
     };
 
     # lsp and cmdline tools for the cli
