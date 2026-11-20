@@ -44,7 +44,7 @@
     # VM control interface for Ghaf
     ctrl-panel = {
       # TODO: refresh the pin after https://github.com/tiiuae/ghaf-ctrl-panel/pull/286 merges.
-      url = "github:tiiuae/ghaf-ctrl-panel/f88a295701a98ed3218d4111e711bb1c7e6d27ec";
+      url = "github:tiiuae/ghaf-ctrl-panel/328eb536dfcb877d9fed0b584890fa1501ec4982";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
