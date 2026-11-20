@@ -87,7 +87,7 @@ in
           inherit (policycfg) storePath;
           policies = mapAttrs (_name: value: value.dest) policycfg.policies;
         };
-
+        update.enable = true;
       };
     };
 
