@@ -19,6 +19,7 @@
         {
           orin-rekey = pkgs.callPackage ./orin-rekey.nix { };
           orin-verity-persist = pkgs.callPackage ./orin-verity-persist.nix { };
+          orin-verity-nvme = pkgs.callPackage ./orin-verity-nvme.nix { };
           x86-deferred-encryption = pkgs.callPackage ./x86-deferred-encryption.nix { inherit self; };
           installer = pkgs.callPackage ./installer { inherit self; };
           installer-secureboot = pkgs.callPackage ./installer/secureboot.nix { };

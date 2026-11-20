@@ -94,6 +94,10 @@ before and after placing the board in recovery. NX commonly appears as
 `0955:7323`, AGX as `0955:7023`; verify the ECID and topology against the board's
 identity and exclude other APX devices. Confirm the intended NVMe/eMMC target.
 
+NX first boots a recovery kernel to write NVMe, then flashes QSPI. If Secure
+Boot is already enabled on the board, use its enrolled UEFI signing keys so
+the recovery kernel is trusted.
+
 Flash with the same keys used to export the public configuration:
 
 ```bash

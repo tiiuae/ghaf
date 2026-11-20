@@ -473,23 +473,29 @@ let
   flashTarget =
     t: qspiOnly:
     let
-      nvmeFlash =
-        t.hostConfiguration.config.hardware.nvidia-jetpack.som == "orin-nx"
-        && !qspiOnly
-        && !(isVerityTarget t);
+      nvmeFlash = t.hostConfiguration.config.hardware.nvidia-jetpack.som == "orin-nx" && !qspiOnly;
       flashPackage = if nvmeFlash then "signedNvmeFlashScript" else "signedFlashScript";
       mkFlasher =
         secureBoot:
-        (t.hostConfiguration.extendModules {
-          modules = [
-            {
-              ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly || nvmeFlash;
-            }
-          ]
-          ++ lib.optional secureBoot {
-            ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkForce true;
+        let
+          host = t.hostConfiguration.extendModules {
+            modules = [
+              {
+                ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = qspiOnly || nvmeFlash;
+              }
+            ]
+            ++ lib.optional secureBoot {
+              ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkForce true;
+            };
           };
-        }).pkgs.nvidia-jetpack.${flashPackage};
+        in
+        if nvmeFlash && isVerityTarget t then
+          import ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/nvme-verity-flash.nix {
+            inherit (host) config pkgs;
+            jetpackSource = jetpack-nixos;
+          }
+        else
+          host.pkgs.nvidia-jetpack.${flashPackage};
       noSB = mkFlasher false;
       # Targets that already enable secureboot unconditionally get the identical
       # derivation back from `mkForce true`, so skip the second fixpoint entirely.
@@ -593,11 +599,7 @@ in
             t:
             #Note: secureTarget does not toggle between secureboot on/off!!
             lib.nameValuePair "${t.name}-flash-qspi" (lazyPackage "${t.name}-flash-qspi" (flashTarget t true))
-            # `onlyQSPI` is read only by partition-template.nix, whose config is
-            # gated on `!verity`; the verity partition template never reads it. A
-            # verity `-flash-qspi` is therefore the same derivation as its
-            # `-flash-script`, so emitting it costs a full Jetson eval for a
-            # duplicate.
+            # Verity initial flash manages storage and matching QSPI together.
           ) (builtins.filter (t: !(isVerityTarget t)) flashCrossTargets)
         )
         # OTA update artifacts for verity targets
