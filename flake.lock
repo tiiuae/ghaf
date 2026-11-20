@@ -761,6 +761,21 @@
         "type": "github"
       }
     },
+    "import-tree": {
+      "locked": {
+        "lastModified": 1788467110,
+        "narHash": "sha256-ljEMTXP/rH0tOvDzc9gzwww6KcHRPRnEHzd9lK48V7s=",
+        "owner": "denful",
+        "repo": "import-tree",
+        "rev": "eb1b52eaecc57f7c136d07ae8a93e724dfecac46",
+        "type": "github"
+      },
+      "original": {
+        "owner": "denful",
+        "repo": "import-tree",
+        "type": "github"
+      }
+    },
     "jetpack-nixos": {
       "inputs": {
         "cuda-legacy": "cuda-legacy",
@@ -1025,6 +1040,7 @@
         "givc": "givc_2",
         "gp-gui": "gp-gui",
         "gpu-partition-manager": "gpu-partition-manager",
+        "import-tree": "import-tree",
         "jetpack-nixos": "jetpack-nixos",
         "logseald": "logseald",
         "microvm": "microvm",
