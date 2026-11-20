@@ -89,7 +89,9 @@
     ghafpkgs = {
       # TODO: return to tiiuae/ghafpkgs once
       # https://github.com/tiiuae/ghafpkgs/pull/412 is merged
-      url = "github:kajusnau/ghafpkgs/fix/dbus-proxy-fdo-sni-names";
+      # url = "github:kajusnau/ghafpkgs/fix/dbus-proxy-fdo-sni-names";
+      # The above url fix is contained in the below branch of ghafpkgs
+      url = "github:jkuro-tii/ghafpkgs/leds-server";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
