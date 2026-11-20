@@ -62,6 +62,7 @@ let
       mem = vmDef.mem or 4096;
       balloonRatio = vmDef.balloonRatio or 2;
       borderColor = vmDef.borderColor or null;
+      icon = vmDef.icon or null;
       applications = vmDef.applications or [ ];
       vtpm = {
         enable = vmDef.vtpm.enable or false;
