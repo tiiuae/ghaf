@@ -151,6 +151,7 @@ let
       path = [ swtpmScript ];
       wantedBy = [ "local-fs.target" ];
       after = [ "local-fs.target" ];
+      before = [ "microvm@${vm.name}-vm.service" ];
       serviceConfig = {
         Type = "simple";
         Slice = "system-appvms-${name}.slice";
