@@ -352,7 +352,8 @@ in
           PrivateTmp = true;
           # Asks "does the test user exist?", not "is the device provisioned?".
           ExecCondition = "${getExe testExecConditionScript}";
-          ExecStart = "${getExe pkgs.user-provision} --non-interactive --username ${testUserName} --realname \"${testUserRealName}\" --password \"${testUserPassword}\"";
+          StandardInputText = "${testUserPassword}\n";
+          ExecStart = "${getExe pkgs.user-provision} --non-interactive --username ${testUserName} --realname \"${testUserRealName}\"";
           ExecStartPost = [
             "${pkgs.systemd}/bin/systemctl stop user-provision-interactive"
           ];
