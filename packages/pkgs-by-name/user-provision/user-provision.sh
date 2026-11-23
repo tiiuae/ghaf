@@ -281,11 +281,10 @@ OPTIONS:
   --home-size SIZE        Home directory size in MB
   --uid UID               User ID
   --fido                  Enable FIDO2 authentication
-  --password PASS         Password for non-interactive setup
   --fs-type TYPE          Filesystem type for home directory
   --shell PATH            Login shell
 
-  --non-interactive       Non-interactive user creation (requires username, realname, password)
+  --non-interactive       Non-interactive user creation (requires username, realname)
   --remove                Remove all systemd-homed users
 
 GENERAL OPTIONS:
@@ -299,7 +298,7 @@ EXAMPLES:
     user-provision --username alice --realname "Alice Smith" --fido
 
   Non-interactive user creation:
-    user-provision --non-interactive --username bob --realname "Bob Jones" --password "SecurePass123"
+    echo "SecurePass123" | user-provision --non-interactive --username bob --realname "Bob Jones"
 
   Remove all users:
     user-provision --remove
@@ -350,10 +349,6 @@ parse_args() {
     --fido)
       FIDO_AUTH=true
       shift
-      ;;
-    --password)
-      PASSWORD="$2"
-      shift 2
       ;;
     --fs-type)
       FS_TYPE="$2"
@@ -1407,7 +1402,22 @@ non_interactive_setup() {
   fi
 
   if [[ -z $PASSWORD ]]; then
-    debug "Password is required. Use --password or run interactive mode"
+    if [[ -n ${NEWPASSWORD:-} ]]; then
+      PASSWORD="$NEWPASSWORD"
+    else
+      if [[ -t 0 ]]; then
+        echo -n "Enter password for '$USERNAME': " >&2
+        IFS= read -r -s PASSWORD || true
+        echo >&2
+      else
+        echo "Enter password for '$USERNAME':" >&2
+        IFS= read -r PASSWORD || true
+      fi
+    fi
+  fi
+
+  if [[ -z $PASSWORD ]]; then
+    debug "Password is required. Enter password via stdin or run interactive mode"
     exit 1
   fi
 
