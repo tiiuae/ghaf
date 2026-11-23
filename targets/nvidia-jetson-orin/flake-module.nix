@@ -489,6 +489,15 @@ let
               }
             ]
             ++ lib.optional secureVerity {
+              # Storage selection changes flash metadata, not the installed image.
+              # Share image evaluation across the storage-specific configurations.
+              system.build = lib.mapAttrs (_: lib.mkForce) {
+                inherit (t.hostConfiguration.config.system.build)
+                  ghafUpdateImage
+                  verityImages
+                  prepareVerityFlashImages
+                  ;
+              };
               hardware.nvidia-jetpack.firmware.initialBootOrder = lib.mkForce (
                 [ storage ]
                 ++ lib.remove storage [
