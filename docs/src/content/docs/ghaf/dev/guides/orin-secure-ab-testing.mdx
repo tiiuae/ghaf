@@ -183,7 +183,11 @@ Output: `/var/tmp/ghaf-agx-update-2/` contains one signed manifest, its detached
 signature and three payloads. The input glob selects the single manifest in the
 trusted Nix output. A slot update requires this payload, not another flash.
 
-Follow [Static HTTP lab delivery](/ghaf/dev/architecture/ab-update#static-http-lab-delivery)
+For **offline updates**, follow [Offline update through the CLI](/ghaf/dev/architecture/ab-update#offline-update-through-the-cli).
+Copy the signed folder into gui-vm and run the import/install commands there;
+Control Panel is not required on Orin.
+
+For HTTP delivery, follow [Static HTTP lab delivery](/ghaf/dev/architecture/ab-update#static-http-lab-delivery)
 with `SIGNED_DIR=/var/tmp/ghaf-agx-update-2`, then
 [validate and install on the host](/ghaf/dev/architecture/ab-update#validate-and-install-on-the-host).
 For NX, use `/var/tmp/ghaf-nx-update-2`. Both fetch to
