@@ -43,6 +43,59 @@ Run commands in order and stop on any error. Paths on the build host do not
 exist on the device. Only `/persist/sysupdate` is shared between `net-vm` and
 the Ghaf host.
 
+### Offline update through the CLI
+
+Use this flow on the Orin AGX/NX and Intel laptop **secure A/B debug targets**
+from the platform guides. Control Panel is not required. These images provide
+`givc-cli` and its `GIVC_*` connection/TLS environment in gui-vm.
+
+Copy the **whole signed update directory** into gui-vm, for example
+`~/Downloads/offline-update/`, or use a drive mounted there. Keep the manifest,
+its `.sig` file and all three payloads together. Disconnect Internet access.
+
+**gui-vm, normal user's terminal, without sudo.** Use the actual manifest
+filename (`.manifest` or `manifest.json`):
+
+```bash
+givc-cli update import --manifest "$HOME/Downloads/offline-update/UPDATE.manifest"
+```
+
+Expect copying/verifying progress, then `Verified …` and `candidate: <id>`.
+To test cancellation, press Ctrl+C during copying and repeat the command.
+Save the returned candidate ID for use after reboot:
+
+```bash
+CANDIDATE=PASTE_RETURNED_ID
+givc-cli update status --candidate "$CANDIDATE"
+```
+
+Expect `ready`. Unplug the source drive, or rename the copied source directory,
+then install the host's verified private copy:
+
+```bash
+mv "$HOME/Downloads/offline-update" "$HOME/Downloads/offline-update.saved"
+givc-cli update install --candidate "$CANDIDATE" &&
+givc-cli update status --candidate "$CANDIDATE"
+```
+
+Skip `mv` when using an unplugged drive. Expect `restart-required`; installation
+must succeed without the source or Internet. Reboot the **whole device** separately:
+
+```bash
+givc-cli reboot
+```
+
+After logging back into gui-vm, run `givc-cli update status --candidate PASTE_RETURNED_ID`.
+Expect `accepted` once boot health completes. On **ghaf-host**, check
+`sudo cat /persist/common/ota/accepted-generation` matches the signed update's
+generation. `rolled-back` means the trial failed; retain logs before retrying.
+
+For rejection tests, import a separate copy with an edited manifest and its
+original signature: expect failure and no candidate ID. After successful boot,
+importing the original bundle again must fail because its generation is no longer
+newer. To discard an unused candidate, run
+`givc-cli update discard --candidate "$CANDIDATE"`.
+
 ### Static HTTP lab delivery
 
 **Build host, in `nix develop` at the checkout root.** The signed directory

@@ -21,10 +21,10 @@ Run commands in order and stop on any error; use fresh public and signed output
 directories for each generation. Example paths are explicit and can be reused
 from a new shell after entering `nix develop` again.
 
-| Board | Target prefix | APP storage |
+| Board | Target prefix | Storage choices |
 | --- | --- | --- |
-| AGX | `nvidia-jetson-orin-agx-verity-luks-debug` | Internal eMMC (`mmcblk0`) |
-| NX 16 GB | `nvidia-jetson-orin-nx-verity-luks-debug` | Internal NVMe |
+| AGX | `nvidia-jetson-orin-agx-verity-luks-debug` | eMMC (default), NVMe, USB SSD |
+| NX 16 GB | `nvidia-jetson-orin-nx-verity-luks-debug` | NVMe (default), USB SSD |
 
 The commands below are for **AGX**. For **NX**, replace `agx` with `nx` in every
 build target and output path. The `-from-x86_64` suffix is required on an x86
@@ -94,6 +94,10 @@ before and after placing the board in recovery. NX commonly appears as
 `0955:7323`, AGX as `0955:7023`; verify the ECID and topology against the board's
 identity and exclude other APX devices. Confirm the intended NVMe/eMMC target.
 
+NVMe installation first boots a recovery kernel to write the SSD, then flashes QSPI. If Secure
+Boot is already enabled on the board, use its enrolled UEFI signing keys so
+the recovery kernel is trusted.
+
 Flash with the same keys used to export the public configuration:
 
 ```bash
@@ -101,7 +105,17 @@ sudo env GHAF_DEV_KEY_DIR="$HOME/.local/share/ghaf-dev-keys" \
   ./result-agx-initial-flasher/bin/flash-ghaf-host --secure-boot -u
 ```
 
-Output: signed firmware/ESP and a personalized APP on the board. The flasher
+Add `--storage nvme` for AGX NVMe. For USB, attach the SSD to the **build PC**
+and add `--storage usb --disk /dev/disk/by-id/usb-YOUR_SSD`. This erases that SSD
+and flashes the board's QSPI; connect the SSD to the board afterwards and power-cycle it.
+NVMe recovery requires exactly one NVMe disk. SSDs must use 512-byte logical sectors.
+Use `--usb-instance PORT` to pin the identified board's recovery connection.
+
+For firmware only, build the same target with `-flash-qspi` instead of
+`-flash-script`, then run it with the same `--storage` choice and signing keys;
+omit `--disk`. It leaves system storage unchanged.
+
+Output: signed firmware/ESP and a personalized APP on the selected disk. The flasher
 rotates the shared image's LUKS volume key and adds a per-flash recovery keyslot.
 It prints the recovery file's path under the build host's key directory:
 `$HOME/.local/share/ghaf-dev-keys/recovery-passphrases/`. Retain that exact file
@@ -111,13 +125,14 @@ First boot enrolls the device-unique key (DUK) and removes the manufacturer slot
 without discarding recovery. Existing non-verity LUKS targets retain on-device
 first-boot reencryption.
 
-Encrypted Orin verity images require DUK. The firmware overlays initialize eMMC
-first on AGX and NVMe first on NX, and append newly discovered boot devices
-instead of putting them ahead of internal storage.
+Encrypted Orin verity images require DUK. Firmware defaults put the selected
+storage first and append newly discovered boot devices. APP and `/boot` are
+selected from the disk identified by the boot loader, even when another Ghaf
+disk has the same LUKS UUID or ESP label. Cloned ESP partition GUIDs are rejected.
 
 An OTA image does not update these firmware settings. On an existing installation,
 enter UEFI Setup and set **Add new devices to top or bottom of boot order** to
-**Bottom**, then move internal storage ahead of any existing HTTP/PXE entries.
+**Bottom**, then move the selected system disk ahead of other disks and HTTP/PXE entries.
 Check these settings after flashing and before testing automatic rollback.
 
 ### Check the first boot
@@ -168,7 +183,11 @@ Output: `/var/tmp/ghaf-agx-update-2/` contains one signed manifest, its detached
 signature and three payloads. The input glob selects the single manifest in the
 trusted Nix output. A slot update requires this payload, not another flash.
 
-Follow [Static HTTP lab delivery](/ghaf/dev/architecture/ab-update#static-http-lab-delivery)
+For **offline updates**, follow [Offline update through the CLI](/ghaf/dev/architecture/ab-update#offline-update-through-the-cli).
+Copy the signed folder into gui-vm and run the import/install commands there;
+Control Panel is not required on Orin.
+
+For HTTP delivery, follow [Static HTTP lab delivery](/ghaf/dev/architecture/ab-update#static-http-lab-delivery)
 with `SIGNED_DIR=/var/tmp/ghaf-agx-update-2`, then
 [validate and install on the host](/ghaf/dev/architecture/ab-update#validate-and-install-on-the-host).
 For NX, use `/var/tmp/ghaf-nx-update-2`. Both fetch to

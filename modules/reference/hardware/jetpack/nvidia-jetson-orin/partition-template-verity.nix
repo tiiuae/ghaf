@@ -142,14 +142,17 @@ let
         python3 ${./splice-flash-xml.py} \
           --device-type "${if isNvme then "nvme" else "sdmmc_user"}" \
           ${lib.optionalString cfg.flashScriptOverrides.onlyQSPI "--remove-device"} \
-          --set "APP.size=$(cat ${verityImages}/system.raw_size)" \
+          ${
+            lib.optionalString (
+              !cfg.flashScriptOverrides.onlyQSPI
+            ) ''--set "APP.size=$(cat ${verityImages}/system.raw_size)"''
+          } \
           ${xmlFile} \
           ${pkgs.writeText "verity-storage.json" (builtins.toJSON partitionsStorage)} \
           "$out"
       '';
 
-  # preFlashCommands: Copy pre-built images and patch flash.xml
-  preFlashCommands = ''
+  checkTrust = ''
     echo "============================================================"
     echo "Ghaf A/B verity flash script for NVIDIA Jetson"
     echo "============================================================"
@@ -205,7 +208,9 @@ let
 
       rm -rf "$_trust_check_dir"
     ''}
+  '';
 
+  prepareImages = ''
     mkdir -pv "$WORKDIR/bootloader"
 
     # jetpack-nixos sets NO_ESP_IMG=1; override so flash.sh assigns
@@ -279,33 +284,32 @@ let
     _outer="$WORKDIR/bootloader/system.img"
     "${lib.getExe pkgs.pkgsBuildBuild.zstd}" --decompress --force \
       "${verityImages}/system.img.zst" -o "$_outer"
-    ${lib.optionalString
-      (secureUpdate && cfg.diskEncryption.enable && !cfg.flashScriptOverrides.onlyQSPI)
-      ''
-        (
-        umask 077
-        _key_dir=$(mktemp -d)
-        trap 'rm -rf "$_key_dir"' EXIT
-        printf '%s' ${lib.escapeShellArg cfg.diskEncryption.deviceUniqueKey.deviceManufacturerPassphrase} > "$_key_dir/manufacturer"
-        _recovery_dir="$GHAF_DEV_KEY_DIR/recovery-passphrases"
-        install -d -m 0700 "$_recovery_dir"
-        _recovery=$(mktemp "$_recovery_dir/recovery-$(date -u +%Y%m%dT%H%M%SZ)-XXXXXX.txt")
-        # Store exactly the printable passphrase bytes that an operator types.
-        # A trailing newline would become part of a cryptsetup key file during
-        # enrollment and make the printed value fail interactive recovery.
-        "${pkgs.pkgsBuildBuild.openssl}/bin/openssl" rand -base64 24 \
-          | "${pkgs.pkgsBuildBuild.coreutils}/bin/tr" -d '\n' > "$_recovery"
-        chmod 0600 "$_recovery"
+    ${lib.optionalString (secureUpdate && cfg.diskEncryption.enable) ''
+      (
+      umask 077
+      _key_dir=$(mktemp -d)
+      trap 'rm -rf "$_key_dir"' EXIT
+      printf '%s' ${lib.escapeShellArg cfg.diskEncryption.deviceUniqueKey.deviceManufacturerPassphrase} > "$_key_dir/manufacturer"
+      _recovery_dir="$GHAF_DEV_KEY_DIR/recovery-passphrases"
+      install -d -m 0700 "$_recovery_dir"
+      _recovery=$(mktemp "$_recovery_dir/recovery-$(date -u +%Y%m%dT%H%M%SZ)-XXXXXX.txt")
+      # Store exactly the printable passphrase bytes that an operator types.
+      # A trailing newline would become part of a cryptsetup key file during
+      # enrollment and make the printed value fail interactive recovery.
+      "${pkgs.pkgsBuildBuild.openssl}/bin/openssl" rand -base64 24 \
+        | "${pkgs.pkgsBuildBuild.coreutils}/bin/tr" -d '\n' > "$_recovery"
+      chmod 0600 "$_recovery"
 
-        ${lib.getExe rekeyVerityImage} "$_outer" "$_key_dir/manufacturer" "$_recovery"
-        echo "Recovery passphrase saved at: $_recovery"
-        )
-      ''
-    }
+      ${lib.getExe rekeyVerityImage} "$_outer" "$_key_dir/manufacturer" "$_recovery"
+      echo "Recovery passphrase saved at: $_recovery"
+      )
+    ''}
     # flash.sh -k APP looks for system.img relative to $WORKDIR
     ln -sf "$WORKDIR/bootloader/system.img" "$WORKDIR/system.img"
     echo "APP image: $("${pkgs.pkgsBuildBuild.coreutils}/bin/stat" -c%s "$WORKDIR/bootloader/system.img") bytes"
+  '';
 
+  prepareFirmware = ''
     # Ensure all DTB variants in kernel/dtb/ have NixOS overlays applied.
     # NixOS only applies deviceTree.overlays to the DTB named in
     # hardware.deviceTree.name, but flash.sh picks a variant based on
@@ -337,6 +341,13 @@ in
 {
   config = lib.mkIf (cfg.enable && config.ghaf.partitioning.verity.enable) {
     hardware.nvidia-jetpack.flashScriptOverrides.partitionTemplate = partitionTemplate;
-    hardware.nvidia-jetpack.flashScriptOverrides.preFlashCommands = preFlashCommands;
+    hardware.nvidia-jetpack.flashScriptOverrides.preFlashCommands =
+      checkTrust
+      + lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) prepareImages
+      + prepareFirmware;
+    system.build.prepareVerityFlashImages = pkgs.pkgsBuildBuild.writeShellApplication {
+      name = "prepare-verity-flash-images";
+      text = checkTrust + prepareImages;
+    };
   };
 }

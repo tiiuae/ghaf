@@ -508,15 +508,25 @@ let
       # crypto_LUKS payload, independent of mmcblk/nvme/sda enumeration and of the
       # partition-table scheme (MBR on USB, GPT on eMMC/NVMe).
       luksDev=""
-      for _ in $(seq 1 30); do
-        for d in $(blkid -o device -t UUID=${luksUuid} 2>/dev/null); do
-          [ "$(blkid -o value -s TYPE "$d" 2>/dev/null)" = "crypto_LUKS" ] || continue
-          luksDev="$d"
-          break
-        done
-        if [ -n "$luksDev" ]; then break; fi
-        sleep 1
-      done
+      ${
+        if verityEnabled then
+          ''
+            luksDev=$(readlink -f /dev/disk/ghaf-root)
+            [ -b "$luksDev" ] && [ "$(blkid -o value -s TYPE "$luksDev")" = crypto_LUKS ] || handle_error
+          ''
+        else
+          ''
+            for _ in $(seq 1 30); do
+              for d in $(blkid -o device -t UUID=${luksUuid} 2>/dev/null); do
+                [ "$(blkid -o value -s TYPE "$d" 2>/dev/null)" = "crypto_LUKS" ] || continue
+                luksDev="$d"
+                break
+              done
+              if [ -n "$luksDev" ]; then break; fi
+              sleep 1
+            done
+          ''
+      }
       if [[ -z "$luksDev" ]]; then
         printf "error: LUKS root partition (UUID=%s) not found\n" "${luksUuid}"
         handle_error
@@ -721,9 +731,9 @@ in
           (mmcblk/nvme/sda). It also survives the first-boot device-unique-key
           rekey, which is a keyslot operation, not a header rewrite.
 
-          Read-only: two drives holding a verbatim ghaf flash carry the same UUID,
-          so a runtime scan cannot tell them apart and picks the first match.
-          Disambiguating needs a per-install-unique UUID, left as follow-up.
+          Encrypted verity boots select the matching container on the disk
+          identified by the boot loader's ESP. Legacy non-verity images still
+          require only one attached installation with this UUID.
         '';
         type = types.str;
         readOnly = true;
@@ -962,9 +972,11 @@ in
           postDiskUniqueKeyScript
         ];
 
-      services.udev.rules = lib.optionalString cfg.diskEncryption.deviceUniqueKey.enable ''
-        ACTION=="add", SUBSYSTEM=="block", ENV{ID_FS_UUID}=="${luksUuid}", TAG+="systemd", ENV{SYSTEMD_WANTS}+="pre-disk-unique-key.service"
-      '';
+      services.udev.rules =
+        lib.optionalString (cfg.diskEncryption.deviceUniqueKey.enable && !verityEnabled)
+          ''
+            ACTION=="add", SUBSYSTEM=="block", ENV{ID_FS_UUID}=="${luksUuid}", TAG+="systemd", ENV{SYSTEMD_WANTS}+="pre-disk-unique-key.service"
+          '';
 
       systemd.services = {
         # Verity images have no resizable root here: their root is a tmpfs

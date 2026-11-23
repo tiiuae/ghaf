@@ -43,11 +43,13 @@
 
     # VM control interface for Ghaf
     ctrl-panel = {
-      url = "github:tiiuae/ghaf-ctrl-panel";
+      # TODO: refresh the pin after https://github.com/tiiuae/ghaf-ctrl-panel/pull/286 merges.
+      url = "github:tiiuae/ghaf-ctrl-panel/eb4e0676c3f0fd491dd61c33ac014d900e2bdf4e";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
         crane.follows = "givc/crane";
+        givc.follows = "givc";
       };
     };
 
@@ -128,7 +130,8 @@
 
     # Ghaf Inter VM communication and control library
     givc = {
-      url = "github:tiiuae/ghaf-givc";
+      # TODO: refresh the pin after https://github.com/tiiuae/ghaf-givc/pull/540 merges.
+      url = "github:tiiuae/ghaf-givc/661af67e7d9347ee21c4ff116ea6c1ede08f48f9";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
@@ -174,8 +177,8 @@
 
     # For building and managing VMs
     microvm = {
-      # TODO: restore upstream after https://github.com/microvm-nix/microvm.nix/pull/586 merges.
-      url = "github:vadika/microvm.nix/22347b5f6f01bd20ec111a178f99b44f43adbc7e";
+      # TODO: drop the pin after https://github.com/microvm-nix/microvm.nix/pull/586 merges.
+      url = "github:microvm-nix/microvm.nix/22347b5f6f01bd20ec111a178f99b44f43adbc7e";
       inputs.nixpkgs.follows = "nixpkgs";
       # Ghaf does not use Spectrum's Cloud Hypervisor graphics package.
       inputs.spectrum.follows = "";
