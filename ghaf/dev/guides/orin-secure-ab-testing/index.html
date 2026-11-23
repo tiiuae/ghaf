@@ -93,19 +93,19 @@ from a new shell after entering <code dir="auto">nix develop</code> again.</p>
 <tr>
 <th>Board</th>
 <th>Target prefix</th>
-<th>APP storage</th>
+<th>Storage choices</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>AGX</td>
 <td><code dir="auto">nvidia-jetson-orin-agx-verity-luks-debug</code></td>
-<td>Internal eMMC (<code dir="auto">mmcblk0</code>)</td>
+<td>eMMC (default), NVMe, USB SSD</td>
 </tr>
 <tr>
 <td>NX 16 GB</td>
 <td><code dir="auto">nvidia-jetson-orin-nx-verity-luks-debug</code></td>
-<td>Internal NVMe</td>
+<td>NVMe (default), USB SSD</td>
 </tr>
 </tbody>
 </table>
@@ -149,9 +149,20 @@ initial flashing.</p>
 before and after placing the board in recovery. NX commonly appears as
 <code dir="auto">0955:7323</code>, AGX as <code dir="auto">0955:7023</code>; verify the ECID and topology against the board’s
 identity and exclude other APX devices. Confirm the intended NVMe/eMMC target.</p>
+<p>NVMe installation first boots a recovery kernel to write the SSD, then flashes QSPI. If Secure
+Boot is already enabled on the board, use its enrolled UEFI signing keys so
+the recovery kernel is trusted.</p>
 <p>Flash with the same keys used to export the public configuration:</p>
 <div class="expressive-code"><figure class="frame is-terminal not-content"><figcaption class="header"><span class="title"></span><span class="sr-only">Terminal window</span></figcaption><pre data-language="bash"><code><div class="ec-line"><div class="code"><span style="--0:#82AAFF;--1:#3B61B0">sudo</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">env</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">GHAF_DEV_KEY_DIR=</span><span style="--0:#D9F5DD;--1:#111111">"</span><span style="--0:#C5E478;--1:#3B61B0">$HOME</span><span style="--0:#ECC48D;--1:#984E4D">/.local/share/ghaf-dev-keys</span><span style="--0:#D9F5DD;--1:#111111">"</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#F78C6C;--1:#AA0982">\</span></div></div><div class="ec-line"><div class="code"><span class="indent">  </span><span style="--0:#ECC48D;--1:#3B61B0">./result-agx-initial-flasher/bin/flash-ghaf-host</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#82AAFF;--1:#3B61B0">--secure-boot</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#82AAFF;--1:#3B61B0">-u</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="sudo env GHAF_DEV_KEY_DIR=&quot;$HOME/.local/share/ghaf-dev-keys&quot; \  ./result-agx-initial-flasher/bin/flash-ghaf-host --secure-boot -u"><div></div></button></div></figure></div>
-<p>Output: signed firmware/ESP and a personalized APP on the board. The flasher
+<p>Add <code dir="auto">--storage nvme</code> for AGX NVMe. For USB, attach the SSD to the <strong>build PC</strong>
+and add <code dir="auto">--storage usb --disk /dev/disk/by-id/usb-YOUR_SSD</code>. This erases that SSD
+and flashes the board’s QSPI; connect the SSD to the board afterwards and power-cycle it.
+NVMe recovery requires exactly one NVMe disk. SSDs must use 512-byte logical sectors.
+Use <code dir="auto">--usb-instance PORT</code> to pin the identified board’s recovery connection.</p>
+<p>For firmware only, build the same target with <code dir="auto">-flash-qspi</code> instead of
+<code dir="auto">-flash-script</code>, then run it with the same <code dir="auto">--storage</code> choice and signing keys;
+omit <code dir="auto">--disk</code>. It leaves system storage unchanged.</p>
+<p>Output: signed firmware/ESP and a personalized APP on the selected disk. The flasher
 rotates the shared image’s LUKS volume key and adds a per-flash recovery keyslot.
 It prints the recovery file’s path under the build host’s key directory:
 <code dir="auto">$HOME/.local/share/ghaf-dev-keys/recovery-passphrases/</code>. Retain that exact file
@@ -159,12 +170,13 @@ in protected offline custody; it is not part of an OTA bundle or ordinary logs.<
 <p>First boot enrolls the device-unique key (DUK) and removes the manufacturer slot
 without discarding recovery. Existing non-verity LUKS targets retain on-device
 first-boot reencryption.</p>
-<p>Encrypted Orin verity images require DUK. The firmware overlays initialize eMMC
-first on AGX and NVMe first on NX, and append newly discovered boot devices
-instead of putting them ahead of internal storage.</p>
+<p>Encrypted Orin verity images require DUK. Firmware defaults put the selected
+storage first and append newly discovered boot devices. APP and <code dir="auto">/boot</code> are
+selected from the disk identified by the boot loader, even when another Ghaf
+disk has the same LUKS UUID or ESP label. Cloned ESP partition GUIDs are rejected.</p>
 <p>An OTA image does not update these firmware settings. On an existing installation,
 enter UEFI Setup and set <strong>Add new devices to top or bottom of boot order</strong> to
-<strong>Bottom</strong>, then move internal storage ahead of any existing HTTP/PXE entries.
+<strong>Bottom</strong>, then move the selected system disk ahead of other disks and HTTP/PXE entries.
 Check these settings after flashing and before testing automatic rollback.</p>
 <div class="sl-heading-wrapper level-h3"><h3 id="check-the-first-boot">Check the first boot</h3><a class="sl-anchor-link" href="#check-the-first-boot"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Check the first boot”</span></a></div>
 <p><strong>Ghaf host.</strong> Connect over the identified serial console, or follow the
@@ -188,7 +200,10 @@ paths</strong> to the new value. Use <code dir="auto">nx</code> instead of <code
 <p>Output: <code dir="auto">/var/tmp/ghaf-agx-update-2/</code> contains one signed manifest, its detached
 signature and three payloads. The input glob selects the single manifest in the
 trusted Nix output. A slot update requires this payload, not another flash.</p>
-<p>Follow <a href="/ghaf/dev/architecture/ab-update#static-http-lab-delivery">Static HTTP lab delivery</a>
+<p>For <strong>offline updates</strong>, follow <a href="/ghaf/dev/architecture/ab-update#offline-update-through-the-cli">Offline update through the CLI</a>.
+Copy the signed folder into gui-vm and run the import/install commands there;
+Control Panel is not required on Orin.</p>
+<p>For HTTP delivery, follow <a href="/ghaf/dev/architecture/ab-update#static-http-lab-delivery">Static HTTP lab delivery</a>
 with <code dir="auto">SIGNED_DIR=/var/tmp/ghaf-agx-update-2</code>, then
 <a href="/ghaf/dev/architecture/ab-update#validate-and-install-on-the-host">validate and install on the host</a>.
 For NX, use <code dir="auto">/var/tmp/ghaf-nx-update-2</code>. Both fetch to

@@ -100,6 +100,42 @@
 </thead>
 <tbody>
 <tr>
+<td>PrepareLocalImport</td>
+<td><a href="#update.LocalMetadata">LocalMetadata</a></td>
+<td><a href="#update.LocalMetadata">LocalCandidate</a></td>
+<td></td>
+</tr>
+<tr>
+<td>ReceiveLocalImport</td>
+<td><a href="#update.LocalReceiveRequest">LocalReceiveRequest</a></td>
+<td><a href="#update.LocalReceiveRequest">LocalImportResponse</a></td>
+<td></td>
+</tr>
+<tr>
+<td>AcceptLocalImport</td>
+<td><a href="#update.LocalCandidateRequest">LocalCandidateRequest</a></td>
+<td><a href="#update.LocalCandidateRequest">LocalCandidate</a></td>
+<td></td>
+</tr>
+<tr>
+<td>DiscardLocalImport</td>
+<td><a href="#update.LocalCandidateRequest">LocalCandidateRequest</a></td>
+<td><a href="#update.LocalCandidateRequest">Empty</a></td>
+<td></td>
+</tr>
+<tr>
+<td>CandidateStatus</td>
+<td><a href="#update.LocalCandidateRequest">LocalCandidateRequest</a></td>
+<td><a href="#update.LocalCandidateRequest">LocalImportResponse</a></td>
+<td></td>
+</tr>
+<tr>
+<td>InstallCandidate</td>
+<td><a href="#update.LocalCandidateRequest">LocalCandidateRequest</a></td>
+<td><a href="#update.LocalCandidateRequest">ImageInstallResponse</a></td>
+<td></td>
+</tr>
+<tr>
 <td>ListGenerations</td>
 <td><a href="#update.Empty">Empty</a></td>
 <td><a href="#update.Empty">ListGenerationsResponse</a></td>
@@ -348,6 +384,230 @@
 <td><a href="#update.Generation">Generation</a></td>
 <td>repeated</td>
 <td>List of installed generations</td>
+</tr>
+</tbody>
+</table>
+<a name="update.LocalArtifact"/>
+<div class="sl-heading-wrapper level-h4"><h4 id="localartifact">LocalArtifact</h4><a class="sl-anchor-link" href="#localartifact"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “LocalArtifact”</span></a></div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Label</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>name</td>
+<td><a href="#string">string</a></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>size</td>
+<td><a href="#uint64">uint64</a></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<a name="update.LocalCandidate"/>
+<div class="sl-heading-wrapper level-h4"><h4 id="localcandidate">LocalCandidate</h4><a class="sl-anchor-link" href="#localcandidate"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “LocalCandidate”</span></a></div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Label</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td><a href="#string">string</a></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>version</td>
+<td><a href="#string">string</a></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>target</td>
+<td><a href="#string">string</a></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>generation</td>
+<td><a href="#uint64">uint64</a></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>files</td>
+<td><a href="#update.LocalArtifact">LocalArtifact</a></td>
+<td>repeated</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<a name="update.LocalCandidateRequest"/>
+<div class="sl-heading-wrapper level-h4"><h4 id="localcandidaterequest">LocalCandidateRequest</h4><a class="sl-anchor-link" href="#localcandidaterequest"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “LocalCandidateRequest”</span></a></div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Label</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td><a href="#string">string</a></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<a name="update.LocalImportRequest"/>
+<div class="sl-heading-wrapper level-h4"><h4 id="localimportrequest">LocalImportRequest</h4><a class="sl-anchor-link" href="#localimportrequest"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “LocalImportRequest”</span></a></div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Label</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>metadata</td>
+<td><a href="#update.LocalMetadata">LocalMetadata</a></td>
+<td></td>
+<td>First message only.</td>
+</tr>
+<tr>
+<td>data</td>
+<td><a href="#bytes">bytes</a></td>
+<td></td>
+<td>Concatenated root, verity, UKI; at most 256 KiB per message.</td>
+</tr>
+<tr>
+<td>finish</td>
+<td><a href="#bool">bool</a></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<a name="update.LocalImportResponse"/>
+<div class="sl-heading-wrapper level-h4"><h4 id="localimportresponse">LocalImportResponse</h4><a class="sl-anchor-link" href="#localimportresponse"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “LocalImportResponse”</span></a></div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Label</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>phase</td>
+<td><a href="#update.LocalUpdatePhase">LocalUpdatePhase</a></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>completed</td>
+<td><a href="#uint64">uint64</a></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>total</td>
+<td><a href="#uint64">uint64</a></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>candidate</td>
+<td><a href="#update.LocalCandidate">LocalCandidate</a></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<a name="update.LocalMetadata"/>
+<div class="sl-heading-wrapper level-h4"><h4 id="localmetadata">LocalMetadata</h4><a class="sl-anchor-link" href="#localmetadata"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “LocalMetadata”</span></a></div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Label</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>manifest</td>
+<td><a href="#string">string</a></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>signature</td>
+<td><a href="#string">string</a></td>
+<td></td>
+<td>Hex-encoded detached Ed25519 signature.</td>
+</tr>
+</tbody>
+</table>
+<a name="update.LocalReceiveRequest"/>
+<div class="sl-heading-wrapper level-h4"><h4 id="localreceiverequest">LocalReceiveRequest</h4><a class="sl-anchor-link" href="#localreceiverequest"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “LocalReceiveRequest”</span></a></div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Label</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td><a href="#string">string</a></td>
+<td></td>
+<td>Required with metadata in the first message; must be empty with data/finish.</td>
+</tr>
+<tr>
+<td>metadata</td>
+<td><a href="#update.LocalMetadata">LocalMetadata</a></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>data</td>
+<td><a href="#bytes">bytes</a></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>finish</td>
+<td><a href="#bool">bool</a></td>
+<td></td>
+<td></td>
 </tr>
 </tbody>
 </table>
@@ -778,6 +1038,84 @@
 </tbody>
 </table>
  <!-- end messages -->
+<a name="update.LocalUpdatePhase"/>
+<div class="sl-heading-wrapper level-h4"><h4 id="localupdatephase">LocalUpdatePhase</h4><a class="sl-anchor-link" href="#localupdatephase"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “LocalUpdatePhase”</span></a></div>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Number</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LOCAL_UPDATE_PHASE_UNSPECIFIED</td>
+<td>0</td>
+<td></td>
+</tr>
+<tr>
+<td>LOCAL_UPDATE_PHASE_ADMITTED</td>
+<td>1</td>
+<td></td>
+</tr>
+<tr>
+<td>LOCAL_UPDATE_PHASE_RECEIVING</td>
+<td>2</td>
+<td></td>
+</tr>
+<tr>
+<td>LOCAL_UPDATE_PHASE_RECEIVED</td>
+<td>3</td>
+<td></td>
+</tr>
+<tr>
+<td>LOCAL_UPDATE_PHASE_VERIFYING</td>
+<td>4</td>
+<td></td>
+</tr>
+<tr>
+<td>LOCAL_UPDATE_PHASE_READY</td>
+<td>5</td>
+<td></td>
+</tr>
+<tr>
+<td>LOCAL_UPDATE_PHASE_INSTALLING</td>
+<td>6</td>
+<td></td>
+</tr>
+<tr>
+<td>LOCAL_UPDATE_PHASE_RESTART_REQUIRED</td>
+<td>7</td>
+<td></td>
+</tr>
+<tr>
+<td>LOCAL_UPDATE_PHASE_ACCEPTED</td>
+<td>8</td>
+<td></td>
+</tr>
+<tr>
+<td>LOCAL_UPDATE_PHASE_TRIAL</td>
+<td>9</td>
+<td></td>
+</tr>
+<tr>
+<td>LOCAL_UPDATE_PHASE_ROLLED_BACK</td>
+<td>10</td>
+<td></td>
+</tr>
+<tr>
+<td>LOCAL_UPDATE_PHASE_INTERRUPTED</td>
+<td>11</td>
+<td></td>
+</tr>
+<tr>
+<td>LOCAL_UPDATE_PHASE_FAILED</td>
+<td>12</td>
+<td></td>
+</tr>
+</tbody>
+</table>
  <!-- end enums -->
  <!-- end HasExtensions -->
 <div class="sl-heading-wrapper level-h3"><h3 id="scalar-value-types">Scalar Value Types</h3><a class="sl-anchor-link" href="#scalar-value-types"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Scalar Value Types”</span></a></div>
