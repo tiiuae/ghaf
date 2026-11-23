@@ -364,6 +364,23 @@
         "type": "github"
       }
     },
+    "ghaf-fortivpn": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1795089415,
+        "narHash": "sha256-hu7elth53S+DWkvc/WS2+ZCV8GQlvUFkfI+u6bxSk6k=",
+        "owner": "tiiuae",
+        "repo": "ghaf-fortivpn",
+        "rev": "24e17b571d1ea3888d0b8d248bdef0ed5447e33b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "tiiuae",
+        "ref": "main",
+        "repo": "ghaf-fortivpn",
+        "type": "github"
+      }
+    },
     "ghafpkgs": {
       "inputs": {
         "crane": [
@@ -382,6 +399,7 @@
         "flake-root": [
           "flake-root"
         ],
+        "ghaf-fortivpn": "ghaf-fortivpn",
         "git-hooks-nix": [
           "git-hooks-nix"
         ],
@@ -393,16 +411,15 @@
         ]
       },
       "locked": {
-        "lastModified": 1793872965,
-        "narHash": "sha256-+O2thm6lAGkfipjXfgSxsC/DKyxqqzdxZsRi79t0+nE=",
-        "owner": "kajusnau",
+        "lastModified": 1795591987,
+        "narHash": "sha256-8eyrkmwle9OLxOvrFsAtqxq3uZ3+8M7hIK8u+9OYPNA=",
+        "owner": "tiiuae",
         "repo": "ghafpkgs",
-        "rev": "83cb15e7352262d9766bb870d8d0c34f76db3c05",
+        "rev": "723e10783151ed8457b461c60cc3b86d7112b1ad",
         "type": "github"
       },
       "original": {
-        "owner": "kajusnau",
-        "ref": "fix/dbus-proxy-fdo-sni-names",
+        "owner": "tiiuae",
         "repo": "ghafpkgs",
         "type": "github"
       }
