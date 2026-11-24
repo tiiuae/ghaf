@@ -18,6 +18,12 @@ let
 
   needsNetwork = lib.any (remote: !lib.hasPrefix "file://" remote.url) cfg.remotes;
 
+  badgeIcon =
+    let
+      icon = config.ghaf.virtualization.microvm.appvm.enabledVms.flatpak.icon or null;
+    in
+    if icon != null then icon else "ghaf-vm-flatpak";
+
   # Unresolved, for whoever builds installing from a local medium on top of
   # `remotes`: GIVC runs app-VM commands as appUser, so `flatpak install
   # --system` goes through the polkit rule below rather than running as root;
@@ -192,10 +198,10 @@ let
                 s|^Implements=.*||; \
                 s|^PrefersNonDefaultGPU=.*||; \
                 s|^X-Flatpak[^=]*=.*||; \
+                /^X-Ghaf-VM[^=]*=/d; \
                 /^\[Desktop Action/,/^\[/{/^Exec=/d}" "$desktop"
 
-              # Add VM labels while preserving localizations
-              sed -i "s|^Name\(.*\)=\(.*\)|Name\1=[flatpak] \2|" "$desktop"
+              sed -i "/^\[Desktop Entry\]/a X-Ghaf-VM=flatpak\nX-Ghaf-VM-Icon=${badgeIcon}" "$desktop"
 
               add_desktop_actions "$desktop" "$app_id" "uninstall" "force-quit"
             done

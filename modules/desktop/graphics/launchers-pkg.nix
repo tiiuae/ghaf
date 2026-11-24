@@ -7,11 +7,20 @@
   ...
 }:
 let
+  vmIcons = config.ghaf.graphics.launcherVmIcons;
+  vmIconName = vm: if vmIcons.${vm}.icon or null != null then vmIcons.${vm}.icon else "ghaf-vm-${vm}";
+  # libcosmic falls back to Cosmic when the configured theme lacks an icon
+  badgeIconThemes = lib.unique (
+    [ pkgs.cosmic-icons ]
+    ++ lib.optional (
+      config.ghaf.theming.iconTheme.package != null
+    ) config.ghaf.theming.iconTheme.package
+  );
+
   toDesktop =
     launcherElem:
     let
-      prefix =
-        if launcherElem.vm != null then "[${lib.strings.removeSuffix "-vm" launcherElem.vm}] " else "";
+      vm = if launcherElem.vm != null then lib.removeSuffix "-vm" launcherElem.vm else null;
       icon = iconName launcherElem;
 
       startupWMClass =
@@ -36,8 +45,12 @@ let
         onlyShowIn
         ;
       inherit icon startupWMClass;
-      desktopName = "${prefix}${launcherElem.desktopName}";
-      comment = if launcherElem.description != null then "${prefix}${launcherElem.description}" else null;
+      inherit (launcherElem) desktopName;
+      comment = launcherElem.description;
+      extraConfig = lib.optionalAttrs (vm != null && vmIcons ? ${vm}) {
+        X-Ghaf-VM = vm;
+        X-Ghaf-VM-Icon = vmIconName vm;
+      };
     }).overrideAttrs
       (prevAttrs: {
         checkPhase = prevAttrs.checkPhase + extraCheckPhase;
@@ -97,8 +110,34 @@ let
           l: "install_icon ${lib.escapeShellArgs ([ (iconName l) ] ++ map toString l.packages)}"
         ) namedIconLaunchers}
       '';
+
+  vmBadgeIcons = pkgs.runCommand "ghaf-vm-badge-icons" { allowedReferences = [ ]; } (
+    lib.concatStrings (
+      lib.mapAttrsToList (vm: v: ''
+        install -Dm444 ${pkgs.writeText "ghaf-vm-${vm}.svg" ''
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" fill="${
+            if v.color != null then v.color else "#808080"
+          }" stroke="#ffffff" stroke-width="1.5"/></svg>
+        ''} $out/share/icons/hicolor/scalable/apps/ghaf-vm-${vm}.svg
+      '') (lib.filterAttrs (_: v: v.icon == null) vmIcons)
+    )
+    + lib.concatMapStrings (name: ''
+      find -L ${lib.escapeShellArgs badgeIconThemes} -path '*/share/icons/*' \
+        \( -name ${lib.escapeShellArg "${name}.svg"} -o -name ${lib.escapeShellArg "${name}.png"} \) |
+        grep -q . || {
+          echo ${lib.escapeShellArg "no icon named ${name} in the gui-vm icon themes"} >&2
+          exit 1
+        }
+    '') (lib.unique (lib.filter (i: i != null) (lib.mapAttrsToList (_: v: v.icon) vmIcons)))
+    + ''
+      mkdir -p $out
+    ''
+  );
 in
 pkgs.symlinkJoin {
   name = "ghaf-desktop-entries";
-  paths = map toDesktop config.ghaf.graphics.launchers ++ [ icons ];
+  paths = map toDesktop config.ghaf.graphics.launchers ++ [
+    icons
+    vmBadgeIcons
+  ];
 }
