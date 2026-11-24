@@ -1,0 +1,129 @@
+From 8c3bfca8cb35d7a28d270e1d195aaa2630b66692 Mon Sep 17 00:00:00 2001
+From: Kajus Naujokaitis <kajus.naujokaitis@unikie.com>
+Date: Fri, 13 Nov 2026 13:15:39 +0200
+Subject: [PATCH] Show Ghaf VM as app source
+
+Signed-off-by: Kajus Naujokaitis <kajus.naujokaitis@unikie.com>
+---
+ src/app.rs                 | 40 +++++++++++++++++++++++++++++++++-----
+ src/widgets/application.rs | 11 ++++++++---
+ 2 files changed, 43 insertions(+), 8 deletions(-)
+
+diff --git a/src/app.rs b/src/app.rs
+index c579d35..669a8be 100644
+--- a/src/app.rs
++++ b/src/app.rs
+@@ -27,7 +27,7 @@ use cosmic::{
+     cosmic_config::{Config, CosmicConfigEntry},
+     cosmic_theme::Spacing,
+     dbus_activation,
+-    desktop::{DesktopEntryData, IconSourceExt, fde::PathSource, gpu, load_desktop_file},
++    desktop::{DesktopEntryData, IconSourceExt, fde::{self, PathSource}, gpu, load_desktop_file},
+     iced::{
+         self, Alignment, Color, Length, Limits, Size, Subscription,
+         event::{listen_with, wayland::OverlapNotifyEvent},
+@@ -190,11 +190,31 @@ pub fn run() -> cosmic::iced::Result {
+     }
+ }
+ 
+-pub struct AppSource(PathSource);
++pub enum AppSource {
++    Path(PathSource),
++    Ghaf { vm: String, icon: String },
++}
+ 
+ impl AppSource {
++    pub fn ghaf(path: &Path) -> Option<Self> {
++        let de = fde::DesktopEntry::from_path::<&str>(path, None).ok()?;
++        let vm = de.desktop_entry("X-Ghaf-VM")?.to_string();
++        let icon = de.desktop_entry("X-Ghaf-VM-Icon")?.to_string();
++        Some(AppSource::Ghaf { vm, icon })
++    }
++
++    pub fn is_ghaf(&self) -> bool {
++        matches!(self, AppSource::Ghaf { .. })
++    }
++
+     pub fn as_icon(&self) -> Option<widget::icon::Handle> {
+-        let name = match &self.0 {
++        let source = match self {
++            AppSource::Ghaf { icon, .. } => {
++                return Some(widget::icon::from_name(icon.as_str()).size(16).handle());
++            }
++            AppSource::Path(source) => source,
++        };
++        let name = match source {
+             PathSource::Local | PathSource::LocalDesktop => "app-source-local-symbolic",
+             PathSource::System | PathSource::SystemLocal => "app-source-system-symbolic",
+             PathSource::LocalFlatpak | PathSource::SystemFlatpak => "app-source-flatpak",
+@@ -209,16 +229,20 @@ impl AppSource {
+ 
+ impl<'a> From<&'a Path> for AppSource {
+     fn from(path: &'a Path) -> Self {
+-        AppSource(PathSource::guess_from(path))
++        AppSource::Path(PathSource::guess_from(path))
+     }
+ }
+ 
+ impl Display for AppSource {
+     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        let source = match self {
++            AppSource::Ghaf { vm, .. } => return write!(f, "{vm}"),
++            AppSource::Path(source) => source,
++        };
+         write!(
+             f,
+             "{:.7}",
+-            match &self.0 {
++            match source {
+                 PathSource::Local | PathSource::LocalDesktop => LOCAL.as_str(),
+                 PathSource::SystemFlatpak | PathSource::LocalFlatpak => FLATPAK.as_str(),
+                 PathSource::SystemSnap => SNAP.as_str(),
+@@ -629,6 +653,12 @@ impl CosmicAppLibrary {
+                 },
+             )
+             .0;
++        for path in self.all_entries.iter().filter_map(|e| e.path.as_ref()) {
++            if let Some(source) = AppSource::ghaf(path) {
++                let icon_handle = source.as_icon();
++                self.duplicates.insert(path.clone(), (source, icon_handle));
++            }
++        }
+         self.update_entry_metadata();
+     }
+ 
+diff --git a/src/widgets/application.rs b/src/widgets/application.rs
+index 527b820..4814c04 100644
+--- a/src/widgets/application.rs
++++ b/src/widgets/application.rs
+@@ -69,19 +69,24 @@ impl<'a, Message: Clone + 'static> ApplicationButton<'a, Message> {
+                                 .align_y(Vertical::Center),
+                         )
+                     }),
+-                    source_name.len().saturating_add(3), // 3 for the parentheses
++                    if source.is_ghaf() {
++                        0
++                    } else {
++                        source_name.len().saturating_add(3) // 3 for the parentheses
++                    },
+                 )
+             }
+             None => (None, 0),
+         };
++        let suffix = source.filter(|(source, _)| !source.is_ghaf());
+         let max_name_len = 27 - source_suffix_len;
+         let name = if name.len() > max_name_len {
+-            if let Some((source, ..)) = source {
++            if let Some((source, ..)) = suffix {
+                 format!("{name:.17}... ({source})")
+             } else {
+                 format!("{name:.24}...")
+             }
+-        } else if let Some((source, ..)) = source {
++        } else if let Some((source, ..)) = suffix {
+             format!("{name} ({source})")
+         } else {
+             name.to_string()
+-- 
+2.56.0
+
