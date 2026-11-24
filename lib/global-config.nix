@@ -1017,6 +1017,9 @@ rec {
         config,
         vmDef,
       }:
+      assert lib.assertMsg (
+        vmDef ? name && builtins.isString vmDef.name && vmDef.name != ""
+      ) "resolveAppVmConfig: vmDef.name must be a non-empty string.";
       let
         vmCfg = config.ghaf.virtualization.vmConfig.appvms.${vmDef.name} or { };
         requestedVmm = vmCfg.vmm or null;
