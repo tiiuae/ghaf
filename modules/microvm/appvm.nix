@@ -53,12 +53,19 @@ let
 
       vmDef = finalEvaluatedConfig.config.ghaf.appvm.vmDef or { };
     in
+    assert lib.assertMsg (
+      vm.evaluatedConfig != null
+    ) "appvm.vms.${attrName}.evaluatedConfig must be set. Use mkAppVm from a profile.";
+    assert lib.assertMsg (
+      vmDef ? name && builtins.isString vmDef.name && vmDef.name != ""
+    ) "appvm.vms.${attrName}: evaluated VM name must be a non-empty string.";
+    assert lib.assertMsg (vmDef.name == attrName)
+      "appvm.vms.${attrName}: evaluated VM name '${vmDef.name}' must match the attribute key '${attrName}'.";
     vm
     // {
       # Replace evaluatedConfig with the extended version
       evaluatedConfig = finalEvaluatedConfig;
-      # Derive values from vmDef - the attrset key is used as fallback for name
-      name = vmDef.name or attrName;
+      inherit (vmDef) name;
       mem = vmDef.mem or 4096;
       balloonRatio = vmDef.balloonRatio or 2;
       borderColor = vmDef.borderColor or null;
@@ -192,7 +199,8 @@ in
           - Use 'extensions' to add modules from external features (e.g., ghaf-intro)
           - Extensions are applied via NixOS native extendModules
 
-        The attrset key (e.g., 'chromium' in vms.chromium) is used as fallback for name.
+        Each enabled VM must explicitly define a non-empty name matching its
+        attrset key (e.g., name = "chromium" for vms.chromium).
       '';
       type = types.attrsOf (
         types.submodule {
