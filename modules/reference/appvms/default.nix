@@ -25,6 +25,7 @@ in
     ./business.nix
     ./chromium.nix
     ./comms.nix
+    ./ephemeral-chrome.nix
     ./flatpak.nix
     ./gala.nix
     ./google-chrome.nix

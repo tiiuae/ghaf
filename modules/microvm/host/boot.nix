@@ -21,9 +21,18 @@ let
     ;
   inherit (config.ghaf.networking) hosts;
   inherit (config.ghaf.virtualization.microvm) appvm;
+  startedVms = filterAttrs (
+    _: vm:
+    let
+      vmConfig = lib.ghaf.vm.getConfig vm;
+    in
+    vmConfig == null || vmConfig.ghaf.type != "app-vm" || vm.autostart
+  ) config.microvm.vms;
 
   # Filter system and enabled app VMs
-  appVms = lib.attrNames (filterAttrs (_: vm: vm.enable) appvm.vms);
+  appVms = lib.attrNames (
+    filterAttrs (name: vm: vm.enable && builtins.hasAttr "${name}-vm" startedVms) appvm.vms
+  );
   sysVms = map (name: removeSuffix "-vm" name) (
     lib.attrNames (
       filterAttrs (
@@ -127,7 +136,7 @@ in
         targets = {
           # Override microvm.nix's default target (default is VMs with autostart)
           microvms = {
-            wants = mkForce (map (name: "microvm@${name}.service") (lib.attrNames config.microvm.vms));
+            wants = mkForce (map (name: "microvm@${name}.service") (lib.attrNames startedVms));
           };
         }
         // optionalAttrs cfg.uiEnabled {
