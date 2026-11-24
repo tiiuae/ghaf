@@ -220,6 +220,14 @@ in
       launchers =
         hostConfig.guivm.applications ++ lib.optionals (globalConfig.givc.enable or false) virtualLaunchers;
 
+      launcherVmIcons = lib.mapAttrs' (
+        _: vm:
+        lib.nameValuePair vm.name {
+          color = vm.borderColor;
+          icon = vm.icon or null;
+        }
+      ) enabledVms;
+
       cosmic = {
         securityContext.rules = map (vm: {
           identifier = vm.name;

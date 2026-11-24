@@ -16,5 +16,26 @@ in
       type = lib.types.listOf lib.types.ghafApplication;
       default = [ ];
     };
+    launcherVmIcons = mkOption {
+      description = "Badge color and icon name per app VM, keyed by VM name without the -vm suffix.";
+      internal = true;
+      type = lib.types.attrsOf (
+        lib.types.submodule {
+          options = {
+            color = mkOption {
+              description = "Fill color of the generated badge, used only when icon is null.";
+              type = lib.types.nullOr lib.types.str;
+              default = null;
+            };
+            icon = mkOption {
+              description = "Icon name for the badge, looked up in the icon themes available on the system.";
+              type = lib.types.nullOr lib.types.str;
+              default = null;
+            };
+          };
+        }
+      );
+      default = { };
+    };
   };
 }
