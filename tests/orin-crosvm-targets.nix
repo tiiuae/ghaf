@@ -115,6 +115,28 @@ let
         }
       ];
     }).config;
+  splitCageNx =
+    (baseTargets.nvidia-jetson-orin-nx-debug.extendModules {
+      modules = [
+        self.nixosModules.jetpack-orin-gpu-partitioning
+        {
+          ghaf.hardware.nvidia.passthroughs = {
+            gui_vm.enable = lib.mkForce false;
+            gpu_vm.enable = true;
+            disp_vm.enable = true;
+          };
+          ghaf.virtualization.vmConfig.sysvms.dispvm.extraModules = [
+            {
+              services.cage = {
+                enable = true;
+                user = "ghaf";
+                program = "/bin/true";
+              };
+            }
+          ];
+        }
+      ];
+    }).config;
   splitVmConfigs = map (vm: vm.evaluatedConfig.config) (builtins.attrValues splitAgx.microvm.vms);
   qemuFallback =
     (baseTargets.nvidia-jetson-orin-agx-release.extendModules {
@@ -224,6 +246,16 @@ let
         in
         display.systemd.services ? kms-owner
         && lib.elem "kms-owner.service" display.systemd.services.dce-rm-deinit.before;
+    }
+    {
+      name = "Cage display guests skip kms-owner and order DCE shutdown after Cage";
+      ok =
+        let
+          display = splitCageNx.microvm.vms.disp-vm.evaluatedConfig.config;
+        in
+        !(display.systemd.services ? kms-owner)
+        && lib.elem "cage-tty1.service" display.systemd.services.dce-rm-deinit.before
+        && !(lib.elem "kms-owner.service" display.systemd.services.dce-rm-deinit.before);
     }
     {
       name = "combined GUI guests order DCE shutdown after the compositor";
