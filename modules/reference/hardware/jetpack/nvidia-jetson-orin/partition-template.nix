@@ -128,9 +128,9 @@ let
           ${lib.optionalString cfg.flashScriptOverrides.onlyQSPI "--remove-device"} \
           --set "esp.size=${
             if cfg.flashScriptOverrides.appPartitionSizeBytes != null then
-              # Static sizing: 256 MiB ESP (every Ghaf Orin image uses 524288
+              # Static sizing: 512 MiB ESP (every Ghaf Orin image uses 1048576
               # sectors); keeps flash.xml independent of the built sdImage.
-              "268435456"
+              "536870912"
             else
               "$(($(cat ${images}/esp.size) * 512))"
           }" \
@@ -180,46 +180,16 @@ let
         echo "Using signed artifacts from $SIGNED_ARTIFACTS_DIR"
 
         ls -la "$SIGNED_ARTIFACTS_DIR"
-        # Verify of existence necessary artifacts
-        ${
-          if config.ghaf.image.sdcard.uki.enable then
-            ''
-              if [ ! -f "$SIGNED_ARTIFACTS_DIR/nixos.efi" ]; then
-                echo "ERROR: Missing nixos.efi (UKI) in $SIGNED_ARTIFACTS_DIR" >&2
-                exit 1
-              fi''
-          else
-            ''
-              if [ ! -f "$SIGNED_ARTIFACTS_DIR/Image" ]; then
-                echo "ERROR: Missing Image in $SIGNED_ARTIFACTS_DIR" >&2
-                exit 1
-              fi
-              export KERNEL_IMAGE="$SIGNED_ARTIFACTS_DIR/Image"
-            ''
-        }
+        if [ ! -f "$SIGNED_ARTIFACTS_DIR/nixos.efi" ]; then
+          echo "ERROR: Missing nixos.efi (UKI) in $SIGNED_ARTIFACTS_DIR" >&2
+          exit 1
+        fi
 
         if [ ! -f "$SIGNED_ARTIFACTS_DIR/BOOTAA64.EFI" ]; then
           echo "ERROR: Missing BOOTAA64.EFI in $SIGNED_ARTIFACTS_DIR" >&2
           exit 1
         fi
         export BOOTAA64_EFI="$SIGNED_ARTIFACTS_DIR/BOOTAA64.EFI"
-
-        # NOTE: initrd and DTB swaps are currently a no-op for Secure Boot.
-        # UEFI on Orin only verifies the loaded EFI binary (BOOTAA64.EFI);
-        # the kernel Image, initrd, and devicetree are loaded by systemd-boot
-        # after handoff and are not part of the SB measurement chain. These
-        # swaps exist so a signed-image build can ship matching artifacts,
-        # but they do not extend the trust boundary on their own. Closing
-        # this gap (UKI bundling the kernel/initrd/cmdline into the signed
-        # PE, plus DTB measurement / signing) is tracked separately and is
-        # a prerequisite for disk encryption rooted in firmware trust.
-        if [ -f "$SIGNED_ARTIFACTS_DIR/initrd" ]; then
-          export INITRD_IMAGE="$SIGNED_ARTIFACTS_DIR/initrd"
-        fi
-
-        if [ -f "$SIGNED_ARTIFACTS_DIR/dtb" ]; then
-          export DTB_IMAGE="$SIGNED_ARTIFACTS_DIR/dtb"
-        fi
       fi
 
       if [ -n "''${BOOTAA64_EFI:-}" ]; then
@@ -230,18 +200,6 @@ let
         echo "Using external BOOTAA64.EFI: $BOOTAA64_EFI"
         cp -f "$BOOTAA64_EFI" "$WORKDIR/bootloader/BOOTAA64.efi"
       fi
-
-      ${lib.optionalString (!config.ghaf.image.sdcard.uki.enable) ''
-        if [ -n "''${KERNEL_IMAGE:-}" ]; then
-          if [ ! -f "$KERNEL_IMAGE" ]; then
-            echo "ERROR: KERNEL_IMAGE not found: $KERNEL_IMAGE" >&2
-            exit 1
-          fi
-          echo "Using external kernel Image: $KERNEL_IMAGE"
-          mkdir -pv "$WORKDIR/kernel"
-          cp -f "$KERNEL_IMAGE" "$WORKDIR/kernel/Image"
-        fi
-      ''}
 
       ${lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
         image_source_root=${
