@@ -11346,7 +11346,8 @@ are derived from evaluatedConfig.config.ghaf.appvm.vmDef</li>
 <li>Use ‘extensions’ to add modules from external features (e.g., ghaf-intro)</li>
 <li>Extensions are applied via NixOS native extendModules</li>
 </ul>
-<p>The attrset key (e.g., ‘chromium’ in vms.chromium) is used as fallback for name.</p>
+<p>Each enabled VM must explicitly define a non-empty name matching its
+attrset key (e.g., name = “chromium” for vms.chromium).</p>
 <p><em>Type:</em>
 attribute set of (submodule)</p>
 <p><em>Default:</em></p>
