@@ -198,7 +198,8 @@ let
     udp = restrictedPorts cfg.allowedUDPPorts;
   };
 
-  ownOutputs = {
+  # Unrestricted output is accepted by the policy, so its entries need no rules.
+  ownOutputs = lib.optionalAttrs cfg.restrictOutput {
     tcp = outputEntries cfg.allowedTCPPorts;
     udp = outputEntries cfg.allowedUDPPorts;
   };
@@ -224,7 +225,7 @@ let
           "tcp"
           "udp"
         ]
-    ) (config.ghaf.common.egress or { })
+    ) (config.ghaf.common.egress.restricted or { })
   );
 
   # The sets this system's rules match, written to /etc/ghaf/firewall/ipsets
@@ -383,12 +384,15 @@ let
       if entry.to == null then rule null else concatMapStringsSep "\n" rule entry.to
     ) (lib.unique (outputEntries entries));
 
-  # A VM behind this gateway gets out only through its own output entries,
-  # even when it loosens its own firewall.
+  # A VM behind this gateway that restricts its output gets out only through
+  # its own output entries, even when it loosens its own firewall.
   egressRules = ''
     ${concatMapStringsSep "\n" (
       iface: "${ipt} -A ${ghafFwChainPrefix}fwd-filter -i ${iface} ! -o ${iface} -j ${egressChain}"
     ) config.networking.nat.internalInterfaces}
+    ${concatMapStringsSep "\n" (name: "${ipt} -A ${egressChain} -s ${address name} -j RETURN") (
+      config.ghaf.common.egress.unrestricted or [ ]
+    )}
     ${optionalString (
       ipsets ? ${egressChain}
     ) "${ipt} -A ${egressChain} -m set --match-set ${egressChain} src,dst -j RETURN"}
@@ -824,6 +828,7 @@ in
     };
     IdsEnabled = mkEnableOption "Ids tool";
     logRefusedOutput = mkEnableOption "logging outgoing and forwarded connections the firewall refuses; on by default in debug images";
+    restrictOutput = mkEnableOption "dropping outgoing traffic no output entry allows; when off, outgoing and forwarded traffic is allowed unless a rule rejects it";
 
     allowedTCPPorts = mkOption {
       type = types.listOf portEntry;
@@ -1007,7 +1012,9 @@ in
     # BLACKLIST too -- gating on attack-mitigation.enable would leave those
     # configurations on 3600s.
     ghaf.firewall.blacklistTimeout = mkIf (config.ghaf.profiles.debug.enable or false) (mkDefault 60);
-    ghaf.firewall.logRefusedOutput = mkIf (config.ghaf.profiles.debug.enable or false) (mkDefault true);
+    ghaf.firewall.logRefusedOutput = mkIf (
+      (config.ghaf.profiles.debug.enable or false) && cfg.restrictOutput
+    ) (mkDefault true);
 
     environment.etc."ghaf/firewall/ipsets".source = ipsetsFile;
 
@@ -1053,7 +1060,7 @@ in
           # Set the default policies
           ${ipt} -P INPUT DROP
           ${ipt} -P FORWARD DROP
-          ${ipt} -P OUTPUT DROP
+          ${ipt} -P OUTPUT ${if cfg.restrictOutput then "DROP" else "ACCEPT"}
 
           # delete ctstate RELATED,ESTABLISHED and lo rules
           ${ipt} -D ${nixosFwPrefix}fw -i lo -j ${nixosFwPrefix}fw-accept
@@ -1200,7 +1207,9 @@ in
         extraCommands = lib.mkAfter ''
           ${ipt} -A ${ghafFwChainPrefix}out-filter -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
           ${ipt} -A ${ghafFwChainPrefix}out-filter -p icmp -j ACCEPT
-          ${optionalString cfg.logRefusedOutput ''${ipt} -A ${ghafFwChainPrefix}out-filter -m limit --limit 10/min -j LOG --log-prefix "refused output: " --log-level 4''}
+          ${optionalString (cfg.logRefusedOutput && cfg.restrictOutput)
+            ''${ipt} -A ${ghafFwChainPrefix}out-filter -m limit --limit 10/min -j LOG --log-prefix "refused output: " --log-level 4''
+          }
         '';
       }
       (mkIf cfg.dynamicChains.enable {

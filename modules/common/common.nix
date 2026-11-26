@@ -123,10 +123,17 @@ in
         default = [ ];
         description = "List of app VMs that have SNI tray icon forwarding enabled.";
       };
-      egress = mkOption {
-        type = types.attrsOf (types.attrsOf (types.listOf types.attrs));
-        default = { };
-        description = "The `tcp` and `udp` output entries of every VM and ghaf-host, by name, which the NAT gateway enforces on forwarded traffic.";
+      egress = {
+        restricted = mkOption {
+          type = types.attrsOf (types.attrsOf (types.listOf types.attrs));
+          default = { };
+          description = "The `tcp` and `udp` output entries of every VM and ghaf-host that restricts its output, by name, which the NAT gateway enforces on forwarded traffic.";
+        };
+        unrestricted = mkOption {
+          type = types.listOf types.str;
+          default = [ ];
+          description = "The VMs and ghaf-host, by name, that do not restrict their output. The NAT gateway forwards their traffic unless a rule rejects it.";
+        };
       };
       extraNetworking = {
         hosts = mkOption {
@@ -296,10 +303,16 @@ in
                   tcp = outputs (firewall.allowedTCPPorts or [ ]);
                   udp = outputs (firewall.allowedUDPPorts or [ ]);
                 };
+                firewalls =
+                  lib.mapAttrs (_: v: (lib.ghaf.vm.getConfig v).ghaf.firewall or { }) config.microvm.vms
+                  // {
+                    ${config.networking.hostName} = config.ghaf.firewall or { };
+                  };
+                restricts = firewall: firewall.restrictOutput or true;
               in
-              lib.mapAttrs (_: v: entriesOf ((lib.ghaf.vm.getConfig v).ghaf.firewall or { })) config.microvm.vms
-              // {
-                ${config.networking.hostName} = entriesOf (config.ghaf.firewall or { });
+              {
+                restricted = lib.mapAttrs (_: entriesOf) (lib.filterAttrs (_: restricts) firewalls);
+                unrestricted = lib.attrNames (lib.filterAttrs (_: firewall: !restricts firewall) firewalls);
               };
             hardware = {
               nics = config.ghaf.hardware.definition.network.pciDevices;

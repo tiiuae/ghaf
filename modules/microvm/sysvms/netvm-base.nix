@@ -237,6 +237,7 @@ in
       };
     in
     {
+      restrictOutput = lib.mkDefault true;
       # Out: upstream DNS, and DHCP lease renewals on the uplink.
       allowedTCPPorts = [
         dns

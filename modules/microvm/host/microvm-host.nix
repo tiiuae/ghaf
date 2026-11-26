@@ -126,6 +126,7 @@ in
 
       ghaf = {
         type = "host";
+        firewall.restrictOutput = lib.mkDefault true;
         microvm-boot = {
           inherit (config.ghaf.virtualization.microvm.guivm) enable;
         };

@@ -154,6 +154,7 @@ in
 
     # System
     type = "system-vm";
+    firewall.restrictOutput = lib.mkDefault true;
 
     systemd = {
       enable = true;

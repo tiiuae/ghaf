@@ -18,6 +18,12 @@ let
     udpSource = 9301;
   };
 
+  # Ports `free` is refused on by its own rule and by the gateway's.
+  freeRejected = {
+    own = ports.elsewhere;
+    gateway = ports.rangeFirst;
+  };
+
   # firewall.nix reads these from givc and hosts.nix; declaring just what it
   # touches keeps the test to the module under test.
   stubs =
@@ -25,7 +31,16 @@ let
     {
       options.ghaf = {
         networking.hosts = lib.mkOption { type = lib.types.attrsOf lib.types.attrs; };
-        common.egress = lib.mkOption { type = lib.types.attrsOf lib.types.attrs; };
+        common.egress = {
+          restricted = lib.mkOption {
+            type = lib.types.attrsOf lib.types.attrs;
+            default = { };
+          };
+          unrestricted = lib.mkOption {
+            type = lib.types.listOf lib.types.str;
+            default = [ ];
+          };
+        };
         givc.policyClient = {
           enable = lib.mkEnableOption "givc policy client (stub for tests)";
           policies = lib.mkOption {
@@ -132,12 +147,17 @@ pkgs.testers.nixosTest {
         networking.hosts = {
           inside.ipv4 = nodes.inside.networking.primaryIPAddress;
           stranger.ipv4 = nodes.stranger.networking.primaryIPAddress;
+          free.ipv4 = nodes.free.networking.primaryIPAddress;
         };
         firewall = {
           enable = true;
           logRefusedOutput = true;
+          extra.forward.filter = [
+            "-s ${nodes.free.networking.primaryIPAddress} -p tcp --dport ${toString freeRejected.gateway} -j REJECT --reject-with icmp-admin-prohibited"
+          ];
         };
-        common.egress = {
+        common.egress.unrestricted = [ "free" ];
+        common.egress.restricted = {
           inside = {
             tcp = map output [
               { port = ports.anywhere; }
@@ -172,6 +192,27 @@ pkgs.testers.nixosTest {
 
   nodes.inside = inside;
   nodes.stranger = inside;
+
+  # Its own firewall allows any output but the rule below.
+  nodes.free =
+    { ... }:
+    {
+      imports = [
+        inside
+        ../../modules/common/firewall
+        stubs
+      ];
+      boot.kernelPatches = lib.mkForce [ ];
+      networking.firewall.enable = lib.mkForce true;
+      ghaf = {
+        networking.hosts = { };
+        firewall = {
+          enable = true;
+          restrictOutput = false;
+          extra.output.filter = [ "-p tcp --dport ${toString freeRejected.own} -j REJECT" ];
+        };
+      };
+    };
 
   nodes.outside = {
     virtualisation.vlans = [ 2 ];
@@ -208,6 +249,7 @@ pkgs.testers.nixosTest {
       outside.wait_for_open_port(${toString ports.anywhere})
       for node in [inside, stranger]:
           node.wait_for_unit("multi-user.target")
+      free.wait_for_unit("firewall.service")
 
       def check():
           with subtest("an entry without `to` reaches any destination"):
@@ -241,6 +283,16 @@ pkgs.testers.nixosTest {
 
           with subtest("ICMP passes to any destination"):
               stranger.succeed(f"ping -c 1 -W 3 {outside_ip}")
+
+          with subtest("an unrestricted host reaches a port no entry declares"):
+              free.succeed(tcp(${toString ports.undeclared}))
+              free.succeed(udp(${toString ports.udpUndeclared}))
+
+          with subtest("an unrestricted host is still refused by its own rules"):
+              free.fail(tcp(${toString freeRejected.own}))
+
+          with subtest("an unrestricted host is still refused by the gateway's rules"):
+              free.succeed(rejected(tcp(${toString freeRejected.gateway})))
 
       check()
       members = gateway.succeed("${pkgs.ipset}/bin/ipset list ghaf-fw-egress")

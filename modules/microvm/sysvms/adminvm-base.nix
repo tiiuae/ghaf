@@ -68,6 +68,7 @@ in
 
     # System
     type = "admin-vm";
+    firewall.restrictOutput = lib.mkDefault true;
 
     systemd = {
       enable = true;
