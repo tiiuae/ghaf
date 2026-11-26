@@ -7,10 +7,10 @@ Signed-off-by: Kajus Naujokaitis <kajusn@gmail.com>
 ---
  cosmic-comp-config/src/lib.rs         | 24 +++++++++
  src/backend/render/mod.rs             |  7 +++
- src/shell/grabs/moving.rs             | 71 ++++++++++++++++++++++-----
- src/shell/layout/floating/mod.rs      | 42 ++++++++++++++--
+ src/shell/grabs/moving.rs             | 77 ++++++++++++++++++++++-----
+ src/shell/layout/floating/mod.rs      | 48 ++++++++++++++--
  src/wayland/handlers/xdg_shell/mod.rs | 58 +++++++++++++++++++++-
- 5 files changed, 185 insertions(+), 17 deletions(-)
+ 5 files changed, 193 insertions(+), 19 deletions(-)
 
 diff --git a/cosmic-comp-config/src/lib.rs b/cosmic-comp-config/src/lib.rs
 index e5e7388..54e05c0 100644
@@ -89,7 +89,7 @@ index d871483..97ebd0e 100644
      },
      shell::{
          CosmicMapped, CosmicSurface, Direction, ManagedLayer,
-@@ -132,26 +132,69 @@ impl MoveGrabState {
+@@ -132,40 +132,89 @@ impl MoveGrabState {
              push,
          );
  
@@ -97,10 +97,12 @@ index d871483..97ebd0e 100644
 +        // the move-grab indicator and the window itself.
 +        let mut secctx_element = None;
 +        let mut secctx_border_size = 0;
++        let mut secctx_color = None;
 +        if self.window.is_window() {
 +            let surface = self.window.active_window();
 +            if let Some(secctx_settings) = surface.user_data().get::<SecurityContextIndicatorSettings>() {
 +                secctx_border_size = secctx_settings.border_size;
++                secctx_color = Some(secctx_settings.border_color);
 +                let radius = self.element().corner_radius(window_geo.size, secctx_border_size);
 +                secctx_element = Some(
 +                    CosmicMappedRenderElement::from(IndicatorShader::focus_element(
@@ -170,7 +172,16 @@ index d871483..97ebd0e 100644
                      self.indicator_thickness,
                      radius,
                      alpha,
-@@ -166,6 +209,10 @@ impl MoveGrabState {
+                     output_scale.x,
+-                    [
++                    secctx_color.unwrap_or([
+                         active_window_hint.red,
+                         active_window_hint.green,
+                         active_window_hint.blue,
+-                    ],
++                    ]),
+                 )
+                 .into(),
              )
          }
  
@@ -194,7 +205,7 @@ index 95d7264..2fbd033 100644
      shell::{
          CosmicSurface, Direction, ManagedLayer, MoveResult, ResizeMode,
          element::{
-@@ -1587,9 +1587,32 @@ impl FloatingLayout {
+@@ -1587,9 +1587,34 @@ impl FloatingLayout {
                  None
              };
  
@@ -202,10 +213,12 @@ index 95d7264..2fbd033 100644
 +            // between the focus indicator and the window itself.
 +            let mut secctx_element = None;
 +            let mut secctx_border_size = 0;
++            let mut secctx_color = None;
 +            if elem.is_window() {
 +                let surface = elem.active_window();
 +                if let Some(secctx_settings) = surface.user_data().get::<SecurityContextIndicatorSettings>() {
 +                    secctx_border_size =  secctx_settings.border_size;
++                    secctx_color = Some(secctx_settings.border_color);
 +                    let radius = elem.corner_radius(geometry.size.as_logical(), secctx_border_size);
 +                    let element = IndicatorShader::focus_element(
 +                        renderer,
@@ -228,7 +241,7 @@ index 95d7264..2fbd033 100644
  
                  if let Some((mode, resize)) = resize_indicator.as_mut() {
                      let mut resize_geometry = geometry;
-@@ -1612,10 +1635,19 @@ impl FloatingLayout {
+@@ -1612,24 +1637,37 @@ impl FloatingLayout {
                  }
  
                  if indicator_thickness > 0 {
@@ -249,7 +262,16 @@ index 95d7264..2fbd033 100644
                          indicator_thickness,
                          radius,
                          alpha,
-@@ -1630,6 +1662,10 @@ impl FloatingLayout {
+                         output_scale,
+-                        [
++                        secctx_color.unwrap_or([
+                             active_window_hint.red,
+                             active_window_hint.green,
+                             active_window_hint.blue,
+-                        ],
++                        ]),
+                     );
+                     push(element.into());
                  }
              }
  

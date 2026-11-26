@@ -110,7 +110,7 @@ in
         options = {
           borderWidth = mkOption {
             type = types.ints.positive;
-            default = 6;
+            default = 3;
             example = 6;
             description = "Default border width in pixels";
           };
@@ -137,7 +137,7 @@ in
         };
       };
       default = {
-        borderWidth = 4;
+        borderWidth = 3;
         rules = [ ];
       };
       description = "Security context settings";
