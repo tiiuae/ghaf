@@ -233,11 +233,18 @@ in
       }
     ];
 
-    services.udev.extraRules = ''
-      SUBSYSTEM=="usb", GROUP="kvm"
-      KERNEL=="event*", GROUP="kvm"
-      SUBSYSTEM=="vfio", GROUP="kvm", MODE="0660"
-    '';
+    services.udev = {
+      extraRules = ''
+        SUBSYSTEM=="usb", GROUP="kvm"
+        KERNEL=="event*", GROUP="kvm"
+        SUBSYSTEM=="vfio", GROUP="kvm", MODE="0660"
+      '';
+
+      extraHwdb = ''
+        usb:v06CBp00FC*
+          ID_PERSIST=1
+      '';
+    };
 
     environment.etc."vhotplug.conf".text = builtins.toJSON {
       usbPassthrough = cfg.prependUsbRules ++ cfg.usbRules ++ cfg.postpendUsbRules;
