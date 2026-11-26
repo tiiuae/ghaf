@@ -170,7 +170,7 @@
 
     # Nvidia Orin support for NixOS
     jetpack-nixos = {
-      url = "github:tiiuae/jetpack-nixos/second-october-rebase";
+      url = "github:henrirosten/jetpack-nixos/orin-shared-guest-kernel";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
