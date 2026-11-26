@@ -68,7 +68,7 @@
     frosted: Medium,
     gaps: (0, 8),
     active_hint: 3,
-    window_hint: None,
+    window_hint: Some("#A6A6A6FF"),
     frosted_windows: false,
     frosted_system_interface: false,
     frosted_panel: false,
