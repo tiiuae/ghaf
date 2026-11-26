@@ -49,6 +49,7 @@
         flake-utils.follows = "flake-utils";
         crane.follows = "givc/crane";
         givc.follows = "givc";
+        treefmt-nix.follows = "treefmt-nix";
       };
     };
 
