@@ -306,6 +306,18 @@ rec {
           };
         };
 
+        ledProxy = {
+          enable = mkEnableOption "LED proxy support";
+          targetVms = mkOption {
+            type = types.listOf types.str;
+            default = [
+              "audio-vm"
+              "gui-vm"
+            ];
+            description = "VMs that should have LED proxy support";
+          };
+        };
+
         locale = {
           enable = mkEnableOption "runtime management of user and system locale settings";
           targetVms = mkOption {
