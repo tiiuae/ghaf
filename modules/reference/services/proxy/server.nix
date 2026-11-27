@@ -72,13 +72,13 @@ let
   '';
 in
 {
-  _file = ./3proxy-config.nix;
+  _file = ./server.nix;
 
   options.ghaf.reference.services.proxy-server = {
     enable = mkEnableOption "the proxy server module";
     internalAddress = lib.mkOption {
       type = lib.types.str;
-      default = config.ghaf.networking.hosts."net-vm".ipv4;
+      default = config.ghaf.networking.hosts.${config.ghaf.reference.services.proxy.server}.ipv4;
       description = "Internal address for proxy server";
     };
     bindPort = lib.mkOption {
@@ -86,10 +86,19 @@ in
       default = 3128;
       description = "Bind port for proxy server";
     };
+    clients = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "Hosts allowed to use the proxy, as names from ghaf.networking.hosts.";
+    };
   };
 
   config = mkIf cfg.enable {
     assertions = [
+      {
+        assertion = cfg.clients != [ ];
+        message = "The proxy server is enabled but no VM sets ghaf.reference.services.proxy-client.enable.";
+      }
     ];
     # Define a new group for proxy management
     users.groups.${proxyGroupName} = { }; # Create a group named proxy-admin
@@ -126,10 +135,20 @@ in
 
     environment.systemPackages = [ url-fetcher ];
     #Firewall Settings
-    ghaf.firewall.extra.input.filter = [
-      # Allow incoming connections to 3proxy on port ${toString cfg.bindPort} from the client's IP
-      "-p tcp -s 192.168.100.0/24 --dport ${toString cfg.bindPort} -j ${config.ghaf.firewall.chainNamePrefix}conncheck-accept"
-      "-p udp -s 192.168.100.0/24 --dport ${toString cfg.bindPort} -j ${config.ghaf.firewall.chainNamePrefix}conncheck-accept"
+    ghaf.firewall.allowedTCPPorts = [
+      {
+        port = cfg.bindPort;
+        from = cfg.clients;
+      }
+      # The allow-listed sites, and the allow-list fetcher.
+      {
+        port = 80;
+        direction = "output";
+      }
+      {
+        port = 443;
+        direction = "output";
+      }
     ];
 
     # Apply the allowListConfig generated from the list

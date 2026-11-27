@@ -245,6 +245,16 @@ in
 
   config = lib.mkIf cfg.enable (
     lib.mkMerge [
+      # Orbit enrols with and polls the Fleet server over HTTPS.
+      {
+        ghaf.firewall.allowedTCPPorts = [
+          {
+            port = 443;
+            direction = "output";
+          }
+        ];
+      }
+
       # GUI fleet MDM config
       (lib.mkIf cfg.gui.enable {
         assertions = [

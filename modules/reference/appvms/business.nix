@@ -259,12 +259,12 @@ in
             microvm.devices = [ ];
             imports = [
               ../services/pac/pac.nix
+              ../services/proxy/client.nix
               ../services/wireguard-gui/wireguard-gui.nix
-            ];
-
-            ghaf = {
-              firewall.extra =
+              (
+                { config, ... }:
                 let
+                  fw = config.ghaf.firewall;
                   # WARN: if all the traffic including VPN flowing through proxy is intended,
                   # remove "151.253.154.18" rule and pass "--proxy-server=http://192.168.100.1:3128" to openconnect(VPN) app.
                   # also remove "151.253.154.18,tii.ae,.tii.ae,sapsf.com,.sapsf.com" addresses from noProxy option and add
@@ -272,20 +272,44 @@ in
                   vpnIpAddr = "151.253.154.18";
                 in
                 {
-                  input.filter = [
+                  ghaf.firewall = lib.mkMerge [
                     # allow everything for local VPN traffic
-                    "-i tun0 -j ${config.ghaf.firewall.chainNamePrefix}conncheck-accept"
-                    "-p tcp -s ${vpnIpAddr} -m multiport --sports 80,443 -j ${config.ghaf.firewall.chainNamePrefix}conncheck-accept"
+                    { extra.input.filter = [ "-i tun0 -j ${fw.chainNamePrefix}conncheck-accept" ]; }
+                    (lib.mkIf fw.restrictOutput {
+                      # Outside the tunnel, only the VPN server itself is reachable.
+                      allowedTCPPorts = [
+                        {
+                          port = 80;
+                          direction = "output";
+                          to = [ vpnIpAddr ];
+                        }
+                        {
+                          port = 443;
+                          direction = "output";
+                          to = [ vpnIpAddr ];
+                        }
+                      ];
+                      extra.output.filter = [ "-o tun0 -j ACCEPT" ];
+                    })
+                    (lib.mkIf (!fw.restrictOutput) {
+                      extra = {
+                        input.filter = [
+                          "-p tcp -s ${vpnIpAddr} -m multiport --sports 80,443 -j ${fw.chainNamePrefix}conncheck-accept"
+                        ];
+                        output.filter = [
+                          "-p tcp -d ${vpnIpAddr} -m multiport --dports 80,443 -j ACCEPT"
+                          # Block HTTP and HTTPS if NOT going out via VPN
+                          "! -o tun0 -p tcp -m multiport --dports 80,443 -j nixos-fw-log-refuse"
+                          "! -o tun0 -p udp -m multiport --dports 80,443 -j nixos-fw-log-refuse"
+                        ];
+                      };
+                    })
                   ];
+                }
+              )
+            ];
 
-                  output.filter = [
-                    "-p tcp -d ${vpnIpAddr} -m multiport --dports 80,443 -j ACCEPT"
-                    # Block HTTP and HTTPS if NOT going out via VPN
-                    "! -o tun0 -p tcp -m multiport --dports 80,443 -j nixos-fw-log-refuse"
-                    "! -o tun0 -p udp -m multiport --dports 80,443 -j nixos-fw-log-refuse"
-                  ];
-                };
-
+            ghaf = {
               # Enable Policy Client
               givc.policyClient.enable = true;
 
@@ -299,6 +323,7 @@ in
                     proxyPort = config.ghaf.reference.services.proxy-server.bindPort;
                   };
                 };
+                proxy-client.enable = true;
 
                 # Enable WireGuard GUI
                 wireguard-gui = {

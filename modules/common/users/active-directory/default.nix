@@ -106,6 +106,25 @@ in
           domains = map (name: "~${name}") (lib.attrNames cfg.domains);
         };
 
+        ghaf.firewall =
+          let
+            ports = {
+              dns = 53;
+              kerberos = 88;
+              ldap = 389;
+              kpasswd = 464;
+            };
+            toDc = port: {
+              inherit port;
+              direction = "output";
+              to = map (name: cfg.domains.${name}.dnsProvider.ipAddress) dnsDomains;
+            };
+          in
+          mkIf (dnsDomains != [ ]) {
+            allowedTCPPorts = map toDc (lib.attrValues ports);
+            allowedUDPPorts = map toDc (lib.attrValues ports);
+          };
+
         security.pam.krb5.enable = lib.mkDefault false;
         security.krb5 = optionalAttrs hasKerberosRealm {
           enable = true;

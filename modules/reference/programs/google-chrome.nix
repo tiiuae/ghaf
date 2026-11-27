@@ -78,6 +78,28 @@ in
   options.ghaf.reference.programs.google-chrome = {
     enable = mkEnableOption "Google Chrome program settings";
     openInNormalExtension = mkEnableOption "browser extension to open links in the normal browser";
+    webRtcUdpPorts = mkOption {
+      type = types.nullOr (
+        types.submodule {
+          options = {
+            from = mkOption {
+              type = types.port;
+              description = "First port of the range.";
+            };
+            to = mkOption {
+              type = types.port;
+              description = "Last port of the range.";
+            };
+          };
+        }
+      );
+      # Above the kernel's ephemeral range, so no other socket takes them.
+      default = {
+        from = 61000;
+        to = 61099;
+      };
+      description = "Local UDP port range WebRTC is held to, and may send from to any destination; null leaves WebRTC unconstrained.";
+    };
     defaultPolicy = mkOption {
       type = types.attrs;
       description = ''
@@ -208,6 +230,12 @@ in
           mode = "0664"; # Permissions: read/write for owner/group, no permissions for others
         };
       }
+      # Its own file: programs.chromium also writes extra.json, and the two texts are concatenated.
+      (mkIf (cfg.webRtcUdpPorts != null) {
+        "opt/chrome/policies/managed/webrtc.json".text = builtins.toJSON {
+          WebRtcUdpPortRange = "${toString cfg.webRtcUdpPorts.from}-${toString cfg.webRtcUdpPorts.to}";
+        };
+      })
       (mkIf (cfg.openInNormalExtension && config.ghaf.givc.enable) {
         "opt/chrome/native-messaging-hosts/fi.ssrc.open_normal.json" = {
           source = "${pkgs.chrome-extensions.open-normal}/fi.ssrc.open_normal.json";
@@ -235,5 +263,13 @@ in
             Restart = "always";
           };
         };
+
+    ghaf.firewall.allowedUDPPorts = mkIf (cfg.webRtcUdpPorts != null) [
+      {
+        port = cfg.webRtcUdpPorts;
+        direction = "output";
+        filter = "src";
+      }
+    ];
   };
 }

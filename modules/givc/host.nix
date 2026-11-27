@@ -46,6 +46,14 @@ in
         ];
       }
     ];
+    # Closure updates fetch from the binary cache over HTTPS.
+    ghaf.firewall.allowedTCPPorts = lib.mkIf config.givc.host.closureUpdates [
+      {
+        port = 443;
+        direction = "output";
+      }
+    ];
+
     givc.host = {
       enable = true;
       inherit (config.ghaf.givc) debug;

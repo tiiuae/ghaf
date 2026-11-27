@@ -71,8 +71,23 @@ in
                   storagevm.maximumSize = 100 * 1024; # 100 GB space for chrome-vm
 
                   firewall = {
-                    allowedUDPPorts = config.ghaf.reference.services.chromecast.udpPorts;
-                    allowedTCPPorts = config.ghaf.reference.services.chromecast.tcpPorts;
+                    # Out: the web over HTTP, HTTPS and QUIC.
+                    allowedUDPPorts = [
+                      {
+                        port = 443;
+                        direction = "output";
+                      }
+                    ];
+                    allowedTCPPorts =
+                      map
+                        (port: {
+                          inherit port;
+                          direction = "output";
+                        })
+                        [
+                          80
+                          443
+                        ];
                   };
                 };
               }
@@ -82,6 +97,9 @@ in
         extraModules = [
           {
             microvm.devices = [ ];
+            imports = [ ../services/chromecast/chromecast.nix ];
+            ghaf.reference.services.google-chromecast.enable =
+              config.ghaf.reference.services.google-chromecast.enable;
           }
         ];
       };

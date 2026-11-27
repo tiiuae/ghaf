@@ -37,6 +37,19 @@ in
       default = [ ];
       description = "Wireguard server ports";
     };
+    endpointPorts = lib.mkOption {
+      type = lib.types.submodule {
+        options = {
+          from = lib.mkOption { type = lib.types.port; };
+          to = lib.mkOption { type = lib.types.port; };
+        };
+      };
+      default = {
+        from = 51820;
+        to = 51830;
+      };
+      description = "UDP port range of the peers' endpoints";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -60,7 +73,19 @@ in
         }
       ];
 
-      firewall.allowedUDPPorts = cfg.serverPorts;
+      firewall = {
+        allowedUDPPorts = cfg.serverPorts ++ [
+          {
+            port = cfg.endpointPorts;
+            direction = "output";
+          }
+        ];
+        # Peers are outside Ghaf.
+        extra.output.filter = [
+          "-d 192.168.100.0/24 -p udp --dport ${toString cfg.endpointPorts.from}:${toString cfg.endpointPorts.to} -j REJECT"
+        ];
+        dynamicChains.enable = true;
+      };
     };
 
     systemd.tmpfiles.rules = [

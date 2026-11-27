@@ -46,6 +46,7 @@ in
 
     identity.vmHostNameExport.enable = true;
     type = "system-vm";
+    firewall.restrictOutput = lib.mkDefault true;
 
     systemd = {
       enable = true;
