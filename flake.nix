@@ -168,6 +168,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    trayler = {
+      url = "github:kajusnau/trayler";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Nvidia Orin support for NixOS
     jetpack-nixos = {
       url = "github:tiiuae/jetpack-nixos/second-october-rebase";

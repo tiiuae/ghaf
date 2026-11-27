@@ -46,6 +46,7 @@ in
       inputs.ghafpkgs.overlays.default
       inputs.ctrl-panel.overlays.default
       inputs.givc.overlays.default
+      inputs.trayler.overlays.default
       (_final: prev: {
         ota-update = prev.ota-update.overrideAttrs (old: {
           patches = (old.patches or [ ]) ++ [ ./ota-update-require-esp.patch ];
