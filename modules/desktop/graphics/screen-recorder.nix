@@ -32,7 +32,7 @@ let
           while killall -0 -q gpu-screen-recorder; do
               sleep 0.2
           done
-          action=$(notify-send -h byte:urgency:0 -t 5000 -h "string:image-path:gpu-screen-recorder" -A "open=open" \
+          action=$(notify-send -h byte:urgency:0 -t 5000 -h "string:image-path:com.dec05eba.gpu_screen_recorder" -A "open=open" \
               -a "GPU Screen Recorder" "Screen recording stopped" "Screen recording saved to $HOME/Videos")
           # User clicked the notification
           if [ "$action" = "open" ]; then
@@ -64,7 +64,7 @@ let
       # Recording starts once the portal picker is accepted
       while kill -0 "$recorder" 2>/dev/null; do
           if grep -q "pipewire setup finished" "$log"; then
-              notify-send -h byte:urgency:0 -t 5000 -h "string:image-path:gpu-screen-recorder" -a "GPU Screen Recorder" \
+              notify-send -h byte:urgency:0 -t 5000 -h "string:image-path:com.dec05eba.gpu_screen_recorder" -a "GPU Screen Recorder" \
                   "Screen recording started" "Use CTRL+SHIFT+ALT+R to stop recording"
               exit 0
           fi
@@ -75,7 +75,7 @@ let
       rc=0
       wait "$recorder" || rc=$?
       if [[ $rc -ne 0 && $rc -ne 60 ]]; then
-          notify-send -h byte:urgency:0 -t 5000 -h "string:image-path:gpu-screen-recorder" -a "GPU Screen Recorder" \
+          notify-send -h byte:urgency:0 -t 5000 -h "string:image-path:com.dec05eba.gpu_screen_recorder" -a "GPU Screen Recorder" \
               "Screen recording failed" "Failed to start screen recording"
           exit 1
       fi
