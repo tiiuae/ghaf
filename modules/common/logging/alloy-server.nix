@@ -267,6 +267,11 @@ in
             stage.drop {
               expression = "(GatewayAuthenticator::login|Gateway login succeeded|csd-wrapper|nmcli)"
             }
+            stage.structured_metadata {
+              values = {
+                service_name = "",
+              }
+            }
           }
           discovery.relabel "authenticatedJournal" {
             targets = []
