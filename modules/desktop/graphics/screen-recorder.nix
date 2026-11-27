@@ -9,13 +9,36 @@
 let
   cfg = config.ghaf.graphics.screen-recorder;
 
-  # COSMIC's record dot, forced red; a -symbolic name would be recoloured by the panel
+  # Tray: COSMIC's record dot, forced red; a -symbolic name would be recoloured by the panel.
+  # Launcher: Papirus's screen recorder icon.
   icons = pkgs.runCommand "ghaf-screen-record-icons" { } ''
     install -Dm644 ${pkgs.cosmic-icons}/share/icons/Cosmic/scalable/actions/media-record-symbolic.svg \
       $out/share/icons/hicolor/scalable/status/ghaf-screen-recording.svg
     substituteInPlace $out/share/icons/hicolor/scalable/status/ghaf-screen-recording.svg \
       --replace-fail 'fill="#232323"' 'fill="#e01b24"'
+    install -Dm644 ${pkgs.papirus-icon-theme}/share/icons/Papirus/64x64/apps/com.github.mohelm97.screenrecorder.svg \
+      $out/share/icons/hicolor/scalable/apps/ghaf-screen-record.svg
   '';
+
+  recordDesktopItem = pkgs.makeDesktopItem {
+    name = "ghaf-screen-record";
+    desktopName = "Record Screen";
+    comment = "Start or stop a screen recording (Ctrl+Shift+Alt+R)";
+    exec = "ghaf-screen-record";
+    icon = "ghaf-screen-record";
+    categories = [
+      "AudioVideo"
+      "Recorder"
+    ];
+  };
+
+  # Utility moves it from the app library's Home into its Utilities group
+  gpu-screen-recorder-gtk = pkgs.gpu-screen-recorder-gtk.overrideAttrs (old: {
+    postInstall = (old.postInstall or "") + ''
+      substituteInPlace $out/share/applications/com.dec05eba.gpu_screen_recorder.desktop \
+        --replace-fail "Categories=AudioVideo;Recorder;" "Categories=AudioVideo;Recorder;Utility;"
+    '';
+  });
 
   trayConfig = (pkgs.formats.toml { }).generate "screen-recording-tray.toml" {
     icon = "ghaf-screen-recording";
@@ -170,6 +193,7 @@ in
       # Script to start/stop screen recording
       ghaf-screen-record
       icons
+      recordDesktopItem
     ];
 
     assertions = [
