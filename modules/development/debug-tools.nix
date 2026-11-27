@@ -45,6 +45,12 @@ in
         # For comparing NixOS system closure differences between generations.
         # ghaf-rebuild runs this on the target to print its post-switch package diff.
         dix
+
+        # For debugging network interfaces and traffic
+        ethtool
+
+        # For debugging network interface cards
+        iw
       ]
       # The debug-tools module is shared; the Orin option may not exist elsewhere.
       # Fall back to false so tpm2-tools is added only when fTPM is enabled.

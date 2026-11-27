@@ -107,12 +107,12 @@ let
 
   # Extract values to check for uniqueness
   allHosts = lib.attrValues combinedHosts;
-  getField = field: map (h: h.${field}) allHosts;
+  getField = entries: field: map (h: h.${field}) entries;
 
   checkUnique =
-    field:
+    entries: field:
     let
-      values = getField field;
+      values = getField entries field;
       unique = lib.lists.unique values;
 
       # Find duplicates by filtering values that occur more than once
@@ -123,7 +123,7 @@ let
       # Create a list of duplicates with the corresponding host names
       duplicateNames = lib.lists.filter (
         host: lib.lists.length (lib.lists.filter (x: x == host.${field}) values) > 1
-      ) allHosts;
+      ) entries;
 
     in
     {
@@ -134,13 +134,19 @@ let
       duplicateNames = map (host: host.name) duplicateNames;
     };
 
-  uniquenessChecks = map checkUnique [
-    "mac"
-    "ipv4"
-    "ipv6"
-    "cid"
-    "name"
-  ];
+  reservedMacEntries = lib.mapAttrsToList (name: mac: {
+    inherit name mac;
+  }) config.ghaf.networking.reservedMacs;
+
+  uniquenessChecks =
+    map (checkUnique allHosts) [
+      "ipv4"
+      "ipv6"
+      "cid"
+      "name"
+    ]
+    # Reserved entries carry only a name and a MAC, so they join this check alone.
+    ++ [ (checkUnique (allHosts ++ reservedMacEntries) "mac") ];
 
   uniquenessAssertions = map (check: {
     assertion = check.ok;
@@ -157,7 +163,22 @@ in
       description = "List of hosts entries.";
       default = { };
     };
-
+    vmTapPrefix = mkOption {
+      type = types.str;
+      default = "tap";
+      description = "Prefix for host-side tap interfaces created for VMs";
+    };
+    reservedMacs = mkOption {
+      type = types.attrsOf types.str;
+      default = { };
+      example = {
+        some-interface = "02:00:00:00:00:01";
+      };
+      description = ''
+        MAC addresses in use by interfaces that are not hosts. Registering one
+        here includes it in the same uniqueness check as the host addresses.
+      '';
+    };
   };
 
   config = {

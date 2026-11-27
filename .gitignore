@@ -30,6 +30,9 @@ CLAUDE.local.md
 # ghaf-logs skill snapshots: per-device journals and Robot report.html, written here
 # by default. Diagnostics, not project content, and the HTML trips treefmt.
 ghaf-logs/
+# ghaf-mirror-bench results, written here by default. Measurements of one run on
+# one rig, not project content, and they trip reuse lint.
+ghaf-bench/
 # Ignore VIM backup files (hide them from reuse lint)
 *.swp
 .gcroots/
