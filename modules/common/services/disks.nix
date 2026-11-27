@@ -74,9 +74,13 @@ in
 
     systemd.user.services.udiskie = {
       enable = true;
+      unitConfig = {
+        StartLimitIntervalSec = 6;
+        StartLimitBurst = 3;
+      };
       serviceConfig = {
         Type = "simple";
-        Restart = "always";
+        Restart = "on-failure";
         RestartSec = "1";
         ExecStart = "${pkgs.udiskie}/bin/udiskie -c /etc/udiskie.yml";
       };
