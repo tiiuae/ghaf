@@ -13,6 +13,7 @@ let
     name = "ghaf-screen-record";
 
     runtimeInputs = with pkgs; [
+      gnugrep
       gpu-screen-recorder
       libnotify
       killall
@@ -27,6 +28,10 @@ let
 
       # If gpu-screen-recorder is already running, stop it and exit
       if killall -SIGINT -q gpu-screen-recorder; then
+          # The file is complete only once the recorder has exited
+          while killall -0 -q gpu-screen-recorder; do
+              sleep 0.2
+          done
           action=$(notify-send -h byte:urgency:0 -t 5000 -h "string:image-path:gpu-screen-recorder" -A "open=open" \
               -a "GPU Screen Recorder" "Screen recording stopped" "Screen recording saved to $HOME/Videos")
           # User clicked the notification
@@ -37,27 +42,28 @@ let
       fi
 
       # Create output filename
-      video="$HOME/Videos/ghaf-screen-capture_$(date +"%Y-%m-%d_%H-%M-%S").mp4"
+      mkdir -p "$HOME/Videos"
+      video="$HOME/Videos/ghaf-screen-capture_$(date +"%Y-%m-%d_%H-%M-%S").mkv"
+      log="$XDG_RUNTIME_DIR/ghaf-screen-record.log"
 
       # Start recording
       gpu-screen-recorder \
           -w portal \
-          -c mp4 \
+          -c mkv \
           -k h264 \
           -ac opus \
           -f 60 \
           -cursor yes \
-          -restore-portal-session yes \
           -cr limited \
           -encoder gpu \
           -q very_high \
           -a device:default_output \
-          -o "$video" 9>&- &
+          -o "$video" 9>&- 2>"$log" &
       recorder=$!
 
-      # The recorder writes the file only once the portal picker is accepted
+      # Recording starts once the portal picker is accepted
       while kill -0 "$recorder" 2>/dev/null; do
-          if [[ -s "$video" ]]; then
+          if grep -q "pipewire setup finished" "$log"; then
               notify-send -h byte:urgency:0 -t 5000 -h "string:image-path:gpu-screen-recorder" -a "GPU Screen Recorder" \
                   "Screen recording started" "Use CTRL+SHIFT+ALT+R to stop recording"
               exit 0
