@@ -822,6 +822,7 @@
         "srvos": "srvos",
         "stylix": "stylix",
         "systems": "systems",
+        "trayler": "trayler",
         "treefmt-nix": "treefmt-nix",
         "vhotplug": "vhotplug",
         "wireguard-gui": "wireguard-gui",
@@ -993,6 +994,26 @@
       "original": {
         "owner": "tinted-theming",
         "repo": "base16-zed",
+        "type": "github"
+      }
+    },
+    "trayler": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1795764874,
+        "narHash": "sha256-cxiic3ApCktvFv5Y0l+44o2NMv+knjmfGvlzmrzbW8A=",
+        "owner": "kajusnau",
+        "repo": "trayler",
+        "rev": "7ee7f0bb5c7fd369c9795cbc4a809b7c2f39cc20",
+        "type": "github"
+      },
+      "original": {
+        "owner": "kajusnau",
+        "repo": "trayler",
         "type": "github"
       }
     },
