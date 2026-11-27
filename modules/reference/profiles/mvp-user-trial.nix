@@ -176,6 +176,7 @@ in
           enable = true;
           business.enable = true;
           chrome.enable = true;
+          ephemeralChrome.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
           comms.enable = true;
           flatpak.enable = true;
           media.enable = true;

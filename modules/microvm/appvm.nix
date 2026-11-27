@@ -121,11 +121,8 @@ let
   # Create microvm entry from evaluatedConfig
   makeVm =
     { vm }:
-    let
-      microvmBootEnabled = config.ghaf.microvm-boot.enable or false;
-    in
     {
-      autostart = !microvmBootEnabled;
+      autostart = lib.mkDefault true;
       inherit (inputs) nixpkgs;
       inherit (vm) evaluatedConfig;
     };
