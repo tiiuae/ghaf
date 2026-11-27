@@ -18,7 +18,10 @@ let
   isCrosvm = config.microvm.hypervisor == "crosvm";
   support = pkgs.nvidia-jetpack.orinVirtualizationSupport;
   displayCard = support.passthrough.displayCardPath;
-  hasCompositor = config.services.greetd.enable;
+  compositorServices =
+    lib.optional config.services.greetd.enable "greetd.service"
+    ++ lib.optional config.services.cage.enable "cage-tty1.service";
+  hasCompositor = compositorServices != [ ];
   kmscube-wrapped =
     pkgs.runCommand "kmscube-nomod" { nativeBuildInputs = [ pkgs.buildPackages.makeWrapper ]; }
       ''
@@ -51,8 +54,7 @@ in
   };
 
   systemd.services.dce-rm-deinit = lib.mkIf payload.needsDceBridge {
-    before =
-      lib.optional (!hasCompositor) "kms-owner.service" ++ lib.optional hasCompositor "greetd.service";
+    before = lib.optional (!hasCompositor) "kms-owner.service" ++ compositorServices;
   };
 
   systemd.services.ghaf-crosvm-poweroff = lib.mkIf isCrosvm {
