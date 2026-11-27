@@ -633,6 +633,7 @@ in
       description = "Ghaf graphical session";
       bindsTo = [ "cosmic-session.target" ];
       after = [ "cosmic-session.target" ];
+      partOf = [ "cosmic-session.target" ];
       wantedBy = [ "cosmic-session.target" ];
     };
 
