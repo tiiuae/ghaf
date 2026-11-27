@@ -440,25 +440,7 @@ let
       package = hostConfiguration.config.system.build.ghafImage;
     };
 
-  generate-luks-uki =
-    tgt:
-    tgt
-    // rec {
-      name = tgt.name + "-luks-uki";
-      hostConfiguration = tgt.hostConfiguration.extendModules {
-        modules = [
-          {
-            ghaf.hardware.nvidia.orin.diskEncryption.enable = true;
-            ghaf.hardware.nvidia.orin.diskEncryption.deviceUniqueKey.enable = true;
-            ghaf.image.sdcard.uki.enable = true;
-          }
-        ];
-      };
-      package = hostConfiguration.config.system.build.ghafImage;
-    };
-
-  # Secure verity canaries already contain the outer LUKS cryptpool, so do not
-  # generate duplicate synthetic -luks or -luks-uki variants for them.
+  # Verity canaries already contain the outer LUKS cryptpool.
   luksable-target-configs = builtins.filter (t: !isVerityTarget t) all-target-configs;
 
   # Add nodemoapps targets
@@ -466,9 +448,7 @@ let
     all-target-configs
     ++ (map generate-nodemoapps all-target-configs)
     ++ (map generate-luks luksable-target-configs)
-    ++ (map generate-luks-uki luksable-target-configs)
-    ++ (map (t: generate-luks (generate-nodemoapps t)) luksable-target-configs)
-    ++ (map (t: generate-luks-uki (generate-nodemoapps t)) luksable-target-configs);
+    ++ (map (t: generate-luks (generate-nodemoapps t)) luksable-target-configs);
   crossTargets = map generate-cross-from-x86_64 targets;
 
   flashTarget =
@@ -580,7 +560,7 @@ let
       # supplies one, so keying Secure Boot off it bricked all unsigned
       # flashes.
       #
-      # Use the `-u` flag if the image contains a UKI.
+      # Ghaf Orin images always contain a UKI.
       #
       # Both variants share substituted store paths (jetpack-nixos
       # `flashScript` is a thin wrapper around the same per-target
@@ -597,9 +577,9 @@ let
             esac
           done
           if [ "$sb" = 1 ]; then
-            exec ${lib.getExe withSB} "''${args[@]}"
+            exec ${lib.getExe withSB} --uki "''${args[@]}"
           else
-            exec ${lib.getExe noSB} "''${args[@]}"
+            exec ${lib.getExe noSB} --uki "''${args[@]}"
           fi
         '';
       };
