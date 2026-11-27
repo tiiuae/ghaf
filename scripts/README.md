@@ -1,75 +1,49 @@
-<!--
-SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
-SPDX-License-Identifier: CC-BY-SA-4.0
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
 # Scripts
 
-This directory contains scripts for maintaining the documentation dependencies,
-developing Ghaf, and preparing NixOS flash runtimes.
+This directory contains maintenance and development helpers, plus the launcher
+used by the Nix-built Orin flash runtime artifact.
 
-## Files
+## Orin flash runtime artifact
 
-- `port.sh`: Builds a Ghaf flash derivation and copies its runtime closure to a
-  local directory, remote SSH destination, or compressed tar archive.
-- `launcher.sh`: Mounts a copied runtime and runs `flash-ghaf-host`. For an
-  adjacent `.tar.gz` or `.tgz` archive, it extracts the runtime to a temporary
-  directory and removes it when the command exits.
+The flash runtime is built as a Nix output alongside the Orin flash-script
+packages. The runtime package contains a compressed copy of the exact flasher
+closure, a recorded path to that flasher, and the launcher version from the
+same source revision. It does not rebuild or discover a flasher closure at
+release time.
+
+For example, build the NX debug runtime on x86_64:
+
+```bash
+nix build .#nvidia-jetson-orin-nx-debug-from-x86_64-flash-runtime
+```
+
+The result directory contains `flash-runtime.tar.gz` and `launcher.sh`. Keep
+both files together when publishing or downloading the artifact. Run
+`./result/launcher.sh` to extract the adjacent archive into a temporary
+runtime and start the bundled flasher. The Linux host needs `bash`, `tar`,
+`gzip`, `sudo`, and mount support.
+
+The artifact is a regular Nix package output and can be selected by release
+jobs for publication to the project's artifact or OCI storage. The flasher and
+launcher are pinned together by the Nix derivation, so release testing and
+customer downloads can use the same build result.
+
+`port.sh` remains as a convenience wrapper for building this Nix output and
+copying the resulting archive and launcher to a local directory. It no longer
+copies or assembles Nix store closures itself.
+
+## Other scripts
+
 - `update-npm-deps-hash.sh`: Automatically updates the `npmDepsHash` in
   `/docs/default.nix` when Dependabot updates the documentation dependencies.
 - `test-update-npm-deps-hash.sh`: Validates the npm dependency hash update
   functionality.
 - `dev-container.sh`, `dev-vm.sh`, and `ubuntu-setup.sh`: Development setup
   helpers.
-
-## Exporting a flash runtime
-
-Run `port.sh` from the Ghaf Support repository root so Nix uses this project's
-flake. By default, it builds
-`#nvidia-jetson-orin-nx-debug-from-x86_64-flash-qspi` and includes the Bash,
-coreutils, and util-linux runtime closures.
-
-```bash
-# Copy the runtime to a local directory
-./scripts/port.sh /mnt/flash-runtime
-
-# Copy to a remote Linux host (SSH and remote rsync required)
-./scripts/port.sh user@host:/srv/flash-runtime
-
-# Create a gzip-compressed archive and place launcher.sh beside it
-./scripts/port.sh -tar /mnt/usb/flash-runtime.tar.gz
-
-# Select another flake attribute
-./scripts/port.sh /mnt/flash-runtime '#nixosConfigurations.host.config.system.build.toplevel'
-```
-
-Local directory mode uses `sudo` to create and populate the destination. Tar
-mode stages the runtime under a temporary directory and does not need `sudo`.
-For tar mode, the destination is an archive file path; `.tar` is changed to
-`.tar.gz`, and destinations without an archive suffix get `.tar.gz` appended.
-The launcher is placed in the archive's directory. Set `LAUNCHER_URL` to use a
-launcher other than the copy alongside `port.sh`.
-
-## Running the flash runtime
-
-For a directory runtime, pass its root or set `RUNTIME_ROOT`:
-
-```bash
-./scripts/launcher.sh --runtime-root=/mnt/flash-runtime
-./scripts/launcher.sh --runtime-root /mnt/flash-runtime --debug -- --flash-option value
-```
-
-When `launcher.sh` is beside a single `.tar.gz` or `.tgz` archive, run it
-without `--runtime-root`; it extracts and cleans up the runtime automatically:
-
-```bash
-cd /mnt/usb
-./launcher.sh --debug -- --flash-option value
-```
-
-The target Linux system needs `sudo` and mount support. The launcher uses a
-private mount namespace when `unshare` is available and otherwise temporarily
-bind-mounts the runtime at `/nix`.
 
 ## NPM Dependencies Hash Automation
 
@@ -85,25 +59,8 @@ or `/docs/package-lock.json`, the GitHub workflow
 
 ## Testing
 
-Run the test script to validate functionality:
+Run the test script to validate the npm dependency hash automation:
 
 ```bash
 ./scripts/test-update-npm-deps-hash.sh
 ```
-
-This tests:
-
-- Hash extraction from various Nix error message formats
-- File structure validation
-- Sed replacement functionality
-- Script permissions
-
-## Manual Usage
-
-The script can also be run manually when needed:
-
-```bash
-./scripts/update-npm-deps-hash.sh
-```
-
-Note: This requires Nix to be installed and the script will attempt to build the documentation package to determine the correct hash.

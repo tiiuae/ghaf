@@ -83,43 +83,35 @@ let
     }
   ];
 
-  mkOrinSecureUpdateModule =
-    target:
-    {
-      config,
-      ...
-    }:
-    {
-      ghaf = {
-        partitioning.verity = {
-          # Both Orin variants have room for two 12 GiB roots on the 64 GB AGX
-          # eMMC while retaining roughly 30 GiB for persist. Current signed
-          # canaries use less than 5 GiB of root data and 40 MiB of verity data.
-          rootSlotSizeMiB = 12 * 1024;
-          veritySlotSizeMiB = 256;
-        };
-        secureUpdate = {
-          enable = true;
-          inherit target;
-        };
-        hardware.nvidia.orin.secureboot = {
-          inherit (config.ghaf.secureUpdate) publicTrustDigests;
-          keysSource = lib.mkForce inputs.secure-ab-build-config;
-        };
+  mkOrinSecureUpdateModule = target: { config, ... }: {
+    ghaf = {
+      partitioning.verity = {
+        # Both Orin variants have room for two 12 GiB roots on the 64 GB AGX
+        # eMMC while retaining roughly 30 GiB for persist. Current signed
+        # canaries use less than 5 GiB of root data and 40 MiB of verity data.
+        rootSlotSizeMiB = 12 * 1024;
+        veritySlotSizeMiB = 256;
+      };
+      secureUpdate = {
+        enable = true;
+        inherit target;
+      };
+      hardware.nvidia.orin.secureboot = {
+        inherit (config.ghaf.secureUpdate) publicTrustDigests;
+        keysSource = lib.mkForce inputs.secure-ab-build-config;
       };
     };
+  };
 
   # Static HTTP is a deliberately manual development transport. Keep its
   # download/parsing tools in the secure canary net-vm, which owns external
   # networking, rather than giving the Ghaf host direct network access.
-  orinUpdateHttpFetchModule =
-    { pkgs, ... }:
-    {
-      environment.systemPackages = with pkgs; [
-        curl
-        jq
-      ];
-    };
+  orinUpdateHttpFetchModule = { pkgs, ... }: {
+    environment.systemPackages = with pkgs; [
+      curl
+      jq
+    ];
+  };
 
   # Non-verity Orin configurations using mkGhafConfiguration
   target-configs = [
@@ -249,7 +241,6 @@ let
         graphics.cosmic.renderDevice = "/dev/dri/renderD128";
       };
     })
-
   ];
 
   verity-target-configs =
@@ -623,6 +614,9 @@ let
   # eval, which is where the eval memory goes. Flash a `nodemoapps` image with the
   # base target's script and `-s <image>`.
   flashCrossTargets = builtins.filter (t: !(t.isNoDemoApps or false)) crossTargets;
+  flashQspiTargets = builtins.filter (
+    t: !(isVerityTarget t) || (t.isSecureAB or false)
+  ) flashCrossTargets;
 in
 {
   flake = {
@@ -648,7 +642,22 @@ in
             t:
             #Note: secureTarget does not toggle between secureboot on/off!!
             lib.nameValuePair "${t.name}-flash-qspi" (lazyPackage "${t.name}-flash-qspi" (flashTarget t true))
-          ) (builtins.filter (t: !(isVerityTarget t) || (t.isSecureAB or false)) flashCrossTargets)
+          ) flashQspiTargets
+        )
+        // builtins.listToAttrs (
+          map (
+            t:
+            let
+              name = "${t.name}-flash-runtime";
+              runtime = import ./flash-runtime.nix {
+                pkgs = pkgsX86;
+                inherit name;
+                flasher = flashTarget t true;
+                launcher = ../../scripts/launcher.sh;
+              };
+            in
+            lib.nameValuePair name (lazyPackage name runtime)
+          ) flashQspiTargets
         )
         # OTA update artifacts for verity targets
         // builtins.listToAttrs (
