@@ -143,6 +143,23 @@ let
       ) (builtins.attrValues baseTargets);
     }
     {
+      name = "Orin guests without hardware passthrough share one kernel";
+      ok = lib.all (
+        host:
+        let
+          guests = lib.removeAttrs host.microvm.vms [
+            "net-vm"
+            "gui-vm"
+          ];
+        in
+        lib.length (
+          lib.unique (
+            lib.mapAttrsToList (_: vm: vm.evaluatedConfig.config.boot.kernelPackages.kernel.drvPath) guests
+          )
+        ) == 1
+      ) (map hostConfig (builtins.attrValues baseTargets));
+    }
+    {
       name = "CAN tools ship only in debug NetVMs";
       ok = lib.all (
         target:
