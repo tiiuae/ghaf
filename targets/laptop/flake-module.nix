@@ -54,6 +54,9 @@ let
       ghaf.host.secureboot.enable = true;
       services.fwupd.enable = true;
 
+      # The stock kernel already ships these modules; patching it forfeits cache.nixos.org.
+      ghaf.firewall.kernel-modules.enable = lib.mkForce false;
+
       # The dev-key roster is org data: without the TII org module the debug
       # authorizedKeys list is empty and the installer is reachable by no one.
       ghaf.reference.org.tii.enable = true;

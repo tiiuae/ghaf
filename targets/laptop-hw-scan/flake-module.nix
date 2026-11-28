@@ -33,6 +33,8 @@ let
               # fills security.ssh.debug.authorizedKeys via the ghaf.org
               ghaf.reference.org.tii.enable = true;
               ghaf.global-config.debug.enable = true;
+              # The stock kernel already ships these modules; patching it forfeits cache.nixos.org.
+              ghaf.firewall.kernel-modules.enable = lib.mkForce false;
               users.users.nixos.openssh.authorizedKeys.keys = config.ghaf.security.ssh.debug.authorizedKeys;
               systemd.services.wpa_supplicant.wantedBy = lib.mkForce [ "multi-user.target" ];
               systemd.services.sshd.wantedBy = lib.mkForce [ "multi-user.target" ];
